@@ -1,0 +1,110 @@
+#include "totvs.ch"
+
+// IMPRESSORA TLP2844
+#define cPorta  "LPT1"
+#define cModelo "ELTRON"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME05   ºAutor  ³                    º Data ³  10/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Emissão de Etiqueta CAIXA                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME05()
+
+Local oDlg                       
+Local cSEQATU := ""                 
+Local cP1 := ""                 
+Local cP2 := ""                 
+Local nQTD := 0
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+cMV := "MV_CXF" + SM0->M0_CODFIL
+DbSelectArea("SX6")
+SX6->(dbSetOrder(1))
+If SX6->(!DbSeek(cFilAnt+cMV))
+	RecLock( "SX6",.T. )
+	SX6->X6_FIL     := cFilAnt
+	SX6->X6_VAR     := cMV
+	SX6->X6_TIPO    := "C"
+	SX6->X6_CONTEUD := alltrim(cFilAnt)+"00000000"
+	SX6->X6_DESCRIC := "Sequencia da Caixa por Filial"
+	MsUnLock()
+EndIf
+
+DbSelectArea("SX6")
+SX6->(dbSetOrder(1))
+If SX6->(DbSeek(cFilAnt+cMV))
+	cSEQATU := ALLTRIM(SX6->X6_CONTEUD)
+	cP1 := SUBSTR(ALLTRIM(SX6->X6_CONTEUD),1,2)
+	cP2 := SUBSTR(ALLTRIM(SX6->X6_CONTEUD),3,8)
+EndIf
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 320,398 PIXEL TITLE "Impressão de Sequência de Caixas por Filial"
+
+@ 003+(20*1),010 Say "Filial: " of oDlg Pixel
+@ 002+(20*1),070 MsGet oP1 Var cP1 when .F. Size 20,10 of oDlg Pixel
+
+@ 003+(20*2),010 Say "Sequência ATUAL: " of oDlg Pixel
+@ 002+(20*2),070 MsGet oP2 Var cP2 when .F. Size 20,10 of oDlg Pixel
+
+@ 003+(20*3),010 Say "Quantidade: " of oDlg Pixel
+@ 002+(20*3),070 MsGet oQtd Var nQTD Picture "999" when .T. Size 20,10 of oDlg Pixel
+
+@ 145,140 BUTTON "Imprimir" SIZE 28,13 PIXEL OF oDlg ACTION (FPrint(cP1,cP2,nQTD,cMV),oDlg:End())
+@ 145,170 BUTTON "Sair" SIZE 28,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+
+Static Function FPrint(cP1,cP2,nQTD,cMV)
+
+IF(nQTD <= 0)
+	MsgInfo("Quantidade Invalida !","Atenção")
+	Return()
+endif
+
+MSCBPRINTER(cModelo, cPorta)
+MSCBCHKStatus(.f.)
+
+cPAR1   := cP1
+cPAR2   := VAL(cP2)
+cCODBAR := ""
+For nS := 1 to nQTD
+	
+	cPAR2 := cPAR2 + 1
+	cCODBAR := cPAR1+STRZERO(cPAR2,8)
+	                      
+    
+	 MSCBBEGIN(1,6)	               
+     MSCBSAYBAR(31,03,cCODBAR,'N','MB07',10,.T.,.T.,,,4,2)
+	 MSCBEND()                              
+	 
+	 SLEEP(600)
+	
+Next nS
+
+MSCBCLOSEPRINTER()
+
+DbSelectArea("SX6")
+SX6->(dbSetOrder(1))
+If SX6->(DbSeek(cFilAnt+cMV))
+	RecLock( "SX6",.F. )
+	SX6->X6_CONTEUD := cCODBAR
+	MsUnLock()
+EndIf
+
+Return nil

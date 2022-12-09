@@ -1,0 +1,131 @@
+#Include "Rwmake.ch"
+#Include "Protheus.ch"
+#Include "Topconn.ch"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³COM01G01  ºAutor  ³ Sergio Lacerda - SNL SISTEMAS  º Data ³  22/06/13   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Gatilho Responsavel pelo Retorno do Saldo Atual no momento da Entrada  º±±
+±±º          ³da Nota Fiscal                                                          º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function COM01G01(cOpcao)
+
+Local nPosCod	:= 0
+Local nPosLoc	:= 0
+Local cProduto	:= ""
+Local cLoca		:= ""
+Local nLinha	:= n
+Local aArea		:= GetArea()
+Local nSaldo	:= 0
+Default cOpcao 	:= "1"
+
+If cOpcao == "1" // Gatilho Executado Atraves do Campo D1_COD - Codigo do Produto
+	cProduto 	:= M->D1_COD
+	nPosLoc		:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_LOCAL"})
+	cLocal 		:= aCols[nLinha][nPosLoc]
+	
+	DbSelectArea("SB2")
+	DbSetOrder(1)
+	If DbSeek(xFilial("SB2") + cProduto + cLocal)
+		nSaldo := SaldoSb2()
+	Else
+		DbSelectArea("SB1")
+		DbSetOrder(1)
+		If DbSeek(xFilial("SB1") + cProduto)
+			DbSelectArea("SB2")
+			DbSetOrder(1)
+			If DbSeek(xFilial("SB2") + SB1->B1_COD + SB1->B1_LOCPAD)
+				nSaldo := SaldoSb2()
+			Else
+				nSaldo := 0
+			Endif
+		Else
+			nSaldo := 0
+		Endif
+	Endif
+Elseif cOpcao == "2" // Gatilho Executado Atraves do Campo D1_LOCAL - Armazem do Produto
+	nPosCod 	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_COD"})
+	cProduto	:= aCols[nLinha][nPosCod]
+	cLocal 		:= M->D1_LOCAL
+		
+	DbSelectArea("SB2")
+	DbSetOrder(1)
+	If DbSeek(xFilial("SB2") + cProduto + cLocal)
+		nSaldo := SaldoSb2()
+	Else
+		DbSelectArea("SB1")
+		DbSetOrder(1)
+		If DbSeek(xFilial("SB1") + cProduto)
+			DbSelectArea("SB2")
+			DbSetOrder(1)
+			If DbSeek(xFilial("SB2") + SB1->B1_COD + SB1->B1_LOCPAD)
+				nSaldo := SaldoSb2()
+			Else
+				nSaldo := 0
+			Endif
+		Else
+			nSaldo := 0
+		Endif
+	Endif
+Elseif cOpcao == "3" // Gatilho executado atraves do campo D1_TES	
+	nPosCod 	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_COD"})
+	cProduto	:= aCols[nLinha][nPosCod]
+	nPosLoc		:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_LOCAL"})
+	cLocal 		:= aCols[nLinha][nPosLoc]
+		
+	DbSelectArea("SB2")
+	DbSetOrder(1)
+	If DbSeek(xFilial("SB2") + cProduto + cLocal)
+		nSaldo := SaldoSb2()
+	Else
+		DbSelectArea("SB1")
+		DbSetOrder(1)
+		If DbSeek(xFilial("SB1") + cProduto)
+			DbSelectArea("SB2")
+			DbSetOrder(1)
+			If DbSeek(xFilial("SB2") + SB1->B1_COD + SB1->B1_LOCPAD)
+				nSaldo := SaldoSb2()
+			Else
+				nSaldo := 0
+			Endif
+		Else
+			nSaldo := 0
+		Endif
+	Endif
+Elseif cOpcao == "4" // Retorna a aliquota de II registrada no Pedido de Compra
+	nPosCod 	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_COD"})
+	cProduto	:= aCols[nLinha][nPosCod]
+	nPosPed		:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_PEDIDO"})
+	cPedido		:= aCols[nLinha][nPosPed]
+	nPosItem	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_ITEMPC"})
+	cItemPc		:= aCols[nLinha][nPosItem]
+	nSaldo		:= 0
+	
+	SC7->(DbsetOrder(1))
+	If SC7->(DbSeek(xFilial("SC7") + cPedido + cItemPc))
+		nSaldo := SC7->C7_DHVLRII
+	Endif
+Elseif cOpcao == "5" // Retorna	 o calculo aproximado do valor de II
+	nSaldo	:= 0	
+	
+	nPosTotal	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_TOTAL"})
+	nValTot		:= aCols[nLinha][nPosTotal]
+	
+	nPosAliqII	:= aScan(aHeader,{|x| AllTrim(x[2]) == "D1_ALIQII"})
+	nAliqII		:= aCols[nLinha][nPosAliqII]
+	
+	nSaldo := nValTot - Round((nValTot / (1+(nAliqII/100))),2)
+Elseif cOpcao == "6" // Recalculo da Base de PIS
+Elseif cOpcao == "7" // Recalculo da Base de Cofins
+Endif
+
+RestArea(aArea)
+
+Return(nSaldo)	          

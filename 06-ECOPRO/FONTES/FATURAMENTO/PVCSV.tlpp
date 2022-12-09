@@ -1,0 +1,429 @@
+#Include "Protheus.ch"
+
+#DEFINE ENTER chr(13)+chr(10)
+
+//---------------------------------------------------------------------------------
+// Rotina | PVCSV          | Autor | Lucas Baia          | Data |    15/09/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Função chamada para realizar a conversão de XLS para um array pela
+//        | Solicitação de Compras.																		
+//---------------------------------------------------------------------------------
+// Uso    | ECOPRO SUSTENTAVEL																
+//---------------------------------------------------------------------------------
+
+User Function PVCSV(cArqE,cOrigemE,nLinTitE,lTela)
+
+
+Local bOk        := {||lOk:=.T.,oDlg:End()}
+Local bCancel    := {||lOk:=.F.,oDlg:End()}
+Local lOk        := .F.
+Local nLin       := 35
+Local nCol1      := 15
+Local nCol2      := nCol1+30
+Local cMsg       := ""
+Local oDlg
+Local oArq
+Local oOrigem
+Local oMacro
+Local  nn 		:= 1
+Local  nV       := 1
+lOCAL  nPerc    := 50
+Local  cTes	    := '558'
+private  ly1    := .T.
+private  ly2    := .T.
+private  ly3    := .T.
+private  ly4    := .T.
+private  cStu   := space(15) //
+
+Default lTela := .T.
+
+Private cArq       := "teste.csv" //If(ValType(cArqE)=="C",cArqE,"")
+Private cArqMacro  := "XLS2DBF.XLA"
+Private cTemp      := "C:\Temp\"//GetTempPath() //pega caminho do temp do client
+Private cSystem    := Upper(GetSrvProfString("STARTPATH",""))//Pega o caminho do sistema
+Private cOrigem    := If(ValType(cOrigemE)=="C",cOrigemE,"")
+Private nLinTit    := If(ValType(nLinTitE)=="N",nLinTitE,0)
+Private aArquivos  := {}
+Private aRet       := {}
+Private cFile      := "C:\Temp\"
+
+cArq       += Space(20-(Len(cArq)))
+cOrigem    += Space(99-(Len(cOrigem)))
+
+If lTela .Or. Empty(AllTrim(cArq)) .Or. Empty(AllTrim(cOrigem))
+	
+	Define MsDialog oDlg Title 'Integração de Excel' From 5,10 To 23,50 OF oMainWnd
+	@ nLin,nCol1  Say      'Arquivo :'                                Of oDlg Pixel
+	@ nLin,nCol2  MsGet    oArq   Var cArq                 Size 60,09 Of oDlg Pixel
+	nLin += 15
+	@ nLin,nCol1  Say      'Caminho do arquivo :'                     Of oDlg Pixel
+	nLin += 10
+	@ nLin,nCol1    MsGet    oOrigem Var CFILE         Size 130,09 Of oDlg Pixel
+	@ nlin,ncol2+100 BUTTON '...' Size 09, 11 action(cFile := cGetFile('Arquivo *|*.*|Arquivo XLSX|*.XLSX','Retorna Diretorio',0,'C:\',.T.,GETF_LOCALHARD+GETF_RETDIRECTORY,.F.)) of oDlg Pixel
+	nLin += 15
+	@ nLin,nCol1  Say      'Nome da Macro :'                          Of oDlg Pixel
+	nLin += 10
+	@ nLin,nCol1  MsGet    oMacro  Var cArqMacro When .F. Size 130,09 Of oDlg Pixel
+	Activate MsDialog oDlg On Init Enchoicebar(oDlg,bOk,bCancel) Centered
+Else
+	lOk := .T.
+EndIf
+
+If lOk
+	CORIGEM := CFILE
+	cMsg    := ValidaCpos()
+	
+	If Empty(cMsg)
+		aAdd(aArquivos, cArq)
+		IntegrZArq()
+	Else
+		MsgStop(cMSg)
+		Return
+	EndIf
+EndIf
+Return aRet
+
+/*
+Funcao      : IntegraArq
+Objetivos   : Faz a chamada das rotinas referentes a integração
+Autor       : Ricardo Cavalini
+Data/Hora   : 05/02/2017
+*/
+*-------------------------*
+Static Function IntegrZArq()
+*-------------------------*
+Local lConv      := .F.
+//converte arquivos xls para csv copiando para a pasta temp
+MsAguarde( {|| ConOut("Começou conversão do arquivo " + cArq + " - " + Time()),lConv := convArqZ(aArquivos) }, "Convertendo arquivos", "Convertendo arquivos" )
+
+If lConv
+	
+	//carrega do xls no array
+	ConOut("Terminou conversão do arquivo " + cArq + " - "+Time())
+	ConOut("Começou carregamento do arquivo " + cArq + " - "+Time())
+	Processa( {|| aRet:= CargaArray(AllTrim(cArq)) } ,"Aguarde, carregando planilha..." + ENTER + "Pode demorar")
+	
+	// Gera Sub
+	Processa( {|| u_CargaSC6(aRet) } ,"Aguarde, Importação em processo...")
+	
+	ConOut("Terminou carregamento do arquivo " + cArq + " - " + Time())
+EndIf
+Return
+
+/*
+Funcao      : convArqs
+Objetivos   : converte os arquivos .xls para .csv
+Autor       : Ricardo Cavalini
+Data/Hora   : 05/02/2017
+*/
+*-------------------------*
+Static Function convArqZ(aArqs)
+*-------------------------*
+Local oExcelApp
+Local cNomeXLS  := ""
+Local cFile     := ""
+Local cExtensao := ""
+Local i         := 1
+Local j         := 1
+Local aExtensao := {}
+
+cOrigem := AllTrim(cOrigem)
+
+//Verifica se o caminho termina com "\"
+If !Right(cOrigem,1) $ "\"
+	cOrigem := AllTrim(cOrigem)+"\"
+EndIf
+
+//loop em todos arquivos que serão convertidos
+For i := 1 To Len(aArqs)
+	
+	If !"." $ AllTrim(aArqs[i])
+		//passa por aqui para verifica se a extensão do arquivo é .xls ou .xlsx
+		aExtensao := Directory(cOrigem+AllTrim(aArqs[i])+".*")
+		For j := 1 To Len(aExtensao)
+			If "XLS" $ Upper(aExtensao[j][1])
+				cExtensao := SubStr(aExtensao[j][1],Rat(".",aExtensao[j][1]),Len(aExtensao[j][1])+1-Rat(".",aExtensao[j][1]))
+				Exit
+			EndIf
+		Next j
+	EndIf
+	//recebe o nome do arquivo corrente
+	cNomeXLS := AllTrim(aArqs[i])
+	cFile    := cOrigem+cNomeXLS+cExtensao
+	
+	If !File(cFile)
+		MsgInfo("O arquivo " + cFile + " não foi encontrado!" ,"Arquivo")
+		Return .F.
+	EndIf
+	
+	//verifica se existe o arquivo na pasta temporaria e apaga
+	/*If File(cTemp+cNomeXLS+cExtensao)
+		fErase(cTemp+cNomeXLS+cExtensao)
+	EndIf*/
+	
+	//Copia o arquivo XLS para o Temporario para ser executado
+	If !AvCpyFile(cFile,cTemp+cNomeXLS+cExtensao,.F.)
+		MsgInfo("Problemas na copia do arquivo " + cFile + " para "+cTemp+cNomeXLS+cExtensao ,"AvCpyFile()")
+		Return .F.
+	EndIf
+	
+	//apaga macro da pasta temporária se existir
+	If File(cTemp+cArqMacro)
+		fErase(cTemp+cArqMacro)
+	EndIf
+	
+	//Copia o arquivo XLA para o Temporario para ser executado
+	If !AvCpyFile(cSystem+cArqMacro,cTemp+cArqMacro,.F.)
+		MsgInfo("Problemas na copia do arquivo " + cSystem + cArqMacro + "para" + cTemp + cArqMacro ,"AvCpyFile()")
+		Return .F.
+	EndIf
+	
+	//Exclui o arquivo antigo (se existir)
+	/*If File(cTemp+SUBSTRING(cNomeXLS,1,RAT(".",cNomeXLS))+"csv")
+		fErase(cTemp+SUBSTRING(cNomeXLS,1,RAT(".",cNomeXLS))+"csv")
+	EndIf*/
+	
+	//Inicializa o objeto para executar a macro
+	oExcelApp := MsExcel():New()
+	//define qual o caminho da macro a ser executada
+	oExcelApp:WorkBooks:Open(cTemp+cArqMacro)
+	//executa a macro passando como parametro da macro o caminho e o nome do excel corrente
+	oExcelApp:Run(cArqMacro+'!XLS2DBF',cTemp,cNomeXLS)
+	//fecha a macro sem salvar
+	oExcelApp:WorkBooks:Close('savechanges:=False')
+	//sai do arquivo e destrói o objeto
+	oExcelApp:Quit()
+	oExcelApp:Destroy()
+	
+	//Exclui o Arquivo excel da temp
+	/*fErase(cTemp+cNomeXLS+cExtensao)
+	fErase(cTemp+cArqMacro) //Exclui a Macro no diretorio temporario*/
+Next i
+Return .T.
+
+/*
+Funcao      : CargaDados
+Objetivos   : carrega dados do csv no array pra retorno
+Parâmetros  : cArq - nome do arquivo que será usado
+Autor       : Ricardo Cavalini
+Data/Hora   : 05/02/2017
+*/
+*-------------------------*
+Static Function CargaArray(cArq)
+*-------------------------*
+Local cLinha  := ""
+Local nLin    := 1
+Local nTotLin := 0
+Local aDados  := {}
+Local cFile   := cTemp + SUBSTRING(cArq,1,RAT(".",cArq)) + "csv"
+Local nHandle := 0
+
+//abre o arquivo csv gerado na temp
+nHandle := Ft_Fuse(cFile)
+If nHandle == -1
+	Return aDados
+EndIf
+Ft_FGoTop()
+nLinTot := FT_FLastRec()-1
+ProcRegua(nLinTot)
+//Pula as linhas de cabeçalho
+While nLinTit > 0 .AND. !Ft_FEof()
+	Ft_FSkip()
+	nLinTit--
+End
+
+//percorre todas linhas do arquivo csv
+While !Ft_FEof()
+	//exibe a linha a ser lida
+	IncProc("Carregando Linha "+AllTrim(Str(nLin))+" de "+AllTrim(Str(nLinTot)))
+	nLin++
+	//le a linha
+	cLinha := Ft_FReadLn()
+	//verifica se a linha está em branco, se estiver pula
+	If Empty(AllTrim(StrTran(cLinha,';','')))
+		Ft_FSkip()
+		Loop
+	EndIf
+	//transforma as aspas duplas em aspas simples
+	cLinha := StrTran(cLinha,'"',"'")
+	cLinha := '{"'+cLinha+'"}'
+	//adiciona o cLinha no array trocando o delimitador ; por , para ser reconhecido como elementos de um array
+	cLinha := StrTran(cLinha,';','","')
+	aAdd(aDados, &cLinha)
+	
+	//passa para a próxima linha
+	FT_FSkip()
+End
+
+//libera o arquivo CSV
+FT_FUse()
+
+//Exclui o arquivo csv
+/*If File(cFile)
+	FErase(cFile)
+EndIf*/
+
+Return aDados
+
+
+/*
+Funcao      : validaCpos
+Objetivos   : faz a validação dos campos da tela de filtro
+Autor       : Ricardo Cavalini
+Data/Hora   : 05/02/2017
+*/
+*-------------------------*
+Static Function validaCpos()
+*-------------------------*
+Local cMsg := ""
+
+If Empty(cArq)
+	cMsg += "Campo Arquivo deve ser preenchido!"+ENTER
+EndIf
+
+If Empty(cOrigem)
+	cMsg += "Campo Caminho do arquivo deve ser preenchido!"+ENTER
+EndIf
+
+If Empty(cArqMacro)
+	cMsg += "Campo Nome da Macro deve ser preenchido!"
+EndIf
+
+Return cMsg
+
+
+// ALIMENTA ACOLS E HEADER COM OS DADOS DA PLANILHA
+User Function CargaSC6(aRet)
+Local _nY       := 0
+_aProd  		:= aret
+_nlinto 		:= len(aret) - 1
+_nlinat 		:= 0
+adados  		:= {}
+_NLOGA  		:= 0
+nn      		:= "01"
+
+/*If len(aCols) > 1 .or. alltrim(aCols[1][2]) <> ""
+	alert("Atenção nao pode usar esta rotina para orçamentos com Itens lançados")
+	Return
+Endif*/
+
+_nPosqt      := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_QTDVEN"})
+_nPospro     := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_PRODUTO"})
+_nPosDesc    := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_DESCRI"})
+_nPosLocal   := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_LOCAL"})
+_nPosPrcVen  := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_PRCVEN"}) 
+_nPosTES     := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_TES"})
+_nPosTotal   := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_VALOR"})
+_nPosPrUnit  := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_PRUNIT"})
+_nPosDtEnt	 := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_ENTREG"})
+_nPosDtSug   := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_SUGENTR"})
+_nPosClas	 := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_CLASFIS"})
+_nPosEst	 := ascan(aHeader,{|_vAux|alltrim(_vAux[2])=="C6_XQTDDES"})
+N            := 1
+
+For _nlinat := 1 to len(aret)
+	
+	if ALLTRIM(aret[_nlinat,01]) <> "PRODUTO"
+		_CCODCSV := aret[_nlinat,01] //Código de Produto
+		_NQTDCSV := VAL(STRTRAN(aret[_nlinat,02],",",".")) // Quantidade
+		_NPRICSV := VAL(STRTRAN(aret[_nlinat,03],",",".")) //aret[_nlinat,03] // Preço
+		_CODTES	 := aret[_nlinat,04] // TES
+		
+		If nn >= "01"
+			aCstu        := {}
+			aadd(aCOLS,Array(Len(aHeader)+1))
+			
+			For nY := 1 To Len(aHeader)
+				
+				If ( AllTrim(aHeader[nY][2]) == 'C6_ITEM' )
+					aCols[Len(aCols)][nY] := nn //strzero(nn,2)
+					M->C6_ITEM            := nn //strzero(nn,2)
+				Else
+					If aHeader[nY,10] == "V"
+						
+						If Alltrim(aHeader[nY][2]) = "C6_ALI_WT"
+							aCols[Len(aCols)][nY] := "SC6"
+						ElseIf Alltrim(aHeader[nY][2]) = "C6_REC_WT"
+							aCols[Len(aCols)][nY] := 0
+						else
+							aCols[Len(aCols)][nY] := CriaVar(Alltrim(aHeader[nY][2]))
+						ENDIF
+
+						//aCols[Len(aCols)][nY] := iif(Alltrim(aHeader[nY][2]) = "C6_ALI_WT","SC6",iif(Alltrim(aHeader[nY][2]) = "C6_REC_WT",0,CriaVar(Alltrim(aHeader[nY][2]))))
+					Else
+						aCols[Len(aCols)][nY] := ("SC6")->&(Alltrim(aHeader[nY,2]))
+					EndIf
+				EndIf
+			Next nY
+			
+			N  := Len(aCols)
+			//aCOLS[N][Len(aHeader)+1] := .F.
+		ENDIF
+		
+		
+		acols[n,_nPospro]       := _CCODCSV
+		M->C6_PRODUTO           := _CCODCSV
+		
+		acols[N,_nPosqt]        := _NQTDCSV
+		M->C6_QTDVEN            := _NQTDCSV
+		If ExistTrigger('C6_QTDVEN') // verifica se existe trigger para este campo
+  			RunTrigger(2,n,nil,,'C6_QTDVEN')
+		Endif
+
+		acols[N,_nPosPrcVen ]   := _NPRICSV
+		M->C6_PRCVEN            := _NPRICSV
+		If ExistTrigger('C6_PRCVEN') // verifica se existe trigger para este campo
+  			RunTrigger(2,n,nil,,'C6_PRCVEN')
+		Endif
+
+		acols[N,_nPosTotal ]    := A410Arred(acols[N,_nPosPrcVen ] * acols[N,_nPosqt],"C6_VALOR")
+		M->C6_VALOR             := A410Arred(acols[N,_nPosPrcVen ] * acols[N,_nPosqt],"C6_VALOR")
+
+		acols[N,_nPosTES ]      := _CODTES
+		M->C6_TES               := _CODTES
+		If ExistTrigger('C6_TES') // verifica se existe trigger para este campo
+  			RunTrigger(2,n,nil,,'C6_TES')
+		Endif
+
+		acols[N,_nPosPrUnit ]     := _NPRICSV
+		M->C6_PRUNIT              := _NPRICSV
+
+		acols[N,_nPosDesc]      := Posicione("SB1",1,xFilial("SB1")+M->C6_PRODUTO,"B1_DESC")
+		M->C6_DESCRI            := Posicione("SB1",1,xFilial("SB1")+M->C6_PRODUTO,"B1_DESC")
+		
+		acols[N,_nPosLocal ]     := POSICIONE("SB1",1,XFILIAL("SB1")+M->C6_PRODUTO,"B1_LOCPAD")
+		M->C6_LOCAL              := POSICIONE("SB1",1,XFILIAL("SB1")+M->C6_PRODUTO,"B1_LOCPAD")
+
+		acols[N,_nPosDtEnt ]    := DDATABASE
+		M->C6_ENTREG            := DDATABASE
+
+		acols[N,_nPosDtSug ]    := DDATABASE
+		M->C6_SUGENTR           := DDATABASE
+
+		acols[N,_nPosClas ]    := POSICIONE("SB1",1,XFILIAL("SB1")+M->C6_PRODUTO,"B1_ORIGEM")+POSICIONE("SF4",1,XFILIAL("SF4")+M->C6_TES,"F4_SITTRIB")
+		M->C6_CLASFIS          := POSICIONE("SB1",1,XFILIAL("SB1")+M->C6_PRODUTO,"B1_ORIGEM")+POSICIONE("SF4",1,XFILIAL("SF4")+M->C6_TES,"F4_SITTRIB")
+
+		acols[N,_nPosEst ]    := U_EFATG02()
+		M->C6_XQTDDES         := U_EFATG02()
+
+        NN := Soma1(nn)
+	endif
+
+NEXT _nlinat
+
+For _nY:= 1 to Len(aCols)
+    //----> DELETA A LINHA DO PRODUTO KIT
+    If aCols[_nY,Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_ITEM"   })]$"01"
+        aCols[_nY,Len(aHeader)+1] := .T.
+    EndIf    
+
+Next _nY  
+
+GetDRefresh()
+SYSREFRESH()
+
+MSGSTOP("Fim do processamento !!!")
+
+oGetPV:REFRESH()
+
+Return 

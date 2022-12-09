@@ -1,0 +1,50 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA650AE        | Autor | Lucas Baia          | Data |    26/07/2022	
+//---------------------------------------------------------------------------------
+// Descr. | O Ponto de Entrada MTA650AE é executado após a exclusão da OP
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MTA650AE()
+
+Local aArea     := GetArea()
+Local cNumOP    := PARAMIXB[1] //---> Número da OP
+Local nItemOP   := PARAMIXB[2] //---> Item da Ordem de Produção
+Local nSeq      := PARAMIXB[3] //---> Sequência da OP
+Local cNumPV
+Local nItemPV
+Local cCodProd
+
+/*
+A ideia é quando deletar uma OP por Pedido de Venda, teria que limpar os campos C6_NUMOP, C6_ITEMOP, C6_OK, C6_OP para que
+os Produtos voltem aparecer na tela de OP por PV.
+*/
+DbSelectArea("SC6")
+DbSetOrder(1) //---> C6_FILIAL + C6_NUM + C6_ITEM + C6_PRODUTO
+
+cNumPV      := SC2->C2_PEDIDO
+nItemPV     := SC2->C2_ITEMPV
+cCodProd    := SC2->C2_PRODUTO
+
+IF !EMPTY(cNumPV)
+
+    IF SC6->(DbSeek(xFilial("SC6")+cNumPV+nItemPV+cCodProd))
+        RecLock("SC6",.F.)
+            Replace C6_NUMOP  With ""
+            Replace C6_ITEMOP With ""
+            Replace C6_OK     With ""
+            Replace C6_OP     With ""
+        SC6->(MsUnlock())
+
+    ENDIF
+
+ENDIF
+
+SC6->(DbCloseArea())
+RestArea(aArea)
+
+Return

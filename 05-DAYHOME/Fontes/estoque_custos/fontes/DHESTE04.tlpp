@@ -1,0 +1,80 @@
+#Include "Rwmake.ch"
+#Include "Topconn.ch"
+#Include "Protheus.ch"
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHESTE04  º Autor ³ SERGIO LACERDA - SNL SISTEMAS º Data ³  14/07/13   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Funcao Responsavel por Recalcular o Saldo Anterior do Item Digitado naº±±
+±±º          ³Nota Fiscal                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                               º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHESTE04()
+
+Processa( {|| DHE4PROC()}, "Aguarde...", "Carregando Dados...",.F.)
+
+Return
+
+Static Function DHE4PROC()
+
+Local cQrySd1	:= ""
+Local dDataOld	:= dDataBase
+Local cBkpEmp	:= cEmpAnt
+Local cBkpFil	:= cFilAnt
+Local nRegs		:= 0
+                            
+cQrySd1	:= "SELECT	SD1.D1_FILIAL , SD1.D1_COD , SD1.D1_LOCAL , SD1.D1_TES , SD1.D1_DOC , SD1.D1_SERIE , SD1.D1_DTDIGIT , SD1.D1_EMISSAO , SD1.R_E_C_N_O_ , SD1.D1_SLDSB2 , SD1.D1_QUANT "
+cQrySd1	+= "FROM 	" + RetSqlName("SD1") + " SD1 "
+cQrySd1	+= "WHERE	SD1.D_E_L_E_T_ = '' "
+//cQrySd1	+= "		AND SD1.D1_SLDSB2 = 0 "
+cQrySd1 += "		AND SD1.D1_COD = 'JB1010' "
+cQrySd1	+= "ORDER BY SD1.D1_DOC , SD1.D1_SERIE , SD1.D1_ITEM "
+
+If Select("TMPSD1") > 0
+	TMPSD1->(DbCloseArea())
+Endif
+
+Tcquery cQrySd1 New Alias "TMPSD1"
+
+Count to nRegs
+
+If nRegs > 0
+	ProcRegua(nRegs)
+	TMPSD1->(DbGoTop())
+	While !TMPSD1->(Eof())
+		IncProc("Processando Produto: " + Alltrim(TMPSD1->D1_COD) + " no Local " + TMPSD1->D1_LOCAL)
+		cFilAnt		:= TMPSD1->D1_FILIAL
+		dDataBase	:= Stod(TMPSD1->D1_DTDIGIT)
+		
+		aDados := CalcEst(TMPSD1->D1_COD,TMPSD1->D1_LOCAL,dDataBase,,.F.,.F.)
+		
+		If Len(aDados) > 0
+			nSaldoAnt	:= aDados[1]
+			
+			DbSelectArea("SD1")
+			DbSetOrder(1)
+			DbGoTo(TMPSD1->R_E_C_N_O_)
+			Begin Transaction
+				If RecLock("SD1",.F.)
+					SD1->D1_SLDSB2	:= nSaldoAnt
+					SD1->(Msunlock())
+					SD1->(DbCommit())
+				Endif
+			End Transaction
+		Endif
+	
+		TMPSD1->(DbSkip())
+	Enddo
+	
+	cEmpAnt 	:= cBkpEmp
+	cFilant		:= cFilAnt
+	dDataBase	:= dDataOld
+Endif	
+
+Return

@@ -1,0 +1,24 @@
+#include "protheus.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | CPDBTNINS          | Autor | Lucas Baia          | Data |   31/08/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada utilizado para efetuar validação que inibe a 																		
+//        | apresentação da opção de inclusão na Consulta Padrão.																		
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda																		
+//---------------------------------------------------------------------------------
+
+User Function CPDBTNINS()
+
+Local cCons := Alltrim(ParamIXB[1])
+Local cUser := RetCodUsr()
+Local lRet  := .T.
+
+IF cCons $ "SA1PV" 
+    IF cUser == "000054"
+        lRet := .F.
+    ENDIF
+ENDIF
+
+Return lRet

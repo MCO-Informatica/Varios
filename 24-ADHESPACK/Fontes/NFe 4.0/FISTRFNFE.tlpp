@@ -1,0 +1,22 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | FISTRFNFE        | Autor | Lucas Baia          | Data |    06/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para manipular Menus da Rotina SPEDNFE.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function FISTRFNFE()
+
+Local aArea := GetArea()
+     
+//Adicionando função de vincular
+aadd(aRotina,{"Rel. Inutili/Cancela.","U_RNFCANC()", 0 , 3, 0 , Nil})
+aadd(aRotina,{"Exp. DANFES","U_zGerDanfe()", 0 , 3, 0 , Nil})
+      
+RestArea(aArea)
+
+Return

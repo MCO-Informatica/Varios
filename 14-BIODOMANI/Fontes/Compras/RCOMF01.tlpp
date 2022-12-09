@@ -1,0 +1,68 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOMF01           | Autor | Lucas Baia          | Data |    15/10/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para executar EXECAUTO da MATA 140 (Pré-Nota)
+//---------------------------------------------------------------------------------
+// Uso    | https://tdn.totvs.com/pages/releaseview.action?pageId=6085199
+//---------------------------------------------------------------------------------
+
+User Function RCOMF01()
+
+Local aCabNF        :={}
+Local aItNF         :={}
+Local aLiNF         :={}
+Local nNFE          := PARAMIXB[1]
+Local nSerie        := PARAMIXB[2]
+Private lMsErroAuto := .F.
+
+DbSelectArea('SF2')
+SF2->(DbSetOrder(1)) //F2_FILIAL + F2_DOC + F2_SERIE + F2_CLIENTE + F2_LOJA + F2_FORMUL + F2_TIPO
+SF2->(DbGoTop())
+
+
+IF SF2->(dbSeek(xFilial("SF2")+nNFE+nSerie))
+
+    IF SD2->(dbSeek(xFilial("SD2")+nNFE+nSerie))
+
+        aCabNF  := { {'F1_TIPO'     ,'N',NIL},;
+                    {'F1_FORMUL'   ,'N',NIL},;
+                    {'F1_DOC'      ,SF2->F2_DOC,NIL},; //---> Mesmo Número da NF de Saída.
+                    {"F1_SERIE"    ,SF2->F2_SERIE,NIL},; //---> Mesma Séria da NF de Saída.
+                    {"F1_EMISSAO"  ,dDataBase,NIL},;
+                    {'F1_FORNECE'  ,'000001',NIL},; //---> Para cada Filial.
+                    {'F1_LOJA'     ,'01',NIL},; // Loja para cada Filial.
+                    {"F1_ESPECIE"  ,"NF",NIL},;
+                    {"F1_COND"     ,'001',NIL},;
+                    {"F1_STATUS"   ,'',NIL}    }
+
+        //---> Inicia-se a Execução do EXECAUTO para MATA140 (Pré-Nota)
+        WHILE SD2->(!EOF()) .AND. SD2->D2_DOC == SF2->F2_DOC .AND. SD2->D2_SERIE == SF2->F2_SERIE
+
+        aItNF  := { {'D1_COD',(cAliasNew)->PRODUTO,NIL},;
+                    {"D1_QUANT" ,(cAliasNew)->QTDE	,Nil},;
+                    {"D1_VUNIT" ,_nPrcVen,Nil},;
+                    {"D1_TOTAL" ,Round(((cAliasNew)->QTDE*_nPrcVen),2),Nil},;
+                    {"D1_TES"   ,'',NIL},;
+                    {'D1_YOBS'  ,"GERADO ATRAVES DE NF DE SAIDA: "+SF2->F2_DOC+"/"+SF2->F2_SERIE,NIL}  }
+
+                    aAdd(aLiNF,aItNF)
+        SD2->(DBSKIP()) 
+        ENDDO
+
+    ENDIF
+    
+ENDIF
+
+MSExecAuto({|x,y,z| MATA140(x,y,z)}, aCabNF, aLiNF, 3) //FAZ A INCLUSAO DE PRÉ NOTA.
+
+If !lMsErroAuto
+    MessageBox("Foi incluído NF de Entrada" + chr(13)+chr(10) + chr(13)+chr(10) + "Nota Fiscal: " +SF2->F2_DOC+chr(13)+chr(10) + "Série: " + SF2->F2_SERIE,"ATENÇÃO", 64)
+    //ShowHelpDlg("ATENÇÃO", {""},5,{"Foi incluído NF de Entrada: " + cNum+chr(13)+chr(10) + "Série: " + "3"},5)
+ELSE
+    MessageBox("Erro na Inclusão de NF de Entrada!","ATENÇÃO", 16)
+    MostraErro()    
+EndIf
+
+Return

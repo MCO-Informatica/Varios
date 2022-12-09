@@ -1,0 +1,175 @@
+#INCLUDE "TOTVS.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*/{Protheus.doc} IMCDAJUSTEMRP
+	(long_description)
+	@type  User Function
+	@author Junior Carvalho
+	@since 24/08/2021
+	@version 1.0
+	@param recebe um arquivo csv
+	@return nil
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+
+User Function IMCDAJUSTEMRP()
+	Local oFile
+	Local aAux  := {}
+	Local aLine := {}
+	Local aHead := {}
+	Local aAreaSB1 := SB1->(GETAREA())
+	Private cLocalCsv := ""
+
+
+	cLocalCsv := cGetFile("*.CSV|*.CSV",  "Selecione o Arquivo" , 0, "C:\", .F.,  GETF_LOCALHARD + GETF_NETWORKDRIVE ,.T.)
+
+	oFile := FwFileReader():New(cLocalCsv)
+
+	If (oFile:Open())
+		aAux := oFile:GetAllLines()
+
+		aHead := StrTokArr2(aAux[1], ";")
+		ADel(aAux, 1)
+		ASize(aAux, Len(aAux) - 1)
+
+		// SEPARA O VETOR EM NÍVEL CONFORME TOKEN
+		AEval(aAux, {|x| AAdd(aLine, StrTokArr2(x, ";", .T.))})
+	Else
+		MsgAlert("Arquivo não localizado", "IMCDAJUSTEMRP")
+	EndIf
+
+	IF !EMPTY(aLine)
+		PROCESSA( { || CADPRD(aHead,aLine) }, "Atualizando Dados","MRP")
+	ENDIF
+
+	FREEOBJ( oFile )
+
+	restArea(aAreaSB1)
+
+Return(NIL)
+
+Static Function CADPRD(aHead, aLine)
+
+	Local nX,nLin,nAlt
+	Local ASB1 := {}
+	Local cCodPrd := ""
+	Local cLogArq := ""
+	Local cMsg := ""
+
+	ProcRegua(len(aLine))
+
+	Private lMsHelpAuto := .F. // se .t. direciona as mensagens de help
+	Private lMsErroAuto := .F. //necessario a criacao
+
+	aSX3 := FWSX3Util():GetAllFields("SB1", .F.)
+
+	FOR nLin := 1 TO len(aLine)
+
+		FOR nX := 1 TO len(aHead)
+
+			cCampo := STRTRAN(aHead[nX],'ï»¿','')
+
+			nPos := aScan(aSX3, { |aCampo| aCampo  == cCampo } )
+
+			if nPos <= 0
+
+				alert("Cabecalho com Problema Campo : "+cCampo )
+
+				Return(NIL)
+
+			ENDIF
+
+			IF Alltrim(cCampo) == 'B1_COD'
+
+				cCodPrd := ALLTRIM(aLine[nLin,nX])
+				//aAdd(aSB1 ,{Upper(cCampo), cCodPrd ,Nil})
+				cLogArq += cCodPrd + ";"
+
+			ELSEIF Alltrim(cCampo) == 'B1_DESC'
+
+				cDesc := aLine[nX]
+				cLogArq += Alltrim(aLine[nLin,nX]) + ";"
+
+			ELSEIF !empty(aLine[nLin,nX])
+
+				IF  TamSx3(cCampo)[3] =='N'
+					aAdd(aSB1 ,{Upper(cCampo), 	VAL(aLine[nLin,nX])	,Nil})
+				ELSEIF TamSx3(cCampo)[3]=='D'
+					aAdd(aSB1 ,{Upper(cCampo),  CTOD(aLine[nLin,nX])	,Nil})
+				ELSE
+					aAdd(aSB1 ,{Upper(cCampo), substr(aLine[nLin,nX],1,TamSx3(cCampo)[1])	,Nil})
+				ENDIF
+
+			ENDIF
+
+		NEXT nX
+		
+		IncProc( cCodPrd )
+		
+		DBSELECTAREA("SB1")
+		SB1->(DbSetOrder(1))
+		
+		IF( SB1->(DbSeek(xFilial("SB1") + cCodPrd ) ) ) .AND.  !EMPTY(cCodPrd)
+
+			RecLock("SB1", .F.)
+
+			FOR nAlt :=1 TO Len(aSB1)
+
+				SB1->&(aSB1[nAlt,1]) := aSB1[nAlt,2]
+
+			NEXT nAlt
+
+			MsUnlock()
+			/*
+			MSExecAuto({|x,y| MATA010(x,y)},ASB1,4 )
+			IF lMsErroAuto
+				cMsg  := "Não alterado"
+			ELSE
+				cMsg  := "Alterado"
+			ENDIF
+			*/			
+			cMsg  := "Alterado"
+		ELSE
+			cMsg  := "Não Localizado"
+		ENDIF
+		cLogArq += cMsg + CHR(13) + CHR(10)
+
+		ASB1 := {}
+
+	NEXT nLin
+
+	IF !EMPTY(cLogArq)
+		IMPLOG(cLogArq)
+	ENDIF
+
+RETURN .T.
+
+
+
+Static Function IMPLOG(cLogArq)
+
+	Local cLogs := ""
+
+	cLogs += Replicate("=",80) + CHR(13) + CHR(10)
+	cLogs += PadC("Arquivo - " + AllTrim(cLocalCsv),80) + CHR(13) + CHR(10)
+	cLogs += Replicate("=",80) + CHR(13) + CHR(10)
+	cLogs +=  cLogArq
+
+	DEFINE MSDIALOG oDlgVisualiza FROM 00,00 TO 400,600 TITLE "Log de Processamento" OF oMainWnd PIXEL // "Seleção de Peças/Serviços"
+
+	oTPanelTOP := TPanel():New(0,0,"",oDlgVisualiza,NIL,.T.,.F.,NIL,NIL,0,14,.T.,.F.)
+	oTPanelTOP:Align := CONTROL_ALIGN_TOP
+
+	oTPanelBOTTOM := TPanel():New(0,0,"",oDlgVisualiza,NIL,.T.,.F.,NIL,NIL,0,14,.T.,.F.)
+	oTPanelBOTTOM:Align := CONTROL_ALIGN_BOTTOM
+
+	oGetLogs := TMultiGet():New( 002, 002, { | u | If( PCount() == 0, cLogs, cLogs := u ) },oDlgVisualiza, 333, 120, (TFont():New("Courier New",0,-11, .T. , .T. )),.F.,,,,.T.,,.F.,,.F.,.F.,.T.,,,.F.,, )
+	oGetLogs:Align := CONTROL_ALIGN_ALLCLIENT
+
+	TButton():New( 02, 200,"Fechar", oTPanelBOTTOM , { || oDlgVisualiza:End() }, 70 , 10,,,.F.,.T.,.F.,,.F.,,,.F. )
+
+	ACTIVATE MSDIALOG oDlgVisualiza CENTER
+
+Return

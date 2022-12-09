@@ -1,0 +1,1375 @@
+#Include 'Protheus.ch'                
+#Include "FwBrowse.ch"
+#INCLUDE "FILEIO.CH"
+#INCLUDE "RPTDEF.CH"                                      
+#INCLUDE "FWPrintSetup.ch"
+
+#Define ENTER CHR(13)+CHR(10)                                   
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma   DHOME03   ºAutor  ³ FONTANELLI         º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia para saida de produtos.                        º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME03()
+
+Private cCadastro 
+Private cTitulo	  
+
+Private oFont		:= TFont():New("MS Sans Serif",,018,,.T.,,,,,.F.,.F.)
+Private oFont1 		:= TFont():New("Verdana",,024,,.T.,,,,,.F.,.F.)
+Private oFont2 		:= TFont():New("Verdana",,038,,.T.,,,,,.F.,.F.)
+
+Private cAliasTMP	:= ""
+Private cArqTrab	:= ""
+Private lExiste		:= .F.
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+cCadastro := "Conferência de Produtos"
+cTitulo	  := cCadastro
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta Browse da tela inicial.                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+FwMsgRun( ,{|| CONFERIR()}, , 'Selecionando Registros, Por favor aguarde' )
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³CONFERIR   ºAutor  ³ EthosX            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ BROWSE.                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function CONFERIR()
+
+Local oDlg
+Private aSize 		:= {}
+Private aObjects 	:= {}
+Private aInfo  		:= {}
+Private aPosObj 	:= {}
+Private aPosGet 	:= {}
+Private cFiltro	:= ""
+
+Static oFWLayer
+Static oFWLayer2
+Static oWin1
+Static oWin2
+Static oWin3
+Static oWin4
+Static oWin5
+
+aSize	:= MsAdvSize( .F. )
+aInfo 	:= { aSize[ 1 ], aSize[ 2 ], aSize[ 3 ], aSize[ 4 ], 3, 3 }
+
+AAdd( aObjects, { 100	, 050	, .T., .F. })
+AAdd( aObjects, { 100	, 100	, .T., .T. })
+
+aPosObj	:= MsObjSize(aInfo,aObjects)
+aPosGet	:= MsObjGetPos((aSize[3]-aSize[1]),315,{{004,024,240,270}} )
+
+cFiltro	:= "(C5_FILIAL=='"+xFilial("SC5")+"') .And.(" // Filtra apenas filial corrente.
+cFiltro	+= "(!Empty(C5_LIBEROK).And.Empty(C5_NOTA).And. Empty(C5_BLQ))" // pedidos liberados
+cFiltro	+= ".And. (C5_XSTATUS=='CON' .or. C5_XSTATUS=='FAT' ) )"
+
+DbSelectArea("SC5")
+SC5->( DbSetFilter( {|| &(cFiltro)},cFiltro ) )
+SC5->(DbGotop())
+	
+DEFINE MSDIALOG oDlg TITLE cCadastro FROM aSize[7],aSize[1] TO aSize[6],aSize[5] OF oMainWnd STYLE nOR( WS_VISIBLE,WS_POPUP ) PIXEL
+
+	oDlg:lEscClose := .F.
+	
+	oFWLayer := FWLayer():New()		
+	oFWLayer:Init(oDlg,.F.)
+
+	oFWLayer:AddCollumn("Col01",10,.T.)
+	oFWLayer:AddCollumn("Col02",90,.T.)
+
+	oFWLayer:AddWindow("Col01","Win01"	,"Açoes"	,100,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+	oFWLayer:AddWindow("Col02","Win02"	,cCadastro	,100,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+	
+	oWin1 := oFWLayer:GetWinPanel('Col01','Win01')
+	oWin2 := oFWLayer:GetWinPanel('Col02','Win02')
+
+	// Botões da tela
+	oBtn0 := TButton():New(0,0,"Sair",oWin1,{|| oDlg:End() },00,14,,,.F.,.T.,.F.,,.F.,,,.F.) 
+	oBtn0:Align  := CONTROL_ALIGN_BOTTOM
+
+	oBtn2 := TButton():New(0,0,"Inicia Conferencia",oWin1,{|| VeConf06('SC5',SC5->(Recno()),3) },00,14,,,.F.,.T.,.F.,,.F.,,,.F.) 
+	oBtn2:Align  := CONTROL_ALIGN_TOP
+
+	@ 000, 000 SAY oBtn22 PROMPT Space(100) SIZE 049, 001 OF oWin1 PIXEL
+	oBtn22:Align  := CONTROL_ALIGN_TOP
+	
+	oBtn3 := TButton():New(0,0,"Altera Conferencia",oWin1,{|| VeConf06('SC5',SC5->(Recno()),4) },00,14,,,.F.,.T.,.F.,,.F.,,,.F.) 
+	oBtn3:Align  := CONTROL_ALIGN_TOP
+
+	@ 000, 000 SAY oBtn33 PROMPT Space(100) SIZE 049, 001 OF oWin1 PIXEL
+	oBtn33:Align  := CONTROL_ALIGN_TOP
+	
+	oBtn4 := TButton():New(0,0,"Exclui Conferencia",oWin1,{|| VeConf06('SC5',SC5->(Recno()),5) },00,14,,,.F.,.T.,.F.,,.F.,,,.F.) 
+	oBtn4:Align  := CONTROL_ALIGN_TOP
+                                
+	@ 000, 000 SAY oBtn44 PROMPT Space(100) SIZE 049, 001 OF oWin1 PIXEL
+	oBtn44:Align  := CONTROL_ALIGN_TOP
+	
+	//oBtn5 := TButton():New(0,0,"Finaliza Conferencia",oWin1,{|| VeConf06('SC5',SC5->(Recno()),6) },00,14,,,.F.,.T.,.F.,,.F.,,,.F.) 
+	//oBtn5:Align  := CONTROL_ALIGN_TOP
+                                
+	@ 000, 000 SAY oBtn55 PROMPT Space(100) SIZE 049, 001 OF oWin1 PIXEL
+	oBtn55:Align  := CONTROL_ALIGN_TOP
+
+	//Browse
+	DEFINE FWBROWSE oBrowse DATA TABLE ALIAS "SC5" OF oWin2
+		
+	//Adiciona Legenda no Browse
+	ADD LEGEND DATA 'C5_CONFST == "1"'		COLOR "ENABLE"		TITLE "Aguardando Conferência."				OF oBrowse
+	ADD LEGEND DATA 'C5_CONFST == "2"'		COLOR "BR_LARANJA"	TITLE "Conferência Incompleta."				OF oBrowse
+	ADD LEGEND DATA 'C5_CONFST == "3"' 		COLOR "DISABLE"		TITLE "Conferência Finalizada"			 	OF oBrowse
+
+	// Adiciona as colunas do Browse
+	ADD COLUMN oColumn DATA { || C5_FILIAL   	} TITLE "Filial" SIZE  01 OF oBrowse
+	ADD COLUMN oColumn DATA { || C5_NUM	  	 	}	TITLE "Pedido"     	 		SIZE  06 OF oBrowse
+	ADD COLUMN oColumn DATA { || C5_CLIENTE  	}	TITLE "Cliente"     		SIZE  06 OF oBrowse
+	ADD COLUMN oColumn DATA { || C5_LOJACLI  	}	TITLE "Loja"	     		SIZE  02 OF oBrowse
+	ADD COLUMN oColumn DATA { || Posicione("SA1",1,xFilial("SA1") + C5_CLIENTE + C5_LOJACLI, "A1_NOME")  }	TITLE "Nome Cliente"		SIZE  80 OF oBrowse
+	ADD COLUMN oColumn DATA { || C5_TRANSP   	}	TITLE "Transp."			SIZE  06 OF oBrowse
+	ADD COLUMN oColumn DATA { || Posicione("SA4",1,xFilial("SA4") + C5_TRANSP, "A4_NOME")  	}	TITLE "Nome Transp."		SIZE  20 OF oBrowse
+	ADD COLUMN oColumn DATA { || C5_EMISSAO  	}	TITLE "Emissao"     		SIZE  08 OF oBrowse
+		
+	//Ativa o Browse
+	ACTIVATE FWBROWSE oBrowse
+		
+ACTIVATE MSDIALOG oDlg CENTERED
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VeConf06   ºAutor  ³ Ethosx	         º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ GetDados.                                                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VeConf06(cAlias,nReg,nOpc)
+
+Local nI
+Local nUsado	:= 0
+Local nOpca		:= 0
+Local lWhen		:= .F.
+
+Private cGetConf	:= SC5->C5_NUM
+Private cGetData	:= Date()
+Private cGetHora	:= "00:00"
+Private cGetCod	:= SC5->C5_CLIENTE
+Private cGetLj	:= SC5->C5_LOJACLI
+Private cGetNom	:= Posicione("SA1",1,xFilial("SA1") + C5_CLIENTE + C5_LOJACLI, "A1_NOME")
+Private cGetProd	:= space(15)
+Private cNumSerie	:= space(30)
+Private nQtd		:= 1
+Private nCaixa		:= SPACE(10)
+Private cAliasSC6   := GetNextAlias()
+Private cTRB        := GetNextAlias()
+
+//Private oTempDB     := FWTemporaryTable():New('TRB')
+
+Private oTempDB     := FWTemporaryTable():New(cTRB)
+
+Private cGetUser	:= Space( 20 )
+Private cMemoDv	:= ""
+Private aHeader	:= {}
+Private aCols	:= {}
+Private aItens	:= {}
+Private _oDlg
+Private oGetdados
+Private oGetProd
+Private oQtd
+Private oNumSerie
+Private oGetValor
+Private INCLUI	:= (nOpc == 3)
+Private ALTERA	:= (nOpc == 4)
+Private EXCLUI	:= (nOpc == 5)
+Private FINALI	:= (nOpc == 6)
+Private nQtdPrds	:= 0
+Private nQtdConf	:= 0
+Private oFont1	:= TFont():New("Verdana",,024,,.T.,,,,,.F.,.F.)
+Private oFont2	:= TFont():New("Verdana",,044,,.T.,,,,,.F.,.F.)
+Private oFont18	:= TFont():New("Verdana",,018,,.T.,,,,,.F.,.F.)
+
+	if SC5->C5_CONFST == "1" .And. ((ALTERA) .or. (EXCLUI))
+		Aviso("Aviso","Escolha, Iniciar Confêrencia !", {"OK"})
+		oBrowse:Refresh()
+		oBrowse:SetFocus()
+		Return
+	elseIf SC5->C5_CONFST == "3" .And. (INCLUI .Or. EXCLUI .OR. FINALI)
+		Aviso("Aviso","Escolha, Alterar Confêrencia !", {"OK"})
+		oBrowse:Refresh()
+		oBrowse:SetFocus()
+		Return
+	ElseIf SC5->C5_CONFST == "2" .And. (INCLUI)
+		Aviso("Aviso","Escolha, Alterar Confêrencia !", {"OK"})
+		oBrowse:Refresh()
+		oBrowse:SetFocus()
+		Return
+	EndIf
+
+	/*cQuery := "SELECT C9_FILIAL, C9_PEDIDO, C9_PRODUTO, SUM(C9_QTDLIB) C9_QTDLIB  FROM "+RetSqlName("SC9")+" "
+	cQuery += " WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+	cQuery += "   AND C9_PEDIDO = '"+SC5->C5_NUM+"' "
+	cQuery += "   AND C9_NFISCAL = '' "
+	cQuery += "   AND C9_BLEST = '' "
+	cQuery += "   AND C9_BLCRED = '' "
+	cQuery += "   AND D_E_L_E_T_ = '' "
+	cQuery += " GROUP BY C9_FILIAL, C9_PEDIDO, C9_PRODUTO"*/
+	
+	cQuery := " SELECT ZZ1_FILIAL, ZZ1_PEDIDO, ZZ1_CODPRO, SUM(ZZ1_QTDLNC) ZZ1_QTDLNC FROM "+RetSqlName("ZZ1")+ " "
+	cQuery += "  WHERE ZZ1_FILIAL = '"+xFilial("ZZ1")+"' "
+	cQuery += "    AND ZZ1_PEDIDO = '"+SC5->C5_NUM+"' "	
+	cQuery += "    AND D_E_L_E_T_ = '' "
+	cQuery += " GROUP BY ZZ1_FILIAL, ZZ1_PEDIDO, ZZ1_CODPRO"
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ1",.T.,.T.)
+	dbSelectArea("QryZZ1")
+	dbGoTop()
+	nQtdPrds := 0
+	While !QryZZ1->(Eof())
+		aAdd(aItens,{QryZZ1->ZZ1_CODPRO, QryZZ1->ZZ1_QTDLNC})
+		nQtdPrds += QryZZ1->ZZ1_QTDLNC
+		QryZZ1->(DbSkip())
+	EndDo
+	QryZZ1->(dbCloseArea())	
+
+	/* Carrega os itens do pedido de venda que não tem número de série informado */
+	BeginSQL Alias cAliasSC6
+
+		SELECT C6_ITEM, C6_PRODUTO, C6_XNUMSER
+		FROM %Table:SC6% SC6 
+		WHERE SC6.C6_FILIAL = %xFilial:SC6%
+			AND C6_NUM = %Exp:SC5->C5_NUM%
+			AND SC6.%notdel%
+		ORDER BY C6_PRODUTO, C6_XNUMSER, C6_ITEM
+	EndSQL
+
+	GeraTRB()	/* Cria tabela temporária para gerencias os itens do pedido de venda */
+
+	//Carrega o Header
+	DbSelectArea("SX3")
+	DbSetOrder(1)
+	DbSeek("ZZ2")
+	While !Eof() .And. X3_ARQUIVO == "ZZ2"
+		If X3USO( X3_USADO ) .And. cNivel >= X3_NIVEL
+			if alltrim(X3_CAMPO) <> "ZZ2_NOTA" 
+				aAdd( aHeader, { Trim( X3Titulo() ), X3_CAMPO, X3_PICTURE, X3_TAMANHO, X3_DECIMAL, X3_VALID, X3_USADO, X3_TIPO, X3_ARQUIVO, X3_CONTEXT } )
+				nUsado++
+			endif	
+		Endif
+		dbSkip()
+	Enddo
+	
+	cGetConf 	:= SC5->C5_NUM
+	cGetHora	:= SubStr(Time(),1,5)
+	cGetUser	:= cUserName
+	lWhen		:= .T.
+	
+	If INCLUI
+		aAdd( aCols, Array( Len( aHeader ) + 1 ) )
+		For nI := 1 To Len( aHeader )
+				aCols[1, nI] := CriaVar( aHeader[nI, 2])
+		Next nI
+		aCols[1, Len( aHeader )+1 ] := .F.
+	Else
+	
+		DbSelectArea("ZZ2")
+		ZZ2->(DbSetOrder(1))
+		ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SC5->C5_NUM ))
+		While !ZZ2->(Eof()) .And. SC5->C5_NUM == ZZ2->ZZ2_NUM .And. "C" == ZZ2->ZZ2_TIPOSC
+	
+			if !EMPTY(ZZ2->ZZ2_NOTA)
+	   		   ZZ2->(dbSkip()) 
+			   LOOP
+			endif 
+	
+			aAdd( aCols, Array( Len( aHeader ) + 1 ) )
+			
+			For nI := 1 To Len( aHeader )
+					aCols[Len(aCols), nI] := &(Alltrim(aHeader[nI, 2]))
+			Next nI
+	
+			aCols[Len(aCols), Len( aHeader )+1 ] := .F.
+			ZZ2->(DbSkip())
+		EndDo        
+			
+	    nQtdConf := 0
+		For nI := 1 To Len(aCols)
+				nQtdConf += aCols[nI,3]
+		Next nI
+		
+	EndIf
+
+DEFINE MSDIALOG _oDlg TITLE cCadastro FROM aSize[7],aSize[1] TO aSize[6],aSize[5] OF oMainWnd PIXEL
+
+	oFWLayer2 := FWLayer():New()		
+	oFWLayer2:Init(_oDlg,.F.)
+
+	oFWLayer2:AddCollumn("Col03",10,.T.)
+	oFWLayer2:AddCollumn("Col04",90,.T.)
+
+	oFWLayer2:AddWindow("Col03","Win03"	,"Açoes"			,040,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+	oFWLayer2:AddWindow("Col03","Win06"	,"Controle"			,060,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+	oFWLayer2:AddWindow("Col04","Win04"	,"Dados do pedido"	,040,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+	oFWLayer2:AddWindow("Col04","Win05"	,"Itens do pedido"	,060,.F.,.F.,/*bAction*/,/*cIDLine*/,/*bGotFocus*/)
+
+	oWin3 := oFWLayer2:GetWinPanel("Col03","Win03")
+	oWin6 := oFWLayer2:GetWinPanel("Col03","Win06")
+	oWin4 := oFWLayer2:GetWinPanel("Col04","Win04")
+	oWin5 := oFWLayer2:GetWinPanel("Col04","Win05")
+
+	@ 000, 000 BTNBMP oBitmap1  RESNAME "FINAL"  SIZE 008, 035 OF oWin6 MESSAGE "Sair" Action( _oDlg:End() )
+	oBitmap1:cCaption := " <F4>"
+	oBitmap1:Align  := CONTROL_ALIGN_BOTTOM
+	SetKey(VK_F4 ,{|| _oDlg:End() })
+
+	@ 000, 000 SAY oSay3 PROMPT "Total Itens Separados"	SIZE 049, 007 OF oWin6 COLORS CLR_RED,16777215 PIXEL
+	oSay3:Align  := CONTROL_ALIGN_TOP
+	@ 000, 000 MSGET oGetVal3 VAR nQtdPrds 			SIZE 044, 014 OF oWin6 COLORS CLR_RED,16777215 ;
+	WHEN .F. PICTURE "@E 999999.00" FONT oFont18 PIXEL	
+	oGetVal3:Align  := CONTROL_ALIGN_TOP
+
+	@ 000, 000 SAY oSay7 PROMPT Space(100)				SIZE 049, 005 OF oWin6 COLORS CLR_RED,16777215 PIXEL
+	oSay7:Align  := CONTROL_ALIGN_TOP
+
+	@ 000, 000 SAY oSay4 PROMPT "Itens Bipados"		SIZE 049, 007 OF oWin6 COLORS CLR_RED,16777215 PIXEL
+	oSay4:Align  := CONTROL_ALIGN_TOP
+	@ 000, 000 MSGET oGetValor VAR nQtdConf				SIZE 044, 014 OF oWin6 COLORS CLR_RED,16777215 ;
+	WHEN .F. PICTURE "@E 999999.00" FONT oFont18 PIXEL
+	oGetValor:Align  := CONTROL_ALIGN_TOP	
+
+	@ 000, 000 BTNBMP oBitmap2  RESNAME "OK"  SIZE 008, 035 OF oWin3 MESSAGE "Confirmar" Action( Iif(VE06Valid(""),(nOpcA:=1,_oDlg:End()),Nil) )
+
+	oBitmap2:cCaption := "<F10>"
+	oBitmap2:Align  := CONTROL_ALIGN_TOP
+	SetKey(VK_F10,{|| Iif(VE06Valid(""),(nOpcA:= 1,_oDlg:End()),Nil) })
+		
+	@ 005, 010 SAY oSay1 PROMPT "Pedido: " 			SIZE 055, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 020, 010 SAY oSay3 PROMPT "Data: " 			SIZE 050, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 035, 010 SAY oSay4 PROMPT "Hora: " 			SIZE 055, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 050, 010 SAY oSay5 PROMPT "Usuário: "			SIZE 055, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 065, 010 SAY oSay2 PROMPT "Cliente: "			SIZE 050, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 065, 117 SAY oSay5 PROMPT "Loja: " 			SIZE 022, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 080, 010 SAY oSay5 PROMPT "Nome: " 			SIZE 022, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	
+	@ 005, 062 MSGET oGetConf 	VAR cGetConf		SIZE 050, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 020, 062 MSGET oGetData 	VAR cGetData		SIZE 050, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 035, 062 MSGET oGetHora 	VAR cGetHora		SIZE 050, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 050, 062 MSGET oGetUser 	VAR cGetUser		SIZE 050, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 065, 062 MSGET oGetCod	VAR cGetCod			SIZE 050, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 065, 142 MSGET oGetLj 	VAR cGetLj			SIZE 015, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+	@ 080, 062 MSGET oGetNom 	VAR cGetNom			SIZE 155, 007 OF oWin4 COLORS 0, 16777215 PIXEL When .F.
+
+//	@ 003, 154-20 GROUP oGroup TO 061, 570 PROMPT "" OF oWin4 COLOR 0, 16777215 PIXEL
+	@ 003, 154-20 GROUP oGroup TO 061, 585 PROMPT "" OF oWin4 COLOR 0, 16777215 PIXEL
+
+	@ 010, 160-20 SAY oSay5 PROMPT "Caixa: " 		SIZE 050, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 010, 300-20 SAY oSay5 PROMPT "Quantidade: " 	SIZE 040, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+//	@ 010, 400-20 SAY oSay5 PROMPT "Produto: " 		SIZE 050, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+//	@ 075, 250-20 SAY oSay5 PROMPT "Num. Série: "	SIZE 080, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+
+	@ 010, 400-20 SAY oSay5 PROMPT "Num. Série: "	SIZE 080, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+	@ 075, 250-20 SAY oSay5 PROMPT "Produto: " 		SIZE 050, 007 OF oWin4 FONT oFont COLORS 16711680, 16777215 PIXEL
+
+	@ 022, 160-20 MSGET oCaixa 		VAR nCaixa    SIZE 130, 030 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "9999999999" PIXEL Valid( VALCAIXA(nOpca) )
+	@ 022, 300-20 MSGET oQtd 		VAR nQtd      SIZE 040, 030 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "99999" PIXEL Valid( VALQTDE(nOpca) )
+//	@ 022, 400-20 MSGET oGetProd 	VAR cGetProd  SIZE 180, 030 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "@!" PIXEL Valid( VALCOD(nOpca) )
+//	@ 065, 300-20 MSGET oNumSerie	VAR cNumSerie SIZE 200, 025 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "@!" PIXEL Valid( VALNUMSER(nOpca) )
+
+	@ 022, 400-20 MSGET oNumSerie	VAR cNumSerie SIZE 200, 030 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "@!" PIXEL Valid( VALNUMSER(nOpca) )
+	@ 065, 300-20 MSGET oGetProd 	VAR cGetProd  SIZE 180, 025 OF oWin4 COLORS 0, 16777215 When lWhen FONT oFont2 Picture "@!" PIXEL Valid( VALCOD(nOpca) )
+
+	oGetDados := MsNewGetDados():New(0,0,0,0,nOpc,,,,{""},,,,,,oWin5,aHeader,aCols)
+	oGetDados:oBrowse:Align := CONTROL_ALIGN_ALLCLIENT
+	oGetDados:oBrowse:bGotFocus := {|| oGetProd:SetFocus() }	
+
+	oCaixa:SetFocus()
+	 
+ACTIVATE MSDIALOG _oDlg CENTERED
+
+
+oBrowse:Refresh()
+oBrowse:SetFocus()
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VALNUMSER   ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Valida Número de Série do produto.                         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VALNUMSER( nOpca )
+
+Local nPosProd := 0
+Local cCodAnt  := cGetProd
+Local cItemPV  := ''
+
+Local nI   := 0
+Local lRet := .T.
+
+If Empty(cNumSerie)
+	oCaixa:Refresh()
+	oQtd:Refresh()	
+	oGetProd:Refresh()
+	cNUmSerie := Space(30)
+	oNUmSerie:Refresh()
+	nQtd := 1
+	Return lRet
+EndIf
+      
+If Empty(nCaixa)
+	Alert("Caixa não informada !")
+	Return .F.              
+Endif            
+
+if (SUBSTR(cGetProd,1,2) == alltrim(cFilAnt) .AND. LEN(ALLTRIM(cGetProd)) == 10 .AND. ALLTRIM(cGetProd) == nCaixa)
+	oGetValor:Refresh()
+	oGetDados:Refresh()
+	
+	nCaixa := Space(10)
+	oCaixa:Refresh()  
+	cGetProd := Space(15)
+	oGetProd:Refresh()
+	cNumserie := Space(30)
+	oNumSerie:Refresh()
+	nQtd := 1
+	oQtd:Refresh()    
+	
+	oCaixa:SetFocus()
+	Return(.T.)
+endif
+								
+lAchou := .F.
+
+if GetMv("MV_CONFPRD")
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		lAchou := .T.
+		cGetProd := SB1->B1_COD
+	endif
+endif
+
+DbSelectArea("SB1")
+SB1->(DbSetOrder(16)) // B1_FILIAL+B1_EAN13
+If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+	lAchou := .T.                        
+	cGetProd := SB1->B1_COD
+endif
+
+DbSelectArea("SB1")
+SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+	lAchou := .T.
+	cGetProd := SB1->B1_COD
+	nQtd := VAL(SB1->B1_DHCXMAS)	//----> ALTERADO POR RICARDO SOUZA - UPDUO 06/03/2020
+endif      
+
+DbSelectArea("SB1")
+SB1->(DbSetOrder(17)) // B1_FILIAL+B1_UPC12
+If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+	lAchou := .T.                       
+	cGetProd := SB1->B1_COD
+endif
+
+if lAchou 
+	
+	/* Verifica o número de série do produto */
+	SZ4->(DbSetOrder(1))
+	If !SZ4->(DbSeek(xFilial('SZ4') + cNumSerie + cGetProd))
+		Alert('O número de série do produto não está cadastrado.')
+		cGetProd := cCodAnt
+		cNumserie := Space(30)
+		oGetProd:Refresh()
+		oNumSerie:Refresh()
+		oNumSerie:SetFocus()
+		Return(.F.)
+	Endif
+
+	If !Empty(SZ4->Z4_NUMPED) .And. SZ4->Z4_NUMPED <> cGetConf .And. SZ4->Z4_NOTA = ''
+		Alert('O número de série do produto já foi separado no pedido ' + SZ4->Z4_NUMPED + '.')
+		cGetProd := cCodAnt
+		cNumserie := Space(30)
+		oGetProd:Refresh()
+		oNumSerie:Refresh()
+		oNumSerie:SetFocus()
+		Return(.F.)
+	Endif
+
+	If !Empty(SZ4->Z4_NOTA)
+		Alert('O número de série do produto já foi faturado na NF ' + SZ4->Z4_NOTA + '.')
+		cGetProd := cCodAnt
+		cNumserie := Space(30)
+		oGetProd:Refresh()
+		oNumSerie:Refresh()
+		oNumSerie:SetFocus()
+		Return(.F.)
+	Endif
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+	SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+
+	nPosProd := aScan(aItens, {|x| Alltrim(x[1]) == Alltrim(cGetProd)})
+
+	If nPosProd > 0    
+		nQtdBip := 0
+		nQtdVen := aItens[nPosProd,2]
+		For nI := 1 To Len(oGetDados:aCols)
+			if alltrim(oGetDados:aCols[nI,1]) == alltrim(cGetProd) 
+				nQtdBip += oGetDados:aCols[nI,3]
+			EndIf
+		Next nI 
+		nQtdBip+= nQtd
+		if nQtdBip > nQtdVen 	
+			Alert("QTD Excedida, Produto: " + alltrim(cGetProd) + " QTD Vendida: " + alltrim(Transform(nQtdVen,"@E 99999")) + " QTD Bip: " + alltrim(Transform(nQtdBip,"@E 99999")) )
+			lRet := .F. 
+		else
+			If Len(oGetDados:aCols) == 1 .And. Empty(oGetDados:aCols[1,1])
+				oGetDados:aCols := {}
+			endif    
+
+			CDESCPROD := "["+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_UMRES"))+"] - "+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_DESC"))
+			
+			/* Grava o número de série na tabela temporária dos itens do pedido de venda */
+			cItemPV := GetItemPV(cGetProd, cNumSerie)
+
+			aAdd(oGetDados:aCols,{SB1->B1_COD,CDESCPROD,nQtd,nCaixa,Date(),SubStr(Time(),1,5),cUserName,.F.,cNumSerie, cItemPV,.F.})
+				
+			nQtdConf := 0
+			aEval(oGetDados:aCols,{ |x| nQtdConf += x[3] })
+	
+			aSort(oGetDados:aCols,,,{|x,y| x[1] < y[1]})
+
+			If  nQtdPrds == nQtdConf
+				Aviso("Aviso","Conferência Concluida !", {"OK"})
+				If VE06Valid("finaliza")					
+					_oDlg:End()
+				EndIf					
+			EndIf
+
+		endif
+	else
+		Alert("Produto não esta liberado ou não existe no pedido de Venda !")
+		lRet := .F. 
+	EndIf
+Else
+	Alert("	CODIGO DE BARRA não localizado !")
+	lRet := .F.
+EndIf
+	                                                                         
+oGetValor:Refresh()
+oGetDados:Refresh()
+
+oCaixa:Refresh()
+cGetProd := Space(15)
+oGetProd:Refresh()
+cNumserie := Space(30)
+oNumSerie:Refresh()
+nQtd := 1
+oQtd:Refresh()
+
+If lRet
+	oGetProd:SetFocus()
+endif	
+
+Return lRet
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VALQTDE   ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Valida Quantidade.                                         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VALQTDE(nOpca)
+
+Local lRet	:= .T.
+
+oGetProd:SetFocus()
+                                                                           
+Return lRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VALCAIXA   ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Valida CAIXA.                                              º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VALCAIXA( nOpca )
+
+Local lRet	:= .T.
+
+If !Empty(nCaixa) 
+
+	if ( SUBSTR(nCaixa,1,2) <> alltrim(cFilAnt) .OR. LEN(ALLTRIM(nCaixa)) <> 10 )
+		Alert("Caixa Formato Inválida !")
+		nCaixa := Space(10)
+		oCaixa:Refresh()
+		oCaixa:SetFocus()
+		lRet := .F.
+	endif
+
+	DbSelectArea("ZZ2")
+	ZZ2->(DbSetOrder(2)) 
+	ZZ2->(DbGotop())
+	If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + nCaixa ))
+		if ZZ2->ZZ2_NUM <> SC5->C5_NUM 
+			Alert("Caixa Informada já utilizada !")
+			nCaixa := Space(10)
+			oCaixa:Refresh()
+			oCaixa:SetFocus()
+			lRet := .F.
+		else
+			if !EMPTY(ZZ2->ZZ2_NOTA)
+				Alert("Caixa Informada já utilizada !")
+				nCaixa := Space(10)
+				oCaixa:Refresh()
+				oCaixa:SetFocus()
+				lRet := .F.
+			endif
+		Endif
+	Endif
+endif  
+
+if lRet                      
+	oGetProd:SetFocus()
+endif
+		                                                                             
+Return lRet
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VALCOD     ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Validacao do produto.                                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VALCOD( nOpca )
+
+Local nPosProd := 0
+Local nPosAcol := 0
+Local nLenAcol := 0
+Local cCodProd := ''
+
+Local nI   := 0
+Local lRet := .T.
+
+If Empty(cGetProd)
+	oCaixa:Refresh()
+	cGetProd := Space(15)
+	oGetProd:Refresh()
+	nQtd := 1
+	oQtd:Refresh()
+	//oCaixa:SetFocus()
+	Return lRet
+EndIf
+      
+if Empty(nCaixa)
+	Alert("Caixa não informada !")
+	lRet := .F.                          
+else            
+
+	if (SUBSTR(cGetProd,1,2) == alltrim(cFilAnt) .AND. LEN(ALLTRIM(cGetProd)) == 10 .AND. ALLTRIM(cGetProd) == nCaixa)
+		oGetValor:Refresh()
+		oGetDados:Refresh()
+        
+		nCaixa := Space(10)
+		oCaixa:Refresh()  
+		cGetProd := Space(15)
+		oGetProd:Refresh()
+		nQtd := 1
+		oQtd:Refresh()    
+		
+		oCaixa:SetFocus()
+		Return(.T.)
+	endif
+	
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(16)) // B1_FILIAL+B1_EAN13
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		cCodProd := SB1->B1_COD                        
+	endif
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		cCodProd := SB1->B1_COD                        
+	endif      
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(17)) // B1_FILIAL+B1_UPC12
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		cCodProd := SB1->B1_COD                        
+	endif
+
+	If !Empty(cCodProd)
+	
+		/* Verifica se o produto tem controle por número de série */
+		SB5->(DbSetOrder(1))
+		If SB5->(DbSeek(xFilial('SB5') + cCodProd)) .And. SB5->B5_XNUMSER = 'S'
+
+//			TRB->(DbSetOrder(1))
+			(cTRB)->(DbSetOrder(1))
+
+			If (cTRB)->(DbSeek(cCodProd)) .And. !Empty((cTRB)->NUMSERIE)
+				Alert('Todos os itens deste produto já possuem o número de série informado no pedido.')
+				cGetProd := Space(15)
+				oGetProd:Refresh()
+				oGetProd:SetFocus()
+				Return .F.
+			ElseIf (cTRB)->(DbSeek(cCodProd))
+				oNumSerie:SetFocus()
+				Return .T.
+			Endif
+		Endif
+	Endif
+												
+	lAchou := .F.
+
+/*
+	if GetMv("MV_CONFPRD")
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(16)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+			lAchou := .T.                        
+			cGetProd := SB1->B1_COD
+		endif
+
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+			lAchou := .T.
+			cGetProd := SB1->B1_COD
+			nQtd := nQtd * VAL(SB1->B1_DHCXMAS)
+		endif      
+		
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(17)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+			lAchou := .T.                        
+			cGetProd := SB1->B1_COD
+		endif
+
+		if lAchou 
+		
+			DbSelectArea("SB1")
+			SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+			SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+
+			nPosProd := aScan(aItens, {|x| Alltrim(x[1]) == Alltrim(cGetProd)})
+			If nPosProd > 0    
+				nQtdBip := 0
+				nQtdVen := aItens[nPosProd,2]
+				For nI := 1 To Len(oGetDados:aCols)
+					if alltrim(oGetDados:aCols[nI,1]) == alltrim(cGetProd) 
+						nQtdBip += oGetDados:aCols[nI,3]
+					EndIf
+				Next nI 
+				nQtdBip+= nQtd
+				if nQtdBip > nQtdVen 	
+					//Alert("QTD Excedida, Produto: " + alltrim(cGetProd) + " QTD Vendida: " + alltrim(Transform(nQtdVen,"@E 99999")) + " QTD Bip: " + alltrim(Transform(nQtdBip,"@E 99999")) )
+					Alert("Quantidade Divergente")	
+					lRet := .F. 
+				else
+					If Len(oGetDados:aCols) == 1 .And. Empty(oGetDados:aCols[1,1])
+						oGetDados:aCols := {}
+					endif    
+
+					CDESCPROD := "["+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_UMRES"))+"] - "+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_DESC"))
+					
+					aAdd(oGetDados:aCols,{SB1->B1_COD,CDESCPROD,nQtd,nCaixa,Date(),SubStr(Time(),1,5),cUserName,.F.,"","",.F.})
+					
+					nQtdConf := 0
+					aEval(oGetDados:aCols,{ |x| nQtdConf += x[3] })
+			
+					aSort(oGetDados:aCols,,,{|x,y| x[1] < y[1]})
+	
+					If  nQtdPrds == nQtdConf
+						Aviso("Aviso","Conferência Concluida !", {"OK"})
+						If VE06Valid("finaliza")					
+							_oDlg:End()
+						EndIf
+					EndIf
+
+				endif
+			else
+				Alert("Produto não esta liberado ou não existe no pedido de Venda !")
+				lRet := .F. 
+			EndIf
+		Else
+			Alert("	CODIGO DE BARRA não localizado !")
+			lRet := .F.
+		EndIf
+	endif 
+
+*/
+
+	if GetMv("MV_CONFPRD")
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+		If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+			lAchou := .T.
+			cGetProd := SB1->B1_COD
+		endif
+	endif
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(16)) // B1_FILIAL+B1_EAN13
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		lAchou := .T.                        
+		cGetProd := SB1->B1_COD
+	endif
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		lAchou := .T.
+		cGetProd := SB1->B1_COD
+		nQtd := nQtd * VAL(SB1->B1_DHCXMAS)
+	endif      
+	
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(17)) // B1_FILIAL+B1_UPC12
+	If SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+		lAchou := .T.                        
+		cGetProd := SB1->B1_COD
+	endif
+	
+	if lAchou 
+	
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+		SB1->(DbSeek(xFilial("SB1") + cGetProd ))
+
+		nPosProd := aScan(aItens, {|x| Alltrim(x[1]) == Alltrim(cGetProd)})
+		If nPosProd > 0    
+			nQtdBip := 0
+			nQtdVen := aItens[nPosProd,2]
+			For nI := 1 To Len(oGetDados:aCols)
+				if alltrim(oGetDados:aCols[nI,1]) == alltrim(cGetProd) 
+					nQtdBip += oGetDados:aCols[nI,3]
+				EndIf
+			Next nI 
+			nQtdBip+= nQtd
+			if nQtdBip > nQtdVen 	
+				//Alert("QTD Excedida, Produto: " + alltrim(cGetProd) + " QTD Vendida: " + alltrim(Transform(nQtdVen,"@E 99999")) + " QTD Bip: " + alltrim(Transform(nQtdBip,"@E 99999")) )
+				Alert("Quantidade Divergente")	
+				lRet := .F. 
+			else
+				If Len(oGetDados:aCols) == 1 .And. Empty(oGetDados:aCols[1,1])
+					oGetDados:aCols := {}
+				endif    
+
+				CDESCPROD := "["+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_UMRES"))+"] - "+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+SB1->B1_COD,"B1_DESC"))
+				
+				aAdd(oGetDados:aCols,{SB1->B1_COD,CDESCPROD,nQtd,nCaixa,Date(),SubStr(Time(),1,5),cUserName,.F.,"","",.F.})
+				
+				nQtdConf := 0
+				aEval(oGetDados:aCols,{ |x| nQtdConf += x[3] })
+		
+				aSort(oGetDados:aCols,,,{|x,y| x[1] < y[1]})
+
+				If  nQtdPrds == nQtdConf
+					Aviso("Aviso","Conferência Concluida !", {"OK"})
+					If VE06Valid("finaliza")					
+						_oDlg:End()
+					EndIf
+				EndIf
+
+			endif
+		else
+			Alert("Produto não esta liberado ou não existe no pedido de Venda !")
+			lRet := .F. 
+		EndIf
+	Else
+		Alert("	CODIGO DE BARRA não localizado !")
+		lRet := .F.
+	EndIf
+
+Endif		    
+	                                                                         
+oGetValor:Refresh()
+oGetDados:Refresh()
+oCaixa:Refresh()
+cGetProd := Space(15)
+oGetProd:Refresh()
+nQtd := 1
+oQtd:Refresh()
+
+if lRet
+	oGetProd:SetFocus()
+endif	
+
+Return lRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³VE06Valid  ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Validacao.                                                 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function VE06Valid(Tipo)
+
+	Local lRet		:= .T.
+	Local lConfOk	:= .F. 
+	
+	u_TELA_CX()
+	
+	if TIPO = "finaliza"  
+	
+		lConfOk	:= .T.
+		GrvZZ2(.T.)
+	
+	ElseIf Len(oGetDados:aCols) == 1 .And. Empty(oGetDados:aCols[1,1]) .And. !EXCLUI
+	
+		Alert("Conferência sem Itens !")
+		lRet := .F.
+	
+	ElseIf (INCLUI .Or. ALTERA)
+	
+		GrvZZ2(.f.)
+	
+	ElseIf EXCLUI
+	
+		GrvZZ2(.F.)
+	
+	EndIf
+
+	(cTRB)->(DbCloseArea())
+
+	oTempDB:Delete()
+
+Return lRet
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³GrvZZ2     ºAutor  ³ Ethosx            º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Conferencia de saida de produtos.                          º±±
+±±º          ³ Gravacao da ZZ2.                                           º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function GrvZZ2(lConfOk)
+
+	Local cItemPV := ''
+	Local nI
+	
+	//Caso já exista NOTA na tabela ZZ2
+	cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+	cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+	cQuery += "   AND ZZ2_NUM = '"+SC5->C5_NUM+"' "
+	cQuery += "   AND ZZ2_NOTA <> ' ' "
+	cQuery += "   AND D_E_L_E_T_ = '' "
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+	dbSelectArea("QryZZ2")
+	dbGoTop()
+	nQTDNOTA := 0
+	While !QryZZ2->(Eof())
+	    nQTDNOTA += 1
+		QryZZ2->(DbSkip())
+	EndDo
+	QryZZ2->(dbCloseArea())	
+	
+	dbSelectArea("SC5")
+	RecLock("SC5",.F.)
+	If lConfOk .And. (INCLUI .Or. ALTERA)
+		SC5->C5_CONFST	:= "3"
+		SC5->C5_XSTATUS := "FAT"
+		if nQTDNOTA == 0 
+			if Empty(SC5->C5_XCUSER) 	
+				SC5->C5_XCUSER  := cUserName
+				SC5->C5_XCDTINI := dDataBase	
+				SC5->C5_XCHRINI := SUBSTR(Time(),1,5)
+			endif
+			SC5->C5_XCDTFIN := dDataBase
+			SC5->C5_XCHRFIN := SUBSTR(Time(),1,5)
+		endif
+	ElseIf (INCLUI .Or. ALTERA)
+		SC5->C5_CONFST	:= "2"
+		SC5->C5_XSTATUS := "CON"
+		IF INCLUI
+			if nQTDNOTA == 0 	
+				SC5->C5_XCUSER  := cUserName
+				SC5->C5_XCDTINI := dDataBase	
+				SC5->C5_XCHRINI := SUBSTR(Time(),1,5)
+			endif
+		endif	
+	ElseIf EXCLUI
+		SC5->C5_CONFST	:= "1"
+		SC5->C5_XSTATUS := "CON"
+		if nQTDNOTA == 0 	
+			SC5->C5_XCUSER  := SPACE(30)
+			SC5->C5_XCDTINI := CTOD("  /  /    ")
+			SC5->C5_XCHRINI := SPACE(5)
+			SC5->C5_XCDTFIN := CTOD("  /  /    ")
+			SC5->C5_XCHRFIN := SPACE(5)
+		endif
+	EndIf
+	SC5->(MsUnlock())
+	
+	If (INCLUI .Or. ALTERA)
+	
+		// EXCLUIR TUDO
+		DbSelectArea("ZZ2")
+		ZZ2->(DbSetOrder(1))
+		If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SC5->C5_NUM  ))
+			While !ZZ2->(Eof()) .And. SC5->C5_NUM == ZZ2->ZZ2_NUM .And. "C" == ZZ2->ZZ2_TIPOSC
+			
+				if !EMPTY(ZZ2_NOTA)
+		   		   ZZ2->(dbSkip()) 
+				   LOOP
+				endif 
+				/* Libera na tabela SZ4 os números de séries que foram utilizados na conferência */
+	
+				If !Empty(ZZ2->ZZ2_NUMSER) 
+	
+					/* Controle dos números de séries */
+					SZ4->(DbSetOrder(1))
+					If SZ4->(Dbseek(xFilial('SZ4') + ZZ2->ZZ2_NUMSER + ZZ2->ZZ2_PRODUT))
+						RecLock("SZ4",.F.)
+						SZ4->Z4_NUMPED := ''
+						SZ4->Z4_ITEMPV := ''
+						SZ4->(MsUnlock())
+					Endif
+
+					/* Item do pedido de venda */
+					SC6->(DbSetOrder(1))
+					If SC6->(Dbseek(xFilial('SC6') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+						RecLock("SC6",.F.)
+						SC6->C6_XNUMSER := ''
+						SC6->(MsUnlock())
+					Endif	
+
+					/* Item liberado do pedido de venda */
+					SC9->(DbSetOrder(1))
+					If SC9->(Dbseek(xFilial('SC9') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+						RecLock("SC9",.F.)
+						SC9->C9_XNUMSER := ''
+						SC9->(MsUnlock())
+					Endif		
+
+				Endif
+	
+				RecLock("ZZ2",.F.)
+				ZZ2->(DbDelete())
+				ZZ2->(MsUnlock())
+				ZZ2->(DbSkip())
+			EndDo
+		EndIf
+	
+		For nI := 1 To Len(oGetDados:aCols)
+
+			RecLock("ZZ2",.T.)
+
+			ZZ2->ZZ2_FILIAL := xFilial("ZZ2")
+			ZZ2->ZZ2_TIPOSC := "C"
+			ZZ2->ZZ2_NUM    := SC5->C5_NUM
+			ZZ2->ZZ2_ITEMPV := cItemPV
+			ZZ2->ZZ2_PRODUT := oGetDados:aCols[nI,1]
+			ZZ2->ZZ2_DESC   := "["+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+oGetDados:aCols[nI,1],"B1_UMRES"))+"] - "+ALLTRIM(Posicione("SB1",1,xFilial("SB1")+oGetDados:aCols[nI,1],"B1_DESC"))
+			ZZ2->ZZ2_QTDLID := oGetDados:aCols[nI,3]
+			ZZ2->ZZ2_CAIXA  := oGetDados:aCols[nI,4]
+			ZZ2->ZZ2_DATA   := oGetDados:aCols[nI,5]
+			ZZ2->ZZ2_HORA   := oGetDados:aCols[nI,6]
+			ZZ2->ZZ2_USER   := oGetDados:aCols[nI,7]            
+			ZZ2->ZZ2_NUMSER := oGetDados:aCols[nI,9]
+			ZZ2->ZZ2_ITEMPV := oGetDados:aCols[nI,10]
+			ZZ2->ZZ2_NOTA   := SPACE(9)   
+			ZZ2->ZZ2_SCX    := .F.
+	
+			ZZ2->(MsUnlock())
+
+			/* Reserva na tabela SZ4 os números de séries que foram utilizados na conferência */
+
+			If !Empty(ZZ2->ZZ2_NUMSER) 
+
+				SZ4->(DbSetOrder(1))
+				If SZ4->(Dbseek(xFilial('SZ4') + ZZ2->ZZ2_NUMSER + ZZ2->ZZ2_PRODUT))
+					RecLock("SZ4",.F.)
+					SZ4->Z4_NUMPED := SC5->C5_NUM
+					SZ4->Z4_ITEMPV := ZZ2->ZZ2_ITEMPV
+					SZ4->(MsUnlock())
+				Endif
+				
+				/* Item do pedido de venda */
+				SC6->(DbSetOrder(1))
+				If SC6->(Dbseek(xFilial('SC6') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+					RecLock("SC6",.F.)
+					SC6->C6_XNUMSER := ZZ2->ZZ2_NUMSER
+					SC6->(MsUnlock())
+				Endif	
+
+				/* Item liberado do pedido de venda */
+				SC9->(DbSetOrder(1))
+				If SC9->(Dbseek(xFilial('SC9') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+					RecLock("SC9",.F.)
+					SC9->C9_XNUMSER := ZZ2->ZZ2_NUMSER
+					SC9->(MsUnlock())
+				Endif	
+			Endif
+
+		Next nI
+	
+	ElseIf EXCLUI
+	
+		DbSelectArea("ZZ2")
+		ZZ2->(DbSetOrder(1))
+		If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SC5->C5_NUM  ))
+			While !ZZ2->(Eof()) .And. SC5->C5_NUM == ZZ2->ZZ2_NUM .And. "C" == ZZ2->ZZ2_TIPOSC
+	
+				if !EMPTY(ZZ2_NOTA)
+		   		   ZZ2->(dbSkip()) 
+				   LOOP
+				endif 
+
+				/* Libera na tabela SZ4 os números de séries que foram utilizados na conferência */
+	
+				If !Empty(ZZ2->ZZ2_NUMSER) 
+	
+					SZ4->(DbSetOrder(1))
+					If SZ4->(Dbseek(xFilial('SZ4') + ZZ2->ZZ2_NUMSER + ZZ2->ZZ2_PRODUT))
+						RecLock("SZ4",.F.)
+						SZ4->Z4_NUMPED := ''
+						SZ4->Z4_ITEMPV := ''
+						SZ4->(MsUnlock())
+					Endif
+
+					/* Itenm do pedido de venda */
+					SC6->(DbSetOrder(1))
+					If SC6->(Dbseek(xFilial('SC6') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+						RecLock("SC6",.F.)
+						SC6->C6_XNUMSER := ''
+						SC6->(MsUnlock())
+					Endif		
+
+					/* Item liberado do pedido de venda */
+					SC9->(DbSetOrder(1))
+					If SC9->(Dbseek(xFilial('SC9') + ZZ2->ZZ2_NUM + ZZ2->ZZ2_ITEMPV))
+						RecLock("SC9",.F.)
+						SC9->C9_XNUMSER := ''
+						SC9->(MsUnlock())
+					Endif	
+
+				Endif	
+
+				RecLock("ZZ2",.F.)
+				ZZ2->(DbDelete())
+				ZZ2->(MsUnlock())
+				ZZ2->(DbSkip())
+			EndDo
+		EndIf
+	
+	EndIf
+
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ TELACX  ºAutor  ³FONTANELLI          º Data ³  07/11/19   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Tela INFORMAR  QTD Caixa                                   º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function TELA_CX()
+
+Local oButton1
+Local oGet1
+Local oGroup1
+Local oSay1
+Static oDlg
+Public cGet1 := 0
+
+DEFINE MSDIALOG oDlg TITLE "Caixas Utilizadas Conferencia" FROM 000, 000  TO 305, 400 COLORS 0, 16777215 PIXEL
+
+    @ 003, 004 GROUP oGroup1 TO 134, 196 PROMPT " D I G I T E" OF oDlg COLOR 0, 16777215 PIXEL
+    @ 136, 159 BUTTON oButton1 PROMPT "Validar" SIZE 037, 012 OF oDlg PIXEL ACTION (oDlg:End()) 
+    @ 020, 011 SAY oSay1 PROMPT "Quantidade de Caixas" SIZE 125, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 028, 011 MSGET oGet1 VAR cGet1 Picture "9999" WHEN .T. SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+
+ACTIVATE MSDIALOG oDlg CENTERED 
+
+cQuery := "SELECT COUNT(DISTINCT ZZ2_CAIXA) QTD FROM "+RetSqlName("ZZ2")+" "
+cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+cQuery += "   AND ZZ2_NUM = '"+SC5->C5_NUM+"' "
+cQuery += "   AND ZZ2_NOTA = ' ' "
+cQuery += "   AND D_E_L_E_T_ = '' "
+cQuery := ChangeQuery(cQuery)
+dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+dbSelectArea("QryZZ2")
+dbGoTop()
+
+if QryZZ2->QTD <> cGet1
+	Aviso("Aviso","Quantidade de Caixas informada ( "+alltrim(Transform(cGet1,"@E 999"))+" ), diverge da quantidade de caixas da conferencia ( "+alltrim(Transform(QryZZ2->QTD,"@E 999"))+" ) !", {"OK"})   
+endif
+
+QryZZ2->(dbCloseArea())	
+
+Return()
+
+//----------------------------------------------------------------\\
+/*/{Protheus.doc} GetItemPV
+//TODO Retorna o item do pedido, de acordo com o produto, que não 
+       possue um número de série.
+@author Claudio Macedo
+@since 10/01/2022
+@version 1.0
+@return Nil
+@type Function
+/*/
+//----------------------------------------------------------------\\
+Static Function GetItemPV(cProduto, cNumSerie)
+
+Local cRet := ''
+
+(cTRB)->(DbSetOrder(1))
+
+If (cTRB)->(DbSeek(cProduto)) .And. Empty((cTRB)->NUMSERIE)
+	
+	cRet := (cTRB)->ITEMPV
+
+	(cTRB)->(reclock(cTRB,.F.))
+	(cTRB)->NUMSERIE := cNumSerie
+	(cTRB)->(MsUnlock())
+
+Endif
+
+Return cRet
+
+
+//---------------------------------------------------//
+/*/{Protheus.doc} GeraTRB
+// Cria uma tabela temporária e grava registros
+@author Claudio Macedo
+@since 11/01/2022
+@version 1.0
+@return nil
+/*/
+//---------------------------------------------------//
+Static Function GeraTRB()
+
+Local aFields   := {}
+
+aadd(aFields,{'ITEMPV'  , 'C',  2, 0})
+aadd(aFields,{'CODIGO'  , 'C', 15, 0})
+aadd(aFields,{'NUMSERIE', 'C', 30, 0}) 
+
+oTempDB:SetFields( aFields )
+oTempDB:AddIndex('01', {'CODIGO', 'NUMSERIE'} )
+
+oTempDB:Create()
+
+(cAliasSC6)->(DbGoTop())
+
+While (cAliasSC6)->(!EOF())
+
+	(cTRB)->(reclock(cTRB, .T.))
+	
+	(cTRB)->ITEMPV   := (cAliasSC6)->C6_ITEM
+	(cTRB)->CODIGO   := (cAliasSC6)->C6_PRODUTO
+	(cTRB)->NUMSERIE := (cAliasSC6)->C6_XNUMSER
+
+	(cTRB)->(MsUnlock())
+		
+	(cAliasSC6)->(DbSkip())
+
+Enddo
+
+(cAliasSC6)->(DbCloseArea())
+
+Return Nil
+

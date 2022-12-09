@@ -1,0 +1,32 @@
+#Include "rwmake.ch"  
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±ºPrograma  ³TOTPAG2   ºAutor  ³Microsiga           º Data ³  08/27/15   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Programa para tratamento do Valor Total Arrecadado dos	  º±±
+±±º          ³ Impostos.                                                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Fortnort	                                                  º±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+User Function TOTPAG2() 
+
+Local _Area   := GetArea()
+Local _Soma   := nSomaVlLote
+local _Soma1  := 0
+Local _Desc   := 0
+Local _Acres  := 0
+
+_Desc := Somar("SE2","E2_NUMBOR=SEA->EA_NUMBOR ","E2_DECRESC")
+_Juros:= Somar("SE2","E2_NUMBOR=SEA->EA_NUMBOR ","E2_JUROS")
+_Multa:= Somar("SE2","E2_NUMBOR=SEA->EA_NUMBOR ","E2_MULTA")
+_Acres:= Somar("SE2","E2_NUMBOR=SEA->EA_NUMBOR ","E2_ACRESC")
+
+_Desc := Val(Str(_Desc*100))
+_Soma1:= (((_Soma + _Juros + _Multa + _Acres) - _Desc)*100)
+_Soma1:= Str(_Soma1)
+_Soma1:= Strzero(Val(_Soma1),14)
+      
+RestArea(_Area)
+
+Return(_Soma1) 

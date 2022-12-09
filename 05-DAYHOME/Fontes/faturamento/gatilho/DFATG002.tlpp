@@ -1,0 +1,127 @@
+#Include "Protheus.ch"
+#Include "Rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DFATG002  ºAutor  ³Felipe Valenca      º Data ³  03/11/12   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Gatilho para mostrar o saldo do estoque.                    º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function DFATG002
+
+Local aArea := GetArea()
+Local cTitulo := "Saldo em Estoque"
+Local cDescPrd := ""
+
+Local oDlg
+Local oMainWnd
+
+Local nRetorno := 0
+
+Private nPosPrd := 0
+Private nPosLoc := 0
+
+Private cProxPed := ""
+Private dData	 := ""
+Private nSaldo	 := 0
+
+DEFINE FONT oFont5 NAME "Verdana" SIZE 08,15 BOLD
+
+dbSelectArea("SB2")
+dbSetOrder(1)
+If dbSeek(xFilial("SB2")+TMP1->CK_PRODUTO+TMP1->CK_LOCAL,.F.)
+	If TMP1->CK_QTDVEN > SB2->(B2_QATU-B2_QEMP-B2_RESERVA-B2_QPEDVEN)
+		nRetorno := TMP1->CK_QTDVEN
+		
+		xPedido()
+		
+		cDescPrd := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_DESC")
+		
+		Alert("Produto sem Saldo em Estoque!")
+		
+		DEFINE MSDIALOG oDlg FROM 015,015 TO 315,575 TITLE "Saldo em Estoque" OF oMainWnd PIXEL
+		@ 018,007 TO 080, 276 LABEL "Saldo em Estoque" OF oDlg	PIXEL
+		
+		@030,016 Say OemToAnsi("Produto: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+		@030,050 Say OemToAnsi(cDescPrd) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+		
+		@045,016 Say OemToAnsi("Saldo Fisico: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+		@045,056 Say OemToAnsi(Transform(SB2->B2_QATU,"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+		
+		@060,016 Say OemToAnsi("Saldo Disponivel: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+		@060,075 Say OemToAnsi(Transform((SB2->B2_QATU-SB2->B2_QEMP-SB2->B2_RESERVA-SB2->B2_QPEDVEN),"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+		
+		@088,007 TO 135, 276 LABEL "Previsao de Chegada" OF oDlg	PIXEL
+		
+		@100,016 Say OemToAnsi("Data Entrega: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+		@100,070 Say OemToAnsi(dData) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+		
+		@115,016 Say OemToAnsi("Quantidade: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+		@115,060 Say OemToAnsi(Transform(nSaldo,"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+		
+		ACTIVATE MSDIALOG oDlg ON INIT EnchoiceBar( oDlg, { || oDlg:End()},{|| oDlg:End()},,) CENTERED
+	Else
+		nRetorno := TMP1->CK_QTDVEN
+	Endif
+Else
+	nRetorno := TMP1->CK_QTDVEN
+	xPedido()
+	cDescPrd := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_DESC")
+	
+	Alert("Produto sem Saldo em Estoque!")
+	
+	DEFINE MSDIALOG oDlg FROM 015,015 TO 315,575 TITLE "Saldo em Estoque" OF oMainWnd PIXEL
+	@ 018,007 TO 080, 276 LABEL "Saldo em Estoque" OF oDlg	PIXEL
+	
+	@030,016 Say OemToAnsi("Produto: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+	@030,050 Say OemToAnsi(cDescPrd) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+	
+	@045,016 Say OemToAnsi("Saldo Fisico: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+	@045,056 Say OemToAnsi(Transform(SB2->B2_QATU,"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+	
+	@060,016 Say OemToAnsi("Saldo Disponivel: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+	@060,075 Say OemToAnsi(Transform((SB2->B2_QATU-SB2->B2_QEMP-SB2->B2_RESERVA-SB2->B2_QPEDVEN),"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+	
+	@088,007 TO 135, 276 LABEL "Previsao de Chegada" OF oDlg	PIXEL
+	
+	@100,016 Say OemToAnsi("Data Entrega: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+	@100,070 Say OemToAnsi(dData) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+	
+	@115,016 Say OemToAnsi("Quantidade: ") FONT oFont5 Of oDlg Pixel Color CLR_BLACK
+	@115,060 Say OemToAnsi(Transform(nSaldo,"@E 999,999.99")) FONT oFont5 Of oDlg Pixel Color CLR_HBLUE
+	
+	ACTIVATE MSDIALOG oDlg ON INIT EnchoiceBar( oDlg, { || oDlg:End()},{|| oDlg:End()},,) CENTERED
+	
+Endif
+RestArea(aArea)
+
+Return nRetorno
+
+Static Function xPedido
+
+cQuery := "Select TOP 1 C7_NUM, C7_PRODUTO, (C7_QUANT - C7_QUJE) AS SALDO, C7_DATPRF From "+RetSqlName("SC7")+" C7 "
+cQuery += "Where C7.D_E_L_E_T_ = '' AND C7_PRODUTO = '"+TMP1->CK_PRODUTO+"' AND (C7_QUANT - C7_QUJE) > 0 "
+cQuery += "ORDER BY C7_NUM DESC "
+
+If Select("TRB")>0
+	dbSelectArea("TRB")
+	dbCloseArea()
+Endif
+
+dbUseArea(.T.,"TOPCOON",TcGenQry(,,cQuery),"TRB",.F.,.T.)
+TCSetField("TRB", "C7_DATPRF", "D")
+
+cProxPed := TRB->C7_NUM
+dData	 := DtoC(TRB->C7_DATPRF)
+nSaldo	 := TRB->SALDO
+
+Return

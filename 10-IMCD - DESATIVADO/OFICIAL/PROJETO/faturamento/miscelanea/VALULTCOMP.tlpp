@@ -1,0 +1,47 @@
+/*/{Protheus.doc} VALULTCOMP
+	Valida Ultima Compra do Cliente
+	@type  Static Function
+	@author Junior Carvalho
+	@since 30/06/2021
+	@version version
+	@param param_name, param_type, param_descr
+	@return return_var, return_type, return_description
+	@example
+	(examples)
+	@see (links_or_references)
+	/*/
+User Function VALULTCOMP( cCliente, cLoja )
+
+	Local lRet := .F.
+	Local cQuery := ""
+	Local cAliasTMP := GetNextAlias()
+
+	cQuery += "SELECT NVL(SUM(QTD),0) TOTAL "
+	cQuery += " FROM  (SELECT COUNT(*) QTD "
+	cQuery += " FROM "+RETSQLNAME("SD2")+" SD2, "
+	cQuery +=  RETSQLNAME("SF4")+" SF4 "
+	cQuery += " WHERE D2_TIPO = 'N'
+	cQuery += " AND D2_EMISSAO >= '"+DTOS( YearSub(dDataBase,1) )+"' "
+	cQuery += " AND D2_CLIENTE = '"+cCliente+"' "
+	cQuery += " AND D2_LOJA = '"+cLoja+"' "
+	cQuery += " AND SD2.D_E_L_E_T_ = ' ' "
+	cQuery += " AND F4_CODIGO = D2_TES "
+	cQuery += " AND F4_ESTOQUE = 'S' "
+	cQuery += " AND F4_DUPLIC = 'S' "
+	IF cEmpAnt == '01'
+		cQuery += " AND F4_FILIAL = D2_FILIAL "//xFilial("SD2")
+	ENDIF
+	cQuery += " AND SF4.D_E_L_E_T_ = ' ' "
+	cQuery += " GROUP BY D2_FILIAL, D2_DOC , D2_EMISSAO) "
+
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TCGENQRY(,,cQuery),cAliasTMP,.T.,.F.)
+	dbSelectArea(cAliasTMP)
+
+	DbGotop()
+	Do While !EOF()
+		lRet := ((cAliasTMP)->TOTAL > 0)
+		DbSkip()
+	Enddo
+
+Return lRet

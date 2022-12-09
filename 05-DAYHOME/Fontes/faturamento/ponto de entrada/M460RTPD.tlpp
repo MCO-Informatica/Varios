@@ -1,0 +1,74 @@
+#include "rwmake.ch"
+
+User Function M460RTPD
+
+/*
+PARAMIXB[n,01] : Número do Pedido
+PARAMIXB[n,02] : Reservado
+PARAMIXB[n,03] : Reservado
+PARAMIXB[n,04] : Reservado
+PARAMIXB[n,05] : Total do Pedido
+PARAMIXB[n,06] : Valor do Frete
+PARAMIXB[n,07] : Valor do Seguro
+PARAMIXB[n,08] : Valor das despesas acessorias
+PARAMIXB[n,09] : Valor do Frete autonomo
+PARAMIXB[n,10] : Valor da Indeniza+ao
+PARAMIXB[n,11] : Zerar quando alterado o Frete
+PARAMIXB[n,12] : Zerar quando alterado o Seguro
+PARAMIXB[n,13] : Zerar quando alterado as Despesas Acessorias
+PARAMIXB[n,14] : Zerar quando alterado o Frete autonomo
+PARAMIXB[n,15] : Zerar quando alterado a Indenização
+*/
+
+Local _aMatRet     := aClone(ParamIXB)
+Local _nIi         := 0                         // Apesar de ser cabeçalho e não precisar do contador
+Local _aArea 	   := GetArea()
+
+For _nIi := 1 To Len(_aMatRet)
+
+	If !_aMatRet[_nIi,Len(_aMatRet[_nIi])]               // Se nao estiver deletado
+		_cPARAM01     := _aMatRet[_nIi,01]     // Número do Pedido
+        _cPARAM02     := _aMatRet[_nIi,02]     // Reservado
+        _cPARAM03     := _aMatRet[_nIi,03]     // Reservado
+        _cPARAM04     := _aMatRet[_nIi,04]     // Reservado
+        _nPARAM05     := _aMatRet[_nIi,05]     // Total do Pedido
+        _nPARAM06     := _aMatRet[_nIi,06]     // Valor do Frete
+        _nPARAM07     := _aMatRet[_nIi,07]     // Valor do Seguro
+        _nPARAM08     := _aMatRet[_nIi,08]     // Valor das despesas acessorias
+        _nPARAM09     := _aMatRet[_nIi,09]     // Valor do Frete autonomo
+        _nPARAM10     := _aMatRet[_nIi,10]     // Valor da Indeniza+ao
+        _nPARAM11     := _aMatRet[_nIi,11]     // Zerar quando alterado o Frete
+        _nPARAM12     := _aMatRet[_nIi,12]     // Zerar quando alterado o Seguro
+        _nPARAM13     := _aMatRet[_nIi,13]     // Zerar quando alterado as Despesas Acessorias
+        _nPARAM14     := _aMatRet[_nIi,14]     // Zerar quando alterado o Frete autonomo
+        _nPARAM15     := _aMatRet[_nIi,15]     // Zerar quando alterado a Indenização
+         
+        //ALERT(_nPARAM05)
+        //ALERT(_nPARAM06)
+                  
+        _aMatRet[_nIi,01]     := _cPARAM01          // Número do Pedido
+        _aMatRet[_nIi,02]     := _cPARAM02          // Reservado
+        _aMatRet[_nIi,03]     := _cPARAM03          // Reservado
+        _aMatRet[_nIi,04]     := _cPARAM04          // Reservado
+        _aMatRet[_nIi,05]     := _nPARAM05         // Total do Pedido
+        _aMatRet[_nIi,06]     := _nPARAM06 + SC5->C5_FRETE          // Valor do Frete
+        _aMatRet[_nIi,07]     := _nPARAM07          // Valor do Seguro
+        _aMatRet[_nIi,08]     := _nPARAM08          // Valor das despesas acessorias
+        _aMatRet[_nIi,09]     := _nPARAM09          // Valor do Frete autonomo
+        _aMatRet[_nIi,10]     := _nPARAM10          // Valor da Indeniza+ao
+        _aMatRet[_nIi,11]     := 0		           // Zerar quando alterado o Frete
+        _aMatRet[_nIi,12]     := _nPARAM12          // Zerar quando alterado o Seguro
+        _aMatRet[_nIi,13]     := _nPARAM13          // Zerar quando alterado as Despesas Acessorias
+        _aMatRet[_nIi,14]     := _nPARAM14          // Zerar quando alterado o Frete autonomo
+        _aMatRet[_nIi,15]     := _nPARAM15          // Zerar quando alterado a Indenização
+
+        //ALERT(_aMatRet[_nIi,05])
+        //ALERT(_aMatRet[_nIi,06])
+
+     EndIf
+
+Next _nIi
+
+RestArea(_aArea)
+
+Return(_aMatRet)

@@ -1,0 +1,83 @@
+#INCLUDE 'TOTVS.CH'
+
+//NFS - VENDAS TERC ou SOLID ou FUT CLIENT
+
+User FUNCTION CT515()  
+local  cCT515  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/124/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_TOTAL+SD2->D2_VALIPI+SD2->D2_SEGURO+SD2->D2_VALFRE,0)           
+
+Return (cCT515)
+
+//NFS - VENDAS TERC ou SOLID ou FUT RECEIT
+
+User FUNCTION CT516()  
+Local cCT516 := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_TOTAL+SD2->D2_VALIPI+SD2->D2_SEGURO+SD2->D2_VALFRE-SD2->D2_ICMSRET,0) 
+         
+RETURN (cCT516)
+
+ //NFS - VENDAS TERC ou SOLID ou FUT ICMS  
+
+User FUNCTION CT517()
+local  cCT517  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALICM,0)                                                                      
+
+RETURN (cCT517)
+
+ //NFS - VENDAS TERC ou SOLID ou FUT ICMS  
+
+User FUNCTION CT518()
+local  cCT518  :=IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALICM,0)                                                                    
+
+RETURN (cCT518)
+
+////NFS - VENDAS TERC ou SOLID ou FUT ICMSST
+
+User FUNCTION CT519() 
+local  cCT519  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_ICMSRET,0)                                                            
+
+RETURN (cCT519)
+
+//NFS - VENDAS TERC ou SOLID ou FUT IPI   
+
+User FUNCTION CT520()
+local  cCT520  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIPI,0)                                                                    
+
+RETURN (cCT520)
+
+//NFS - VENDAS TERC ou SOLID ou FUT IPI   
+
+User FUNCTION CT521()
+local  cCT521  :=  IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIPI,0)                                                                       
+
+RETURN (cCT521)
+
+//NFS - VENDAS TERC ou SOLID ou FUT PIS   
+
+User FUNCTION CT522()
+local  cCT522  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIMP6,0)                                                                
+
+RETURN (cCT522)
+
+//NFS - VENDAS TERC ou SOLID ou FUT PIS   
+
+User FUNCTION CT523()
+local  cCT523  :=  IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIMP6,0)                                                                      
+
+RETURN (cCT523)
+
+//NFS - VENDAS TERC ou SOLID ou FUT COFINS
+
+User FUNCTION CT524()
+local  cCT524  := IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIMP5,0)                                                                   
+
+RETURN (cCT524)
+
+//NFS - VENDAS TERC ou SOLID ou FUT COFINS
+
+User FUNCTION CT525()
+local  cCT525  :=IF(SD2->D2_TIPO $'N/C' .AND. SF4->F4_DUPLIC == 'S'  .AND.  ALLTRIM(SUBSTR(SD2->D2_CF,2,3))$'101/102/106/117/122/123/401/403/405/502/922/108/110/119/120' .AND. SF4->F4_XCONT <> 'N',SD2->D2_VALIMP5,0)                                                                 
+
+RETURN (cCT525)
+
+
+
+
+

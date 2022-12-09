@@ -1,0 +1,219 @@
+#INCLUDE "RWMAKE.Ch"
+#include "TOPCONN.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ETQEXP    ºAutor  ³Dilson              º Data ³  04/11/11   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³RELATORIO PARA IMPRESSAO DE ETIQUETA PARA EXPORTACAO        º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DayHome                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+USER FUNCTION ETQEXP()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define variaveis                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cDesc1  := "Este relatorio tem o objetivo de imprimir a"
+cDesc2  := "etiqueta para dados de embarque "
+cDesc3  := ""
+cTamanho := 'M'
+Titulo  := 'ETIQUETA DE DADOS PARA EMBARQUE'
+wnRel   := 'ETQEXP'
+limite    :=80
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para montar Get.                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Private aReturn         := { "Zebrado", 1,"Administracao", 2, 2, 1,"",1 }
+Private cPerg           := "ETQEXP"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Janela Principal                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cTitulo:="Etiqueta de dados para embarque"
+cText1:="Neste relatorio sera impresso a etiqueta de dados para embarque"
+
+PutSX1("ETQEXP","01","Addressee:","","","MV_CH01","C",50,0,0,"G","","","MV_PAR01",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","02","City:","","","MV_CH02","C",50,0,0,"G","","","MV_PAR02",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","03","Country:","","","MV_CH03","C",30,0,0,"G","","","MV_PAR03",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","04","Net weight per each case:","","","MV_CH04","N",8,2,0,"G","","","MV_PAR04",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","05","Gross weight per each case:","","","MV_CH05","N",8,2,0,"G","","","MV_PAR05",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","06","Numero Maximo:","","","MV_CH06","N",5,0,0,"G","","","MV_PAR06",;
+"","","","","","","","","","","","","","","")
+PutSX1("ETQEXP","07","Obs:","","","MV_CH07","C",50,0,0,"G","","","MV_PAR07",;
+"","","","","","","","","","","","","","","")
+
+Pergunte(cPerg,.f.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnRel := SetPrint("SB1", wnRel, cPerg, Titulo, cDesc1, cDesc2, cDesc3, .F.,, .F.,cTamanho)
+
+nView    := 1
+
+If nLastKey == 27
+	Set Filter To
+	Return Nil
+Endif
+
+SetDefault(aReturn, "SB1")
+
+If nLastKey == 27
+	Set Filter To
+	Return Nil
+Endif
+
+RptStatus({|lEnd| ETQEXPImp(@lEnd, wnRel,cTamanho, Titulo)}, Titulo)
+
+Set Filter To
+
+Return(Nil)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function ETQEXPImp(lEnd, wnRel, cTamanho, Titulo)
+
+Local lImpAug :=.T.
+Local cTxtFoot := Space(10)
+Local cNomAudLid
+Local cNomeAud
+
+Private nLin :=01
+Private nREG := 1
+Private m_pag   := 1
+Private cCabec1 := ""
+Private cCabec2 :=  ""
+Private nPag    := 1
+Private lPagPrint := .T.
+Private lInicial := .F.
+Private nEspLarg := 1225 // espaçamento entre etiquetas na largura (em pixels)
+Private nEspAlt  := 1000 // espaçamento entre etiquetas na altura  (em pixels)
+Private nVertMax := 1 // Qtde vertical de etiquetas por página
+Private nVertical:= 0
+Private nHorizMax:= 2
+Private nHorizont:= 0
+Private cEmpEtiq := SM0->M0_CODIGO
+
+DBSELECTAREA("SM0")
+nRecM0 := recno()
+
+oFont1    := TFont():New( "Arial",,08,,.F.,,,,,.f. )
+oFont2    := TFont():New( "Arial",,10,,.t.,,,,,.f. )
+oFont3    := TFont():New( "Arial",,14,,.t.,,,,.T.,.f. )
+oFont4    := TFont():New( "Arial",,12,,.T.,,,,.T.,.f. )
+
+If !lInicial
+	lInicial := .T.
+	oprn:=TMSPrinter():New( Titulo )
+Endif
+
+
+oprn:Setup()
+lPagPrint := .T.
+oprn:StartPage() // Inicia uma nova pagina
+
+
+IF (MV_PAR04 % 1) = 0
+cPeso  := ALLTRIM(STR(MV_PAR04))+".00"
+ElseIF(MV_PAR04 % 0.1) = 0
+cPeso  := ALLTRIM(STR(MV_PAR04))+"0"
+Else
+cPeso  := ALLTRIM(STR(MV_PAR04))
+EndIF
+
+IF (MV_PAR05 % 1) = 0
+cPeso2  := ALLTRIM(STR(MV_PAR05))+".00"
+ElseIF(MV_PAR05 % 0.1) = 0
+cPeso2  := ALLTRIM(STR(MV_PAR05))+"0"
+Else
+cPeso2  := ALLTRIM(STR(MV_PAR05))
+EndIF
+
+While nReg <= MV_PAR06
+
+IF nReg < 10
+cReg := "0"+ALLTRIM(STR(nReg))
+ELSE
+cReg := STR(nReg)
+ENDIF
+
+nLP := nHorizont*nEspAlt  + 050
+nCP := nVertical*nEspLarg + 150 
+
+oprn:Box( nLP + 125, nCP - 40, nLP + nEspAlt - 20, nCP + nEspLarg - 225,)
+// cabe + ou - 45 caracteres por linha
+cLinhaA := "ADDRESSEE: "+substr(MV_PAR01,1,RAT(" ",substr(MV_PAR01,1,34)))      /// add condição de tamanho ... JS
+cLinhaA2:= IIF ( len(TRIM(MV_PAR01)) > 34, substr(MV_PAR01,RAT(" ",substr(MV_PAR01,1,34))), "") // ADD BY JS 09/2011
+cLinhaB := "CITY: "+substr(MV_PAR02,1,RAT(" ",substr(MV_PAR02,1,39)))      /// add condição de tamanho ... JS
+cLinhaB2:= IIF ( len(TRIM(MV_PAR02)) > 39, substr(MV_PAR02,RAT(" ",substr(MV_PAR02,1,39))), "") // ADD BY JS 08/2011
+cLinhaC := "COUNTRY: "+ALLTRIM(MV_PAR03)
+cLinhaD := "NET WEIGTH PER EACH CASE: "+cPeso+"KG"
+cLinhaI := "GROSS WEIGTH PER EACH CASE: "+cPeso2+"KG"
+cLinhaE := "NUMBER BOX: "+ALLTRIM(cReg)+" to "+ALLTRIM(str(MV_PAR06))
+cLinhaF :=  ALLTRIM(MV_PAR07)    		
+
+	oprn:Say(nLP+0200,nCP,cLinhaA,oFont4,100)
+	oprn:Say(nLP+0250,nCP,cLinhaA2,oFont4,100)// add by JS
+	oprn:Say(nLP+0350,nCP,cLinhaB,oFont4,100)
+	oprn:Say(nLP+0400,nCP,cLinhaB2,oFont4,100) // add by JS
+	oprn:Say(nLP+0500,nCP,cLinhaC,oFont4,100)
+//	oprn:Say(nLP+0500,nCP,cLinhaD,oFont4,100)
+//	oprn:Say(nLP+0600,nCP,cLinhaI,oFont4,100)
+	oprn:Say(nLP+0650,nCP,cLinhaE,oFont4,100)
+	oprn:Say(nLP+0800,nCP,cLinhaF,oFont4,100,225)
+
+//	oprn:Say(nLP+0650,nCP+300,SM0->M0_NOMECOM,oFont1,100)	
+
+	nHorizont++
+
+	if nHorizont >  nHorizMax
+		nHorizont := 0
+		nVertical++
+	endif
+	if nVertical > 	nVertMax
+		nVertical := 0
+		oprn:EndPage()
+		oprn:StartPage()
+	endif
+	nReg++
+	
+ENDDO	
+	
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Devolve a condicao original do arquivo principal                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Set device to Screen
+
+IF nView == 1
+	oprn:Preview()  // Visualiza antes de imprimir
+Else
+	oprn:Print() // Imprime direto na impressora default Protheus
+Endif
+
+
+
+
+MS_FLUSH()
+
+DBSELECTAREA("SM0")
+dbgoto(nRecM0)
+
+Return(nil)

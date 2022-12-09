@@ -1,0 +1,692 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+  <title>Aprova&ccedil;&atilde;o de Contrato</title>
+  <style>
+BODY {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt
+}
+DIV {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt
+}
+TABLE {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt
+}
+TD {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt
+}
+FORM {
+	MARGIN: 0px
+}
+A:link {
+	COLOR: #2d2dcb
+}
+A:visited {
+	COLOR: #2d2dcb
+}
+A:active {
+	COLOR: #2d2dcb
+}
+A:hover {
+	COLOR: #2d2dcb
+}
+INPUT {
+	FONT-FAMILY: Courier; FONT-SIZE: 12px
+}
+SELECT {
+	FONT-FAMILY: Verdana,Arial,Helvetica,sans-serif; FONT-SIZE: 12px
+}
+.Yellow {
+	BACKGROUND-COLOR: #e8e028
+}	
+.NormalYellow {
+	COLOR: #e8e028; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 13px
+}
+.TableRowYellow {
+	BACKGROUND-COLOR: #FFFFCC; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+.NormalRedBold {
+	COLOR: #ff0000; FONT-FAMILY: Verdana,Arial,Helvetica,sans-serif; FONT-SIZE: 13px; FONT-WEIGHT: bold
+}
+.NormalCommentField {
+	FONT-FAMILY: Courier; FONT-SIZE: 12px
+}
+.NormalBold {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt; FONT-WEIGHT: bold
+}
+.Mini {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px
+}
+.MiniError {
+	COLOR: #ff3333; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px
+}
+.MidleBold {
+	FONT-FAMILY: Verdana,Arial,Helvetica,sans-serif; FONT-SIZE: 14px; FONT-WEIGHT: bold
+}
+.Small {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px
+}
+.SmallRight {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; TEXT-ALIGN: right
+}
+.SmallBold {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; FONT-WEIGHT: bold
+}
+.SmallBoldHeight {
+	FONT-FAMILY: Verdana,Arial,Helvetica,sans-serif; FONT-SIZE: 12px; FONT-WEIGHT: bold; LINE-HEIGHT: 17px
+}
+.TitleSmall {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 18px; FONT-WEIGHT: normal; LINE-HEIGHT: 20px; TEXT-ALIGN: left
+}
+.TitleSmallRight {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 18px; FONT-WEIGHT: normal; LINE-HEIGHT: 20px; TEXT-ALIGN: right
+}
+.TitleSmallCenter {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 18px; FONT-WEIGHT: normal; LINE-HEIGHT: 20px; TEXT-ALIGN: center
+}
+.TitleSmallSalmon {
+	COLOR: #ffbfbf; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 18px; FONT-WEIGHT: normal; LINE-HEIGHT: 20px
+}
+.TitleMedium {
+	COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 22px; FONT-WEIGHT: normal; LINE-HEIGHT: 24px; TEXT-ALIGN: left
+}
+.TitleMediumBold {
+	COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 22px; FONT-WEIGHT: bold; LINE-HEIGHT: 24px; TEXT-ALIGN: left
+}
+.TitleMediumRight {
+	COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 22px; FONT-WEIGHT: normal; LINE-HEIGHT: 24px; TEXT-ALIGN: right
+}
+.TitleMediumCenter {
+	COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 22px; FONT-WEIGHT: normal; LINE-HEIGHT: 24px; TEXT-ALIGN: center
+}
+.TitleBig {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 24px; FONT-WEIGHT: normal; LINE-HEIGHT: 26px; TEXT-ALIGN: left
+}
+.TitleBigRight {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 24px; FONT-WEIGHT: normal; LINE-HEIGHT: 26px; TEXT-ALIGN: right
+}
+.TitleBigCenter {
+	BACKGROUND-COLOR: #f7f7f7;COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 24px; FONT-WEIGHT: normal; LINE-HEIGHT: 26px; TEXT-ALIGN: center
+}
+.TitlePopupWhite {
+	COLOR: #ffffff; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 16px; FONT-WEIGHT: normal; LINE-HEIGHT: 18px; TEXT-ALIGN: right
+}
+.TableColumnTitle {
+	BACKGROUND-COLOR: #FFFF99; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 14px; FONT-WEIGHT: bold; VERTICAL-ALIGN: top
+}
+.TableColumnTitleCenter {
+	BACKGROUND-COLOR: #ffddcb; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; FONT-WEIGHT: bold; TEXT-ALIGN: center; VERTICAL-ALIGN: top
+}
+.TableRowGrey {
+	BACKGROUND-COLOR: #f7f7f7; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+.TableRowGreyCenter {
+	BACKGROUND-COLOR: #f7f7f7; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; TEXT-ALIGN: center; VERTICAL-ALIGN: top
+}
+.TableRowGreyForm {
+	BACKGROUND-COLOR: #f7f7f7; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; HEIGHT: 22px
+}
+.TableRowErrorForm {
+	BACKGROUND-COLOR: #ff3333; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; HEIGHT: 22px
+}
+.TableRowGreyTitleMedium {
+	BACKGROUND-COLOR: #f7f7f7; COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 19px; VERTICAL-ALIGN: top
+}
+.TableRowGreyDark {
+	BACKGROUND-COLOR: #ececec; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+.TableRowGreyDarkMini {
+	BACKGROUND-COLOR: #ececec; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowGreyMini {
+	BACKGROUND-COLOR: #f7f7f7; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowSalmon {
+	BACKGROUND-COLOR: #fff2eb; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+.TableRowSalmonCenter {
+	BACKGROUND-COLOR: #fff2eb; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; TEXT-ALIGN: center; VERTICAL-ALIGN: top
+}
+.TableRowSalmonForm {
+	BACKGROUND-COLOR: #fff2eb; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; HEIGHT: 22px
+}
+.TableRowSalmonFormMini {
+	BACKGROUND-COLOR: #fff2eb; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px
+}
+.TableRowWhite {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+.TableRowWhiteCenter {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; TEXT-ALIGN: center; VERTICAL-ALIGN: top
+}
+.TableRowWhiteForm {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; HEIGHT: 22px
+}
+.TableRowWhiteMini {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowWhiteMini2 {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowBlueTitleMedium {
+	BACKGROUND-COLOR: #000000; COLOR: #FFCC00; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 19px; VERTICAL-ALIGN: top
+}
+.TableRowBlueDark {
+	BACKGROUND-COLOR: #000000; COLOR: #FFCC00; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 14px; VERTICAL-ALIGN: top
+}
+.TableRowBlueDarkMini {
+	BACKGROUND-COLOR: #000000; COLOR: #FFCC00; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowBlueMini {
+	BACKGROUND-COLOR: #000000; COLOR: #FFCC00; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowBlue {
+	BACKGROUND-COLOR: #000000; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 12px; VERTICAL-ALIGN: top
+}
+  .style14 {font-size: 12px; font-weight: bold; }
+</style>
+</head>
+
+
+<FORM name="GCAprov_RENOVA" id="GCAprov_RENOVA" action="WFHTTPRET.APL" method="post">
+							<input type="hidden" name="WFID" 		value="%WFID%">
+                   
+							<input type="hidden" name="C7_FILENT" 	value="%C7_FILENT%">
+							<input type="hidden" name="CFILANT" 	value="%CFILANT%">
+							<input type="hidden" name="CHAVE" 		value="%CHAVE%">
+<table style="width: 100%; height: 112px" border="0" cellspacing="0" cellpadding="0">
+  <tbody>
+    <tr>
+    <td style="width: 1161px; vertical-align: middle; text-align: justify">
+      <div style="text-align: center;">
+      <p><b><font size="4" color="#666666">Contrato No. 
+		:%CN9_NUMERO%</font><font size="4" color="#000000"> - %mensagem%</font></b></div>
+		<div style="text-align: center;">
+      <p><font size="4" color="#666666"><b>Tipo: %CN1_CODIGO% [%CN1_DESCRI%]</b></font></div>
+		<div style="text-align: center;">
+      <p><font size="4" color="#666666"><b>Grupo RENOVA</b></font><font color="#666666">&nbsp;</font></div>
+      </td>
+    <td style="color: rgb(0, 0, 153); width: 150px;" bordercolor="#000000" valign="top">
+      	<img
+ alt="logo" src="http://187.94.63.67:93/workflow/html/logo.jpg" width="150" height="150"></td>
+  </tr>
+  </tbody>
+</table>
+
+<table style="color: rgb(255, 204, 0); width: 100%;" border="0" cellpadding="0" cellspacing="0">
+
+  <tbody>
+    <tr>
+      <td></td>
+    </tr>
+    <tr>
+      <td style="background-color: #000000;" height="1">
+      </td>
+    </tr>
+    <tr>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+    </tr>
+
+
+
+  </tbody>
+</table>
+<table border="0" cellpadding="2" cellspacing="1" width="100%">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font size="1" color="#000000">Data Inicio: </font></td>
+
+
+    <td class="Small" width="34%" valign="top"><font size="2">%CN9_DTINIC%</font></td>
+
+
+    <td class="Small" width="15%" bgcolor="#E4E4E4" align="right" valign="top">
+	<b>
+	<font size="1">Dt Emissão:</font></b></td>
+
+
+    <td class="Small" width="40%" valign="top"><font size="2">%CN9_DTASSI%</font></td>
+
+
+  </tr>
+
+
+  	<tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font size="1" color="#000000">Vigência:</font></td>
+
+
+    <td class="Small" width="34%" valign="top"><font size="2">%CN9_VIGE% %CN9_UNVIGE%</font></td>
+
+
+    <td class="Small" width="15%" bgcolor="#E4E4E4" align="right" valign="top">
+	<b>
+	<font size="1">Data Final:</font></b></td>
+
+
+    <td class="Small" width="40%" valign="top">%CN9_DTFIM%</td>
+
+
+  	</tr>
+	<tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font size="1" color="#000000">Valor total:</font></td>
+
+
+    <td class="Small" width="34%" valign="top">%CN9_TOTAL%</td>
+
+
+    <td class="Small" width="15%" bgcolor="#E4E4E4" align="right" valign="top">
+	<b>
+	<font size="1">Aprovador:</font></b></td>
+
+
+    <td class="Small" width="40%" valign="top">%CR_USER% - %CR_NUSER%</td>
+
+
+  	</tr>
+	<tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font color="#000000">
+	<font size="1">Tipo de revisão</font><b><font size="1">:</font></b></font></td>
+
+
+    <td class="Small" width="34%" valign="top">%CN0_DESCRI%</td>
+
+
+    <td class="Small" width="15%" bgcolor="#E4E4E4" align="right" valign="top">
+	<b><font size="1">Incluído por:</font></b></td>
+
+
+    <td class="Small" width="40%" valign="top">%CN9_XUSER%</td>
+
+
+  	</tr>
+
+
+  
+  
+	<tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font size="1" color="#000000">Descrição:</font></td>
+
+
+    <td class="Small" width="90%" colspan="3" valign="top" align="justify">%CN9_DESCRI%</td>
+
+
+  	</tr>
+	<tr>
+
+
+    <td style="color: rgb(0, 0, 153);" class="SmallBold" align="right" width="9%" bgcolor="#E4E4E4" valign="top">
+	<font size="1" color="#000000">Objeto:</font></td>
+
+
+    <td class="Small" width="90%" colspan="3" valign="top" align="justify">%CN9_CODOBJ%<p>&nbsp;</td>
+
+
+  	</tr>
+
+
+  
+  
+  </tbody>
+</table>
+
+
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+
+
+	<tbody>
+
+    <tr>
+
+      <td bgcolor="#FFFFFF">
+		<img src="../../../../LOGO.gif" height="1" width="1"></td>
+
+    </tr>
+
+
+  
+  </tbody>
+</table>
+
+
+
+<table style="color: rgb(39, 33, 151);" height="19" width="100%" cellspacing="0">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td class="TitleSmall" align="center" height="15" width="100%">
+    </td>
+
+
+  </tr>
+
+
+  
+    <tr>
+
+
+    <td class="TitleSmall" align="center" height="15" width="100%" bgcolor="#B6B6B6">
+    <b><i><font face="Verdana" size="2">Fornecedor / Cliente</font></i></b></td>
+
+
+  </tr>
+
+
+  
+  </tbody>
+</table>
+
+  
+
+<table style="width: 100%;" border="0" cellspacing="1" height="28">
+  <!-- MSTableType="nolayout" -->
+	<tbody>
+    <tr>
+
+    <td class="TableRowBlueDarkMini" align="center" width="7%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000" size="1">C&oacute;digo</font></td>
+    <td  class="TableRowBlueDarkMini" align="center" width="5%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">Loja</font></td>
+    <td class="TableRowBlueDarkMini" align="left" width="87%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">Nome</font></td>
+  </tr>
+  </tbody>
+  <tbody>
+  <tr>
+    <td class="TableRowWhiteMini2" width="7%" style="border-bottom-style: solid; border-bottom-width: 1px" bordercolor="#808080"><p align="center">
+	<font face="Verdana" size="1">%t.1%</font></p></td>
+    <td class="TableRowWhiteMini2" width="5%" style="border-bottom-style: solid; border-bottom-width: 1px" bordercolor="#808080">
+	<font face="Verdana" size="1">%t.2%</font></td>
+    <td class="TableRowWhiteMini2" width="87%" style="border-bottom-style: solid; border-bottom-width: 1px" bordercolor="#808080">
+	<font face="Verdana" size="1">%t.3%</font></td>
+  </tr>
+  </tbody>	
+
+  
+</table>
+&nbsp;
+		
+
+
+<table style="color: rgb(39, 33, 151);" height="19" width="100%" cellspacing="0">
+
+
+  <tbody>
+
+
+  
+    <tr>
+
+
+    <td class="TitleSmall" align="center" height="15" width="100%" bgcolor="#B6B6B6">
+    <b><i><font face="Verdana" size="2">Planilha(s)</font></i></b></td>
+
+
+  </tr>
+
+
+  
+  </tbody>
+</table>
+
+  
+
+<table style="width: 100%;" border="0" cellspacing="1" height="43">
+  <!-- MSTableType="nolayout" -->
+	<tbody>
+    <tr>
+
+    <td class="TableRowBlueDarkMini" align="center" width="5%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">Número</font></td>
+    <td  class="TableRowBlueDarkMini" align="center" width="4%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">Item</font></td>
+
+    <td class="TableRowBlueDarkMini" align="center" width="5%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">%forcli%</font></td>
+
+    <td  class="TableRowBlueDarkMini" align="center" width="7%" style="background-color: #E4E4E4">
+	<font face="Verdana" size="1" color="#000000">Produto</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="29%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000" size="1">Descri&ccedil;&atilde;o produto</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="9%" style="background-color: #E4E4E4">
+	<p align="right">
+	<font face="Verdana" color="#000000" size="1">Quant</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="3%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000" size="1">Un</font></td>
+    <td  class="TableRowBlueDarkMini" align="center" width="9%" style="background-color: #E4E4E4">
+	<p align="right">
+	<font face="Verdana" size="1" color="#000000">Vr.unitário</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="7%" style="background-color: #E4E4E4">
+	<p align="right">
+	<font face="Verdana" color="#000000" size="1">Vl.Total</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="10%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000">Projeto</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="8%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000">Camada</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="5%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000">C.Custo</font></td>
+    <td class="TableRowBlueDarkMini" align="center" width="6%" style="background-color: #E4E4E4">
+	<font face="Verdana" color="#000000">Classe Orçam.</font></td>
+  </tr>
+  </tbody>
+  <tbody>
+  <tr>
+    <td class="TableRowWhiteMini2" width="5%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="center">
+	<font face="Verdana" size="1">%tp.1%</font></p></td>
+    <td class="TableRowWhiteMini2" width="4%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080">
+	<p align="center">
+	<font face="Verdana" size="1">%tp.2%</font></td>
+    <td class="TableRowWhiteMini2" width="5%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="center">
+	<font face="Verdana" size="1">%tp.3%</font></p></td>
+    <td class="TableRowWhiteMini2" width="7%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080">
+	<font face="Verdana" size="1">%tp.4%</font></td>
+    <td class="TableRowWhiteMini2" width="29%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080">
+	<font face="Verdana" size="1">%tp.5%</font></td>
+    <td class="TableRowWhiteMini2" width="9%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="right">
+	<font face="Verdana" size="1">%tp.6%</font></p></td>
+    <td class="TableRowWhiteMini2" width="3%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="center">
+	<font face="Verdana" size="1">%tp.7%</font></p></td>
+    <td class="TableRowWhiteMini2" width="9%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="right">
+	<font face="Verdana" size="1">%tp.8%</font></p></td>
+    <td class="TableRowWhiteMini2" width="7%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080"><p align="right">
+	<font face="Verdana" size="1">%tp.9%</font></p></td>
+    <td class="TableRowWhiteMini2" width="10%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080" align="center">
+	<font face="Verdana" size="1">%tp.10%</font></td>
+    <td class="TableRowWhiteMini2" width="8%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080" align="center">
+	<font face="Verdana" size="1">%tp.11%</font></td>
+    <td class="TableRowWhiteMini2" width="5%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080" align="center">
+	<font face="Verdana" size="1">%tp.12%</font></td>
+    <td class="TableRowWhiteMini2" width="6%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" bordercolor="#808080" align="center">
+	<font face="Verdana" size="1">%tp.13%</font></td>
+  </tr>
+  </tbody>	
+
+  
+</table>
+&nbsp;
+		
+<table style="color: rgb(39, 33, 151);"width="100%" cellspacing="0">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td bgcolor="#B6B6B6">
+    
+      
+      <p style="text-align: left;">
+    <font size="2" face="Verdana" color="#000000">
+	<span style="font-weight:700; font-style:italic">Processo de Aprova&ccedil;&atilde;o</span></font></p>
+
+      </td>
+
+
+  </tr>
+
+
+  
+  </tbody>
+</table>
+
+
+<table style="width: 100%; border-bottom-width:0px" border="0" bordercolor="#ffffff" cellspacing="1" cellpadding="0">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td class="TableRowBlueDarkMini" style="color: rgb(255, 204, 0); background-color:#E4E4E4" align="center" width="6%">
+    <font face="Verdana" color="#000000" size="1">Nível</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="20%">
+    <font face="Verdana" color="#000000" size="1">Usuário</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="12%">
+    <font face="Verdana" color="#000000" size="1">Situação</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="14%">
+    <font face="Verdana" color="#000000" size="1">Aprovado / 
+	Reprovado por</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="6%">
+    <font face="Verdana" color="#000000" size="1">Data</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="28%">
+    <font face="Verdana" color="#000000" size="1">Observações</font></td>
+
+
+  </tr>
+
+
+  
+  
+  </tbody>
+  <tbody>
+
+
+  <tr>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="6%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20"  bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.1%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="left" width="20%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20" bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.2%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="12%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20" bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.3%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="14%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20" bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.4%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="6%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20" bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.5%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="left" width="28%" style="border-bottom-style: solid; border-bottom-width: 1px; vertical-align:middle" height="20" bordercolor="#808080">
+	<font face="Verdana" size="1">%t1.6%</font></td>
+
+
+  </tr>
+
+
+  
+  
+  </tbody>
+</table>
+
+
+<p></p>
+</p>
+		
+<div align="center">
+&nbsp;</div>
+
+</form>
+
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+&nbsp;
+
+	<tbody>
+
+    <tr>
+
+      <td bgcolor="#000000">
+		<img src="../../../../LOGO.gif" height="1" width="1"></td>
+
+    </tr>
+
+
+  
+  </tbody>
+</table>
+
+
+
+
+<table border="0" width="100%">
+  <tbody>
+  <td class="Mini"></td>
+
+	&nbsp;
+		
+  </tbody>
+</table>
+
+<table border="0" width="100%">
+  <tbody>
+  <td class="Mini2"></td>
+
+	&nbsp;
+	
+	<tr>
+      <td class="Mini">Workflow TOTVS</td>
+    </tr>
+  
+  </tbody>
+</table>
+
+
+
+
+</html>

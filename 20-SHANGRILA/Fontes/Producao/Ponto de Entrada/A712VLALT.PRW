@@ -1,0 +1,5 @@
+User Function A712VLALT()
+
+ALERT("PRODUTO ALTERNATIVO HABILITADO")
+
+Return(.t.)

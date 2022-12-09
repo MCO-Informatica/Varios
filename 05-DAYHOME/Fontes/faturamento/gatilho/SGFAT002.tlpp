@@ -1,0 +1,70 @@
+#INCLUDE "PROTHEUS.CH
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "RWMAKE.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³SGFAT002  ºAutor  ³Sergio Lacerda - SNL TECNOLOGIA DA INFORMACAO   º Data ³  10/09/12   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                                                        º±±
+±±º          ³                                                                                        º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function SGFAT002()
+
+Local _xRetorno   := 0
+Local _cCodCli    := M->C5_CLIENTE
+Local _cLoja      := M->C5_LOJACLI
+Local _nDesc1     := M->C5_DESC1
+Local _nDesc2     := M->C5_DESC2
+Local _nDesc3     := M->C5_DESC3
+Local _nDesc4     := M->C5_DESC4
+Local _nQtd       := M->C6_QTDVEN
+Local _nPosCod    := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_PRODUTO"})
+Local _nPosPrunit := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_PRUNIT"})
+Local _nPosPreco  := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_PRCVEN"})
+Local _nPosVlDesc := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_VALDESC"})
+Local _nPosValor  := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_VALOR"})
+Local _nPosDItem  := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_DESCONT"})
+Local _nPos1Comis := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_COMIS1"})
+Local _nPos2Comis := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_COMIS2"})
+
+Local _nDescItem  := 0
+
+DbSelectArea("ADA")
+DbSetOrder(2)
+If DbSeek(xFilial("ADA") + _cCodCli + _cLoja)
+	_cCodProd := aCols[n][_nPosCod]
+	
+	DbSelectArea("ADB")
+	DbSetOrder(2)
+	If DbSeek(xFilial("ADB") + _cCodCli + _cLoja + _cCodProd)
+		aCols[n][_nPosPrunit] := ADB->ADB_PRUNIT
+		nNewPreco  := ADB->ADB_PRUNIT
+		_xRetorno  := ADB->ADB_DESC
+		_nDescItem := ADB->ADB_DESC
+		_nComis1   := ADB->ADB_COMIS1
+		_nComis2   := ADB->ADB_COMIS2
+		
+		If !Empty(M->C5_VEND1)
+			aCols[n][_nPos1Comis] := _nComis1
+		Endif
+		
+		If !Empty(M->C5_VEND2)
+			aCols[n][_nPos2Comis] := _nComis2
+		Endif			
+	Else
+	
+	Endif
+Else
+
+Endif
+
+
+Return(_xRetorno)

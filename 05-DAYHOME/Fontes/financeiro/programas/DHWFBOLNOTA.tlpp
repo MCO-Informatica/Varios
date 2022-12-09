@@ -1,0 +1,251 @@
+#Include "Protheus.Ch"
+#Include "TbiConn.Ch"
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+#include "rwmake.ch"
+#include "colors.ch"
+#include "MSGRAPHI.CH"
+
+/*/{Protheus.doc} DHFINFATBN
+Essa função tem o comportamento de enviar o boleto e a nota no dia da emissão para o cliente por e-mail
+@type function
+@author Fernando Carvalho
+@since 11/03/2016                                               
+@version 1.0
+/*/
+
+User Function DHWFBOLNOTA(aparams)   
+
+cEmpProc:= aparams[1]
+cFilProc:= aparams[2]
+
+lSched := .T.
+
+StartJob("U_DHWFBOLGER", GetEnvServer(), .T., cEmpProc, cFilProc, lSched)
+
+Return
+
+
+User Function DHWFBOLGER(cEmpProc, cFilProc, lSched)   
+
+	Local alMsgs    	:= {"Email enviado com sucesso.",;
+    						"Não encontrado nenhum título a vencer no dia de hoje. ",;
+    						"Não existe a empresa/filial escolhida."}
+	Local clMsg			:= ""
+	Local nCont 		:= 0
+	Local alItensDpl	:= {}
+	Local cDoc			:= ""
+	Local cSerie		:= ""
+	Local cCliente		:= ""
+	Local cLoja			:= ""
+	Local cVendedor		:= ""
+
+	default cEmpProc := cEmpAnt
+	default cFilProc := cFilAnt
+	default lSched   := .F.
+
+	if lSched 
+       Prepare Environment EMPRESA cEmpProc FILIAL cFilProc MODULO "FIN"
+       WfPrepENV(cEmpProc,cFilProc)
+	endif
+
+	DbSelectArea("SE1")
+	DbSetOrder(7)
+	If Select("TMPSE1") > 0
+		TMPSE1->(DbCloseArea())
+	EndIf
+	
+	BeginSql Alias "TMPSE1"
+		SELECT 	SF2.F2_DOC		,SF2.F2_SERIE  	,SF2.F2_COND
+				,SE1.E1_NUM		,SE1.E1_SERIE	,SE1.E1_PARCELA	,SE1.E1_TIPO	,SE1.E1_CLIENTE	,SE1.E1_LOJA	
+				,SE1.E1_NOMCLI	,SE1.E1_EMISSAO	,SE1.E1_VENCREA	,SE1.E1_VEND1   ,SE1.E1_VALOR	,E1_PREFIXO		,E1_PORTADO 
+				,A1_EMAIL
+		FROM  %table:SF2% SF2
+			INNER JOIN %table:SE1% SE1
+			ON SE1.E1_FILIAL		= SF2.F2_FILIAL
+				AND SE1.E1_EMISSAO	= SF2.F2_EMISSAO
+				AND SE1.E1_NUM		= SF2.F2_DOC
+				AND SE1.E1_SERIE	= SF2.F2_SERIE	
+				AND E1_SALDO > 0 
+				AND E1_STATUS = 'A'	
+				AND SE1.D_E_L_E_T_	= ''
+			JOIN %table:SA1% SA1
+			ON A1_FILIAL = %xFilial:SA1% 
+				AND A1_COD			= E1_CLIENTE 
+				AND A1_LOJA			= E1_LOJA 
+				AND A1_X_BOLET = 'S'
+				AND SA1.D_E_L_E_T_	= ' ' 	
+		WHERE SF2.F2_FILIAL = %xFilial:SF2%
+			AND SF2.F2_EMISSAO =  %exp:Dtos(dDataBase-1)%
+			AND SF2.D_E_L_E_T_ = ''
+		ORDER BY  E1_CLIENTE, E1_LOJA, E1_NUM, E1_SERIE, E1_PARCELA
+	EndSql
+	TMPSE1->(dbGoTop())
+	
+	cDoc		:= TMPSE1->E1_NUM
+	cSerie		:= TMPSE1->E1_SERIE
+	cCliente	:= TMPSE1->E1_CLIENTE
+	cLoja		:= TMPSE1->E1_LOJA
+	cVendedor	:= TMPSE1->E1_VEND1
+		
+	While TMPSE1->(!EoF())     
+
+	   	dbSelectArea("SE4")                                                     
+		dbSetOrder(1)
+		dBSeek(xFilial("SE4")+TMPSE1->F2_COND)
+		
+		If SE4->E4_SENDWF == "S"   		
+			
+			nCont++          
+			
+			If TMPSE1->E1_NUM+TMPSE1->E1_SERIE+TMPSE1->E1_CLIENTE+TMPSE1->E1_LOJA <> cDoc+cSerie+cCliente+cLoja 
+
+				SendDpl(alItensDpl,cFilProc,cVendedor)
+
+				nCont 		:= 1
+				alItensDpl 	:= {}									
+		
+			EndIf 
+	   					
+			cDoc		:= TMPSE1->E1_NUM
+			cSerie		:= TMPSE1->E1_SERIE
+			cCliente	:= TMPSE1->E1_CLIENTE
+			cLoja		:= TMPSE1->E1_LOJA 
+			cVendedor	:= TMPSE1->E1_VEND1
+			
+			aAdd(alItensDpl,{	TMPSE1->E1_NUM,;			   				// 1
+						   		TMPSE1->E1_PARCELA,;						// 2
+						   		TMPSE1->E1_TIPO,;							// 3
+								TMPSE1->E1_CLIENTE+"/"+TMPSE1->E1_LOJA,;   	// 4
+								TMPSE1->E1_NOMCLI,;							// 5
+								STOD(TMPSE1->E1_EMISSAO),;					// 6
+								STOD(TMPSE1->E1_VENCREA),;					// 7
+								AllTrim(TransForm(TMPSE1->E1_VALOR, PesqPict("SF1", "F1_VALBRUT"))),;// 8
+								dDataBase,;									// 9
+								Alltrim(TMPSE1->A1_EMAIL),;	            	// 10
+								TMPSE1->E1_PREFIXO,;						// 11
+								TMPSE1->E1_PORTADO;							// 12
+							})	
+			
+			U_DHFINRBOL01(alItensDpl, nCont)			
+	
+	    	Sleep( 7000 )
+
+		Else                     
+			
+			If Len(alItensDpl) > 0  
+				
+				SendDpl(alItensDpl,cFilProc,cVendedor)
+				
+				nCont 		:= 0
+				alItensDpl 	:= {}									
+			
+			EndIf
+
+			TMPSE1->(DbSkip())
+			cDoc		:= TMPSE1->E1_NUM
+			cSerie		:= TMPSE1->E1_SERIE
+			cCliente	:= TMPSE1->E1_CLIENTE
+			cLoja		:= TMPSE1->E1_LOJA
+			cVendedor	:= TMPSE1->E1_VEND1 
+			LOOP	
+		
+		EndIf	                            
+		TMPSE1->(DbSkip())
+	EndDo
+	                                                                   	
+	If Len(alItensDpl) > 0 
+	  	
+		SendDpl(alItensDpl,cFilProc,cVendedor)
+		
+		TMPSE1->( dbCloseArea() )
+		clMsg := alMsgs[1]
+		conout(clMsg)
+	
+	EndIf
+
+	if lSched 
+   	    Reset Environment
+    endif
+
+Return ()
+
+Static Function SendDpl(alItensDpl,xFILIAL, cVendedor)
+
+	Local olP           := Nil
+	Local olHtml		:= Nil
+	Local clCodProcesso	:= ""
+	Local clHtmlModelo	:= ""
+	Local clAssunto		:= ""
+	Local nlI			:= 1
+	Local aArqDir		:= {}
+	
+	//Codigo do processo
+	clCodProcesso	:= "ENVIO"
+	
+	//Caminho do template para gerar o relatorio
+	clHtmlModelo	:= "\workflow\wFDpls0.html"
+	
+	//Assunto da mensagem
+	clAssunto	:= "FILIAL:"+xFILIAL+", LEMBRETE: Novas duplicatas a vencer."
+	
+	//Inicializa o processo
+	olP := TWFProcess():new(clCodProcesso, clAssunto)
+	
+	//Cria uma nova tarefa
+	olP:newTask("Novas duplicatas a vencer nos próximos dias", clHtmlModelo)
+	
+	//Utilizar template html
+	olHtml := olP:oHtml
+	
+	cMail := alItensDpl[1,10]  //busca e-mail do cliente e envio
+	
+	cMail += "; contasareceber@dayhomehouseware.com.br; dayhometi@dayhome.com.br"
+	
+	// cMail := "contasareceber@dayhomehouseware.com.br; marcosaureliofontanelli@gmail.com"
+
+	aAdd((olHTML:valByName("d.DATA")),alItensDpl[1,9])
+	
+	For nlI := 1 To Len(alItensDpl)
+		aAdd((olHTML:valByName("E1.NUM")),alItensDpl[nlI,1])
+		aAdd((olHTML:valByName("E1.PARCELA")),alItensDpl[nlI,2])
+		aAdd((olHTML:valByName("E1.CLIENTE")),alItensDpl[nlI,4])
+		aAdd((olHTML:valByName("E1.NOMCLI")),alItensDpl[nlI,5])
+		aAdd((olHTML:valByName("E1.EMISSAO")),alItensDpl[nlI,6])
+		aAdd((olHTML:valByName("E1.VENCREA")),alItensDpl[nlI,7])
+		aAdd((olHTML:valByName("E1.SALDO")),alItensDpl[nlI,8])
+	Next nlI
+	
+		//Informa assunto
+	olP:cSubject := clAssunto
+	
+	//Endereco eletronico de envio
+	olP:cTo := cMail
+
+	//Gera o processo
+	aArqDir := DIRECTORY("\DHBOLPDF\*.PDF", "D")
+	For nLi := 1 To Len(aArqDir)
+		olP:AttachFile("\DHBOLPDF\"+aArqDir[nLi,1])
+    	Sleep( 7000 )
+	Next 
+
+	olP:start()
+	olP:Free()
+	olP:finish()
+
+   	Sleep( 7000 )
+	WfSendMail()
+   	Sleep( 7000 )
+
+  	For nLi := 1 To Len(aArqDir) 
+		If File("\DHBOLPDF\"+aArqDir[nLi,1])
+			fErase("\DHBOLPDF\"+aArqDir[nLi,1])
+			fErase("\DHBOLPDF\"+SubStr(aArqDir[nLi,1], 1, Len(aArqDir[nLi,1])-4)+".rel")
+		  	Sleep( 7000 )
+		EndIf	
+	Next 
+
+Return (Nil)
+
+

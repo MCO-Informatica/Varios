@@ -1,0 +1,67 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MA381COLS          | Autor | Lucas Baia          | Data |  23/09/2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+
+User Function MA381COLS()
+
+    Local nOpcao        := PARAMIXB[1] //---> 2 - VISUALIZACAO; 3 - INCLUSÃO; 4 - ALTERAÇÃO; 5 - EXCLUSÃO
+    Local nPosProd  	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "G1_COMP"})
+    Local nPosArmaz 	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_LOCAL"})
+    Local nPosQuant		:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_QUANT"})
+    Local nPosDescri	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "B1_DESC"})
+    Local nPosTemNF     := aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_XTEMNF"})
+    Local nPosDoc       := aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_XNUMDOC"})
+    Local nPosSerie     := aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_XNUMSER"})
+    Local nLote         := aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_LOTECTL"})
+    Local nDtValid      := aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_DTVALID"})
+    Local _aArea        := GetArea()
+    local 	nI			:= 0
+    Local cQuery        := ""
+    Local cAliasSD1     := GetNextAlias()
+
+IF nOpcao == 4
+    For nI := 1 To Len(aCols)
+
+        cQuery := "SELECT D1_FORNECE, D1_LOJA, D1_COD, D1_QUANT, D1_VUNIT, D1_TOTAL, D1_DOC, D1_SERIE, D1_ITEM, D1_LOTECTL, D1_DTVALID "
+        cQuery += "FROM "+RetSqlName("SD1")+" SD1 "
+        cQuery += "INNER JOIN "+RetSqlName("SB8")+" SB8 ON SD1.D1_LOTECTL = SB8.B8_LOTECTL AND SD1.D1_DTVALID = SB8.B8_DTVALID AND SD1.D1_DOC = SB8.B8_DOC AND SD1.D1_SERIE = SB8.B8_SERIE "
+        cQuery += "WHERE "
+        cQuery += "SD1.D1_COD = '"+ACOLS[nI][2]+"' "
+        cQuery += "AND SD1.D1_LOCAL = '"+ACOLS[nI][4]+"' "
+        cQuery += "AND SB8.B8_SALDO >= '"+cValToChar(ACOLS[nI][9])+"' "
+        cQuery += "AND SD1.D_E_L_E_T_ = '' "
+        cQuery += "AND SB8.D_E_L_E_T_ = '' "
+        cQuery += "ORDER BY D1_ITEM, D1_DOC, D1_SERIE "
+
+        cQuery := ChangeQuery(cQuery)
+
+        dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSD1,.T.,.T.)
+
+        (cAliasSD1)->(dbGoTop())
+
+        IF !Empty((cAliasSD1)->D1_DOC)
+            aCols[nI,nPosTemNF] := "S"
+            aCols[nI,nPosDoc]   := (cAliasSD1)->D1_DOC
+            aCols[nI,nPosSerie] := (cAliasSD1)->D1_SERIE
+            aCols[nI,nLote]     := (cAliasSD1)->D1_LOTECTL
+            aCols[nI,nDtValid]  := STOD((cAliasSD1)->D1_DTVALID)
+        ELSE
+            aCols[nI,nPosTemNF] := "N"
+        ENDIF
+
+        (cAliasSD1)->(DbCloseArea())
+
+    Next nI
+ENDIF
+
+RestArea(_aArea)
+
+Return

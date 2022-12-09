@@ -1,0 +1,21 @@
+#Include "Protheus.ch"
+
+
+User Function DHSA1Mail()
+	Local lRet := .T.
+
+	If !(M->C5_TIPO $ "B,D")
+
+		lRet := !Empty(Posicione("SA1",1,xFilial("SA1")+M->C5_CLIENTE+IIf(Empty(M->C5_LOJACLI),"01",M->C5_LOJACLI),"A1_EMAIL"))
+
+		If !lRet
+			MsgAlert("Cliente sem e-mail cadastrado, é obrigatório preencher!","Atenção")
+			MATA030()
+		EndIf
+	Else
+
+		lRet := .T.
+
+	EndIf
+
+Return lRet

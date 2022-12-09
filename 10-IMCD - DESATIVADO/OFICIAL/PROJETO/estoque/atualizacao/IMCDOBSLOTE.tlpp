@@ -1,0 +1,78 @@
+#include 'protheus.ch'
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} IMCDOBSLOTE
+Rotina de edição de observação do lote, B8_XOBS. Esta rotina é
+chamada na rotina padrão de manutenção de lote através do menu
+(verificar ponto de entrada MTA390MNU.prw)
+@author  marcio.katsumata
+@since   04/02/2020
+@version 1.0
+@return  nil, nil
+/*/
+//-------------------------------------------------------------------
+user function IMCDOBSLOTE()
+
+    local oTMultiget1 as object
+    local oButOkPar   as object
+    local oButCanc    as object
+    local cLoteCtl    as character
+    local cProduto    as character
+    local cAliasTrb   as character
+    private cObsSB8 as character 
+
+    cAliasTrb := getNextAlias()
+
+    beginSql alias cAliasTrb
+        SELECT R_E_C_N_O_ AS REGISTRO, SB8.B8_XOBS, SB8.B8_PRODUTO, SB8.B8_LOTECTL
+        FROM %table:SB8% SB8
+        WHERE SB8.B8_PRODUTO = %exp:SD5->D5_PRODUTO% AND
+              SB8.B8_LOTECTL = %exp:SD5->D5_LOTECTL% AND
+              SB8.%notDel%
+    endSql
+
+    cObsSB8  := ""
+    cLoteCtl := ""
+    cProduto := ""
+
+    if (cAliasTrb)->(!eof())
+        cObsSB8 := (cAliasTrb)->B8_XOBS
+        cProduto := (cAliasTrb)->B8_PRODUTO
+        cLoteCtl := (cAliasTrb)->B8_LOTECTL
+    endif
+
+    Define MsDialog oDlgObs Title 'Observacao Lote' From 0, 5 To 400, 400 Pixel
+        oSay1:= TSay():New(10,40,{||'Produto : '+ cProduto+'  Lote: '+cLoteCtl},oDlgObs,,,,,,.T.,,,200,20)
+        oTMultiget1 := tMultiget():new( 40, 40, {| u | if( pCount() > 0, cObsSB8 := u, cObsSB8 ) }, ;
+        oDlgObs, 120, 140, , , , , , .T. )
+        oButOkPar := TButton():New( 185, 047, "Salvar",oDlgObs,   {||salvarSb8(cAliasTrb), oDlgObs:end()}, 50,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+        oButCanc := TButton():New( 185, 107, "Cancelar",oDlgObs,   {||oDlgObs:end()}, 50,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+    Activate MsDialog oDlgObs Center
+
+    (cAliasTrb)->(dbCloseArea())
+
+return
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} salvarSB8
+Esta função tem por objetivo realizar a gravação do conteúdo no
+campo B8_XOBS
+@author  marcio.katsumata
+@since   04/02/2020
+@version 1.0
+@param   cAliasTrb, character, alias temporário
+@return  nil, nil
+/*/
+//-------------------------------------------------------------------
+static function salvarSB8(cAliasTrb)
+    while (cAliasTrb)->(!eof())
+
+        SB8->(DbGoTo((cAliasTrb)->REGISTRO))
+        reclock("SB8", .f.)
+        SB8->B8_XOBS := cObsSB8
+        SB8->(msUnlock())
+
+        (cAliasTrb)->(dbSkip())
+    enddo
+return

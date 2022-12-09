@@ -1,0 +1,173 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ DHOME08  บAutor  ณFONTANELLI          บ Data ณ  01/12/14   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Tela Valida็ใo Codigo Barra                                บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/         
+
+User Function DHOME08()                                          
+
+Local oButton1
+Local oGroup1
+Local oGroup2
+Local oSay1
+Local oSay2
+Local oSay3
+Local oSay4
+Local oSay5             
+Local oSay6
+Local oSay7  
+
+public oGet1
+public cGet1 := SPACE(20)
+public oGet2
+public cGet2 := SPACE(20)
+public oGet3
+public cGet3 := SPACE(50)
+public oGet4
+public cGet4 := SPACE(20)
+public oGet5
+public cGet5 := SPACE(20)
+public oGet6
+public cGet6 := 0
+public oGet7
+public cGet7 := SPACE(20)
+
+public oDlg
+
+ DEFINE MSDIALOG oDlg TITLE "Validador C๓digo Barra" FROM 000, 000  TO 405, 800 COLORS 0, 16777215 PIXEL
+
+    @ 006, 003 GROUP oGroup1 TO 054, 245 PROMPT " C๓digo de Barra " OF oDlg COLOR 0, 16777215 PIXEL
+    @ 057, 003 GROUP oGroup2 TO 197, 244 PROMPT " Informa็๕es do Produto " OF oDlg COLOR 0, 16777215 PIXEL
+    @ 026, 028 MSGET oGet1 VAR cGet1 VALID (U_DHOME08V()) SIZE 181, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 084-5, 009 MSGET oGet2 VAR cGet2 SIZE 099, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY 
+    @ 110-5, 009 MSGET oGet3 VAR cGet3 SIZE 227, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY
+    @ 135-5, 009 MSGET oGet4 VAR cGet4 SIZE 137, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY
+    @ 160-5, 009 MSGET oGet5 VAR cGet5 SIZE 138, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY
+    @ 160-5, 157 MSGET oGet6 VAR cGet6 SIZE 060, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY     
+    @ 185-5, 009 MSGET oGet7 VAR cGet7 SIZE 138, 010 OF oDlg COLORS 0, 16777215 PIXEL READONLY
+
+    @ 075-5, 010 SAY oSay1 PROMPT "C๓digo" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 101-5, 010 SAY oSay2 PROMPT "Descri็ใo" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 127-5, 010 SAY oSay3 PROMPT "EAN13" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 151-5, 010 SAY oSay4 PROMPT "DUN14" SIZE 025, 007 OF oGroup2 COLORS 0, 16777215 PIXEL
+    @ 151-5, 158 SAY oSay5 PROMPT "Quantidade" SIZE 040, 007 OF oDlg COLORS 0, 16777215 PIXEL   
+    @ 176-5, 010 SAY oSay7 PROMPT "UPC12" SIZE 025, 007 OF oGroup2 COLORS 0, 16777215 PIXEL
+
+    
+    @ 175, 260 SAY oSay6 PROMPT "*** OBSERVAวรO: para SAIR usar a tecla <ESC> ***" SIZE 300, 007 OF oDlg COLORS 0, 16777215 PIXEL   
+   
+
+   ACTIVATE MSDIALOG oDlg CENTERED
+
+Return                                                               
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑฺฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฟฑฑ
+ฑฑณPrograma  ณ DHOME08V ณ Autor ณFONTANELLI             ณ Data ณ 01/12/14 ณฑฑ
+ฑฑรฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤดฑฑ
+ฑฑณDescri…o ณValida Codigo                                               ณฑฑ
+ฑฑภฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤูฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+User Function DHOME08V()     
+    
+	lAchou := .F.
+	
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+	If SB1->(DbSeek(xFilial("SB1") + cGet1 ))
+		lAchou := .T.
+	endif
+
+    IF !lAchou
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cGet1 ))
+			lAchou := .T.                        
+		endif
+	endif
+	
+    IF !lAchou
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cGet1 ))
+			lAchou := .T.
+		endif                                            
+	endif
+
+    IF !lAchou
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cGet1 ))
+			lAchou := .T.                        
+		endif
+	endif
+		
+	if lAchou
+
+		cGet2 := SB1->B1_COD
+		cGet3 := SB1->B1_DESC
+		cGet4 := SB1->B1_EAN13
+		cGet5 := SB1->B1_DUN14D
+		cGet6 := SB1->B1_DHCXMAS
+		cGet7 := SB1->B1_UPC12
+        
+   		@ 010,248 REPOSITORY oBmp OF oDlg SIZE 150,150 PIXEL
+		ShowBitMap(oBmp,SB1->B1_BITMAP,"")
+		oBmp:lStretch := .T.
+		oBmp:Refresh()
+		
+		oGet2:Refresh()
+		oGet3:Refresh()
+		oGet4:Refresh()
+		oGet5:Refresh()
+		oGet6:Refresh()
+		oGet7:Refresh()
+		
+		oGet1:SetFocus()
+
+	else
+
+   		@ 010,248 REPOSITORY oBmp OF oDlg  SIZE 150,150 PIXEL
+		ShowBitMap(oBmp,"SEM FOTO","")
+		oBmp:lStretch := .T.
+		oBmp:Refresh()
+
+		Aviso("Aviso","Produto nใo Localizado !", {"OK"})   
+
+		cGet1 := SPACE(20)		
+		cGet2 := SPACE(20)
+		cGet3 := SPACE(50)
+		cGet4 := SPACE(20)
+		cGet5 := SPACE(20)
+		cGet6 := 0
+		cGet7 := SPACE(20)
+
+		oGet1:Refresh()		
+		oGet2:Refresh()
+		oGet3:Refresh()
+		oGet4:Refresh()
+		oGet5:Refresh()
+		oGet6:Refresh()
+		oGet7:Refresh()
+		
+		oGet1:SetFocus()
+
+	endif
+	
+Return(.T.)

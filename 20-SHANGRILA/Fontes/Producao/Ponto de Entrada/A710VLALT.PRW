@@ -1,0 +1,5 @@
+User Function A710VLALT()
+
+ALERT("PRODUTO ALTERNATIVO HABILITADO")
+
+Return(.t.)

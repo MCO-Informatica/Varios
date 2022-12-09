@@ -1,0 +1,37 @@
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MATA140 ºAutor  ³ UPDUO                º Data ³  25/04/2022 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Valida se a pré nota de entrada foi inserida Manualmente   º±±
+±±º          ³ Se sim Bloqueia os campos VALOR UNITARIO, IMPOSTOS E FRETE º±±
+±±º          ³ Se não os campos ficam livres para edição                  º±±
+±±º          ³ Caso o campo lote do fornecedor tiver conteúdo, mesmo que, º±±
+±±º          ³ a entrada ocorra via importador XML libera os campos para  º±±
+±±º          ³ acrescentar os Lotes                                       º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Glasstech                                                  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOTVS.CH"
+
+User Function RCOMA99()
+Local nLote   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_LOTEFOR" })]
+
+_lRet := .f.
+
+	If Alltrim(FunName())$"MATA140" .or. Alltrim(FunName())$"MATA103"
+		_lRet := .t.
+	Else
+		//If !Empty(M->D1_LOTEFOR)
+		If !Empty(nLote)
+			_lRet := .t.
+		Else
+			_lRet := .f.
+		EndIf
+	EndIf
+
+Return(_lRet)

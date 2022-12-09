@@ -1,0 +1,30 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | ALIQWHEN         | Autor | Lucas Baia          | Data |    14/06/2022			
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para bloquear edição dos Campos Aliquotas de qualquer																		
+//        | impostos do sistema.
+//        | Basta colocar esse Fonte no campo X3_WHEN.
+//---------------------------------------------------------------------------------
+// Uso    | DAYHOME
+//---------------------------------------------------------------------------------
+
+User Function ALIQWHEN()
+
+Local lRet      := .T.
+Local nUsrLiber := RetCodUsr()
+Local ncUser    := SUPERGETMV("MV_BLQALIQ")
+
+IF INCLUI .OR. ALTERA
+    
+    IF !(nUsrLiber$ncUser)
+    
+        lRet := .F.
+    
+    ENDIF
+
+ENDIF
+
+
+Return lRet

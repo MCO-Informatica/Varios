@@ -1,0 +1,49 @@
+#include "protheus.ch"
+/*/{Protheus.doc} MT175FOK
+Este ponto de entrada tem o objetivo personalizar a validação da Linha.
+LOCALIZAÇÃO: Function A175linOk - No momento em que verifica a validação da linha no final do processo
+Validar a data de Estorno e mudar a Hora.
+Programa Fonte
+@type User function
+@version 1.0
+@author junior.carvalho
+@since 30/07/2020
+@param lRet, logical, Valida Linha (retorno)
+@param nPos, numeric, Posição da linha de estorno
+@param cESTORNO, character, Campo do Estorno
+@param dData, date,Data da Liberação do Item SD7
+@param dDataIni, date, Data da inclusão no SD7
+
+/*/
+User Function MT175FOK()
+    Local lRet    := .T.
+    Local cESTORNO as character
+    Local dData    as date
+    Local dDataIni as date
+
+    IF lEstorno
+
+        cESTORNO  := GdFieldGet('D7_ESTORNO',n)
+        dData   := GdFieldGet('D7_DATA',n )
+        dDataIni := GdFieldGet('D7_DATA',1)
+
+        if cESTORNO == 'X'
+            
+            dbSelectArea("SD7")
+
+            If FieldPos("D7_XHORA") > 0
+
+                If  ( dData < dDataIni   )
+                    Help(' ',1,'A175DATA')
+                    lRet := .F.
+                else
+                    GDFieldPut ( "D7_XHORA",  LEFT(TIME(),5)  ,n)
+                EndIf
+
+            EndIf
+        
+        EndIf
+
+    EndIf
+
+Return lRet

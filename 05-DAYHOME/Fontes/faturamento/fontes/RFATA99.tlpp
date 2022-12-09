@@ -1,0 +1,330 @@
+#include "rwmake.ch"
+#include "protheus.ch"
+#include "tbiconn.ch"
+
+USER FUNCTION RFATA99() 
+
+Processa({|| NOTAS()},"Gravação das Chaves das Notas")
+Return
+
+
+/*
+
+conout("Thread ["+cValToChar(ThreadID())+"] executando ... ")
+While !killapp()
+  
+  conout("Antes de buscar as chaves... Hora Atual = "+time())
+  
+  sleep(100000)
+  
+  CHAVE()
+
+  conout("Depois de buscar as chaves... Hora Atual = "+time())
+
+
+Enddo
+conout("Thread ["+cValToChar(ThreadID())+"] saindo ... ")
+
+return
+
+
+*/
+
+Static Function NOTAS()
+
+_cCliente     := "01082 "
+_cLoja01      := "01"
+_cLoja02      := "2 "
+_cLoja03      := "03"
+
+//PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" MODULO "FAT"
+
+_dData  :=  dDataBase-45
+_cData  :=  StrZero(Year(_dData),4)+StrZero(Month(_dData),2)+"01"
+
+dbSelectArea("SF2")
+dbSetOrder(16)
+dbSeek("01"+_cData,.t.)
+ProcRegua(RecCount())
+
+While Eof() == .f. .And. SF2->F2_FILIAL == "01"
+	
+    IncProc("Processando Nota "+SF2->F2_SERIE+SF2->F2_DOC)
+
+	If Empty(SF2->F2_CHVNFE)
+		SF2->(dbSkip())
+        Loop
+	EndIf
+	
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF2")
+	SF2->(dbSkip())
+
+
+EndDo
+    
+dbSelectArea("SF2")
+dbSetOrder(16)
+dbSeek("02"+_cData,.t.)
+ProcRegua(RecCount())
+
+While Eof() == .f. .And. SF2->F2_FILIAL == "02"
+	
+    IncProc("Processando Nota "+SF2->F2_SERIE+SF2->F2_DOC)
+
+	If Empty(SF2->F2_CHVNFE)
+		SF2->(dbSkip())
+        Loop
+	EndIf
+	
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF2")
+	SF2->(dbSkip())
+
+
+EndDo
+
+dbSelectArea("SF2")
+dbSetOrder(16)
+dbSeek("03"+_cData,.t.)
+ProcRegua(RecCount())
+
+While Eof() == .f. .And. SF2->F2_FILIAL == "03"
+	
+    IncProc("Processando Nota "+SF2->F2_SERIE+SF2->F2_DOC)
+
+	If Empty(SF2->F2_CHVNFE)
+		SF2->(dbSkip())
+        Loop
+	EndIf
+	
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("01"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("02"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja01,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja02,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+    dbSelectArea("SF1")
+    dbSetOrder(1)
+    If DbSeek("03"+SF2->F2_DOC+SF2->F2_SERIE+_cCliente+_cLoja03,.F.)
+        RecLock("SF1",.F.)
+        SF1->F1_CHVNFE := SF2->F2_CHVNFE
+        MsUnLock()
+    EndIf
+
+
+    dbSelectArea("SF2")
+	SF2->(dbSkip())
+
+
+EndDo
+
+Return

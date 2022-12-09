@@ -1,0 +1,20 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+
+User Function SF1100I()
+
+_aArea := GetArea()
+
+//Se a variável pública existir
+If Type("__cCamNovo") != "U"
+ 
+    //Grava o conteúdo na SF1
+    RecLock("SF1", .F.)
+        SF1->F1_XOBS := __cCamNovo
+    SF1->(MsUnlock())
+EndIf
+
+RestArea( _aArea )
+
+Return

@@ -1,0 +1,23 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | EICFI400        | Autor | Lucas Baia          | Data |    15/01/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para geração de Títulos no Contas a Pagar
+//        | pelo SIGAEIC.
+//---------------------------------------------------------------------------------
+// Uso    | VERQUIMICA INDUSTRIA E COMERCIO DE PRODUTOS QUIMICOS EIRELI
+//---------------------------------------------------------------------------------
+
+User Function EICFI400()
+
+Local cParam := If(Type("ParamIxb") = "A",ParamIxb[1],If(Type("ParamIxb") = "C",ParamIxb,""))
+
+
+If cParam == "ANTES_INC_TIT_INV" // Antes da Inclusão de Títulos INV no Contas a Pagar.
+
+    lGeraTitInv:= .F. // Não permite gerar Títulos INV no Contas a Pagar.
+
+EndIf
+
+Return Nil

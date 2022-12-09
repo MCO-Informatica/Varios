@@ -1,0 +1,339 @@
+#include "rwmake.ch"
+#Include "Protheus.ch"
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+/** Programa 	| SF2460I                                                  **/
+/****************************************************************************/
+/** Autor 		| Felipe Valença - MVG Consultoria	           20/08/2013  **/
+/****************************************************************************/
+/** Desc.		| Programa utilizado para da entrada nas notas de trans-   **/
+/** Desc.		| ferencia de estoque da filial origem para filial destino **/
+/****************************************************************************/
+/** Uso 		   | MVG Consultoria - Dayhome                             **/
+/****************************************************************************/
+/****************************************************************************/
+
+User Function SF2460I()
+
+Local cFornece		:= ""
+Local cLoja			:= ""
+Local cTes			:= ""
+Local cCFOP			:= ""
+Local cEst			:= ""
+Local cItem			:= "0000"
+Local cFilAux		:= ""
+Local cFilDest		:= ""
+Local cDoc			:= ""
+Local cSerie		:= ""           
+
+Local nPosTes		:= 0
+
+Local aSF1			:= {}
+Local aSD1Bk		:= {}
+Local aSD1			:= {}
+Local aTesOriginal	:= U_GetTesOri()
+
+Local lMsErroAuto 	:= .F.
+
+Local cPedTransf    := SD2->D2_PEDIDO
+Local aArea			:= GetArea()
+
+// Private cPerg := "NFETRANS"
+
+// INICIO - FONTANELLI CONFERENCIA/COLETA
+
+//ALERT("SF2460I")
+
+//ALERT(GETMV("MV_VALDESP"))
+//ALERT(GETMV("MV_TPRTDSP"))
+
+//ALERT("DEPOIS ----> "+SF2->F2_DOC+" "+SF2->F2_SERIE)
+
+//PUTMV("MV_VALDESP", .F. )
+//PUTMV("MV_TPRTDSP", "1" )
+
+//ALERT(GETMV("MV_VALDESP"))
+//ALERT(GETMV("MV_TPRTDSP"))
+
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	
+	if alltrim(cEmpAnt) == '99'
+		ALERT("(SIM) - SF2460I")
+	endif
+	
+	aArea   := GetArea()
+	
+	cXFilial := SF2->F2_FILIAL
+	cNota    := SF2->F2_DOC
+	cSerie   := SF2->F2_SERIE
+	cCliente := SF2->F2_CLIENTE
+	cLoja    := SF2->F2_LOJA
+
+	
+	aCaixas    := {}
+	nQtdCaixas := 0
+	
+	DbSelectArea("SD2")
+	DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+	SD2->(DbGotop())
+	If DbSeek(cXFilial+cNota+cSerie+cCliente+cLoja)
+		While SD2->(!EOF()) .AND. SD2->D2_FILIAL == cXFilial .AND. SD2->D2_DOC == cNota .AND. SD2->D2_SERIE == cSerie .AND. SD2->D2_CLIENTE == cCliente .AND. SD2->D2_LOJA == cLoja
+			
+			DbSelectArea("ZZ2")
+			ZZ2->(DbSetOrder(1))
+			If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SD2->D2_PEDIDO ))
+				
+				While !ZZ2->(Eof()) .And. ZZ2->ZZ2_FILIAL == xFilial("ZZ2") .and. ZZ2->ZZ2_NUM == SD2->D2_PEDIDO .And. ZZ2->ZZ2_TIPOSC == "C"
+					if EMPTY(ZZ2->ZZ2_NOTA)
+						nAchou := aScan(aCaixas, {|x| Alltrim(x[1]) == ZZ2->ZZ2_CAIXA})
+						If nAchou == 0 //NÃO ACHOU = ZERO
+							AADD(aCaixas ,{ZZ2->ZZ2_CAIXA})
+							nQtdCaixas += 1
+						endif
+					endif
+					ZZ2->(DbSkip())
+				EndDo
+				
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+					RecLock("SC5",.f.)
+					SC5->C5_XSTATUS := "COL"
+					SC5->C5_VOLUME1 := nQtdCaixas
+					MsUnLock()
+				endif
+				
+				nQtdCaixas := 0
+				aCaixas    := {}
+			
+			else
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+					if  SC5->C5_XCONF == "N"
+						cQuery := "SELECT COUNT(*) QTD FROM "+RetSqlName("SC6")+"" 
+						cQuery += " WHERE C6_FILIAL = '"+xFilial("SC6")+"'"
+						cQuery += "   AND C6_NUM = '"+SC5->C5_NUM+"'"
+						cQuery += "   AND C6_QTDVEN <> C6_QTDENT" 
+						cQuery += "   AND C6_BLQ <> 'R' " 
+						cQuery += "   AND D_E_L_E_T_ = ' '"
+						cQuery := ChangeQuery(cQuery)
+						dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QrySC6",.T.,.T.)
+						dbSelectArea("QrySC6")
+						dbGoTop()
+						xQTD := QrySC6->QTD
+						QrySC6->(dbCloseArea())
+						If xQTD > 0 
+							RecLock("SC5",.f.)
+							SC5->C5_XSTATUS := "RES"   
+							MsUnLock()
+						else
+							RecLock("SC5",.f.)
+							SC5->C5_XSTATUS := "ENT"
+							MsUnLock()
+						endif	
+					endif
+				endif
+			EndIf
+			
+			SD2->(DbSkip())
+		Enddo
+		
+		
+	endif
+	
+	DbSelectArea("SD2")
+	DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+	SD2->(DbGotop())
+	If DbSeek(cXFilial+cNota+cSerie+cCliente+cLoja)
+		While SD2->(!EOF()) .AND. SD2->D2_FILIAL == cXFilial .AND. SD2->D2_DOC == cNota .AND. SD2->D2_SERIE == cSerie .AND. SD2->D2_CLIENTE == cCliente .AND. SD2->D2_LOJA == cLoja
+			
+			DbSelectArea("ZZ2")
+			ZZ2->(DbSetOrder(1))
+			If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SD2->D2_PEDIDO ))
+				While !ZZ2->(Eof()) .And. ZZ2->ZZ2_FILIAL == xFilial("ZZ2") .and. ZZ2->ZZ2_NUM == SD2->D2_PEDIDO .And. ZZ2->ZZ2_TIPOSC == "C"
+					if EMPTY(ZZ2->ZZ2_NOTA)
+						RecLock("ZZ2",.F.)
+						ZZ2->ZZ2_NOTA = cNota
+						ZZ2->(MsUnlock())
+					endif
+					ZZ2->(DbSkip())
+				EndDo
+			EndIf
+			
+			SD2->(DbSkip())
+		Enddo
+	endif
+	
+	RestArea(aArea)
+	
+endif
+
+// FIM - FONTANELLI CONFERENCIA/COLETA
+
+DbSelectArea("SC5")
+DbsetOrder(1) // C5_FILIAL+C5_NUM
+SC5->(DbGotop())
+DbSeek(xFilial("SC5")+cPedTransf)
+
+If  SC5->C5_OPER == "04"        
+	cPerg := "NFETRANS"
+	ValidPerg()
+	
+	If !Pergunte(cPerg,.T.)
+		Return
+	Endif
+	
+	aArea    := GetArea()
+	
+	//cTes	 := MV_PAR01
+	cCFOP	 := MV_PAR01
+	cFornece := MV_PAR02
+	cLoja	 := MV_PAR03
+	cSerie	 := MV_PAR04
+	cFilDest := MV_PAR05
+	
+	dbSelectArea("SD2")
+	dbSetOrder(3)
+	If dbSeek(xFilial("SD2")+SF2->(F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA))
+		dbSelectArea("SF4")
+		dbSetOrder(1)
+		If dbSeek(xFilial("SF4")+ SD2->D2_TES)		
+			If SF4->F4_TRANFIL <> '1'
+				Return
+			Endif
+		Endif
+	Endif
+	
+	RestArea(aArea)
+	
+	/*********************************/
+	/*	  VALIDACAO DO FORNECEDOR    */
+	/*********************************/
+	aArea := GetArea()
+	dbSelectarea("SA2")
+	dbSetOrder(1)
+	If dbSeek( xFilial("SA2")+ cFornece + cLoja)
+		cFornece := A2_COD
+		cLoja	 := A2_LOJA
+		cEst	 := A2_EST
+	Else
+		Alert("ERRO: Fornecedor não encontrado!","ERRFOR")
+		Return
+	Endif
+	RestArea(aArea)
+	
+	
+	aArea := GetArea()
+	
+	cDoc := SF2->F2_DOC
+	
+	cFilAux := cFilAnt
+	cFilAnt := cFilDest
+	
+	AADD(aSF1,{"F1_FILIAL"	, cFilAnt						, Nil	})
+	AADD(aSF1,{"F1_TIPO"	, "N"							, Nil	})
+	AADD(aSF1,{"F1_FORMUL"	, "N"							, Nil	})
+	AADD(aSF1,{"F1_DOC"		, cDoc							, Nil	})
+	AADD(aSF1,{"F1_SERIE"	, cSerie						, Nil	})
+	AADD(aSF1,{"F1_DTDIGIT"	, dDatabase						, Nil	})
+	AADD(aSF1,{"F1_EMISSAO"	, dDataBase						, Nil	})
+	AADD(aSF1,{"F1_FORNECE"	, cFornece						, Nil	})
+	AADD(aSF1,{"F1_LOJA"	, cLoja							, Nil	})
+	AADD(aSF1,{"F1_ESPECIE"	, "SPED"						, Nil	})
+	AADD(aSF1,{"F1_EST"		, cEst							, Nil	})
+	AADD(aSF1,{"F1_CHVNFE"	, SF2->F2_CHVNFE				, Nil	})
+	
+	dbSelectArea("SD2")
+	dbSetOrder(3)
+	If dbSeek(cFilAux+SF2->(F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA),.F.)
+		
+		While !Eof() .And. SF2->(F2_DOC+F2_SERIE+F2_CLIENTE+F2_LOJA) == SD2->(D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA)
+			If !Empty(aTesOriginal)
+				nPosTes := aScan(aTesOriginal,{|x|x[1] == SD2->D2_COD})
+				cTes := Posicione("SF4",1,xFilial("SF4")+aTesOriginal[nPosTes,2],"F4_TESENTR")			
+			EndIf	
+			cItem := Soma1(cItem)
+			AADD(aSD1Bk, {"D1_FILIAL"	, cFilAnt				,Nil })
+			AADD(aSD1Bk, {"D1_DOC"		, cDoc					,Nil })
+			AADD(aSD1Bk, {"D1_SERIE"	, cSerie				,Nil })
+			AADD(aSD1Bk, {"D1_ITEM"		, cItem 				,Nil })
+			AADD(aSD1Bk, {"D1_COD"		, SD2->D2_COD			,Nil })
+			AADD(aSD1Bk, {"D1_DESCRI"	, Posicione("SB1",1,xFilial("SB1")+SD2->D2_COD,"B1_DESC")	,Nil })
+			AADD(aSD1Bk, {"D1_LOCAL"	, "01"					,Nil })
+			AADD(aSD1Bk, {"D1_QUANT"	, SD2->D2_QUANT			,Nil })
+			AADD(aSD1Bk, {"D1_VUNIT"	, SD2->D2_PRCVEN		,Nil })
+			AADD(aSD1Bk, {"D1_TOTAL"	, SD2->D2_TOTAL			,Nil })
+			AADD(aSD1Bk, {"D1_TES"		, cTes					,Nil })
+			AADD(aSD1Bk, {"D1_CF"		, cCFOP					,Nil })
+			AADD(aSD1,aSD1Bk)
+			aSD1Bk := {}
+			dbSelectArea("SD2")
+			dbSkip()
+		End
+		
+	Else
+		Alert("ERRO: Nota não encontrada!!","ERRSD2")
+		Return
+	Endif
+	
+	lMsErroAuto := .F.
+	MsExecAuto({|x,y,z| MATA103(x,y,z)},aSF1,aSD1,3)
+	aSF1 := {}
+	aSD1 := {}
+	aSD1Bk := {}
+	If lMsErroAuto
+		RollBackSX8()
+		MostraErro()
+	Else
+		Alert("Nota de Entrada "+cDoc+", Gerada na Filial "+cFilDest)
+	Endif
+	
+	cFilAnt := cFilAux
+	aTesOriginal := NIL
+	RestArea(aArea)
+EndIf	
+
+Return
+
+
+*---------------------------------*
+Static Function ValidPerg()
+*---------------------------------*
+Local _sAlias := Alias()
+Local aRegs := {}
+Local i,j
+
+DBSelectArea("SX1") ; DBSetOrder(1)
+cPerg := PADR(cPerg,10)
+
+// Grupo/Ordem/Pergunta/Variavel/Tipo/Tamanho/Decimal/Presel/GSC/Valid/Var01/Def01/Cnt01/Var02/Def02/Cnt02/Var03/Def03/Cnt03/Var04/Def04/Cnt04/Var05/Def05/Cnt05
+//AADD(aRegs,{cperg,"01","TES:"			,"","","mv_ch1","C", 3,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","SF4"})
+AADD(aRegs,{cperg,"01","CFOP:"			,"","","mv_ch1","C", 4,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AADD(aRegs,{cperg,"02","Fornecedor:"	,"","","mv_ch2","C", 6,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","FOR"})
+AADD(aRegs,{cperg,"03","Loja:"			,"","","mv_ch3","C", 2,0,0,"G","","mv_par03","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AADD(aRegs,{cperg,"04","Serie:"			,"","","mv_ch4","C", 1,0,0,"G","","mv_par04","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AADD(aRegs,{cperg,"05","Filial Dest:"	,"","","mv_ch5","C", 2,0,0,"G","","mv_par05","","","","","","","","","","","","","","","","","","","","","","","","","SM0"})
+
+For i:=1 to Len(aRegs)
+	If !dbSeek(cPerg+aRegs[i,2])
+		
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			EndIf
+		Next
+		MsUnlock()
+		
+		
+	EndIf
+Next
+DBSelectArea(_sAlias)
+
+Return
+  

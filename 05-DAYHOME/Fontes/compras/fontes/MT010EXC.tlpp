@@ -1,0 +1,64 @@
+#INCLUDE "protheus.ch"
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} MT010EXC
+Ponto de Entrada para gravar dados complementares, validando a EXCLUSAO do cadastro de produtos
+
+@author		DayHome
+@since		25/09/2015
+@version	P11
+@obs		Parametros: Nenhum
+/*/
+//-------------------------------------------------------------------
+
+User Function MT010EXC()
+
+LOCAL _aArea    := GetArea()
+LOCAL _aAreaSM0 := SM0->( GetArea() )
+LOCAL _cFilAnt  := cFilAnt
+LOCAL _cFilSFK  := xFilial("SFK")
+
+If ! SB1->B1_ORIGEM $ "16" // Faz a inclusao dos saldos de ST Somente para Origens Diferentes de 1 e 6
+	
+	_aArea    := GetArea()
+	_aAreaSM0 := SM0->( GetArea() )
+	
+	dbSelectArea("SFK")  // Saldos Iniciais ST - cat17
+	dbSetOrder(1)        // Produto + Data
+	
+	dbSelectArea("SM0")  // Empresas
+	dbSetOrder(1)        // Codigo + CodFil
+	dbSeek( cEmpAnt, .T. )
+	
+	Do While SM0->M0_CODIGO==cEmpAnt .AND. !Eof()
+		
+		cFilAnt := SM0->M0_CODFIL
+		
+		// Ao Excluir um Produto, Verifica se Existem Saldos Iniciais na SFK e deleta, para todas as filiais
+		dbSelectArea("SFK")
+		dbSeek( Iif(Empty(_cFilSFK),_cFilSFK,SM0->M0_CODFIL) + SB1->B1_COD , .T. )
+		
+		Do While SFK->FK_PRODUTO==SB1->B1_COD .AND. SFK->FK_FILIAL==cFilAnt .AND. !Eof()
+			RecLock("SFK",.F.)
+			dbDelete()
+			MsUnLock()
+			dbSkip()
+		EndDo
+		
+		If Empty(_cFilSFK)  // Se a SFK for compartilhada, sera executado so a primeira vez do loop e depois abandona
+			Exit
+		EndIf
+		
+		dbSelectArea("SM0")
+		dbSkip()
+		
+	EndDo
+	
+	cFilAnt := _cFilAnt  // Restaura a Filial
+	
+	RestArea( _aAreaSM0 )
+	RestArea( _aArea )
+	
+EndIf
+
+Return( Nil )

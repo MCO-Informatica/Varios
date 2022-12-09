@@ -1,0 +1,69 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO4     º Autor ³ Lucas Pereira      º Data ³  11/04/17   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ ponto de entrada meus pedidos ARRAY CABECALHO PEDIDOS      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function MP_CABECPV    
+	local rArea		:= getarea()
+	local cFilMp 	:= PARAMIXB[1]	// FILIAL DA CONTA MEUS PEDIDOS
+	local cCtaMp 	:= PARAMIXB[2]	// CODIGO DA CONTA MEUS PEDIDOS
+	local aCabec 	:= PARAMIXB[3]	// ARRAY CABECAÇHO COM ESTRTURA PARA EXECUÇÃO DO EXCAUTO
+	local aPedidos 	:= PARAMIXB[4]	// OBJETO RETORNO GET JSON MEUS PEDIDOS
+	local cTipVen 	:= PARAMIXB[5]	// TIPO DE OPERAÇÃO
+	local nX
+	local nPosVend  := 0 // POSICAO DO CODIGO DO VENDEDOR NO ACABEC
+	//local cVendGen  := cFilMp  // CODIGO DE VENDEDOR GENERICO
+	local cVendGen  := alltrim(SUPERGETMV('MP_MULTCAR', .F., '', cFilMp))  // CODIGO DE VENDEDOR GENERICO
+	local cVendPed	:= "" // CODIGO DO VENDEDOR DO PEDIDO
+
+	aadd(aCabec,{"C5_OPER"		,cTipVen														,Nil}) 
+	aadd(aCabec,{"C5_DHORIGA" 	,"W"															,Nil}) 
+    aadd(aCabec,{"C5_DHORIDE" 	,"WEB REPRESENTANTES"                               			,Nil}) 
+    aadd(aCabec,{"C5_XMOTFRE" 	,"F"															,Nil}) 
+	
+	
+	if !empty(cVendGen) // Verifica se existe o parametro do vendedor nessa filial     
+		if alltrim(SA1->A1_VEND) == cVendGen //Verifica se o cliente é do vendedor genérico
+			for nX := 1 to len(aCabec)
+				if aCabec[nX, 1] == "C5_VEND1" //Busca a posição VENDEDOR no cabeçalho do pedido
+					nPosVend := nX	
+					exit
+				endif
+			next nX
+			cVendPed := U_GetIdProt(cFilMp,cCtaMp,"VEND",cvaltochar(aPedidos:CRIADOR_ID)) //Busca o ID do vendedor que fez o pedido no Protheus
+			
+			if !empty(cVendPed) //Verifica se o vendedor que veio no pedido está integrado
+				if reclock('SA1', .F.) //Altera o vendedor do cliente, para o vendedor que fez o pedido
+					SA1->A1_VEND := cVendPed
+					conOut('[PE] MP_CABECPV: Cliente '+SA1->A1_COD+'-'+SA1->A1_LOJA+' atualizado. Novo vendedor: '+cVendPed)
+					msUnlock()
+				endif
+				if nPosVend != 0
+					aCabec[nPosVend, 2] := cVendPed //Altera o vendedor no pedido do Protheus
+					conOut('[PE] MP_CABECPV: Pedido '+cvaltochar(aPedidos:ID)+' atualizado. Novo vendedor: '+cVendPed)
+				else
+					conOut('[PE][ERRO] MP_CABECPV: C5_VEND1 nao encontrado no aCabec. Pedido: '+cvaltochar(aPedidos:ID))
+				endif
+			else
+				conOut('[PE][ERRO] MP_CABECPV: Vendedor nao encontrado no Protheus. Pedido: '+cvaltochar(aPedidos:ID)+' | Vendedor: '+cvaltochar(aPedidos:CRIADOR_ID))
+			endif
+		else
+			conOut('[PE] MP_CABECPV: Vendedor nao e o generico: '+SA1->A1_VEND+' | Generico: '+cVendGen)
+		endif
+	else
+		conOut('[PE][ERRO] MP_CABECPV: Parametro MP_MULTCAR vazio.')	
+    endif
+	restarea(rArea)
+Return(aCabec)

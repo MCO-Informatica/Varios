@@ -1,0 +1,23 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RESTG04         | Autor | Ricardo Souza          | Data |    29/08/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Geracao de sequencial de lote customizado
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+
+
+User Function RESTG04()
+
+
+Local _cLote    := ""
+
+If M->C2_SEQUEN$"001"
+    _cLote := GETSX8NUM("LOT","C2_LOTPROD")
+else
+    _cLote := Posicione("SC2",1,xFilial("SC2")+M->C2_NUM+M->C2_ITEM+"001","C2_LOTPROD") 
+EndIf
+
+Return(_cLote)

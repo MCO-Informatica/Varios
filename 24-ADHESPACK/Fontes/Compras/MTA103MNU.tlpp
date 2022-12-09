@@ -1,0 +1,17 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA103MNU       | Autor | Lucas Baia          | Data |    25/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para inserir Menu em Outras Ações na Rotina de 
+//        | Documento de Entrada.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MTA103MNU()
+
+aAdd(aRotina,{ "Rejeitar a NF", "U_XREJNF(SF1->F1_DOC,SF1->F1_SERIE,SF1->F1_FORNECE,SF1->F1_LOJA)", 0 , 2, 0, .F.})
+
+Return

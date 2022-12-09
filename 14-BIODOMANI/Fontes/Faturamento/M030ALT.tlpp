@@ -1,0 +1,21 @@
+#Include 'Protheus.ch'
+ 
+//---------------------------------------------------------------------------------
+// Rotina | M030ALT           | Autor | Lucas Baia          | Data | 17/06/2021
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada responsável pela Alteração do Cadastro de Clientes.
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda
+//---------------------------------------------------------------------------------
+
+User Function M030ALT()
+Local lRet      := .T.
+Local aArea     := GetArea()
+
+Reclock("SA1",.F.)
+    SA1->A1_YDTALT := dDataBase
+MsUnLock() // Confirma e finaliza a operação
+
+RestArea(aArea)
+
+Return(lRet)

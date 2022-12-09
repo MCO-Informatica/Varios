@@ -1,0 +1,84 @@
+#Include 'Rwmake.ch'
+#Include 'Protheus.ch'
+#Include "TopConn.ch"
+#Include "TbiConn.ch"
+
+/*
+Programa.: CN300PCMT
+Autor....: Gileno Pereira
+Data.....: 28/11/2017
+Descricao: Ponto de entrada na gravação do contrato, na hora do commit
+Uso......: RENOVA
+*/
+
+User Function CN300PCMT()
+   
+Local aParam   := PARAMIXB  
+Local oObj     := aParam[1]
+Local nOpc     := oObj:GetOperation() // pego a operação que está sendo realizada no objeto  (3= inclusao de contrato e revisão / 5= exclusão)
+Local aCN9     := GetArea("CN9")
+Local aCN1     := GetArea("CN1")
+Local aSY3     := GetArea("SY3")
+Local nI
+Local aAreaCNB := CNB->(GetArea())
+Local aAreaCNN := CNN->(GetArea())
+Local cCliFor  := ""
+Local oModel   := FwModelActive()
+Local _TipoRev := GETMV("MV_XAPROV")//Tipos de Revisão que não tem necessidade de WorkFlow
+
+If oModel:IsActive()      //obrigatório para verificar se o modelo está ativo
+	If FUNNAME()== "CNTA300"
+		CN1->(dbSetOrder(1))
+		CN1->(DbSeek(xfilial("CN1") + M->CN9_TPCTO))
+		
+		If  CN1->CN1_ESPCTR == "1"	// Compra
+			cCliFor := SA2->A2_NOME
+		Else
+			cCliFor := ""
+		EndIf
+		
+		If ! nOpc == 5  // se for exclusão da medição não executa nenhuma gravação
+			//GRAVAR O NOME DO USUARIO/FORNECEDOR
+			If 	!CN1->(Eof())
+				M->CN9_XUSER  := UsrFullName(__cUserID)
+				M->CN9_XCODUS := __cUserID
+				M->CN9_XFOR   := cCliFor                                         
+			EndIf
+		EndIf
+		If ! nOpc == 5  // se for exclusão da medição não executa nenhuma gravação
+		
+			//posiciona no grupo  de aprovação para preencher o código do grupo no campo CN9_APROV
+			// Corrigido o nome do campo de: CN9_TPCTO PARA CN9_TIPREV afim de validar a revisão. @ Alcouto 22/01/21
+			IF !'REVCON'+ M->CN9_TIPREV $ _TipoRev .AND. M->CN9_ESPCTR == '1'
+				DbSelectArea("SY3")
+				DbSetOrder(1)
+				SY3->(DbSeek(xFilial("SY3")+ Alltrim(M->CN9_XUNIDR)))
+				//oModel:SetValue("CN9_MASTER", "CN9_APROV", ALLTRIM(SY3->Y3_GRAPROV))//Gravar em MVC
+			    oModel:GetModel("CN9MASTER"):SetValue("CN9_APROV", ALLTRIM(SY3->Y3_GRAPROV) )  
+			Endif
+		Endif
+			
+		RestArea(aCN1)
+		RestArea(aCN9)
+		RestArea(aSY3)
+		
+		//GRAVAR GRUPO DE COMPRAS
+		dbSelectArea("CNN")
+		
+		CNN->( DbSetOrder(2) ) //CNN_FILIAL+CNN_GRPCOD+CNN_CONTRA+CNN_TRACOD
+		If ! nOpc == 5  // se for exclusão da medição não executa nenhuma gravação
+			IF !CNN->( DbSeek(xFilial("CNN")+"000067"+M->CN9_NUMERO) )
+				
+				RecLock("CNN",.T.)
+				CNN->CNN_FILIAL := XFILIAL("CNN")
+				CNN->CNN_CONTRA := M->CN9_NUMERO
+				CNN->CNN_GRPCOD := "000067" //Código do Grupo de Compras
+				CNN->CNN_TRACOD := "001"
+				CNN->( MsUnlock() )
+				
+			Endif
+		Endif
+		RestArea(aAreaCNN)
+	EndIf      
+EndIf
+Return(.T.)

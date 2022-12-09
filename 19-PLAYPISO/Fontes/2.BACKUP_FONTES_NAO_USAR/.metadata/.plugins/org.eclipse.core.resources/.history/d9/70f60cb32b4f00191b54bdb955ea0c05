@@ -1,0 +1,153 @@
+
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"   
+#INCLUDE "TOPCONN.CH" 
+#INCLUDE "AP5MAIL.CH"  
+#INCLUDE "TBICONN.CH" 
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณFMAILJOB  บAutor  ณThiago Miguel   บ Data ณ  22/03/2019   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA ENVIO DE EMAIL COM PEDIDO FUTUROS              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+ 
+
+user function EnvioCMP(c_fil)
+PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" 
+ 
+  
+
+    Private clDescri  := '' 
+    Private clProd  := ''       // numero da proposta WORD
+    Private clDtEnt := ''     //data de inclusao do or็amento
+    Private clDtEmiss := ''    //data de inclusใo de follow-up   
+    Private clQuant   := ''    //data de Retorno do Follow-up
+    Private clObserv := ''
+    Private c_texto   := '' 
+    Private c_assunto := ''
+    Private clAlias := ''
+    Private cArqTrab := ''
+    Private clPedNum := ''
+    
+    Private _cHTML 	  := '' 
+
+  
+    c_assunto := "Entregas Futuras" 
+    
+    			cQuery := " SELECT * FROM " + RetSqlName("SC7") + " AS SC7 "
+				cQuery += " LEFT JOIN " + RetSqlName("SB1") + " AS SB1 ON SC7.C7_PRODUTO = SB1.B1_COD "
+				cQuery += " LEFT JOIN " + RetSqlName("SA2") + " AS SA2 ON SC7.C7_FORNECE = SA2.A2_COD "
+				cQuery += " WHERE SC7.C7_DATPRF >= GETDATE ( ) + 7 "
+
+				dbUseArea( .T., "TOPCONN", TcGenQry(,,cQuery), "TTC", .T., .F. )
+				dbSelectArea("TTC")
+				EnviaEmail()
+				dbGoTop()
+
+			    
+			    clProd 	  := TTC->C7_PRODUTO
+      			clDescri  := TTC->B1_DESC 
+    		    clFornece := TTC->C7_FORNECE
+    		    clDtEnt   := TTC->C7_DATPRF 
+    		    clDtEmiss := TTC->C7_EMISSAO
+    		    clPedNum  := TTC->C7_NUM
+    		    clQuant	  := TTC->C7_QUANT
+    		    clObserv  := TTC->C7_OBS
+
+     	
+			    _cHTML:='<HTML><HEAD><TITLE></TITLE>'
+				_cHTML+= CRLF + '<META http-equiv=Content-Type content="text/html; charset=windows-1252">'
+				_cHTML+= CRLF + '<META content="MSHTML 6.00.6000.16735" name=GENERATOR></HEAD>'
+				_cHTML+= CRLF + '<style type="text/css">'
+			    _cHTML+= CRLF + 'table.cont {'
+			    _cHTML+= CRLF + 'font-size:10}'
+			    _cHTML+= CRLF + '</style>' 
+				_cHTML+= CRLF + '<BODY>'
+				_cHTML+= CRLF + '<Table border=0 width=1000>'             
+				_cHTML+= CRLF + '<TR align="center">'
+				_cHTML+= CRLF + '	<TD><H1>Entregas Futuras</H1></TD>'
+				_cHTML+= CRLF + '</TR>' 
+				_cHTML+= CRLF + '<TR align="center">'
+			    _cHTML+= CRLF + '	<TD>Entregas futuras: Compras a ser entregue n๓s ap๓s 7 dias:</TD>'  
+			    _cHTML+= CRLF + '</TR>'  
+			    _cHTML+= CRLF + '<TR align="center">'
+			    _cHTML+= CRLF + '	<TD>'
+			    
+			    c_assunto := "Entregas Futuras - " 
+			    
+	    		_cHTML+= CRLF + '	<TABLE cellSpacing=0 width="800" background="" border=1 class="cont">'
+				_cHTML+= CRLF + '  	<TBODY>'
+				_cHTML+= CRLF + '  	<TR bgcolor="#DDDDDD" align="center">'
+				_cHTML+= CRLF + '    	<TD colspan="8"><b>Dados Futuro</b></TD>'
+				_cHTML+= CRLF + '   </TR>'
+				_cHTML+= CRLF + '  	<TR bgcolor="#EEEEEE" align="center">'  
+				_cHTML+= CRLF + '    	<TD><b>Produto</b></TD>'            
+				_cHTML+= CRLF + '    	<TD><b>Descri็ใo</b></TD>'
+				_cHTML+= CRLF + '    	<TD><b>Fornecedor</b></TD>'
+				_cHTML+= CRLF + '    	<TD><b>Data Entrega</b></TD>'     
+				_cHTML+= CRLF + '    	<TD><b>Data Emissao</b></TD>'        
+				_cHTML+= CRLF + '    	<TD><b>Numero Pedido</b></TD>'    
+				_cHTML+= CRLF + '    	<TD><b>Quantidade</b></TD>'      
+				_cHTML+= CRLF + '    	<TD><b>Observacao</b></TD>'
+
+    			_cHTML+= CRLF + '  	<TR>'   
+    			_cHTML+= CRLF + '    	<TD>'+clProd+'</TD>'
+    			_cHTML+= CRLF + '    	<TD>'+clDescri+'</TD>'
+				_cHTML+= CRLF + '    	<TD>'+clFornece+'</TD>'
+				_cHTML+= CRLF + '    	<TD>'+dtoc(stod(clDtEnt))+'</TD>' 
+			   	_cHTML+= CRLF + '    	<TD>'+dtoc(stod(clDtEmiss))+'</TD>'  
+			   	_cHTML+= CRLF + '    	<TD>'+Transform(clPedNum, "@E 9,999,999.99")+'</TD>'   
+			   	_cHTML+= CRLF + '    	<TD>'+Transform(clQuant, "@E 9,999,999.99")+'</TD>' 
+				_cHTML+= CRLF + '    	<TD>'+clObserv+'</TD>'
+				_cHTML+= CRLF + '   </TR>'	 
+
+    			(cQuery)->(DbSkip())
+
+				_cHTML+= CRLF + '  	<TR>'	
+			   	_cHTML+= CRLF + '	</TBODY></TABLE>'
+			 	_cHTML+= CRLF + '<P>&nbsp;</P>'
+				_cHTML+= CRLF + '	</TBODY></TABLE>'
+				_cHTML+= CRLF + '<P>&nbsp;</P>'   
+
+		MemoWrite("EnvioCMP.HTML",_cHTML)
+		
+  
+
+       
+Return 
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณTK260ROT  บAutor  ณMicrosiga           บ Data ณ  08/23/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณEnvia o email para os responsaveis.                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function EnviaEmail()
+
+	Local l_Continua	:= .T.
+	Private c_msgerro	:= ''
+ 	Private c_paradir   := GetMV("MV_XMAILDI")       
+	cMailAdd := "thiago.rufino@actualtrend.com.br"
+    
+	If !U_FGEN010(c_paradir+";"+cMailAdd,c_assunto,_cHTML,,.t.)	 
+			Return c_msgerro
+	EndIf	
+	
+Return

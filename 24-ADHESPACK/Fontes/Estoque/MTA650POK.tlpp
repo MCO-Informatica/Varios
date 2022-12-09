@@ -1,0 +1,98 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA650POK        | Autor | Lucas Baia          | Data |    20/06/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para validar os Itens Marcados na tela de OP por
+//        | Pedidos de Vendas, a ideia é desmarcar o Item que possui o Estoque
+//        | Suficiente.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MTA650POK()
+
+Local lRet      := .T.
+Local cMarca    := PARAMIXB[2]
+Local cQuery    := ""
+Local cQuery2   := ""
+Local dProduto  := ""
+Local dLocal    := ""
+Local nMarcado
+Local nQuant    
+Local _nEstoque
+Local nStatus
+Local cAliasQry := GetNextAlias()
+
+cQuery := " SELECT C6_NUM, C6_OK, C6_PRODUTO, C6_LOCAL, C6_QTDVEN "
+cQuery += " FROM "
+cQuery += " "+ RetSQLName("SC6")+ " SC6 "
+cQuery += " WHERE "
+cQuery += " SC6.D_E_L_E_T_ = ' ' "
+IF !empty(cMarca)
+cQuery += " AND SC6.C6_OK = '" +cMarca+ "' "
+ELSE
+cQuery += " AND 1 = 2 "
+ENDIF
+cQuery := ChangeQuery(cQuery)
+DbUseArea(.T.,"TOPCONN",TCGENQRY(,,cQuery),cAliasQry,.F.,.T.)
+
+//Executando a consulta acima
+IF (cAliasQry)->(EoF())
+Alert("Nenhum registro foi marcado!")
+(cAliasQry)->(DbCloseArea())
+lRet := .F.
+Return(lRet)
+ENDIF
+
+While !(cAliasQry)->(EoF())
+dProduto    := (cAliasQry)->C6_PRODUTO
+dLocal      := (cAliasQry)->C6_LOCAL
+nQuant      := (cAliasQry)->C6_QTDVEN
+
+
+dbSelectArea("SB2")
+dbSetOrder(1)
+
+dbSelectArea("NNR")
+dbSetOrder(1)
+NNR->(dbSeek(xFilial("NNR")+dLocal,.F.))
+
+    IF SB2->(dbSeek(xFilial("SB2")+dProduto+dLocal))
+		  _nEstoque	:=	SaldoSB2()
+    ENDIF
+
+    IF _nEstoque >= nQuant
+        _cMsg := MsgInfo("Cód. Produto: "+dProduto+" Local: "+dLocal+" -> "+Alltrim(Posicione("SB1",1,xFilial("SB1")+dProduto,"B1_DESC"))+CHR(13)+CHR(10)+;
+                        CHR(13)+CHR(10)+;
+                        "Arm.: "+dLocal+" "+Alltrim(NNR->NNR_DESCRI)+  " Disp.: "+Transform(_nEstoque,"@E 999,999.999999")+CHR(13)+CHR(10)+;
+                        CHR(13)+CHR(10)+;
+                        "Quant. do Pedido: "+Transform(nQuant,"@E 999,999.99999999"),"ATENÇÃO")
+        lRet := .F.
+        IF (cAliasQry)->C6_OK <> "" //IsMark((cAliasQry)->C6_OK,cMarca)
+            cQuery2 := " UPDATE "+ RetSQLName("SC6")
+            cQuery2 += " SET C6_OK = '' "
+            cQuery2 += " WHERE "
+            cQuery2 += " C6_PRODUTO = '"+dProduto+"' "
+            cQuery2 += " AND C6_LOCAL = '"+dLocal+"' "
+            cQuery2 += " AND C6_NUM = "+(cAliasQry)->C6_NUM
+            cQuery2 += " AND D_E_L_E_T_ = ' ' "
+            //cQuery2 += " AND SC6.C6_OK = '" +cMarca+ "' "
+            nStatus    := TCSQLExec( cQuery2 )
+            if (nStatus < 0)
+                MSGINFO(TCSQLError())
+            endif
+            TcRefresh( 'SC6' )
+            SC6->( dbCommit() )
+            nMarcado := 0 // e indica que não há registro marcado
+        ENDIF
+    ELSE 
+        lRet := .T.
+    ENDIF
+
+(cAliasQry)->(DbSkip())
+EndDo
+
+(cAliasQry)->(DbCloseArea())
+Return(lRet)

@@ -1,0 +1,5 @@
+// SOMAR NA QTDE DE REGISTROS DO TRAILLER DO LOTE J, A QTDE DE REGISTRO J52
+User Function LINTOT_J() 
+Local nRet := F420LINLOT() + nJ52L                                                                                                                                                                                                                                       
+nJ52L := 0 // ZERO O CONTADOR PARA O PROXIMO LOTE.
+Return nRet

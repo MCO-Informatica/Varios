@@ -1,0 +1,735 @@
+#INCLUDE "rwmake.ch"
+#Include "Protheus.Ch"
+#include "font.ch"
+#include "colors.ch"
+#Include "topconn.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO2     º Autor ³ AP6 IDE            º Data ³  02/12/08   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Codigo gerado pelo AP6 IDE.                                º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±    
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function SC5CRED()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Local aCores	:=  {{"TRABL->LIBER == '1' ",'BR_AMARELO' },;	//Pedido em Aberto
+					{"TRABL->LIBER == '2' ",'BR_PINK' },;
+					{"TRABL->LIBER == '3' ",'BR_VERMELHO' }}
+
+Local _bFiltraBrw	:= ""
+Local _aIndexSCP 	:= {}
+Local _cFiltro  	:= ""//"E1_SALDO > 0 .AND. (E1_TIPO == 'NF '.OR. E1_TIPO == 'RC ') "// .AND. E1_VENCREA > "+DDATABASE+" "
+Local aCampos		:= {}
+public numosbusca	:= ""
+
+Private cCadastro := "LIBERACAO DE PEDIDOS"
+
+//Pedido Liberado
+
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta um aRotina proprio                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Private aRotina := { 	{"Pesquisar"	,"U_PESQUIPED()"		,0,1} ,;
+						{"Visualizar"	,"U_VISUPED1(TRABL->C9_FILIAL ,TRABL->C9_PEDIDO)",0,2} ,;                             
+						{"Liberar"		,"U_LIBSC5()",0,3} ,;
+						{"consultar"	,"U_CONSULTACLI()",0,4}}
+			//			{"Liberar2"		,"U_LIBSC5()",0,4} ,;
+//						{"consultar"	,"U_CONSULTACLI()",0,5}}
+
+Private cDelFunc := ".T." // Validacao para a exclusao. Pode-se utilizar ExecBlock
+Private aCampos := {}
+
+aadd(aCampos,{"Filial"    ,"C9_FILIAL","C",2,0,"@!"}) 
+aadd(aCampos,{"Pedido","C9_PEDIDO","C",6,0,"@!"})
+aadd(aCampos,{"Liberacao","LIBER","C",1,0,"@!"})
+//aadd(aCampos,{"Num OS","CP_NUMOS","C",8,0,"@!"})
+//aadd(aCampos,{"Produto","CP_PRODUTO","C",20,0,"@!"})
+//aadd(aCampos,{"Descricao","CP_DESCRI","C",20,0,"@!"})
+//aadd(aCampos,{"Quantidade","CP_QUANT","C",12,0,"@!"})
+
+Private cString := "TMPP"
+
+cQuery := " "
+cQuery += " SELECT (C9_FILIAL)AS FILIAL,(C9_PEDIDO) AS PEDIDO "
+cQuery += "	FROM SC9010 SC9 "
+cQuery += " WHERE (SC9.C9_BLEST <> '  ' OR 	SC9.C9_BLCRED <> '  ' ) "
+cQuery += " AND SC9.C9_BLCRED NOT IN('10','09') "
+cQuery += " AND SC9.C9_BLEST <> '10' "
+cQuery += " AND SC9.D_E_L_E_T_ = ' '  " 
+cQuery += " GROUP BY C9_FILIAL,C9_PEDIDO
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMPP',.F.,.T.)}, "Selecionando Registros ...")
+
+ESTRU:={{"C9_FILIAL","C",2,0},;
+{"C9_PEDIDO","C",6,0},;
+{"LIBER","C",1,0}}
+
+
+ARQ_TMP:=CriaTrab(ESTRU)
+dbUseArea(.T.,,ARQ_TMP,"TRABL")
+
+
+c_IndSE1  := CriaTrab(NIL,.F.)
+
+IndRegua("TRABL",c_IndSE1,"C9_FILIAL+C9_PEDIDO",,,"Filtrando Titulos..........")
+
+Dbselectarea("TMPP")
+IF TMPP->(eof())
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  	:= ""
+	TRABL->C9_PEDIDO 	:= ""
+	TRABL->LIBER	 	:= ""
+	MsUnLock()
+Else
+while !eof()
+	dbSelectArea("TRABL")
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  		:= TMPP->FILIAL
+	TRABL->C9_PEDIDO 		:= TMPP->PEDIDO
+	TRABL->LIBER	 		:= "1"
+	MsUnLock()	
+	Dbselectarea("TMPP")
+	dbskip()
+enddo    
+END                               
+
+cQuery := " "
+cQuery += " SELECT C5_FILIAL,C5_NUM,C5_X_CRED
+cQuery += " FROM SC5010 SC5
+cQuery += " WHERE C5_X_CRED <> ''AND SC5.D_E_L_E_T_ = ''
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMPP2',.F.,.T.)}, "Selecionando Registros ...")
+
+Dbselectarea("TMPP2")
+IF TMPP2->(!eof())
+while !eof()
+	dbSelectArea("TRABL")
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  		:= TMPP2->C5_FILIAL
+	TRABL->C9_PEDIDO 		:= TMPP2->C5_NUM
+	TRABL->LIBER	 		:= "2"
+	MsUnLock()
+	
+	Dbselectarea("TMPP2")
+	dbskip()
+enddo    
+END
+
+SetKey(VK_F12, { || U_PESQUIPED() } )
+SetKey(VK_F10, { || U_PESQUIP2() } )
+SetKey(VK_F5, { ||  U_ATUSC5CRE() } )
+mBrowse( 6,1,22,75,"TRABL",aCampos,,,,,aCores)
+SetKey(VK_F5, nil )
+SetKey(VK_F10, nil )
+SetKey(VK_F12, nil )
+TMPP->(dbCLOSEAREA())
+TMPP2->(dbCLOSEAREA())
+TRABL->(dbclosearea())
+Ferase(arq_tmp)
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   SZRSOLIC                                                 º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function CONSULTACLI()
+
+Local wArea:= GetArea()
+Local oMsg
+Local oMsg2
+public oEmi1
+public oEmi2
+public oTipoos
+public hori2
+public oDtin
+public oCliatu
+public oDtcol
+public oHorcol
+public oDtprev
+public oHoriprev
+
+public _Dtin	:= ""
+public _Cliatu 	:= ""
+public _Dtcol	:= ""
+public _Horcol	:= ""
+public _Dtprev	:= ""
+public _horime	:= ""
+Public cMsg		:= ""
+Public _tipoos 	:= ""
+Public _horimea	:= ""
+Public oOk      := LoadBitmap( GetResources(), "LBOK" )
+Public oNo      := LoadBitmap( GetResources(), "LBNO" )
+public  aXy      	:= {}
+Private lChk     := .F.
+
+public cRet:= ""
+
+Public aListProd 
+Public aListProd2          
+
+DbSelectArea("SC5")
+DbSetorder(1)
+DbSeek(TRABL->C9_FILIAL +TRABL->C9_PEDIDO)
+
+cQuery := " Select * "
+cQuery += " From "+RetSqlName("SE1")+" SE1 "
+cQuery += " WHERE SE1.D_E_L_E_T_ = ' ' "
+cQuery += " AND E1_CLIENTE = '"+SC5->C5_CLIENTE+"'
+cQuery += " AND E1_LOJA  = '"+SC5->C5_LOJACLI+"'
+cQuery += " ORDER BY E1_EMISSAO "
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMP',.F.,.T.)}, "Selecionando Registros ...")
+
+aListProd := {}
+TMP->(dbGoTop())
+
+//TIRAR NCC 
+_TOTFINAB := 0
+_TOTFINBA := 0	
+If TMP->(Eof())
+	aAdd(aListProd,{"","","","","","","","","",""})
+Else
+_TOTFINAB := 0
+_TOTFINBA := 0	
+
+	While !TMP->(Eof()) 
+	
+		_DIASATRASO:= 0
+		
+		if !EMPTY(TMP->E1_BAIXA)
+		   _DIASATRASO := stod(TMP->E1_BAIXA) - stod(TMP->E1_VENCREA)
+        else
+	        _DIASATRASO := ddatabase - stod(TMP->E1_VENCREA)
+        end
+		aAdd(aListProd,{TMP->E1_FILIAL	,;
+		TMP->E1_PREFIXO	,;
+		TMP->E1_NUM	,;
+		TMP->E1_TIPO	,; 
+		Transform(TMP->E1_VALOR,"@E 999,999,999.99")	,;
+		Transform(TMP->E1_SALDO,"@E 999,999,999.99")	,;
+		StoD(TMP->E1_BAIXA)	,;
+		StoD(TMP->E1_EMISSAO)	,;
+		StoD(TMP->E1_VENCREA) ,;
+		Transform(_DIASATRASO,"@E 999,999,999")})
+		
+		IF TMP->E1_SALDO > 0
+			_TOTFINAB += TMP->E1_SALDO
+		Else
+		  	_TOTFINBA += TMP->E1_VALOR
+		END
+		
+		
+		TMP->(DbSkip())
+		
+		
+	EndDo
+End 
+
+TMP->(DbCloseArea())
+
+cQuery := " Select * "
+cQuery += " From "+RetSqlName("SC6")+" SC6 "  
+cQuery += " INNER JOIN SC5010 SC5 ON C5_NUM = C6_NUM AND C5_FILIAL = C6_FILIAL AND SC5.D_E_L_E_T_ = '' "
+cQuery += " WHERE SC6.D_E_L_E_T_ = '' "
+cQuery += " AND C6_CLI ='"+SC5->C5_CLIENTE+"' "
+cQuery += " AND C6_LOJA ='"+SC5->C5_LOJACLI+"' "
+cQuery += " ORDER BY C6_FILIAL,C6_NUM,C6_ITEM "
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMP2',.F.,.T.)}, "Selecionando Registros ...")
+
+aListProd2 := {}
+TMP2->(dbGoTop())
+
+_TOTALFAT := 0
+_TOTALABER := 0
+
+
+If TMP2->(Eof())
+	aAdd(aListProd2,{"","","","",""})
+Else
+
+
+	
+	While !TMP2->(Eof())
+	
+	_FILIAL	:= 	TMP2->C6_FILIAL 
+	_NUM	:= 	TMP2->C6_NUM
+	_VALOR	:= 0
+	_NF 	:= 0
+	_QTDNF  := 0
+	_ULTFAT := ""
+	
+		While !TMP2->(Eof()) .AND. TMP2->C6_FILIAL == _FILIAL .AND. TMP2->C6_NUM == _NUM
+				
+		_FILIAL	:= 	TMP2->C6_FILIAL 
+		_NUM	:= 	TMP2->C6_NUM
+		_VALOR	+=  TMP2->C6_VALOR
+		_EMISSAO := TMP2->C5_EMISSAO
+		
+		iF _ULTFAT < TMP2->C6_DATFAT
+		_ULTFAT := TMP2->C6_DATFAT 
+		END
+		
+		If !EMPTY(TMP2->C6_NOTA)
+		_NF += 1
+		_TOTALFAT += TMP2->C6_VALOR
+		ELSE
+		_TOTALABER += TMP2->C6_VALOR
+		END
+	    _QTDNF += 1
+
+		TMP2->(DbSkip())
+		ENDDO
+
+		aAdd(aListProd2,{_FILIAL	,;
+		_NUM	,;
+		IIF(_NF == 0,"A",IIF(_NF == _QTDNF,"F","P")) 	,; 
+		Transform(_VALOR,"@E 999,999,999.99")	,;
+		StoD(_ULTFAT) ,;
+		StoD(_EMISSAO)})
+		
+	EndDo
+End 
+
+TMP2->(DbCloseArea())
+
+DEFINE MSDIALOG oDlg TITLE 'Analise Credito Consolidada' FROM 001,002 TO 600,1200 OF oMainWnd PIXEL     
+
+//colocar botao dentro da consulta para visualizar pedido de venda.
+
+//@ 005,002 SAY "Titulos " OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,020 SAY "Titulos Abertos" OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,070 MSGET Transform(_TOTFINAB,"@E 999,999,999.99") PICTURE "@!" WHEN .F. OF oDlg PIXEL SIZE 50,006
+@ 005,130 SAY "Titulos Baixados" OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,180 MSGET Transform(_TOTFINBA,"@E 999,999,999.99") PICTURE "@!" WHEN .F. OF oDlg PIXEL SIZE 50,006
+
+@ 022,002 LISTBOX oListProd FIELDS HEADER "","Filial","Pref","Numero","Tipo","Valor Ori","Saldo  ","Emissao", "Venc. Real","Dt. Baixa","Dias em atraso"  SIZE 255,250 OF oDlg PIXEL
+oListProd:SetArray(aListProd)
+oListProd:bLine := { ||{IIF(!EMPTY(aListProd[oListProd:nAt,7]) , LoadBitmap( GetResources(), "BR_VERMELHO" ),LoadBitmap( GetResources(), "BR_VERDE" )),;
+aListProd[oListProd:nAt,1],;
+aListProd[oListProd:nAt,2],;
+aListProd[oListProd:nAt,3],;
+aListProd[oListProd:nAt,4],;
+aListProd[oListProd:nAt,5],;
+aListProd[oListProd:nAt,6],;
+aListProd[oListProd:nAt,8],;
+aListProd[oListProd:nAt,9],;
+aListProd[oListProd:nAt,7],;
+aListProd[oListProd:nAt,10]}}
+
+//oListProd:bLDblClick := {||BTNVZ(oDlg,wArea,aListProd,oListProd),oListProd:Refresh(),oMsg:Refresh(),oMsg2:Refresh()}
+oListProd:lReadOnly := .F.
+
+//quadro 2
+//@ 005,302 SAY "Pedidos " OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,320 SAY "Pedidos Faturados" OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,375 MSGET Transform(_TOTALFAT,"@E 999,999,999.99") PICTURE "@!" WHEN .F. OF oDlg PIXEL SIZE 50,006
+@ 005,430 SAY "Pedidos Abertos" OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 005,480 MSGET Transform(_TOTALABER,"@E 999,999,999.99") PICTURE "@!" WHEN .F. OF oDlg PIXEL SIZE 50,006
+
+@ 022,300 LISTBOX oListProd2 FIELDS HEADER "","Filial","Pedido","Valor","Emissao", "Ultimo Faturamento"  SIZE 255,250 OF oDlg PIXEL
+oListProd2:SetArray(aListProd2)
+oListProd2:bLine := { ||{IIF(aListProd2[oListProd2:nAt,3] == "F" , LoadBitmap( GetResources(), "BR_VERMELHO" ),IIF(aListProd2[oListProd2:nAt,3] == "P" , LoadBitmap( GetResources(), "BR_AMARELO" ),LoadBitmap( GetResources(), "BR_VERDE" ))),;
+aListProd2[oListProd2:nAt,1],;
+aListProd2[oListProd2:nAt,2],;
+aListProd2[oListProd2:nAt,4],;
+aListProd2[oListProd2:nAt,6],;
+aListProd2[oListProd2:nAt,5]}}
+oListProd2:bLDblClick := {||BTNVZ(aListProd2,oListProd2)}
+oListProd2:lReadOnly := .F.
+@ 285,532 Button "Pedido" Size (030),(010) PIXEL OF oDlg ACTION (BTNVZ(aListProd2,oListProd2))
+@ 285,567 Button "Sair" Size (030),(010) PIXEL OF oDlg ACTION (oDlg:end())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+user function VISUPED1(FILIAL,PEDIDO)
+
+Local wArea:= GetArea()
+
+dbSelectArea("SC5")
+dbSetOrder(1)
+DbSeek(FILIAL + PEDIDO)
+
+a410Visual('SC5',SC5->(RecNo()),1)
+
+RestArea(wArea)
+Return()	          
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ COBZ		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   atualiza browse                                           º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±                  
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User function PESQUIPED()
+
+numosbusca:=space(06)
+
+DEFINE MSDIALOG oDlg TITLE 'Busca dados referente ao produto.' FROM 001,002 TO 150,300 OF oMainWnd PIXEL
+			
+@ 015,015 SAY "Pedido: " OF oDlg PIXEL SIZE 050,068 COLOR CLR_HBLUE
+@ 015,040 MSGET numosbusca PICTURE "@!" WHEN .T. OF oDlg PIXEL SIZE 060,006  
+
+@ 040,030 Button "OK" Size (030),(010) PIXEL OF oDlg ACTION (u_PESQUIP1(numosbusca),Close(oDlg))
+@ 040,070 Button "Cancela" Size (030),(010) PIXEL OF oDlg ACTION (u_PESQUIP2(),Close(oDlg))			
+
+ACTIVATE MSDIALOG oDlg CENTERED						
+
+return()	        
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+user function PESQUIP1(numosbusca)
+
+Local wArea:= GetArea()  
+Local oBrowse 	:= GetMBrowse()
+
+IndRegua("TRABL",c_IndSE1,"C9_FILIAL+C9_PEDIDO",,"C9_PEDIDO == '"+numosbusca+"'","Filtrando Titulos..........")                              
+
+oBrowse :Refresh()
+RestArea(wArea)
+Return() 
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+user function PESQUIP2()
+
+Local wArea:= GetArea()
+Local oBrowse 	:= GetMBrowse()
+IndRegua("TRABL",c_IndSE1,"C9_FILIAL+C9_PEDIDO",,,"Filtrando Titulos..........")                              
+oBrowse :Refresh()
+RestArea(wArea)
+Return() 
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+user function ATUSC5CRE()
+
+Local oBrowse 	:= GetMBrowse()
+TMPP->(dbCLOSEAREA())
+TMPP2->(dbCLOSEAREA())
+TRABL->(dbclosearea())
+Ferase(arq_tmp)
+
+aCampos := {}
+
+aadd(aCampos,{"Filial"    ,"C9_FILIAL","C",2,0,"@!"}) 
+aadd(aCampos,{"Pedido","C9_PEDIDO","C",6,0,"@!"})
+aadd(aCampos,{"Liberacao","LIBER","C",1,0,"@!"})
+
+cString := "TMPP"
+
+cQuery := " "
+cQuery += " SELECT (C9_FILIAL)AS FILIAL,(C9_PEDIDO) AS PEDIDO "
+cQuery += "	FROM SC9010 SC9 "
+cQuery += " WHERE (SC9.C9_BLEST <> '  ' OR 	SC9.C9_BLCRED <> '  ' ) "
+cQuery += " AND SC9.C9_BLCRED NOT IN('10','09') "
+cQuery += " AND SC9.C9_BLEST <> '10' "
+cQuery += " AND SC9.D_E_L_E_T_ = ' '  " 
+cQuery += " GROUP BY C9_FILIAL,C9_PEDIDO
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMPP',.F.,.T.)}, "Selecionando Registros ...")
+
+ESTRU:={{"C9_FILIAL","C",2,0},;
+{"C9_PEDIDO","C",6,0},;
+{"LIBER","C",1,0}}
+
+
+ARQ_TMP:=CriaTrab(ESTRU)
+dbUseArea(.T.,,ARQ_TMP,"TRABL")
+
+
+c_IndSE1  := CriaTrab(NIL,.F.)
+
+IndRegua("TRABL",c_IndSE1,"C9_FILIAL+C9_PEDIDO",,,"Filtrando Titulos..........")
+
+Dbselectarea("TMPP")
+IF TMPP->(eof())
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  	:= ""
+	TRABL->C9_PEDIDO 	:= ""
+	TRABL->LIBER	 	:= ""
+	MsUnLock()
+Else
+while !eof()
+	dbSelectArea("TRABL")
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  		:= TMPP->FILIAL
+	TRABL->C9_PEDIDO 		:= TMPP->PEDIDO
+	TRABL->LIBER	 		:= "1"
+	MsUnLock()	
+	Dbselectarea("TMPP")
+	dbskip()
+enddo    
+END                               
+
+cQuery := " "
+cQuery += " SELECT C5_FILIAL,C5_NUM,C5_X_CRED
+cQuery += " FROM SC5010 SC5
+cQuery += " WHERE C5_X_CRED <> ''AND SC5.D_E_L_E_T_ = ''
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMPP2',.F.,.T.)}, "Selecionando Registros ...")
+
+Dbselectarea("TMPP2")
+IF TMPP2->(!eof())
+while !eof()
+	dbSelectArea("TRABL")
+	RecLock("TRABL",.T.)
+	TRABL->C9_FILIAL  		:= TMPP2->C5_FILIAL
+	TRABL->C9_PEDIDO 		:= TMPP2->C5_NUM
+	TRABL->LIBER	 		:= "2"
+	MsUnLock()
+	
+	Dbselectarea("TMPP2")
+	dbskip()
+enddo    
+END
+
+IndRegua("TRABL",c_IndSE1,"C9_FILIAL+C9_PEDIDO",,,"Filtrando Titulos..........")
+dbGotop("TRABL")
+oBrowse :Refresh()
+RETURN() 
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function LIBSC5()
+
+PswOrder(1)
+PswSeek(__cUserId)
+aUsuario:= PswRet()[1]
+aGrupos := AllGroups()
+userlib := .F.
+For nI:= 1 To Len(aUsuario[10])
+	For nX:=1 To Len(aGrupos)
+		If (Alltrim(aUsuario[10,nI]) == Alltrim(aGrupos[nX,1,1])) .And. (AllTrim(Upper(aGrupos[nX,1,2])) == "CREDITO2")
+			userlib := .T.
+			Exit
+		EndIf
+	Next nx
+Next nI
+
+If userlib .and. TRABL->LIBER == '1'
+	u_LIBSC9()
+
+		DbSelectArea("SC5")
+		DbSetorder(1)
+		DbSeek(TRABL->C9_FILIAL +TRABL->C9_PEDIDO)
+		
+		IF MsgYesNo("Confirma liberacao do pedido em segundo nivel?")
+			RecLock("SC5",.F.)
+			SC5->C5_X_CRED := ''
+			MsUnLock()
+		Endif
+U_ATUSC5CRE()		
+
+elseIf userlib .and. TRABL->LIBER == '2'
+
+		DbSelectArea("SC5")
+		DbSetorder(1)
+		DbSeek(TRABL->C9_FILIAL +TRABL->C9_PEDIDO)
+		
+		IF MsgYesNo("Confirma liberacao do pedido em segundo nivel?")
+			RecLock("SC5",.F.)
+			SC5->C5_X_CRED := ''
+			MsUnLock()
+		Endif
+U_ATUSC5CRE()		
+ 
+elseIf !userlib .and. TRABL->LIBER == '1'
+	u_LIBSC9()
+U_ATUSC5CRE()
+elseIf !userlib .and. TRABL->LIBER == '2'
+	Alert("Usuario sem permicao para liberar pedidos em 2o nivel")
+END 
+
+
+Return()        
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   		                                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function LIBSC9()
+
+If TRABL->LIBER == '1'
+	DbSelectArea("SC9")
+	DbSetorder(1)
+	DbSeek(TRABL->C9_FILIAL +TRABL->C9_PEDIDO)
+	
+	While !eof() .and. SC9->C9_PEDIDO == TRABL->C9_PEDIDO .AND. SC9->C9_FILIAL == TRABL->C9_FILIAL
+	    
+		RecLock("SC9",.F.)
+	    If SC9->C9_BLCRED == "01"
+	     SC9->C9_BLCRED := ""	     
+	    END
+	    If SC9->C9_BLEST == "02"
+	     SC9->C9_BLEST := ""	     
+	    END
+		MsUnLock()	      
+			    
+	DbSelectArea("SC9")
+	DBSKIP()
+	ENDDO	        
+	
+	DbSelectArea("SC5")
+	DbSetorder(1)
+	DbSeek(TRABL->C9_FILIAL +TRABL->C9_PEDIDO)
+		
+	IF U_BLOQCRED()
+		RecLock("SC5",.F.)
+		SC5->C5_X_CRED := "S"
+		MsUnLock()	
+	END	                          
+end	
+Return()        
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ 		ºAutor  ³Rene L S            º Data ³  01/10/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³   SZRSOLIC                                                 º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+static function BTNVZ(aListProd2,oListProd2)
+
+Local wArea:= GetArea()
+
+nI := oListProd2:nat
+
+dbSelectArea("SC5")
+dbSetOrder(1)
+DbSeek(aListProd2[nI][1]+aListProd2[nI][2])
+
+a410Visual('SC5',SC5->(RecNo()),1)
+
+RestArea(wArea)
+Return()

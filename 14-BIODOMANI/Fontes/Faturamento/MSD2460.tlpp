@@ -1,0 +1,55 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+User Function MSD2460()
+          
+_aArea		:=	GetArea()
+_aAreaSC5	:=	SC5->(GetArea())
+
+//-----> VERIFICA SE É NOTA DE EXPORTAÇÃO
+If SD2->D2_EST $ "EX"
+
+	 dbSelectArea("CDL")
+     dbSetOrder(4)
+     If !dbSeek(xFilial("CDL")+SD2->D2_DOC+SD2->D2_SERIE+SD2->D2_SDOC+SD2->D2_CLIENTE+SD2->D2_LOJA+SD2->D2_ITEM,.F.)
+          RecLock("CDL",.T.)
+          Replace CDL_FILIAL	With xFilial("CDL")
+          Replace CDL_DOC		With SD2->D2_DOC
+          Replace CDL_SERIE		With SD2->D2_SERIE
+          Replace CDL_ESPEC		With "SPED"
+          Replace CDL_CLIENT	     With SD2->D2_CLIENTE
+          Replace CDL_LOJA		With SD2->D2_LOJA
+          Replace CDL_PAIS		With SA1->A1_CODPAIS
+          Replace CDL_UFEMB		With Posicione("SM0",1,"01"+cFilAnt,"M0_ESTENT")
+          Replace CDL_LOCEMB	     With Posicione("SM0",1,"01"+cFilAnt,"M0_CIDENT")
+          Replace CDL_ITEMNF	     With SD2->D2_ITEM
+          Replace CDL_PRODNF	     With SD2->D2_COD
+          Replace CDL_SDOC		With SD2->D2_SDOC
+          MsUnlock()
+     Else
+          RecLock("CDL",.F.)
+          Replace CDL_FILIAL	     With xFilial("CDL")
+          Replace CDL_DOC		With SD2->D2_DOC
+          Replace CDL_SERIE		With SD2->D2_SERIE
+          Replace CDL_ESPEC		With "SPED"
+          Replace CDL_CLIENT	     With SD2->D2_CLIENTE
+          Replace CDL_LOJA		With SD2->D2_LOJA
+          Replace CDL_PAIS		With SA1->A1_CODPAIS
+          Replace CDL_UFEMB		With Posicione("SM0",1,"01"+cFilAnt,"M0_ESTENT")
+          Replace CDL_LOCEMB	     With Posicione("SM0",1,"01"+cFilAnt,"M0_CIDENT")
+          Replace CDL_ITEMNF	     With SD2->D2_ITEM
+          Replace CDL_PRODNF	     With SD2->D2_COD
+          Replace CDL_SDOC		With SD2->D2_SDOC
+          MsUnlock()
+     EndIf
+EndIf
+
+dbSelectArea("SC5")
+RecLock("SC5",.f.)
+SC5->C5_X_DATFA	:=	SD2->D2_EMISSAO
+MsUnLock()
+
+RestArea(_aAreaSC5)
+RestArea(_aArea)
+
+Return

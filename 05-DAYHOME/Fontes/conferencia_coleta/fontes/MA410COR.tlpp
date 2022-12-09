@@ -1,0 +1,68 @@
+#include "protheus.ch"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ MA410COR บAutor  ณ FONTANELLLI        บ Data ณ  02/12/14   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ  Ponto entrada para redefinir as cores das legendas no     บฑฑ
+ฑฑบ          ณ  browse                                                    บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function MA410COR()          
+
+If FunName() == "MATA410"
+    
+    if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+                               
+		aCores :=  {{ " C5_XSTATUS == 'RES' ",'BR_MARRON','Residuo' },;	// Residuo
+					{ " C5_XSTATUS == 'CRE' ",'BR_PRETO','Analise Credito' },;	// Analise Credito
+					{ " C5_XSTATUS == 'EST' ",'BR_PINK','Analise Estoque' },;		// Analise Estoque
+					{ " C5_XSTATUS == 'AMB' ",'BR_BRANCO','Analise Credito/Estoque' },;	// Analise Credito/Estoque
+					{ " C5_XSTATUS == 'LIB' ",'BR_AMARELO','Liberado' },;	// Liberado
+					{ " C5_XSTATUS == 'SEP' ",'BR_AZUL','Em Separacao' },;		// Em Separa็ใo
+					{ " C5_XSTATUS == 'CON' ",'BR_LARANJA','Em Conferencia' },;	// Em Conferencia
+					{ " C5_XSTATUS == 'FAT' ",'BR_VIOLETA','Aguardando Faturamento' },;	// Aguardando Faturamento
+					{ " C5_XSTATUS == 'COL' ",'BR_CINZA','Em Coleta' },;	// Em Coleta
+					{ " C5_XSTATUS == 'PED' ",'ENABLE','Pedido Em Aberto' },;		// Pedido
+					{ " C5_XSTATUS == 'ENT' ",'DISABLE','Pedido Entregue' }}		// Entregue
+
+	else
+	
+			aCores := {{ "!Empty(C5_LIBEROK).And.Empty(C5_NOTA).And. Empty(C5_BLQ)",'BR_AMARELO','Pedido Liberado'},;
+						{ "C5_BLQ == '1'",'BR_AZUL','Pedido Bloqueado por Regra'},;	//Pedido Bloquedo por regra
+						{ "C5_BLQ == '2'",'BR_LARANJA','Pedido Bloqueado por Verba'},;	//Pedido Bloquedo por verba
+						{"Empty(C5_LIBEROK).And.Empty(C5_NOTA) .And. Empty(C5_BLQ)",'ENABLE','Pedido em Aberto' },;		//Pedido em Aberto
+						{ "!Empty(C5_NOTA).Or.C5_LIBEROK=='E' .And. Empty(C5_BLQ)" ,'DISABLE','Pedido Encerrado'}}		   	//Pedido Encerrado
+		
+		If cPaisLoc <> "BRA"
+			Aadd(aCores,{})
+			Ains(aCores,1)
+			aCores[1] := {"AllTrim(C5_NOTA)=='REMITO'","BR_CINZA"}
+		Endif          
+
+	endif
+				
+else
+
+			aCores := {{ "!Empty(C5_LIBEROK).And.Empty(C5_NOTA).And. Empty(C5_BLQ)",'BR_AMARELO','Pedido Liberado'},;
+						{ "C5_BLQ == '1'",'BR_AZUL','Pedido Bloqueado por Regra'},;	//Pedido Bloquedo por regra
+						{ "C5_BLQ == '2'",'BR_LARANJA','Pedido Bloqueado por Verba'},;	//Pedido Bloquedo por verba
+						{"Empty(C5_LIBEROK).And.Empty(C5_NOTA) .And. Empty(C5_BLQ)",'ENABLE','Pedido em Aberto' },;		//Pedido em Aberto
+						{ "!Empty(C5_NOTA).Or.C5_LIBEROK=='E' .And. Empty(C5_BLQ)" ,'DISABLE','Pedido Encerrado'}}		   	//Pedido Encerrado
+				
+	If cPaisLoc <> "BRA"
+		Aadd(aCores,{})
+		Ains(aCores,1)
+		aCores[1] := {"AllTrim(C5_NOTA)=='REMITO'","BR_CINZA"}
+	Endif          
+
+endif
+	   
+	   
+RETURN aCores

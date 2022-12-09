@@ -1,0 +1,252 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ DHOME01  ºAutor  ³FONTANELLI          º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Tela Inicio da Separação                                   º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function DHOME01()
+
+	Local oButton1
+	Local oButton2
+	Local oGet1
+	Local oGet2
+	Local oGet3
+	Local oGet4
+	Local oGroup1
+	Local oSay1
+	Local oSay2
+	Local oSay3                          
+	Local oSay4                          
+	Static oDlg
+	Public cGet1 := SPACE(06)
+	Public cGet2 := SPACE(30)
+	Public cGet3 := dDataBase
+	Public cGet4 := Substr(Time(),1,5) 
+
+	if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+		Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+		Return()
+	endif
+
+	DEFINE MSDIALOG oDlg TITLE "I N Í C I O - SEPARAÇÃO" FROM 000, 000  TO 305, 400 COLORS 0, 16777215 PIXEL
+
+    @ 003, 004 GROUP oGroup1 TO 134, 196 PROMPT " I N F O R M E" OF oDlg COLOR 0, 16777215 PIXEL
+    @ 136, 118 BUTTON oButton1 PROMPT "G R A V A R" SIZE 037, 012 OF oDlg PIXEL ACTION (U_DHOME01G(cGet1,cGet2,cGet3,cGet4),oDlg:End()) 
+    @ 136, 159 BUTTON oButton2 PROMPT "S A I R" SIZE 037, 012 OF oDlg PIXEL ACTION (oDlg:End())
+    @ 020, 011 SAY oSay1 PROMPT "Pedido" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 028, 011 MSGET oGet1 VAR cGet1 F3 "SC5" WHEN .T. VALID (U_DHOME01V(cGet1)) SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 045, 011 SAY oSay2 PROMPT "Separador" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 053, 011 MSGET oGet2 VAR cGet2 F3 "ZZ3" WHEN .T. SIZE 150, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 070, 011 SAY oSay3 PROMPT "Data" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 078, 011 MSGET oGet3 VAR cGet3 WHEN .F. SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 095, 011 SAY oSay4 PROMPT "Hora" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 103, 011 MSGET oGet4 VAR cGet4 WHEN .F. SIZE 030, 010 OF oDlg COLORS 0, 16777215 PIXEL
+
+    ACTIVATE MSDIALOG oDlg CENTERED 
+
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME01V ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Valida Pedido                                               ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME01V(cGet1)             
+
+	lRet := .T.
+
+	IF !Empty(cGet1)
+	
+		dbSelectArea("SC5")
+		dbSetOrder(1)
+		SC5->(DbGoTop())       
+		if dbSeek(xFilial("SC5")+cGet1) 
+
+			if SC5->C5_XSTATUS == "LIB"
+			    
+			    lRet := .T.  
+
+			    RecLock("SC5",.f.)
+				SC5->C5_XSTATUS := "LIB"
+				SC5->C5_XSUSER  := SPACE(30)
+				SC5->C5_XSDTINI := CTOD("  /  /    ")
+				SC5->C5_XSHRINI := SPACE(5)
+				SC5->C5_XSDTFIN := CTOD("  /  /    ")
+				SC5->C5_XSHRFIN := SPACE(5)
+				SC5->(msunlock())				
+				
+				dbSelectArea("ZZ0")
+				dbSetOrder(1)
+				ZZ0->(DbGoTop()) 
+				if(ZZ0->(dbSeek(xFilial("ZZ0")+cGet1)))
+
+					RecLock("ZZ0",.f.)
+					ZZ0->(dbDelete())
+					ZZ0->(msunlock())
+					
+					dbSelectArea("ZZ1")
+					dbSetOrder(1)
+					ZZ1->(DbGoTop()) 
+					ZZ1->(dbSeek(xFilial("ZZ0")+cGet1))
+					      
+					While ZZ1->(!Eof()) .And. ZZ1->ZZ1_FILIAL == xFilial("ZZ1") .And. ZZ1->ZZ1_PEDIDO == cGet1
+						RecLock("ZZ1",.f.)
+						ZZ1->(dbDelete())
+						ZZ1->(msunlock())
+						ZZ1->(dbskip())
+					EndDo 
+
+				Endif
+
+			elseif SC5->C5_XSTATUS == "SEP"
+				Aviso("Aviso","PEDIDO: "+cGet1+", já esta em SEPARAÇÃO !", {"OK"})   
+				lRet := .F.
+			else
+				Aviso("Aviso","PEDIDO: "+cGet1+", não esta LIBERADO !", {"OK"})   
+				lRet := .F.
+			endif
+			      
+		else
+			Aviso("Aviso","PEDIDO: "+cGet1+", não existe !", {"OK"})   
+			lRet := .F.
+		endif
+    
+    endif
+    
+		
+Return(lRet)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME01G ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Grava Inicio Separação                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME01G(cGet1,cGet2,cGet3,cGet4)     
+
+	Local QryZZ2 := GetNextAlias()
+              
+	if Empty(cGet1)
+		Aviso("Aviso","Pedido NÃO informado !", {"OK"})   
+	else
+	
+		//Caso já exista NOTA na tabela ZZ2
+		/*
+		cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+		cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+		cQuery += "   AND ZZ2_NUM = '"+SC5->C5_NUM+"' "
+		cQuery += "   AND ZZ2_NOTA <> ' ' "
+		cQuery += "   AND D_E_L_E_T_ = '' "
+		cQuery := ChangeQuery(cQuery)
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+		dbSelectArea("QryZZ2")
+		dbGoTop()
+		
+		nQTDNOTA := 0
+		While !QryZZ2->(Eof())
+			nQTDNOTA += 1
+			QryZZ2->(DbSkip())
+		EndDo		
+		QryZZ2->(dbCloseArea())	
+
+		if nQTDNOTA = 0
+			RecLock("SC5",.f.)
+			SC5->C5_XSTATUS := "SEP"
+			SC5->C5_XSUSER  := cGet2
+			SC5->C5_XSDTINI := cGet3
+			SC5->C5_XSHRINI := cGet4
+			SC5->(msunlock())
+		else
+			RecLock("SC5",.f.)
+			SC5->C5_XSTATUS := "SEP"
+			SC5->(msunlock())
+		endif
+		*/
+
+		RecLock("SC5",.f.)
+		SC5->C5_XSTATUS := "SEP"
+		SC5->C5_XSUSER  := cGet2
+		SC5->C5_XSDTINI := cGet3
+		SC5->C5_XSHRINI := cGet4
+		SC5->(msunlock())
+
+		//Alteração feita por Bia Ferriera Ethosx - 03/12/2019
+		U_GRVITENS(SC5->C5_FILIAL, SC5->C5_NUM)
+
+		Aviso("Aviso","Gravado início da separação, PEDIDO: "+cGet1+" !", {"OK"})   
+	endif
+		
+Return
+
+
+User Function GRVITENS(c5Filial,c5Pedido)
+
+	Local cAliasSC6 := GetNextAlias()
+	
+	//Grava cabeçalho dos pedidos em separação
+	dbselectArea("ZZ0")
+	ZZ0->(dbsetOrder(1))
+	ZZ0->(dbgotop())
+	
+	RecLock("ZZ0",.T.)
+	ZZ0->ZZ0_FILIAL := c5Filial
+	ZZ0->ZZ0_PEDIDO := c5Pedido
+	ZZ0->ZZ0_DATA   := cGet3
+	ZZ0->ZZ0_HORA   := cGet4
+	ZZ0->ZZ0_STATUS := "1"
+	ZZ0->(msunlock())	
+	// Fim do cabeçalho //
+
+	dbselectarea("ZZ1")
+	ZZ1->(dbsetorder(1))
+	ZZ1->(DbGoTop())
+
+	cQuery1 := " SELECT C6_FILIAL, C6_NUM, C6_PRODUTO, (C6_QTDVEN-C6_QTDENT) QTD, B1_DESC FROM " + RetSqlName("SC6") + " AS SC6"
+	cQuery1 += " INNER JOIN " + RetSqlName("SB1") + " SB1 ON B1_COD = C6_PRODUTO AND SB1.D_E_L_E_T_ = '' "
+	cQuery1 += " WHERE C6_FILIAL = '" + c5Filial + "'"
+	cQuery1 += "   AND C6_NUM = '" + c5Pedido + "'"
+	cQuery1 += "   AND SC6.D_E_L_E_T_ = ''"
+	cQuery1 := ChangeQuery(cQuery1)
+	dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery1), cAliasSC6,.F.,.T.)
+	While (cAliasSC6)->(!Eof())
+		if (cAliasSC6)->QTD > 0 
+			RecLock("ZZ1",.T.)
+			ZZ1->ZZ1_FILIAL := c5Filial
+			ZZ1->ZZ1_PEDIDO := c5Pedido
+			ZZ1->ZZ1_CODPRO := (cAliasSC6)->C6_PRODUTO
+			ZZ1->ZZ1_DESC   := (cAliasSC6)->B1_DESC
+			ZZ1->ZZ1_QTDATU := (cAliasSC6)->QTD
+			ZZ1->ZZ1_QTDLNC := (cAliasSC6)->QTD
+			ZZ1->ZZ1_STATUS := "1"
+			ZZ1->(msunlock())		
+		endif
+		(cAliasSC6)->(dbskip())
+	
+	EndDo
+	(cAliasSC6)->(dbCloseArea())	
+
+Return
+                                          

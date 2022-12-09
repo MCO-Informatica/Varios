@@ -1,0 +1,79 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RTMKG01         | Autor | Lucas Baia          | Data |    07/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para Gatilho, realiza o tratamento de Lotes.
+//---------------------------------------------------------------------------------
+// Uso    | VERQUÍMICA INDÚSTRIA E COMÉRCIO DE PRODUTOS QUÍMICOS EIRELI
+//---------------------------------------------------------------------------------
+
+
+User Function RTMKG01()
+
+Local _cProduto := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_PRODUTO" })]
+Local _cLocal	:= aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_LOCAL"   })]
+Local _nQtdLib  := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_QUANT"   })]
+Local _cLotectl := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_LOTE"    })]
+Local _dDtValid := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_DTVALID" })]
+Local _nLotes   := 0
+Local _lSaldoOK := .F.
+Local _cOper    := M->UA_OPER
+Local _DifData
+Local n         := 0
+
+IF _cOper == "1" // 1 - Faturamento.
+
+FOR n := 1 to Len(aCols)
+
+    _cProduto   := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_PRODUTO" })]
+    _cLocal	    := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_LOCAL"   })]
+    _nQtdLib    := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_QUANT"   })]
+    _cLotectl   := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_LOTE"    })]
+    _dDtValid   := aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_DTVALID" })]
+    _lSaldoOK   := .F.
+
+    //----> SE O PRODUTO CONTROLA LOTE (RASTRO)
+    If Rastro(_cProduto)
+                
+    dbSelectArea("SB8")
+    dbSetOrder(1)
+        
+        If dbSeek(xFilial("SB8")+_cProduto+_cLocal,.f.)
+                    
+            While Eof() == .f. .And. SB8->(B8_PRODUTO+B8_LOCAL) == _cProduto+_cLocal
+                        
+                        
+                //----> VERIFICA SE O SALDO DO LOTE ESTÁ ZERADO E DESCONSIDERA O LOTE
+                If SB8->B8_SALDO == 0
+                    dbSelectArea("SB8")
+                    dbSkip()
+                    Loop
+                EndIf
+                        
+                _nLotes++
+
+                _DifData := SB8->B8_DTVALID - Date()
+                        
+                //----> VERIFICA SE O SALDO DO LOTE É SUFICIENTE PARA ATENDER O PEDIDO
+                If (SB8->B8_SALDO - SB8->B8_EMPENHO) >= _nQtdLib .And. _DifData > 90 .AND. !_lSaldoOK
+                    _cLotectl := SB8->B8_LOTECTL
+                    _dDtValid := SB8->B8_DTVALID
+                    _lSaldoOK := .T.
+                EndIf
+                        
+                dbSelectArea("SB8")
+                dbSkip()
+            EndDo
+        EndIf
+    EndIf
+
+    aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_LOTE"    })] := _cLotectl
+    aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "UB_DTVALID" })] := _dDtValid
+
+NEXT n
+ENDIF
+
+GETDREFRESH()
+
+Return _cOper

@@ -1,0 +1,28 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | SF1100I             | Autor | Lucas Baia          | Data |	13/11/2021
+//---------------------------------------------------------------------------------
+// Descr. | Inclusão de opções na EnchoiceBar pelo Documento de Entrada.											
+//---------------------------------------------------------------------------------
+// Uso    | ECOPRO
+//---------------------------------------------------------------------------------
+// Links  | https://tdn.totvs.com/display/public/PROT/SF1100I
+//---------------------------------------------------------------------------------
+User Function SF1100I()
+
+_aArea := GetArea()
+
+//Se a variável pública existir
+If Type("__cCamNovo") != "U"
+ 
+    //Grava o conteúdo na SF1
+    RecLock("SF1", .F.)
+        SF1->F1_XOBS := __cCamNovo
+    SF1->(MsUnlock())
+EndIf
+
+RestArea( _aArea )
+
+Return

@@ -1,0 +1,49 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RFATG17           | Autor | Lucas Baia          | Data | 11/06/2021
+//---------------------------------------------------------------------------------
+// Descr. | Fonte customizado com objetivo de travar com a Mensagem dizendo que
+//        | precisa ser atualizado o Cadastro de Cliente que fez a ultima compra
+//        | em 2020 inferior.
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda
+//--------------------------------------------------------------------------------- 
+// OBS    | Colocar esse fonte através do Gatilho de C5_CLIENTE para C6_TES.
+//        | Colocar esse fonte através do Gatilho de C6_PRODUTO para C6_TES. 
+//--------------------------------------------------------------------------------- 
+User Function RFATG17()
+
+Local cCliente  := M->C5_CLIENTE
+Local cLoja     := M->C5_LOJACLI
+Local cTES      := ""
+Local cAuxTES   := ""
+
+dbSelectArea("SA1")
+dbSetOrder(1)
+IF dbSeek(xFilial("SA1")+cCliente+cLoja)
+        
+        IF SA1->A1_PESSOA $ "F/J" .AND. SA1->A1_EST <> "SP" .AND. SA1->A1_TIPO == "S"
+            IF cFilAnt$"0101/0102/0103/0104/0109/0111/0112/0113/0120"
+                cTES   := MaTesInt(2,"T3",M->C5_CLIENT,M->C5_LOJAENT,If(M->C5_TIPO$"DB","F","C"),M->C6_PRODUTO,"C6_TES") //---> T3 - ST (Substituição Tributária)
+                aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_OPER" })] := "T3"
+            ENDIF
+        
+        ELSEIF SA1->A1_PESSOA $ "F/J" .AND. SA1->A1_EST <> "MG" .AND. SA1->A1_TIPO == "S"
+            IF cFilAnt$"0110"
+                cTES   := MaTesInt(2,"T3",M->C5_CLIENT,M->C5_LOJAENT,If(M->C5_TIPO$"DB","F","C"),M->C6_PRODUTO,"C6_TES") //---> T3 - ST (Substituição Tributária)
+                aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_OPER" })] := "T3"
+            ENDIF
+
+        ELSE            
+            cTES   := MaTesInt(2,"01",M->C5_CLIENT,M->C5_LOJAENT,If(M->C5_TIPO$"DB","F","C"),M->C6_PRODUTO,"C6_TES") //---> 01 - Venda de Mercadoria
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_OPER" })] := "01"            
+        ENDIF
+    
+ENDIF
+
+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_TES" })] := cTES
+
+cAuxTES := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_TES" })]
+ 
+Return cAuxTES

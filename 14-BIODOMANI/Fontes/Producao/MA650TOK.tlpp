@@ -1,0 +1,24 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MA650TOK        | Autor | Lucas Baia          | Data |    22/06/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para validar se permite ou não a geração
+//        | de OP após clicar em CONFIRMAR.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+
+User Function MA650TOK()
+
+Local _lRet     := .T.
+
+/*IF _lGeraMSG == .F.
+
+    MsgAlert("Não será permitido abertura da Ordem de Produção, pois não existe saldo de todos os componentes em estoque!", "ATENÇÃO")
+    _lRet   := .F.
+
+ENDIF*/
+
+Return _lRet

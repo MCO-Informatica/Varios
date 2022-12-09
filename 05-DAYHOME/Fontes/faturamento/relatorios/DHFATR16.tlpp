@@ -1,0 +1,651 @@
+#INCLUDE "Protheus.CH"
+#INCLUDE "TopConn.CH"
+
+User Function DHFATR16() 
+                                                  
+Private aProd := {}
+Private cMarca  := GetMark()
+Private cTrab   := ""
+
+Processa({|| MontaArr()}, "Filtrando Dados...") 
+Processa({|| GeraTmp()}, "Criando Interface...") 
+
+Return
+
+User Function ImpEtiq1()
+
+Local _cPath      := Alltrim(GetMV("MV_QPATHWD"))  //path padrao dos modelos
+Local _cPathWT    := "C:\TEMP\ "//&(Alltrim(GetMV("MV_QPATHWT")))  //path do diretorio temp do windows
+Local _cArqDOT    := "ETIQUETA.dot"
+Local _cMd1DOT    := "fre3of9x.ttf"
+Local _cMd2DOT    := "free3of9.ttf"
+Local _cGerDOT	  := "ETIQUETA_IMP.dot"
+Local _cPathDOT   := _cPath + _cArqDOT			   //path do arquivo de modelo
+//Local _cLMd1DOT   := _cPath + _cMd1DOT			   //path do arquivo de modelo
+//Local _cLMd2DOT   := _cPath + _cMd2DOT			   //path do arquivo de modelo
+//Local _cFontWN	  := "C:\WINDOWS\Fonts\Free 3 of 9\"
+Local _cFontWN	  := "C:\WINDOWS\Fonts\"
+Local nCounter    := 0
+LOCAL _nCont := 0
+//Local nReg		  := 0
+
+/*                            
+MAKEDIR(_cPathWT) 
+
+If ExistDir(_cFontWN)  
+//If ExistFile(_cFontWN+"Free3of9.ttf")  
+	
+Else
+ 	
+	MsgInfo("Acesse a o dirtorio C:\Temp e instale as fontes do codigo de barra. " + chr(10) + chr(13) +; 
+			_cMd1DOT  + chr(10) +;
+			_cMd2DOT)                                
+			
+	__COPYFILE(_cPath + _cMd1DOT,_cPathWT + _cMd1DOT)
+	__COPYFILE(_cPath + _cMd2DOT,_cPathWT + _cMd2DOT)
+	
+
+EndIf  
+*/
+
+// Alteracao 16/10/2015 - Para informar ao usuario a quantidade de etiquetas a serem impressas
+dbselectarea("TMP")
+TMP->(dbgotop())
+Do While !eof()
+	_nCont++
+	dbSkip()
+EndDo	
+
+Aviso( "QTDE DE ETIQUETAS" , "Foram Selecionados " + AllTrim(Str(_nCont,10)) + " Itens para Imprimir." , {"Continuar"} )
+
+_cArquivo := Alltrim(_cPathWT) + Alltrim(_cArqDOT)
+_cArqvGre := Alltrim(_cPathWT) + Alltrim(_cGerDOT)
+
+cpyS2T(_cPathDOT , _cPathWT , .T.)
+//cpyS2T(_cLMd1DOT , _cFontWN , .F.)
+//cpyS2T(_cLMd2DOT , _cFontWN , .F.)
+
+oWord := OLE_CreateLink('TMsOleWord97')
+
+OLE_NewFile( oWord , _cArquivo )       
+ 
+OLE_ExecuteMacro(oWord,"Teste") //executa uma macro no word, geralmente utilizado quando tem tabelas no .DOT
+
+OLE_CloseFile( oWord )//fecha o arquivo do word
+
+
+dbselectarea("TMP")
+TMP->(dbgotop())
+
+ProcRegua(TMP->(RecCount()))           
+
+nReg := TMP->(RecCount())
+
+
+//oWord := OLE_CreateLink('TMsOleWord97')                                
+OLE_NewFile( oWord , _cArqvGre)
+
+While !TMP->(EOF())
+
+	If TMP->OK <> cMarca
+		dbSkip()
+		Loop
+	EndIf
+	
+	IncProc("Selecionando Produto " + TMP->CODIGO)
+	
+	nCounter += 1
+	
+/*	If nCounter > 30
+		OLE_UpDateFields(oWord)
+	
+		oWord := OLE_CreateLink('TMsOleWord97')
+
+		OLE_NewFile( oWord , _cArquivo )	
+		
+		nCounter := 1
+	Endif
+*/
+	OLE_SetDocumentVar(oWord,"CODIGO"+Alltrim(Str(nCounter))    ,TMP->CODIGO)
+	OLE_SetDocumentVar(oWord,"DESC"+Alltrim(Str(nCounter))      ,TMP->DESC)
+	OLE_SetDocumentVar(oWord,"UM"+Alltrim(Str(nCounter))	     ,TMP->UM)
+	OLE_SetDocumentVar(oWord,"CX"+Alltrim(Str(nCounter))    	 ,TMP->CX)
+	
+   	If MV_PAR08 == 1
+		IF TMP->VIPI > 0
+			OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ,"IPI " + Alltrim(Transform(TMP->VIPI,"@E 999.99")) + "%")
+		Else
+			OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ," ")
+		Endif
+	else
+		OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ," ")
+	Endif	
+	
+   	If MV_PAR08 == 1  // Alteracao 16/10/2015 - Se o parametro imprimir IPI = Nao, deve ser somado o IPI no Valor
+		OLE_SetDocumentVar(oWord,"VALOR"+Alltrim(Str(nCounter))      ,"Valor: R$ " + Alltrim(Transform(TMP->VL,PesqPict("SF1", "F1_VALBRUT"))))
+	Else
+		OLE_SetDocumentVar(oWord,"VALOR"+Alltrim(Str(nCounter))      ,"Valor: R$ " + Alltrim( Transform(Iif(TMP->VIPI>0,TMP->VL*(1+(TMP->VIPI/100)),TMP->VL), PesqPict("SF1", "F1_VALBRUT")) ) )
+    EndIf
+		
+	IF TMP->DES > 0
+		OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ,"Promoção R$ " + Alltrim(Transform(TMP->DES,PesqPict("SF1", "F1_VALBRUT"))))
+	Else
+		OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ," ")
+	Endif
+	
+	OLE_SetDocumentVar(oWord,"CODBAR"+Alltrim(Str(nCounter))    , Iif(mv_par09==1,StrTran(TMP->CODBAR," ","")," ") )
+
+	TMP->(DbSkip())
+Enddo	
+	
+
+//nCounter += 1
+/*
+For _N1 := nCounter to 30
+	OLE_SetDocumentVar(oWord,"CODIGO"+Alltrim(Str(nCounter))    ," ")
+	OLE_SetDocumentVar(oWord,"DESC"+Alltrim(Str(nCounter))      ," ")
+	OLE_SetDocumentVar(oWord,"UM"+Alltrim(Str(nCounter))	     ," ")
+	OLE_SetDocumentVar(oWord,"CX"+Alltrim(Str(nCounter))    	 ," ") 
+	OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))      ," ")
+	OLE_SetDocumentVar(oWord,"VALOR"+Alltrim(Str(nCounter))    ," ")
+	OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ," ")
+Next _N1
+*/
+
+OLE_UpDateFields(oWord)
+             
+// Apaga arquivo temporario
+
+Ferase(cTrab+".dbf")
+Ferase(cTrab+".cdx")     
+//OLE_CloseLink( oWord )//fecha o link com o word 
+
+Return .T. 
+           
+//-- Gera o arquivo temporário com base no array de produtos
+
+Static Function GeraTmp()
+
+Local aCampos 	:= { {'OK',,''},{'CODIGO',,'Codigo'},{'DESC',,'Descrição'},{'UM',,'Uni. Med.'},{'VL',,'Valor'},{'DES',,'Promoção'},{'VIPI',,'IPI'} }//'Desconto'} }
+Local cFiltro   := ""
+
+Private cCadastro:= 'Cadastro Temp'
+Private aRotina := {{"Gerar Etiq.",'U_ImpEtiq1()',0,3}}
+Private lRefresh:= .F.
+Private aClientes := {}
+
+aStru := {}
+aadd(aStru,{"OK", "C",2,0})
+aadd(aStru,{"CODIGO", "C",40,0})
+aadd(aStru,{"UM", "C",10,0})
+aadd(aStru,{"VL", "N",12,2})
+aadd(aStru,{"DES", "N",12,2}) 
+aadd(aStru,{"DESC", "C",30,0})  
+aadd(aStru,{"VIPI", "N",12,2}) 
+aadd(aStru,{"CX", "C",10,0})
+aadd(aStru,{"CODBAR", "C",40,0})
+    
+If select("TMP") > 0
+	dbselectarea("TMP")
+	dbCloseArea() // Alteracao 16/10/2015 - Fechar o arquivo anterior - Correcao travamento da rotina a partir da segunda execucao.
+Endif
+
+cTrab := CriaTrab(aStru,.t.)
+Use &cTrab New alias TMP
+dbCreateIndex(cTrab+".cdx", "CODIGO")
+
+For nX := 1 to Len(aProd)
+	
+	//SB1->( dbsetorder(1) )
+	//SB1->( dbseek(XFilial("SB1")+aProd[nX][1]) )
+	
+	RecLock( 'TMP', .T. )
+	TMP->CODIGO	:= aProd[nX][1]
+    TMP->CX		:= aProd[nX][2]	
+    TMP->UM		:= aProd[nX][3]
+    TMP->VL		:= Round( aProd[nX][4] , 2 )
+   	TMP->DES 	:= Round( aProd[nX][5] , 2 )
+   	TMP->CODBAR := aProd[nX][6]
+   	TMP->DESC	:= aProd[nX][7]  
+  	TMP->VIPI	:= aProd[nX][8]
+	MsUnLock('TMP')	   
+
+Next nX
+              
+dbSelectArea("TMP")
+TMP->(DBGoTop())
+MarkBrow( 'TMP', 'OK','!CODIGO',aCampos,, cMarca,'U_MRKAF001()',,,,'U_MRKF001()' )
+//TMP->( DbCloseArea())
+
+dbselectarea("TMP")
+dbCloseArea() // Alteracao 16/10/2015 - Fechar o arquivo anterior - Correcao travamento da rotina a partir da segunda execucao.
+
+Return 
+ 
+
+User Function MRKF001()
+
+If IsMark( 'OK', cMarca )
+	RecLock( 'TMP', .F. )
+	Replace OK With Space(2)
+	TMP->(MsUnLock())
+Else
+	RecLock( 'TMP', .F. )
+	Replace OK With cMarca
+	TMP->(MsUnLock())
+EndIf
+
+// Atualiza a markbrowse
+MarkBRefresh( )
+
+Return Nil
+
+User Function MRKAF001()
+
+dbSelectArea("TMP")
+TMP->(dbGoTop())
+
+While TMP->(!Eof())
+	If IsMark( 'OK', cMarca )
+		RecLock( 'TMP', .F. )
+		TMP->OK := Space(2)
+		TMP->(MsUnLock())
+	Else
+		RecLock( 'TMP', .F. )
+		TMP->OK := cMarca
+		TMP->(MsUnLock())
+	EndIf
+	TMP->(dbSkip())
+EndDo
+            
+// Atualiza a markbrowse
+MarkBRefresh( )
+Return Nil
+
+User Function TmpEtiq()
+
+dbSelectArea("TMP")
+TMP->(dbGoTop())
+
+While !TMP->(Eof())
+	If Empty(TMP->OK)
+		Reclock("TMP", .F.)  
+  		dbdelete()
+    	TMP->(MsUnlock())	
+  	EndIf
+  	TMP->(dbSkip())
+EndDo          
+
+// Atualiza a markbrowse
+MarkBRefresh()           
+Return               
+
+Static Function MontaArr()
+
+Local cQuery := ""
+Private cPerg:= "DHESTR02"
+
+AjustaSX1(cPerg) 
+
+Pergunte(cPerg,.T.)
+
+cQuery := "SELECT "
+cQuery += "	DA1_CODPRO, "
+cQuery += " DA1_CODTAB, "
+cQuery += " DA1_PRCVEN, "
+cQuery += " DA1_VLRDES, "
+cQuery += " DA1_DESC, "
+cQuery += " DA0_FILIAL, "
+cQuery += " DA0_CODTAB, "+CRLF
+cQuery += " B1_GRUPO, " 
+cQuery += " B1_COD, "
+cQuery += " B1_DESC, "
+cQuery += " B1_IPI, "    
+cQuery += " B1_DHQE, "   
+cQuery += " B1_UMRES, 
+cQuery += " B1_DHCODBA "+CRLF
+cQuery += "FROM  "+RetSqlName("DA1")+" DA1,"+RetSQLName("DA0")+" DA0,"+Retsqlname("SB1")+" SB1 "+CRLF
+cQuery += "WHERE DA1.D_E_L_E_T_ = ' '"+CRLF
+cQuery += "AND  DA0.D_E_L_E_T_ = ' '"+CRLF  
+cQuery += "AND  SB1.D_E_L_E_T_ = ' '"+CRLF  
+cQuery += "AND DA1_CODTAB = DA0_CODTAB "+CRLF
+cQuery += "AND DA1_CODPRO = B1_COD "+CRLF
+cQuery += "AND DA1_CODPRO BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"'  "+CRLF
+cQuery += "AND B1_GRUPO BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' "+CRLF 
+cQuery += "AND DA0_CODTAB BETWEEN '"+MV_PAR06+"' AND '"+MV_PAR07+"' "+CRLF
+
+If MV_PAR05 == 1 .Or. MV_PAR05 == 2
+	cQuery += "AND SB1.B1_DHABSM = '"+IIF( MV_PAR05 == 1 , "T" , "F" ) + "' "+CRLF
+Endif
+
+If Select("TMPDA1") > 0
+   	TMPDA1->( dbCloseArea() )
+EndIf
+
+cQuery := ChangeQuery(cQuery)
+TCQUERY cQuery NEW ALIAS "TMPDA1"
+
+dbSelectArea("TMPDA1")
+TMPDA1->(dbGoTop())
+
+While TMPDA1->(!Eof())
+	If TMPDA1->DA1_DESC > 0
+		AAdd(aProd, {TMPDA1->B1_COD,TMPDA1->B1_DHQE,TMPDA1->B1_UMRES,TMPDA1->DA1_PRCVEN,(TMPDA1->DA1_PRCVEN - TMPDA1->DA1_VLRDES), TMPDA1->B1_DHCODBA, TMPDA1->B1_DESC, TMPDA1->B1_IPI })
+	Else
+		AAdd(aProd, {TMPDA1->B1_COD,TMPDA1->B1_DHQE,TMPDA1->B1_UMRES,TMPDA1->DA1_PRCVEN, 0 , TMPDA1->B1_DHCODBA, TMPDA1->B1_DESC, TMPDA1->B1_IPI})
+	EndIf
+    TMPDA1->(dbSkip())
+EndDo
+                                           
+TMPDA1->( dbCloseArea() ) 
+
+Return aProd
+
+Static Function AjustaSX1(cPerg)
+
+PutSx1( cPerg, "01", "Produto de ?" 		,""	,"","mv_ch1", "C", 15, 0, 0, "G", "","SB1", "", "", "mv_par01",,,,,,,,,,,,,,,,,{"Codigo Produto Inicial", "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "02", "Produto Até ?"		,""	,"","mv_ch2", "C", 15, 0, 0, "G", "","SB1", "", "", "mv_par02",,,,,,,,,,,,,,,,,{"Codigo Produto Final",   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "03", "Grupo de ?"			,""	,"","mv_ch3", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par03",,,,,,,,,,,,,,,,,{"Grupo De",               	"para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "04", "Grupo Até ?"			,""	,"","mv_ch4", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par04",,,,,,,,,,,,,,,,,{"Grupo Ate",              	"para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "05", "Imprime Abismo ?"		,""	,"","mv_ch5", "N", 01, 0, 1, "C", "","","", "","mv_par05","Sim","Sim","Sim",'',"Não","Não","Não","Ambos","Ambos","Ambos",,,,'','','',{"Com ou Sem Abismo",      "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "06", "Tabela\preço De ?"	,""	,"","mv_ch6", "C", 04, 0, 0, "G", "","DA0", "", "", "mv_par06",,,,,,,,,,,,,,,,,{"Tabela\preço De",         "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "07", "Tabela\preço Até"		,""	,"","mv_ch7", "C", 04, 0, 0, "G", "","DA0", "", "", "mv_par07",,,,,,,,,,,,,,,,,{"Tabela\preço Até",        "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "08", "Imprime IPI ?"		,""	,"","mv_ch8", "N", 01, 0, 1, "C", "","","", "","mv_par08","Sim","Sim","Sim",'',"Não","Não","Não","","","",,,,'','','',{"Imprime o % de IPI.","", ""},{},{} )
+PutSx1( cPerg, "09", "Imprime CODBAR ?"		,""	,"","mv_ch9", "N", 01, 0, 1, "C", "","","", "","mv_par09","Sim","Sim","Sim",'',"Não","Não","Não","","","",,,,'','','',{"Imprime o Cod. Barras","", ""},{},{} )
+
+Return (.T. )
+/*
+#INCLUDE "Protheus.CH"
+#INCLUDE "TopConn.CH"
+
+User Function DHFATR16() 
+                                                  
+Private aProd := {}
+Private cMarca  := GetMark()
+Private cTrab   := ""
+Private oWord
+
+Processa({|| MontaArr()}, "Filtrando Dados...") 
+Processa({|| GeraTmp()}, "Criando Interface...") 
+
+Ole_CloseLink(oWord)
+
+Return
+
+User Function ImpEtiq1()
+
+Local _cPath      := Alltrim(GetMV("MV_QPATHWD"))  //path padrao dos modelos
+Local _cPathWT    := "C:\TEMP\ "//&(Alltrim(GetMV("MV_QPATHWT")))  //path do diretorio temp do windows
+Local _cArqDOT    := "ETIQUETA.dot"
+Local _cPathDOT   := _cPath + _cArqDOT			   //path do arquivo de modelo
+Local nCounter    := 0
+
+_cArquivo := Alltrim(_cPathWT) + Alltrim(_cArqDOT)
+
+cpyS2T(_cPathDOT , _cPathWT , .T.)
+
+oWord := OLE_CreateLink('TMsOleWord97')
+
+OLE_NewFile( oWord , _cArquivo )
+
+dbselectarea("TMP")
+TMP->(dbgotop())
+
+ProcRegua(TMP->(RecCount()))
+
+While !TMP->(EOF())
+
+	If TMP->OK <> cMarca
+		dbSkip()
+		Loop
+	EndIf
+	
+	IncProc("Selecionando Produto " + TMP->CODIGO)
+	
+	nCounter += 1
+	
+	If nCounter > 30
+		OLE_UpDateFields(oWord)
+	
+		oWord := OLE_CreateLink('TMsOleWord97')
+
+		OLE_NewFile( oWord , _cArquivo )	
+		
+		nCounter := 1
+	Endif
+
+	OLE_SetDocumentVar(oWord,"CODIGO"+Alltrim(Str(nCounter))    ,TMP->CODIGO)
+	OLE_SetDocumentVar(oWord,"DESC"+Alltrim(Str(nCounter))      ,TMP->DESC)
+	OLE_SetDocumentVar(oWord,"UM"+Alltrim(Str(nCounter))	     ,TMP->UM)
+	OLE_SetDocumentVar(oWord,"CX"+Alltrim(Str(nCounter))    	 ,TMP->CX)
+	
+	If MV_PAR08 == 1
+		IF TMP->VIPI > 0
+			OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ,"IPI " + Alltrim(Transform(TMP->VIPI,"@E 999.99")) + "%")
+		Else
+			OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ,"")
+		Endif
+	Else		
+		OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))    ,"")
+	Endif	
+	
+	OLE_SetDocumentVar(oWord,"VALOR"+Alltrim(Str(nCounter))      , Alltrim(Transform(TMP->VL,PesqPict("SF1", "F1_VALBRUT"))))
+	
+	IF TMP->DES > 0
+		OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ,"Promoção R$ " + Alltrim(Transform(TMP->DES,PesqPict("SF1", "F1_VALBRUT"))))
+	Else
+		OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ," ")
+	Endif
+	
+	OLE_SetDocumentVar(oWord,"CODBAR"+Alltrim(Str(nCounter))    , StrTran(TMP->CODBAR," ",""))
+
+	TMP->(DbSkip())
+Enddo	
+
+nCounter += 1
+
+For _N1 := nCounter to 30
+	OLE_SetDocumentVar(oWord,"CODIGO"+Alltrim(Str(nCounter))    ," ")
+	OLE_SetDocumentVar(oWord,"DESC"+Alltrim(Str(nCounter))      ," ")
+	OLE_SetDocumentVar(oWord,"UM"+Alltrim(Str(nCounter))	     ," ")
+	OLE_SetDocumentVar(oWord,"CX"+Alltrim(Str(nCounter))    	 ," ") 
+	OLE_SetDocumentVar(oWord,"VIPI"+Alltrim(Str(nCounter))      ," ")
+	OLE_SetDocumentVar(oWord,"VALOR"+Alltrim(Str(nCounter))    ," ")
+	OLE_SetDocumentVar(oWord,"PROMO"+Alltrim(Str(nCounter))    ," ")
+Next _N1
+
+OLE_UpDateFields(oWord)
+             
+// Apaga arquivo temporario
+Ferase(cTrab+".dbf")
+Ferase(cTrab+".cdx")
+
+Return .T. 
+           
+//-- Gera o arquivo temporário com base no array de produtos
+
+Static Function GeraTmp()
+
+Local aCampos 	:= { {'OK',,''},{'CODIGO',,'Codigo'},{'DESC',,'Descrição'},{'UM',,'Uni. Med.'},{'VL',,'Valor'},{'DES',,'Promoção'},{'VIPI',,'IPI'} }//'Desconto'} }
+Local cFiltro   := ""
+
+Private cCadastro:= 'Cadastro Temp'
+Private aRotina := {{"Gerar Etiq.",'U_ImpEtiq1()',0,3}}
+Private lRefresh:= .F.
+Private aClientes := {}
+
+aStru := {}
+aadd(aStru,{"OK", "C",2,0})
+aadd(aStru,{"CODIGO", "C",40,0})
+aadd(aStru,{"UM", "C",10,0})
+aadd(aStru,{"VL", "N",12,2})
+aadd(aStru,{"DES", "N",12,2}) 
+aadd(aStru,{"DESC", "C",30,0})  
+aadd(aStru,{"VIPI", "N",12,2}) 
+aadd(aStru,{"CX", "C",10,0})
+aadd(aStru,{"CODBAR", "C",40,0})
+    
+If select("TMP") > 0
+	dbselectarea("TMP")
+Endif
+
+cTrab := CriaTrab(aStru,.t.)
+Use &cTrab New alias TMP
+dbCreateIndex(cTrab+".cdx", "CODIGO")
+
+For nX := 1 to Len(aProd)
+	
+	//SB1->( dbsetorder(1) )
+	//SB1->( dbseek(XFilial("SB1")+aProd[nX][1]) )
+	
+	RecLock( 'TMP', .T. )
+	TMP->CODIGO	:= aProd[nX][1]
+    TMP->CX		:= aProd[nX][2]	
+    TMP->UM		:= aProd[nX][3]
+    TMP->VL		:= aProd[nX][4]
+   	TMP->DES 	:= aProd[nX][5]
+   	TMP->CODBAR := aProd[nX][6]
+   	TMP->DESC	:= aProd[nX][7]  
+  	TMP->VIPI	:= aProd[nX][8]
+	MsUnLock('TMP')	   
+
+Next nX
+              
+dbSelectArea("TMP")
+TMP->(DBGoTop())
+MarkBrow( 'TMP', 'OK','!CODIGO',aCampos,, cMarca,'U_MRKAF001()',,,,'U_MRKF001()' )
+
+Return 
+ 
+
+User Function MRKF001()
+
+If IsMark( 'OK', cMarca )
+	RecLock( 'TMP', .F. )
+	Replace OK With Space(2)
+	TMP->(MsUnLock())
+Else
+	RecLock( 'TMP', .F. )
+	Replace OK With cMarca
+	TMP->(MsUnLock())
+EndIf
+
+// Atualiza a markbrowse
+MarkBRefresh( )
+
+Return Nil
+
+User Function MRKAF001()
+
+dbSelectArea("TMP")
+TMP->(dbGoTop())
+
+While TMP->(!Eof())
+	If IsMark( 'OK', cMarca )
+		RecLock( 'TMP', .F. )
+		TMP->OK := Space(2)
+		TMP->(MsUnLock())
+	Else
+		RecLock( 'TMP', .F. )
+		TMP->OK := cMarca
+		TMP->(MsUnLock())
+	EndIf
+	TMP->(dbSkip())
+EndDo
+            
+// Atualiza a markbrowse
+MarkBRefresh( )
+Return Nil
+
+User Function TmpEtiq()
+
+dbSelectArea("TMP")
+TMP->(dbGoTop())
+
+While !TMP->(Eof())
+	If Empty(TMP->OK)
+		Reclock("TMP", .F.)  
+  		dbdelete()
+    	TMP->(MsUnlock())	
+  	EndIf
+  	TMP->(dbSkip())
+EndDo          
+
+// Atualiza a markbrowse
+MarkBRefresh()           
+Return               
+
+Static Function MontaArr()
+
+Local cQuery := ""
+Private cPerg:= "DHESTR02"
+
+AjustaSX1(cPerg) 
+
+Pergunte(cPerg,.T.)
+
+cQuery := "SELECT "
+cQuery += "	DA1_CODPRO, "
+cQuery += " DA1_CODTAB, "
+cQuery += " DA1_PRCVEN, "
+cQuery += " DA1_VLRDES, "
+cQuery += " DA1_DESC, "
+cQuery += " DA0_FILIAL, "
+cQuery += " DA0_CODTAB, "+CRLF
+cQuery += " B1_GRUPO, " 
+cQuery += " B1_COD, "
+cQuery += " B1_DESC, "
+cQuery += " B1_IPI, "    
+cQuery += " B1_DHQE, "   
+cQuery += " B1_UMRES, 
+cQuery += " B1_DHCODBA "+CRLF
+cQuery += "FROM  "+RetSqlName("DA1")+" DA1,"+RetSQLName("DA0")+" DA0,"+Retsqlname("SB1")+" SB1 "+CRLF
+cQuery += "WHERE DA1.D_E_L_E_T_ = ' '"+CRLF
+cQuery += "AND  DA0.D_E_L_E_T_ = ' '"+CRLF  
+cQuery += "AND  SB1.D_E_L_E_T_ = ' '"+CRLF  
+cQuery += "AND DA1_CODTAB = DA0_CODTAB "+CRLF
+cQuery += "AND DA1_CODPRO = B1_COD "+CRLF
+cQuery += "AND DA1_CODPRO BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"'  "+CRLF
+cQuery += "AND B1_GRUPO BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' "+CRLF 
+cQuery += "AND DA0_CODTAB BETWEEN '"+MV_PAR06+"' AND '"+MV_PAR07+"' "+CRLF
+
+If MV_PAR05 == 1 .Or. MV_PAR05 == 2
+	cQuery += "AND SB1.B1_DHABSM = '"+IIF( MV_PAR05 == 1 , "T" , "F" ) + "' "+CRLF
+Endif
+
+If Select("TMPDA1") > 0
+   	TMPDA1->( dbCloseArea() )
+EndIf
+
+cQuery := ChangeQuery(cQuery)
+TCQUERY cQuery NEW ALIAS "TMPDA1"
+
+dbSelectArea("TMPDA1")
+TMPDA1->(dbGoTop())
+
+While TMPDA1->(!Eof())
+	If TMPDA1->DA1_DESC > 0
+		AAdd(aProd, {TMPDA1->B1_COD,TMPDA1->B1_DHQE,TMPDA1->B1_UMRES,TMPDA1->DA1_PRCVEN,(TMPDA1->DA1_PRCVEN - TMPDA1->DA1_VLRDES), TMPDA1->B1_DHCODBA, TMPDA1->B1_DESC, TMPDA1->B1_IPI })
+	Else
+		AAdd(aProd, {TMPDA1->B1_COD,TMPDA1->B1_DHQE,TMPDA1->B1_UMRES,TMPDA1->DA1_PRCVEN, 0 , TMPDA1->B1_DHCODBA, TMPDA1->B1_DESC, TMPDA1->B1_IPI})
+	EndIf
+    TMPDA1->(dbSkip())
+EndDo
+                                           
+TMPDA1->( dbCloseArea() ) 
+
+Return aProd
+
+Static Function AjustaSX1(cPerg)
+
+PutSx1( cPerg, "01", "Produto de ?" 		,""	,"","mv_ch1", "C", 15, 0, 0, "G", "","SB1", "", "", "mv_par01",,,,,,,,,,,,,,,,,{"Codigo Produto Inicial", "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "02", "Produto Até ?"		,""	,"","mv_ch2", "C", 15, 0, 0, "G", "","SB1", "", "", "mv_par02",,,,,,,,,,,,,,,,,{"Codigo Produto Final",   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "03", "Grupo de ?"			,""	,"","mv_ch3", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par03",,,,,,,,,,,,,,,,,{"Grupo De",               	"para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "04", "Grupo Até ?"			,""	,"","mv_ch4", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par04",,,,,,,,,,,,,,,,,{"Grupo Ate",              	"para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "05", "Imprime Abismo ?"		,""	,"","mv_ch5", "N", 01, 0, 1, "C", "","","", "","mv_par05","Sim","Sim","Sim",'',"Não","Não","Não","Ambos","Ambos","Ambos",,,,'','','',{"Com ou Sem Abismo",      "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "06", "Tabela\preço De ?"	,""	,"","mv_ch6", "C", 04, 0, 0, "G", "","DA0", "", "", "mv_par06",,,,,,,,,,,,,,,,,{"Tabela\preço De",         "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "07", "Tabela\preço Até"		,""	,"","mv_ch7", "C", 04, 0, 0, "G", "","DA0", "", "", "mv_par07",,,,,,,,,,,,,,,,,{"Tabela\preço Até",        "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "08", "Imprime IPI ?"		,""	,"","mv_ch8", "N", 01, 0, 1, "C", "","","", "","mv_par08","Sim","Sim","Sim",'',"Não","Não","Não","","","",,,,'','','',{"Imprime o % de IPI.","", ""},{},{} )
+
+Return (.T. )
+*/

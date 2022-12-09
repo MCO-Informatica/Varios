@@ -1,0 +1,33 @@
+#include 'protheus.ch'
+#include "TbiConn.ch" 
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} ComprasUtils
+Classe com métodos variados de uso comum no projeto.
+@author  marcio.katsumata
+@since  04/06/2020
+@version 1.0
+/*/
+//-------------------------------------------------------------------
+class ComprasUtils From SFUTILS
+
+	method new() constructor
+
+endclass
+
+
+/*/{Protheus.doc} new
+Metodo construtor
+@author marcio.katsumata
+@since 04/06/2020
+@version   1.0
+/*/
+method new() class ComprasUtils
+	self:cPath         := "\comprasutils"
+	self:cLogPath      := self:cPath + "\logs"
+	self:cSchedulePath := self:cPath +"\schedule"
+return
+
+
+user function ComprasUtils()
+return

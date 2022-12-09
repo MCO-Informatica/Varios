@@ -1,0 +1,197 @@
+
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"   
+#INCLUDE "TOPCONN.CH" 
+#INCLUDE "AP5MAIL.CH"  
+ #INCLUDE "TBICONN.CH" 
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณFMAILJOB  บAutor  ณThiago Miguel   บ Data ณ  22/03/2019   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA ENVIO DE EMAIL COM PEDIDO FUTUROS              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+ 
+
+user function EnvioCMP(c_fil)
+PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" 
+ 
+  
+    Private clVend    := ''  
+    Private clNmVend  := ''
+    Private clNumOrc  := ''
+    Private clDescOrc := '' 
+    Private clProp  := ''       // numero da proposta WORD
+    Private clDtOrca := ''     //data de inclusao do or็amento
+    Private clDtFollo := ''    //data de inclusใo de follow-up   
+    Private clDtRet   := ''    //data de Retorno do Follow-up
+    Private clNmEnt   := ''
+    Private clVTotOrc := ''
+    Private c_texto   := '' 
+    Private c_assunto := ''
+
+    Private _cHTML 	  := '' 
+
+    _cHTML:='<HTML><HEAD><TITLE></TITLE>'
+	_cHTML+= CRLF + '<META http-equiv=Content-Type content="text/html; charset=windows-1252">'
+	_cHTML+= CRLF + '<META content="MSHTML 6.00.6000.16735" name=GENERATOR></HEAD>'
+	_cHTML+= CRLF + '<style type="text/css">'
+    _cHTML+= CRLF + 'table.cont {'
+    _cHTML+= CRLF + 'font-size:10}'
+    _cHTML+= CRLF + '</style>' 
+	_cHTML+= CRLF + '<BODY>'
+	_cHTML+= CRLF + '<Table border=0 width=1000>'             
+	_cHTML+= CRLF + '<TR align="center">'
+	_cHTML+= CRLF + '	<TD><H1>Entregas Futuras</H1></TD>'
+	_cHTML+= CRLF + '</TR>' 
+	_cHTML+= CRLF + '<TR align="center">'
+    _cHTML+= CRLF + '	<TD>Entregas futuras: Compras a ser entregue n๓s ap๓s 7 dias:</TD>'  
+    _cHTML+= CRLF + '</TR>'  
+    _cHTML+= CRLF + '<TR align="center">'
+    _cHTML+= CRLF + '	<TD>'
+    
+    c_assunto := "Entregas Futuras - " 
+    
+ 	clAlias := ENVSQL()  
+    (clAlias)->(DbGoTop())
+    if (clAlias)->(!EOF())  
+    
+    	While (clAlias)->(!EOF())
+
+   		 	_cHTML:='<HTML><HEAD><TITLE></TITLE>'
+			_cHTML+= CRLF + '<META http-equiv=Content-Type content="text/html; charset=windows-1252">'
+			_cHTML+= CRLF + '<META content="MSHTML 6.00.6000.16735" name=GENERATOR></HEAD>'
+			_cHTML+= CRLF + '<style type="text/css">'
+		    _cHTML+= CRLF + 'table.cont {'
+		    _cHTML+= CRLF + 'font-size:10}'
+		    _cHTML+= CRLF + '</style>' 
+			_cHTML+= CRLF + '<BODY>'
+			_cHTML+= CRLF + '<Table border=0 width=800>'             
+			_cHTML+= CRLF + '<TR align="center">'
+			_cHTML+= CRLF + '	<TD><H1>Entregas Futuras</H1></TD>'
+			_cHTML+= CRLF + '</TR>' 
+			_cHTML+= CRLF + '<TR align="center">'
+		    _cHTML+= CRLF + '	<TD>Entregas futuras: Compras a ser entregue n๓s ap๓s 7 dias.</TD>'  
+		    _cHTML+= CRLF + '</TR>'  
+		    _cHTML+= CRLF + '<TR align="center">'
+		    _cHTML+= CRLF + '	<TD>'
+		    
+		    c_assunto := "Entregas Futuras - " + c_fil
+    		
+    		_cHTML+= CRLF + '	<TABLE cellSpacing=0 width="800" background="" border=1 class="cont">'
+			_cHTML+= CRLF + '  	<TBODY>'
+			_cHTML+= CRLF + '  	<TR bgcolor="#DDDDDD" align="center">'
+			_cHTML+= CRLF + '    	<TD colspan="8"><b>Dados Futuro</b></TD>'
+			_cHTML+= CRLF + '   </TR>'
+			_cHTML+= CRLF + '  	<TR bgcolor="#EEEEEE" align="center">'  
+			_cHTML+= CRLF + '    	<TD><b>Produto</b></TD>'            
+			_cHTML+= CRLF + '    	<TD><b>C๓digo</b></TD>'
+			_cHTML+= CRLF + '    	<TD><b>Fornecedor</b></TD>'
+			_cHTML+= CRLF + '    	<TD><b>Data Entrega</b></TD>'     
+			_cHTML+= CRLF + '    	<TD><b>Data Emissao</b></TD>'        
+			_cHTML+= CRLF + '    	<TD><b>Numero Pedido</b></TD>'    
+			_cHTML+= CRLF + '    	<TD><b>Quantidade</b></TD>'      
+			_cHTML+= CRLF + '    	<TD><b>Observacao</b></TD>'
+
+    			nCntProp += 1 
+    	  		clProp 	  :=AllTrim((clAlias)->C7_PRODUTO)  
+      			clNumOrc  := AllTrim((clAlias)->B1_DESC)  
+    		    clDescOrc := Alltrim((clAlias)->C7_FORNECE) 
+    		    clDtOrca  := STOD(AllTrim((clAlias)->C7_DATPRF))  
+    		    clDtFollo := STOD(AllTrim((clAlias)->C7_EMISSAO))
+    		    clDtRet	  := Alltrim((clAlias)-> C7_QUANT)  
+    		    clVTotOrc := Alltrim((clAlias)-> C7_OBS)
+
+    		    
+    			_cHTML+= CRLF + '  	<TR>'   
+    			_cHTML+= CRLF + '    	<TD>'+clProp+'</TD>'
+    			_cHTML+= CRLF + '    	<TD>'+clNumOrc+'</TD>'
+				_cHTML+= CRLF + '    	<TD>'+clDescOrc+'</TD>'
+				_cHTML+= CRLF + '    	<TD>'+clNmEnt+'</TD>'
+				_cHTML+= CRLF + '    	<TD>'+dtoc(clDtOrca)+'</TD>' 
+			   	_cHTML+= CRLF + '    	<TD>'+dtoc(clDtFollo)+'</TD>'  
+			   	_cHTML+= CRLF + '    	<TD>'+clDtRet+'</TD>' 
+				_cHTML+= CRLF + '    	<TD>'+clVTotOrc+'</TD>'
+				_cHTML+= CRLF + '   </TR>'	 
+
+    			(clAlias)->(DbSkip())
+    		EndDo
+            
+ 
+			_cHTML+= CRLF + '  	<TR>'	
+		   	_cHTML+= CRLF + '	</TBODY></TABLE>'
+		 	_cHTML+= CRLF + '<P>&nbsp;</P>'
+			_cHTML+= CRLF + '	</TBODY></TABLE>'
+			_cHTML+= CRLF + '<P>&nbsp;</P>'   
+ 
+		
+	
+		MemoWrite("EnvioCMP.HTML",_cHTML)
+    	
+    	EnviaEmail() 
+
+    EndIf        
+Return 
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณVerifica os registros validos para envio do email para os gestores.         ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+Static Function ENVSQL()
+		
+	Local clAliasSql := GetNextAlias()
+
+
+	BeginSql Alias clAliasSql 
+	
+	
+	   
+	    SELECT 	C.C7_PRODUTO, B.B1_DESC,A.A2_NOME,C.C7_DATPRF, C.C7_QUANT,C.C7_EMISSAO,C.C7_NUM,C.C7_OBS
+	     	    	   	  
+	    FROM %Table:SC7010% AS C
+     	LEFT JOIN %Table:SB1010% AS B 
+     		ON  C.C7_PRODUTO = B.B1_COD
+   
+     	LEFT JOIN SA2010 AS SA2
+     		ON  C.C7_FORNECE = A.A2_COD
+ 	    
+     	WHERE  C7_DATPRF >= GETDATE ( ) + 7               
+     		
+
+	
+	EndSql
+		
+Return(clAliasSql)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณTK260ROT  บAutor  ณMicrosiga           บ Data ณ  08/23/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณEnvia o email para os responsaveis.                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function EnviaEmail()
+
+	Local l_Continua	:= .T.
+	Private c_msgerro	:= ''
+ 	//Private c_paradir   := GetMV("MV_XMAILDI")       
+	cMailAdd := "thiago.rufino@actualtrend.com.br"
+    
+	If !U_FGEN010(c_paradir+";"+cMailAdd,c_assunto,_cHTML,,.t.)	 
+			Return c_msgerro
+	EndIf	
+	
+Return

@@ -1,0 +1,200 @@
+#include "totvs.ch"
+
+// IMPRESSORA TLP2844
+#define cPorta  "LPT1"
+#define cModelo "ELTRON"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME06   ºAutor  ³                    º Data ³  10/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Emissão de Etiqueta SAIDA                                  º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME06()
+
+Local oDlg                        
+Local cNota := SPACE(9)                 
+Local cSerie := SPACE(3)                 
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 320,398 PIXEL TITLE "Impressão de etiqueta de SAÍDA por Filial"
+                            
+@ 003+(20*1),010 Say "Nota Fiscal: " of oDlg Pixel
+@ 002+(20*1),070 MsGet oNota Var cNota when .T. Size 50,10 of oDlg Pixel
+
+@ 003+(20*2),010 Say "Série: " of oDlg Pixel
+@ 002+(20*2),070 MsGet oSerie Var cSerie when .T. Size 20,10 of oDlg Pixel
+
+@ 145,140 BUTTON "Imprimir" SIZE 28,13 PIXEL OF oDlg ACTION (FPrint(cNota, cSerie),oDlg:End())
+@ 145,170 BUTTON "Sair" SIZE 28,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+
+
+
+Static Function FPrint(cNota,cSerie)
+
+IF Empty(cNota)
+	MsgInfo("Nota Fiscal não informada !","Atenção")
+	Return()
+endif                    
+
+IF Empty(cSerie)
+	MsgInfo("Série da Nota Fiscal não informada !","Atenção")
+	Return()
+endif          
+
+DbSelectArea("SF2")		
+DbSetOrder(1)	
+if !DbSeek(xFilial("SF2")+cNota+cSerie)
+	MsgInfo("Nota Fiscal / Série não existe !","Atenção")
+	Return()
+endif	
+       
+cPedido := ""
+DbSelectArea("SD2")
+DbsetOrder(3) 
+SD2->(DbGotop())
+if DbSeek(xFilial("SD2")+cNota+cSerie)
+   cPedido := SD2->D2_PEDIDO
+else
+	MsgInfo("Pedido não localizado na Nota Fiscal !","Atenção")
+	Return()
+endif   
+                   
+aItens:={}
+nQtdCaixas := 0
+DbSelectArea("ZZ2")
+ZZ2->(DbSetOrder(1))
+ZZ2->(DbSeek(xFilial("ZZ2") + "C" + cPedido))
+While !ZZ2->(Eof()) .And. ZZ2->ZZ2_NUM == cPedido
+	nPosProd := aScan(aItens, {|x| Alltrim(x[1]) == ZZ2->ZZ2_CAIXA})
+	If nPosProd == 0    
+		aAdd(aItens,{ZZ2->ZZ2_CAIXA})
+		nQtdCaixas += 1
+    endif                                
+	ZZ2->(DbSkip())
+EndDo
+
+MSCBPRINTER(cModelo, cPorta)
+MSCBCHKStatus(.f.)
+
+For nS := 1 to nQtdCaixas
+	
+	MSCBBEGIN(1,6)
+	MSCBBOX(07,03,96,73)                
+	
+	MSCBLineH(07,15,96,3) 
+	MSCBLineH(07,25,96,3) 
+	MSCBLineH(07,33,96,3) 
+	MSCBLineH(07,41,96,3) 
+	MSCBLineH(07,49,96,3) 
+	MSCBLineH(07,57,96,3) 
+	MSCBLineH(07,65,96,3) 
+
+    MSCBLineV(48,03,15) 
+    
+    MSCBLineV(34,15,25) 
+    MSCBLineV(48,15,25) 
+    MSCBLineV(73,15,25) 
+
+    MSCBLineV(73,33,41) 
+    
+    MSCBLineV(73,49,57) 
+
+    MSCBLineV(73,65,73) 
+                   
+	MSCBSAY(12,06,"DAYHOME", "N","5","1,1")
+	MSCBSAY(49,05,ALLTRIM(SM0->M0_FILIAL), "N","4","1,1")
+	MSCBSAY(49,09,"CNPJ:"+TransForm(ALLTRIM(SM0->M0_CGC),'@R 99.999.999/9999-99'), "N","3","1,1")
+	MSCBSAY(49,12,"Telefone:"+ALLTRIM(SM0->M0_TEL), "N","3","1,1")
+
+	MSCBSAY(08,16,"Nota Fiscal", "N", "1", "1,1")
+	MSCBSAY(35,16,"Serie", "N", "1", "1,1")
+	MSCBSAY(49,16,"Pedido DayHome", "N", "1", "1,1")
+	MSCBSAY(74,16,"Caixa", "N", "1", "1,1")
+
+	MSCBSAY(08,26,"Cliente", "N", "1", "1,1")
+	
+	MSCBSAY(08,34,"Contato", "N", "1", "1,1")
+	MSCBSAY(74,34,"Telefone", "N", "1", "1,1")
+
+	MSCBSAY(08,42,"Endereco", "N", "1", "1,1")
+
+	MSCBSAY(08,50,"Bairro", "N", "1", "1,1")
+	MSCBSAY(74,50,"Cep", "N", "1", "1,1")
+
+	MSCBSAY(08,58,"Cidade/UF", "N", "1", "1,1")
+
+	MSCBSAY(08,66,"Transportadora", "N", "1", "1,1")
+	MSCBSAY(74,66,"Caixa", "N", "1", "1,1")
+
+	MSCBSAY(08,19,cNota, "N", "4", "1,2")
+	MSCBSAY(35,19,cSerie, "N", "4", "1,2")
+	MSCBSAY(49,19,cPedido, "N", "4", "1,2")
+	cCX := STRZERO(nS,3)+"/"+STRZERO(nQtdCaixas,3)
+	MSCBSAY(74,19,cCX, "N", "4", "1,2")                                                              
+
+	DbSelectArea("SC5")		
+	DbSetOrder(1)	
+	DbSeek(xFilial("SC5")+cPedido)
+	cTRANSP := SC5->C5_TRANSP
+
+	DbSelectArea("SA1")		
+	DbSetOrder(1)	
+	DbSeek(xFilial("SA1")+SC5->C5_CLIENTE+SC5->C5_LOJACLI)
+	cNOME    := UPPER(SA1->A1_NREDUZ)
+	cTEL     := SA1->A1_TEL
+	cCONTATO := UPPER(SA1->A1_CONTATO)
+	
+	if EMPTY(SA1->A1_ENDENT)
+	   cEND := UPPER(SA1->A1_END) 
+	   cBAI := UPPER(SA1->A1_BAIRRO)       
+	   cMUN := UPPER(ALLTRIM(SA1->A1_MUN))+"/"+UPPER(SA1->A1_EST)
+	   cCEP := TransForm(ALLTRIM(SA1->A1_CEP),'@R 99999-999') 
+	else
+	   cEND := UPPER(SA1->A1_ENDENT) 
+	   cBAI := UPPER(SA1->A1_BAIRROE)       
+	   cMUN := UPPER(ALLTRIM(SA1->A1_MUNE))+"/"+UPPER(SA1->A1_ESTE)
+	   cCEP := TransForm(ALLTRIM(SA1->A1_CEPE),'@R 99999-999') 
+	endif                      
+	
+	DbSelectArea("SA4")		
+	DbSetOrder(1)	
+	DbSeek(xFilial("SA4")+cTRANSP)
+	cNOMTRANSP := UPPER(SA4->A4_NREDUZ)
+	cTELTRANSP := SA4->A4_TEL
+
+	MSCBSAY(08,29,cNOME, "N", "4", "1,1") 
+	MSCBSAY(08,37,cCONTATO, "N", "3", "1,1") 
+	MSCBSAY(74,37,cTEL, "N", "3", "1,1") 
+	MSCBSAY(08,45,cEND, "N", "3", "1,1") 
+	MSCBSAY(08,53,cBAI, "N", "3", "1,1") 
+	MSCBSAY(74,53,cCEP, "N", "3", "1,1") 
+	MSCBSAY(08,61,cMUN, "N", "3", "1,1") 
+	MSCBSAY(08,69,cNOMTRANSP, "N", "4", "1,1") 
+	MSCBSAY(74,69,aItens[nS][1], "N", "3", "1,1") 
+		
+	MSCBEND()                                        
+	
+	SLEEP(600)
+	
+Next nS
+
+MSCBCLOSEPRINTER()
+
+Return nil

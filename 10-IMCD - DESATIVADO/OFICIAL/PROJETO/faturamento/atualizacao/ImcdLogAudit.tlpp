@@ -1,0 +1,162 @@
+#include 'protheus.ch'
+#INCLUDE 'RWMAKE.CH'
+#INCLUDE 'FONT.CH'
+#INCLUDE 'COLORS.CH'
+#include 'FWMVCDEF.CH'
+
+/*/{Protheus.doc} ImcdLogAudit
+Classe de log de auditoria
+@type class
+@version 1.0
+@author marcio.katsumata
+@since 16/06/2020
+/*/
+class ImcdLogAudit
+    public method new() constructor
+    public method recordLog()
+    public method getLogByKey()
+    method getMotivo()
+    method getResolution()
+endClass
+
+/*/{Protheus.doc} ImcdLogAudit::new
+Construtor
+@type method
+@version 
+@author marcio.katsumata
+@since 17/06/2020
+@return return_type, return_description
+/*/
+method new() class ImcdLogAudit
+
+
+return
+
+/*/{Protheus.doc} ImcdLogAudit::recordLog
+Grava log de auditoria
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 16/06/2020
+@param cAliasLog, character, alias do log
+@param nIndexKey, numeric, indice
+@param cKey, character, chave
+@param cField, character, campo
+@param xValueBefore, param_type, valor anterior
+@param xValueAfter, param_type, valor após
+@return nil, nil
+/*/
+method recordLog(cAliasLog,nIndexKey,cKey,cField,xValueBefore,xValueAfter) class ImcdLogAudit
+    local cValueBefore as character
+    local cValueAfter as character
+
+    cValueBefore := cValToChar(xValueBefore)
+    cValueAfter  := cValToChar(xValueAfter)
+
+    dbSelectArea("ZAK")
+    reclock("ZAK", .T.)
+    ZAK->ZAK_ENTITY := cAliasLog
+    ZAK->ZAK_INDEX  := nIndexKey
+    ZAK->ZAK_KEY    := cKey
+    ZAK->ZAK_FIELD  := cField
+    ZAK->ZAK_USER   := UsrRetName(__cUserId)
+    ZAK->ZAK_DATE   := date()
+    ZAK->ZAK_TIME   := time()
+    ZAK->ZAK_BEFORE := cValueBefore
+    ZAK->ZAK_AFTER  := cValueAfter
+    ZAK->ZAK_CAUSE  := self:getMotivo(cField, cValueBefore, cValueAfter)
+    ZAK->(msUnlock())
+
+return
+
+/*/{Protheus.doc} ImcdLogAudit::getLogByKey
+Verifica o log pela chave
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 16/06/2020
+@param cAliasLog, character, alias
+@param nIndexKey, numeric, numero do indice
+@param cKey, character, chave
+@return nil, nil
+/*/
+method getLogByKey(cAliasLog, nIndexKey, cKey) class ImcdLogAudit
+
+    private cEntity as character
+    private nZakIndex as numeric
+    private cZAKKey as character
+
+    cEntity   := cAliasLog
+    nZakIndex := nIndexKey
+    cZAKKey   := cKey
+
+    dbSelectArea("ZAK")
+
+    oModelZAK := FwLoadModel("IMCDAUDLG")
+    oModelZAK:setOperation( MODEL_OPERATION_VIEW)
+    oModelZAK:activate()
+
+    aButtons := {{.F.,Nil},{.F.,Nil},{.F.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,"Salvar"},{.T.,"Cancelar"},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil}}
+    nOpc := MODEL_OPERATION_VIEW
+    FWExecView('','IMCDAUDLG', nOpc, , { || .T. }, , ,aButtons,,,,oModelZAK ) 
+    
+
+
+return
+
+
+/*/{Protheus.doc} ImcdLogAudit::getMotivo
+Tela de digitação do motivo
+@type method
+@version 1,0
+@author marcio.katsumata
+@since 16/06/2020
+@param cField, character, campo
+@param cValueBefore, character, valor anterior
+@param cValueAfter, character, valor após
+@return character, motivo
+/*/
+method getMotivo(cField, cValueBefore, cValueAfter) class ImcdLogAudit
+
+    local  cTitulo  as character
+    local  cMotivo  as character
+    local  oDlg	    as object
+    local cCause    as character
+    local oCause    as object
+    cCause   := ""
+    cTitulo  := "Motivo da alteração de campo auditado "
+    cMotivo  := "Campo "+FWSX3Util():GetDescription( cField ) + ". Valor anterior ["+cValueBefore+"] . Valor após ["+cValueAfter+"]"
+
+    DEFINE MSDIALOG oDlg TITLE cTitulo FROM self:getResolution(252),self:getResolution(390) TO self:getResolution(517),self:getResolution(981) PIXEL STYLE DS_MODALFRAME
+
+    @ self:getResolution(005),self:getResolution(013) Say cMotivo Size self:getResolution(273),self:getResolution(008) COLOR CLR_BLACK PIXEL OF oDlg
+    // Cria as Groups do Sistema
+    @ self:getResolution(020),self:getResolution(010) TO self:getResolution(110),self:getResolution(285) LABEL "Motivo: (máximo 250)" PIXEL OF oDlg
+    @ self:getResolution(030),self:getResolution(016) GET oCause Var cCause MEMO Size self:getResolution(264),self:getResolution(076) PIXEL OF oDlg
+    // Cria Componentes Padroes do Sistema
+    @ self:getResolution(115),self:getResolution(125) Button "Gravar" Size self:getResolution(037),self:getResolution(012) PIXEL OF oDlg ACTION {|| if( staticcall(A440MARG, VerObs, cCause),oDlg:End(),nil)}
+
+
+    ACTIVATE MSDIALOG oDlg CENTERED
+
+Return cCause
+
+/*/{Protheus.doc} ImcdLogAudit::getResolution
+Resgata o tamanho com base na resolução da tela
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 16/06/2020
+@param nTam, numeric, tamanho
+@return numeric, tamanho ajustado à resolução
+/*/
+method getResolution(nTam) class ImcdLogAudit
+    local nRetRes as numeric
+
+    nRetRes := staticcall(A440MARG, C, nTam)
+
+
+return nRetRes
+
+
+

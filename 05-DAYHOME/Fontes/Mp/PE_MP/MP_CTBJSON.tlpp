@@ -1,0 +1,56 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO4     º Autor ³ Lucas Pereira      º Data ³  11/04/17   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ ponto de entrada meus pedidos ALTERA QUERRY GRUPOS	      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function MP_CTBJSON
+local aContas 	:= PARAMIXB[1]	// ARRY COM CONTAS
+local cFilMp 	:= PARAMIXB[2]	// FILIAL ATIVA
+local cCtaMp	:= PARAMIXB[3]  // CODIGO DA CONTA
+local nz	 	:= PARAMIXB[4]	// POSIÇÃO DO ACONTAS
+local aItem		:= PARAMIXB[5]	// Item
+local cJson		:= PARAMIXB[6]	// Item
+
+local rArea		:= getarea()
+local cTabela2, cCliId, cTabId
+
+	if cFilMp == '02'
+		DBSELECTAREA("SA1")  
+		DBSETORDER(1)
+		
+		conout( ' Conta 2 - MP_CTBJSON ')
+		if SA1->(DBSEEK(XFILIAL("SA1")+ aItem[18] ))
+		
+			conout('Cliente encontrado: '+aItem[18])
+			
+			cTabela2 := SA1->A1_XTABELA
+			
+			conout('Tabela: '+cTabela2)
+			
+			cCliId 	:=  U_GetIdEnt(cFilMp,cCtaMp,"CLIENTE",aItem[18])
+			cTabId 	:=  U_GetIdEnt(cFilMp,cCtaMp,"TABPR_CAB",cTabela2)  
+			
+			conout('TabId: '+cTabId)
+			
+			cJson := '{'
+			cJson += '   "cliente_id": '+cCliId+','
+			cJson += '   "tabelas_liberadas": '+IIF(!EMPTY(cTabId), "["+cTabId +"]",'[0]')
+			cJson += '}'
+			
+		endif
+	endif
+	
+restarea(rArea)
+Return(cJson)

@@ -1,0 +1,60 @@
+#INCLUDE "rwmake.ch"
+
+User Function DHVOL
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private cCadastro := "Cadastro de . . ."
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta um aRotina proprio                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private aRotina := { 	{"Pesquisar","AxPesqui",0,1} ,;
+             			{"Visualizar","AxVisual",0,2} ,;
+             			{"Alterar","U_AltVol",0,4},;
+             			{"Visualizar","AxVisual",0,2} }
+             			
+             			
+Private aCores := {	{"Empty(C5_LIBEROK).And.Empty(C5_NOTA) .And. Empty(C5_BLQ)",'ENABLE' },;		//Pedido em Aberto
+					{ "!Empty(C5_NOTA).Or.C5_LIBEROK=='E' .And. Empty(C5_BLQ)" ,'DISABLE'},;		   	//Pedido Encerrado
+					{ "!Empty(C5_LIBEROK).And.Empty(C5_NOTA).And. Empty(C5_BLQ)",'BR_AMARELO'},;
+					{ "C5_BLQ == '1'",'BR_AZUL'},;	//Pedido Bloquedo por regra
+					{ "C5_BLQ == '2'",'BR_LARANJA'}}	//Pedido Bloquedo por verba
+
+Private cDelFunc := ".T." // Validacao para a exclusao. Pode-se utilizar ExecBlock
+
+Private cAlias := "SC5"
+
+dbSelectArea("SC5")
+dbSetOrder(1)
+dbSelectArea(cAlias)
+
+mBrowse( 6,1,22,75,cAlias,,,,,,aCores)
+
+Return
+
+
+/*/{Protheus.doc} AltVol
+//TODO Descrição auto-gerada.
+Necessário pois precisa de uma validação para permitir alteração na SC5
+@author Fernando Carvalho
+@since 24/06/2016
+@version undefined
+
+@type function
+/*/
+User Function AltVol()
+	Local nReg    := ( cAlias )->( Recno() )
+
+	Private aHeader := {}
+	Private aCols	:= {}
+	Private n		:= 0
+
+		
+	If Empty((cAlias )->( C5_NOTA)) .OR. SuperGetMv("MV_ALTSC5",,.F.)
+				AxAltera(cAlias,nReg,3,, /*aCpos*/)		
+	Else
+		MsgInfo("Este pedido já foi faturado e não poderá ser alterado!" + Chr(13)+Chr(10)+;
+				"Avaliar o parâmetro 'MV_ALTSC5' com o administrador do sistema!")
+	EndIf	
+Return

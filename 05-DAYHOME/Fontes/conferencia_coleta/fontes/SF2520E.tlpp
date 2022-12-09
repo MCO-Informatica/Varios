@@ -1,0 +1,142 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ SF2520E  ºAutor  ³FONTANELLI          º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Ponto de entrada para efetuar a gravacao da                º±±
+±±º          ³ Exclusao da Nota Fiscal (Origem MATA460 Nota Fiscal)       º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function SF2520E()               
+       
+LOCAL xFilial  := SF2->F2_FILIAL
+LOCAL cNota    := SF2->F2_DOC
+LOCAL cSerie   := SF2->F2_SERIE
+LOCAL cCliente := SF2->F2_CLIENTE
+LOCAL cLoja    := SF2->F2_LOJA 
+
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} SF2520E
+Ponto de entrada no estorno da nota fiscal de saída, antes da efetivação do estorno.
+@type function
+@author Cris
+@since 27/09/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+aAreaSA1 := SA1->(GetArea())
+if SF2->F2_TIPO == 'N'
+		
+	dbSelectArea('SA1')
+	SA1->(dbSetorder(1))
+	if SA1->(dbSeek(xFilial('SA1') + SF2->F2_CLIENTE + SF2->F2_LOJA))
+		
+			if A1_X_TVPC ==  'P'
+				
+				U_GRFINSE2(SF2->F2_FILIAL, SF2->F2_DOC, SF2->F2_SERIE,SF2->F2_CLIENT, SF2->F2_LOJA,SF2->F2_VALBRUT,5)
+				
+			EndIf
+	EndIf
+	
+EndIf
+RestArea(aAreaSA1)
+
+// FONTANELLI
+  
+_aArea:= GetArea()
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))       
+	
+	if alltrim(cEmpAnt) == '99'
+		alert("(SIM) - SF2520E")
+	endif	
+	          
+	DbSelectArea("SD2")
+	DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+	SD2->(DbGotop())
+	If DbSeek(xFilial+cNota+cSerie+cCliente+cLoja)
+		
+		aPEDIDOS := {}
+		While SD2->(!EOF()) .AND. SD2->D2_FILIAL == xFilial .AND. SD2->D2_DOC == cNota .AND. SD2->D2_SERIE == cSerie .AND. SD2->D2_CLIENTE == cCliente .AND. SD2->D2_LOJA == cLoja 
+			nPosPEDIDO := aScan(aPEDIDOS, {|x| Alltrim(x[1]) == SD2->D2_PEDIDO})
+			If nPosPEDIDO == 0    
+				aAdd(aPEDIDOS,{SD2->D2_PEDIDO})
+		    endif    
+			SD2->(DbSkip())
+		Enddo
+	      
+	   
+		For xC := 1 to LEN(aPEDIDOS)
+		
+			DbSelectArea("ZZ2")
+			ZZ2->(DbSetOrder(1))
+			If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + aPEDIDOS[xC][1] ))
+				While !ZZ2->(Eof()) .And. aPEDIDOS[xC][1] == ZZ2->ZZ2_NUM .And. "C" == ZZ2->ZZ2_TIPOSC
+					if ZZ2->ZZ2_NOTA == cNota
+						RecLock("ZZ2",.F.)
+						ZZ2->ZZ2_NOTA := SPACE(9)
+						ZZ2->(MsUnlock())
+					endif
+					ZZ2->(DbSkip())
+				EndDo
+			EndIf                      
+		
+			//Só apaga os campos do SC5 caso exista apenas 1 Nota Fiscal na Tabela ZZ2
+			cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+			cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+			cQuery += "   AND ZZ2_NUM = '"+aPEDIDOS[xC][1]+"' "
+			cQuery += "   AND ZZ2_NOTA <> ' ' "
+			cQuery += "   AND D_E_L_E_T_ = '' "
+			cQuery := ChangeQuery(cQuery)
+			dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+			dbSelectArea("QryZZ2")
+			dbGoTop()
+			nQTDNOTA := 0
+			While !QryZZ2->(Eof())
+				nQTDNOTA += 1
+				QryZZ2->(DbSkip())
+			EndDo
+			QryZZ2->(dbCloseArea())	
+		
+		    DbSelectArea("SC5")
+			DbsetOrder(1) // C5_FILIAL+C5_NUM
+			SC5->(DbGotop())
+			If DbSeek(xFilial("SC5")+aPEDIDOS[xC][1]) 
+			  	  if  SC5->C5_XCONF == "N"
+					  RecLock("SC5",.f.)
+				      SC5->C5_XSTATUS := "LIB" 
+					  MsUnLock()
+			  	  else
+					  RecLock("SC5",.f.)
+				      SC5->C5_XSTATUS := "FAT" 
+				      SC5->C5_CONFST  := "3"   
+					  SC5->C5_COLST   := "1" 
+			          if nQTDNOTA == 0
+					      SC5->C5_XLUSER  := SPACE(30)
+						  SC5->C5_XLDT    := CTOD("  /  /    ")
+						  SC5->C5_XLHR    := SPACE(5)
+						  SC5->C5_XLMOT   := SPACE(30)
+			          endif
+					  MsUnLock()
+				  endif
+			  endif
+		Next xC
+	endif 
+
+endif
+
+RestArea(_aArea)
+
+Return
+

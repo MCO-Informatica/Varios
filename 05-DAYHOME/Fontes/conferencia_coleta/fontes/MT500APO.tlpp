@@ -1,0 +1,53 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ MT500APO  ºAutor  ³FONTANELLI          º Data ³  01/12/14  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Ponto de entrada do usuario apos a eliminacao do residuo   º±±
+±±º          ³ 															  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MT500APO()
+
+_aArea:= GetArea()
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+
+	if alltrim(cEmpAnt) == '99'
+		alert ("(SIM) - MT500APO)")
+	endif
+	 
+	
+	cQuery := "SELECT COUNT(*) QTD FROM "+RetSqlName("SC6")+"" 
+	cQuery += " WHERE C6_FILIAL = '"+xFilial("SC6")+"'"
+	cQuery += "  AND C6_NUM = '"+SC5->C5_NUM+"'"
+	cQuery += "  AND C6_BLQ = 'R ' "
+	cQuery += "   AND D_E_L_E_T_ = ' '"
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QrySC6",.T.,.T.)
+	dbSelectArea("QrySC6")
+	dbGoTop()
+	xQTD := QrySC6->QTD
+	QrySC6->(dbCloseArea())
+	
+	if xQTD > 0 
+		RecLock("SC5",.F.)
+		SC5->C5_XSTATUS	:= "ENT"  // ENTREGUE   
+		SC5->C5_CONFST  := "R"   
+		SC5->C5_COLST   := "R"  
+		SC5->(MsUnlock())
+	endif
+	
+endif
+
+RestArea(_aArea)
+
+Return

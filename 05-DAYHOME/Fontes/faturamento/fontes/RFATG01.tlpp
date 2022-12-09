@@ -1,0 +1,33 @@
+
+User Function RFATG01()
+
+Local _cProduto 	:= aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_PRODUTO"})]
+Local _cLocal	 	:= aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_LOCAL"  })] 
+
+
+//----> TRANSFERENCIAS
+If M->C5_OPER $"04"
+	
+	dbSelectArea("SB2")
+	dbSetOrder(1)
+	If dbSeek(xFilial("SB2")+_cProduto+_cLocal,.f.)
+	
+		aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_PRCVEN"  })] := SB2->B2_CM1
+
+		If SB2->B2_CM1 <= 0
+	
+			MsgAlert("Custo do produto inexistente.","Atencao!")
+		
+		EndIf
+	Else
+	
+		aCols[n,Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_PRCVEN"  })] := 0
+
+		MsgAlert("Custo do produto inexistente.","Atencao!")
+
+	EndIf
+
+EndIf
+
+
+Return(_cProduto)

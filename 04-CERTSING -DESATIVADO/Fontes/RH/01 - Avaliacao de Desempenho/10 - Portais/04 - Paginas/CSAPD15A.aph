@@ -1,0 +1,790 @@
+<%
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "TOPCONN.CH"
+
+#DEFINE STR0001 'Avaliação de Desempenho'
+#DEFINE STR0002 "Pendências"
+#DEFINE STR0003 "Consulta"
+#DEFINE STR0004 "Nome do avaliado"
+#DEFINE STR0005 "Nome do avaliador"
+#DEFINE STR0006 "Nível de carreira"
+#DEFINE STR0007 "Período avaliado"
+#DEFINE STR0008 "a"
+#DEFINE STR0009 "Data limite para término"
+#DEFINE STR0010 "Relevância"
+#DEFINE STR0011 "Auto-avaliação"
+#DEFINE STR0012 "Avaliação"
+#DEFINE STR0013 "Avaliador"
+#DEFINE STR0014 "Consenso"
+#DEFINE STR0015 "Imprimir"
+#DEFINE STR0016 "Fechar"
+#DEFINE STR0017 "Salvar"
+#DEFINE STR0018 "Finalizar"
+#DEFINE STR0019 "Avançar"
+#DEFINE STR0020 "Deseja realmente finalizar a avaliação?"
+#DEFINE STR0021 "Legenda"
+#DEFINE STR0022 "Não possui item preenchido"
+#DEFINE STR0023 "Possui item preenchido"
+#DEFINE STR0024 "Status da Avaliação"
+#DEFINE STR0025 "Projeto"
+#DEFINE STR0026 "Avaliação de Projetos"
+#DEFINE STR0027 "Líder Hierárquico"
+#DEFINE STR0028 "Área"
+#DEFINE STR0029 "Cliente"
+#DEFINE STR0030 "Mentor"
+#DEFINE STR0031 "Salvar & Avançar"
+#DEFINE STR0032 "Salvar & Finalizar"
+#DEFINE STR0033 "Resultado Final"
+
+Private c1StatusCpo 	:= ""
+Private c2StatusCpo 	:= ""
+Private cAvaliacaoLeg 	:= ""
+Private cAvaliacaoRel	:= ""
+Private cColor 			:= ""
+Private cQuestao		:= ""
+Private nAux			:= 0
+Private nCompetencia	:= Val(HttpGet->nI)
+Private nI 				:= 0
+Private nP				:= 0
+Private nPos 			:= 0
+Private nX 				:= 0
+Private nZ 				:= 0     
+Private _cMedia 		:= " "     
+Private _nMedia 		:= 0          
+Private _cCodAdor     	:= ""
+Private _cNomAvDor    	:= "" 
+Private _cCodLid      	:= "" //codigo do lider hierarquico
+Private _cNomLid      	:= "" //nome do lider hierarquico
+Private _cCodMen      	:= "" //codigo do Mentor    
+Private _cNomMen      	:= "" //nome do Mentor       
+Private _cCodCC        	:= ""
+Private _cDescCC      	:= ""
+Private _nAnt 			:= 0
+	
+	_nAnt := (nCompetencia-1)
+	If !Empty(HttpGet->cEvaluatedID)
+		HttpPost->cEvaluatedID 	:= HttpGet->cEvaluatedID
+		HttpPost->cPEvaluateID 	:= HttpGet->cPEvaluateID
+		HttpPost->cEvaluatorID 	:= HttpGet->cEvaluatorID
+		HttpPost->cTipoAv		:= HttpGet->cTipoAv
+	EndIf
+
+	_nMedia := HttpSession->_nMedia    
+    If _nMedia <= 0
+       _cMedia := "Não calculado"
+    Else
+       _cMedia := cvaltochar(_nMedia)
+    Endif
+
+    _cDesc := HttpSession->_LegendaConsenso
+%>
+
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<link href="imagens-rh/microsiga_2003.css" rel="stylesheet" type="text/css">
+		<link href="imagens-rh/estilo.css" rel="stylesheet" type="text/css">
+		
+		<script language="Javascript">
+
+		function fSubmit( cOpcao, nComp )
+		{
+			if ( cOpcao == 0 )
+			{
+				form15.action = "U_CSAPD015.APW";
+				form15.submit();
+			}
+			if ( cOpcao == 1) // Voltar
+			{                          
+				if ( nComp > 0 )
+				{                                                                                 
+					form15.action = "U_CSAPD15A.APW?cPEvaluateID=<%=HttpGet->cPEvaluateID%>&nI=<%=_nAnt%>";
+					form15.submit();		
+				} 
+				else 
+				{
+					form15.action = "U_CSAPD015.APW";
+					form15.submit();						
+				}
+			}
+			if ( cOpcao == 2) // Avancar
+			{
+				form15.action = "U_CSAPD15A.APW?cPEvaluateID=<%=HttpGet->cPEvaluateID%>&nI=<%=nCompetencia+1%>";
+				form15.submit();		
+			}			
+		}
+		
+
+		</script>
+	</head>
+<body>
+<form name="form15" method="post" action="">
+	<table border="0" align="left" cellpadding="0" cellspacing="0" style="width:100%">
+  		<tr>
+     		<td align="left" valign="top" class="texto">
+				<!--"Avaliacao de Projetos"--><!--"Avaliacao de Competências Profissionais"-->
+				<!--"Pendências"--><!--"Consulta"-->
+  				<p class="titulo">
+  					<strong>
+  						<font size="4">
+  							<%=IIf(HttpSession->cTpAval == "3", STR0026, "Avaliação de Desempenho")%> - <%=IIF(HttpSession->cStatus == "1",STR0002,STR0003)%>
+  						</font>
+  					</strong>
+  				</p>
+
+        		<table border="0" cellspacing="2" cellpadding="2" style="width:100%">
+					<!--Nome do Avaliado-->
+				 	<!--Verifica se o campo deve ser apresentado na tela -->
+		      		<% If "1" $ HttpSession->cCposCabec %>
+          				<tr>
+            				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right" >
+										<%=STR0004%>:&nbsp;
+									</div>
+								</span>
+							</td>
+        	    			<td class="Fundo4" >
+	        	    			<span class="texto">
+    	       	 					<%=HttpSession->GetPEvaluate[1]:cEvaluatedName%>
+        	    				</span>
+            				</td>
+        				</tr>
+		      		<% EndIf %>
+
+			        <!-- Mentor -->	
+			        <!--Verifica se o campo Mentor deve ser apresentado na tela -->
+			        <% If "2" $ HttpSession->cCposCabec
+            			_cCodMen := HttpSession->_cCodMen
+		       			_cNomMen := HttpSession->_cNomMen
+			   			%>
+				
+						<tr>
+							<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0028%>:&nbsp;<!--Mentor-->
+									</div>
+								</span>
+							</td>
+			            	<td class="Fundo4">
+			            		<span class="texto">
+				            		<% If Empty(_cNomMen) %>
+			    	        			<%=HttpSession->GetPEvaluate[1]:cCoachName %>     
+		    	    	    		<% Else %>
+		        	    				<%=_cNomMen%>		            				
+		            				<% EndIf %>
+			            		</span>
+		            		</td>
+						</tr>
+			        <% EndIf %>
+		
+			        <!-- Nome do Avaliador -->	
+			        <!--Verifica se o campo Nome do Avaliador deve ser apresentado na tela -->
+			        <% If "3" $ HttpSession->cCposCabec %>
+						<tr>
+							<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0005%>:&nbsp;<!--Nome do Avaliador-->
+									</div>
+								</span>
+							</td>
+		            	
+			            	<td class="Fundo4">	            	
+		            			<% 	
+			            		_cCodAdor := HttpSession->_cCodMen
+		            			_cNomAvDor := HttpSession->_cNomMen
+            					If Empty(HttpPost->cEvaluatorID)
+            						_cNomAvDor := HttpSession->cParticipantName
+            					EndIf 
+            					%>
+			            		<span class="texto">
+			            			<%=_cNomAvDor %>
+		    	        		</span>
+		        	    	</td>
+						</tr>
+			        <% EndIf %>            
+        
+			        <!-- Lider Hierarquico -->	
+			        <!--Verifica se o campo Lider Hierarquico deve ser apresentado na tela -->
+			        <% If "4" $ HttpSession->cCposCabec
+		         		_cCodLid := HttpSession->_cCodLid
+		         		_cNomLid := HttpSession->_cNomLid
+            	  		%>
+          				<tr>
+			        	    <td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0027%>:&nbsp;<!--Lider Hierarquico-->
+									</div>
+								</span>
+							</td>
+							<td class="Fundo4">
+								<span class="texto">
+									<%If Empty(_cNomLid) %>
+										<%=HttpSession->GetPEvaluate[1]:cPartLeader %>       
+									<%Else%>
+										<%=_cNomLid%>
+									<%EndIf%> 
+								</span>
+							</td>
+				        </tr>
+		    	    <% EndIf %>
+        
+		    		<!--Nivel de Carreira-->
+			      	<!--Verifica se o campo deve ser apresentado na tela -->
+			      	<% If "5" $ HttpSession->cCposCabec %>
+        		   		<tr>
+            				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0006%>:&nbsp;
+									</div>
+								</span>
+							</td>
+            				<td class="Fundo4">
+            					<span class="texto">
+            						<%=HttpSession->GetPEvaluate[1]:cHierarqLevel%>
+	            				</span>
+	    	        		</td>
+    	    			</tr>
+			      	<% EndIf %>
+
+	      		  	<!--Area-->
+			      	<!--Verifica se o campo deve ser apresentado na tela -->
+			      	<% If "6" $ HttpSession->cCposCabec %>
+        		   		<tr>
+            				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0028%>:&nbsp;
+									</div>
+								</span>
+							</td>
+	            			<td class="Fundo4">
+    	        				<span class="texto">
+			            			<%
+				            		_cCodCC  := HttpSession->_cCodCC
+									_cDescCC := HttpSession->_cDescCC
+			        	    		%>            				            		
+			            			<%=_cDescCC%>
+    		        			</span>
+	    	        		</td>
+        				</tr>
+			      	<% EndIf %>
+
+	   			  	<!--Prazo para Avaliação / a-->
+			      	<!--Verifica se o campo deve ser apresentado na tela -->
+					<% If "7" $ HttpSession->cCposCabec %>
+	         			<tr>
+    	        			<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%="Prazo para Avaliação"%>:&nbsp;
+									</div>
+								</span>
+							</td>
+	    	        		<td class="Fundo4">
+    	  						<span class="texto">
+      								<%=HttpSession->GetPEvaluate[1]:dInitialDate%>&nbsp;<%=STR0008%>&nbsp;<%=HttpSession->GetPEvaluate[1]:dFinalDate%>
+	      						</span>
+		      				</td>
+    	    			</tr>
+			      	<% EndIf %>
+
+   			  		<!--Data limite para termino-->
+		      		<!--Verifica se o campo deve ser apresentado na tela -->
+		      		<% If "8" $ HttpSession->cCposCabec %>
+          				<tr>
+            				<td class="Fundo3">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0009%>:&nbsp;
+									</div>
+								</span>
+							</td>
+            				<td class="Fundo4">
+            					<span class="texto">
+            						<%=HttpSession->GetPEvaluate[1]:dAnswerFinalDate%>
+	            				</span>
+    		        		</td>
+	        			</tr>
+			      	<% EndIf %>     
+		      
+		      		<!--Média Final - Consenso-->
+		      		<!--Verifica se o campo deve ser apresentado na tela -->
+		      		<% If "8" $ HttpSession->cCposCabec %>
+          				<tr>
+            				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0033%>:&nbsp;
+									</div>
+								</span>
+							</td>
+            				<td class="Fundo4">
+            					<span class="texto">
+            						<%=_cMedia%>
+            					</span>
+            				</td>
+        				</tr>
+		      		<% EndIf %>
+
+      				<!-- Legenda Media final consenso		 -->
+        			<!--Verifica se o campo Data limite para termino deve ser apresentado na tela -->
+        			<% If "8" $ HttpSession->cCposCabec %>
+          				<tr>
+            				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										Legenda:&nbsp;
+									</div>
+								</span>
+							</td>
+							<td class="Fundo4">
+								<span class="texto">
+									<%=_cDesc%>
+								</span>
+							</td>
+        				</tr>
+        			<% EndIf %>      
+
+        			<!--Status da Avaliação
+        			<tr>
+            			<td class="Fundo3" style="width:17%">
+							<span class="TituloMenor">
+								<div align="right">
+									<%=STR0024%>:&nbsp;
+								</div>
+							</span>
+						</td>
+            			<td class="Fundo4">
+            				<span class="texto">
+            					<%=HttpSession->GetPEvaluate[1]:cEvaluateStatusDescription%>
+            				</span>
+            			</td>
+        			</tr>
+           			-->
+                      
+        			<!--Projeto-->
+		      		<!--Verifica se o campo deve ser apresentado na tela -->
+					<% If !Empty( HttpSession->GetPEvaluate[1]:cProjectDescription ) .AND. ("9" $ HttpSession->cCposCabec) %>
+	        			<tr>
+	           				<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0025%>:&nbsp;
+									</div>
+								</span>
+							</td>
+	      	      			<td class="Fundo4">
+	         	   				<span class="texto">
+	            					<%=HttpSession->GetPEvaluate[1]:cProjectDescription%>
+	            				</span>
+		            		</td>
+		        		</tr>
+      		  		<% EndIf %>
+					<!--Cliente-->
+					<% 
+					If ExistBlock("MSGETPROJECT")
+						nPos := IIF(Len(HttpSession->GetPEvaluate[1]:oWsListOfProject:oWsProjects) > 0, 1, 0)
+					Else
+						nPos := ascan(HttpSession->GetPEvaluate[1]:oWsListOfProject:oWsProjects, { |x| (x:cProjectId == HttpSession->GetPEvaluate[1]:cProject) })
+					EndIf
+					
+					If nPos > 0 .AND. ("A" $ HttpSession->cCposCabec)
+						%>
+       					<tr>
+		         			<td class="Fundo3" style="width:17%">
+								<span class="TituloMenor">
+									<div align="right">
+										<%=STR0029%>:&nbsp;
+									</div>
+								</span>
+							</td>
+				   			<td class="Fundo4">
+				         		<span class="texto">
+				         			<%=HttpSession->GetPEvaluate[1]:oWsListOfProject:oWsProjects[nPos]:cClientDescription%>
+			   	      			</span>
+			      	   		</td>
+		        		</tr>
+		     		<% EndIf %>
+				</table>
+       			<br>
+   				<p class="texto">
+   					<span class="TituloMenor">
+   						<font size="3">
+   							<span class="titulo">
+   								&raquo;
+   							</span>
+   							<strong>
+  								<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:cCompetenceItemDescription%>
+   							</strong>
+   						</font>
+   					</span>
+   				</p>
+
+				<table cellpadding="0" cellspacing="0" style="width:100%">
+          			<tr>
+            			<td>
+		      				<table cellspacing="0" cellpadding="0" border="0" style="width:100%">
+								<tr>
+				   					<td colspan="6">
+			   							<table align="left" id="tab<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:cCompetenceItem%>" cellpadding="0" cellspacing="0" border="0" style="width:100%">
+			  								<% For nx := 1 To Len( HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions )%>
+			    								<%If HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType <> "3" %>
+			    									<%If nx == 1 %>
+		    											<td ></td>
+		    											<td ></td>
+		    											<td ></td>
+														<% If HttpSession->cCpoRelev <> "2" .And. HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+															<!--Relevancia-->
+															<td >
+																<div align="right" class="TextoDestaques">
+																	<font size = "2">
+																		<%="Relevância"%>
+																	</font>
+																</div>
+															</td>
+														<% EndIf %>
+														<% //MOSTRA OUTROS DADOS APENAS SE FOR ALTERACAO DE DADOS
+														If HttpSession->cStatus == "1"
+															%>
+															<!--Auto-Avaliacao-->
+															<td >
+																<div align="left" class="TextoDestaques">  
+																    <font size = "2">
+																		&nbsp;<%="Auto-Avaliação"%>
+																	</font>
+																</div>
+															</td>
+															<!--Avaliador-->
+															<td >
+																<div align="left" class="TextoDestaques">
+																	<font size = "2">
+																		&nbsp;<%="Avaliação"%>
+																	</font>
+																</div>
+															</td>
+															<%
+														EndIf
+														%>
+														<!--Consenso-->
+														<td >
+															<div align="left" class="TextoDestaques">  
+															    <font size = "2">
+																	&nbsp;<%="Consenso"%>
+																</font>
+															</div>
+														</td>																    											
+			    									<%EndIf
+													c1StatusCpo	:= IIf(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cEdit == "1", "disabled", IIF(HttpSession->cStatus=="2","disabled",))
+													c2StatusCpo	:= Iif(Empty(c1StatusCpo) .And. HttpSession->cTpAval=="3","","disabled")
+
+													If !(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cEdit == "1" .and. (Empty(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cAlternativeChoice) .Or. HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cAlternativeChoice = "---"))
+														if cColor == "class='Fundo5'"
+															cColor := "class='Fundo6'"
+														else
+															cColor := "class='Fundo5'"
+														endif
+														%>
+														<tr>
+					    									<td <%=cColor%> colspan="7">
+					    										&nbsp;
+					    									</td>
+					    								</tr>
+														<tr>
+				    										<td  <%=cColor%>>
+				    											&nbsp;
+				    										</td>
+				    										<td valign="bottom" <%=cColor%> >
+				    											<div align="justify">
+																	<span class="texto">
+					  													<%=AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cQuestion)%>
+																	</span>
+						  										</div>
+						  									</td>
+					    									<td <%=cColor%>>
+					    										&nbsp;
+					    									</td>
+															<td valign="top" <%=cColor%>>
+																<% if HttpSession->cCpoRelev <> "2" .And. HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+																	<% cAvaliacaoRel := "" %>
+																	<select name="<%='rel'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" size="01" class="combo" <%=c2StatusCpo%> >
+																		<% if Empty(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cScaleItem) .Or. HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cScaleItem = "---"  %>
+																			<option selected>---</option>
+																		<% endIf %>
+        	
+																		<% For nz := 1 To Len( HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWsAlternatives ) %>
+																			<% cQuestao := "" %>
+																			<% For nP := 1 to Len(cParam) %>
+																				<% If Substr(cParam, nP, 1) == "1" %>
+																					<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeID) + " - " %>
+																				<% ElseIf Substr(cParam, nP, 1) == "2" %>
+																					<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeID) + " - " %>
+																				<% ElseIf Substr(cParam, nP, 1) == "3" %>
+																					<% cQuestao += AllTrim(Str(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:nPercentage)) + " - " %>
+																				<% EndIf %>
+																			<% Next nP %>
+																			<% If !Empty(cQuestao) %>
+																				<% cQuestao := Substr(cQuestao, 1, Len(cQuestao) - 3) %>
+																			<% EndIf %>															
+																			<% if HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cScaleItem == HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeId%>
+																				<option selected value="<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeId%>">
+																					<%=cQuestao%>
+																				</option>
+																			<% else %>
+																				<option value="<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeId%>">
+																					<%=cQuestao%>
+																				</option>
+																			<% endif %>
+																			<% cAvaliacaoRel := cAvaliacaoRel + IIf( nZ == 1, "", chr(13) ) + Alltrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternativeID) + "-"+ Alltrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSRelevanceList:oWSAlternatives[nZ]:cAlternative)%>
+																		<% Next nz %>
+																	</select>
+																	<a href="#">
+																		<img src="imagens-rh/interrogacao.gif" alt="<%=cAvaliacaoRel%>" height="11" border="0">
+																	</a>
+																<% endIf %>
+															</td>
+
+															<% //MOSTRA OUTROS DADOS APENAS SE FOR ALTERACAO DE DADOS
+				  											If HttpSession->cStatus == "1"
+				  												%>
+					  											<td valign="top" <%=cColor%>>
+																	<% if HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+																		<% cAvaliacaoLeg := "" %>
+																		<% cQuestao := "" %>      
+																		
+																		<% nAux := Val(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:cSelfChoice) %>																		
+																		<% For nP := 1 to Len(cParam) %>
+																			<% If Substr(cParam, nP, 1) == "1" %>
+																				<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternativeID) + " - " %>
+																			<% ElseIf Substr(cParam, nP, 1) == "2" %>
+																				<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternative) + " - " %>
+																			<% ElseIf Substr(cParam, nP, 1) == "3" %>
+																				<% cQuestao += AllTrim(Str(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:nPercentage)) + " - " %>
+																			<% EndIf %>
+																		<% Next nP %>
+																		<% If !Empty(cQuestao) %>
+																			<% cQuestao := Substr(cQuestao, 1, Len(cQuestao) - 3) %>
+																		<% EndIf %>	
+																		<select name="<%='rspAUTO'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" class="combo" disabled>
+							  												<option selected><%= cQuestao %></option>
+																		</select>
+																	<% endIf %>
+					  											</td>
+					  											<td  valign="top" <%=cColor%>>
+																	<% if HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+																		<% cAvaliacaoLeg := "" %>
+																		<% cQuestao := "" %>
+																		<select name="<%='rspSUP'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" class="combo" disabled>
+																			<% If Empty(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cEvaluatorChoice) %>
+						  														<option selected>---</option>
+																			<% Else %>
+																				<% nAux := Val(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:cEvaluatorChoice) %>
+																				<% For nP := 1 to Len(cParam) %>
+																					<% If Substr(cParam, nP, 1) == "1" %>
+																						<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternativeID) + " - " %>
+																					<% ElseIf Substr(cParam, nP, 1) == "2" %>
+																						<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternative) + " - " %>
+																					<% ElseIf Substr(cParam, nP, 1) == "3" %>
+																						<% cQuestao += AllTrim(Str(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:nPercentage)) + " - " %>
+																					<% EndIf %>
+																				<% Next nP %>
+																				<% If !Empty(cQuestao) %>
+																					<% cQuestao := Substr(cQuestao, 1, Len(cQuestao) - 3) %>
+																				<% EndIf %>	
+																				<option selected><%= cQuestao %></option>																			
+																			<% endIf %>
+																		</select>
+																	<% endIf %>
+																</td>
+															<% EndIf %>
+			  												<%//Consenso - Alteração
+			  												 If HttpSession->cStatus == "1" %>
+																<td valign="top" <%=cColor%>>
+																	<% if HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+																		<% cAvaliacaoLeg := "" %>
+																		<% cQuestao := "" %>
+																		<select name="<%='rsp'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" class="combo" <%=c1StatusCpo%>>
+																			<%//--Se for alteracao, faz a montagem de todas as opcoes na combo
+																			 If HttpSession->cStatus == "1" %>
+																				<% If Empty(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cAlternativeChoice) %>
+							  														<option selected>---</option>
+																				<% EndIf %>
+																				<% For nz := 1 To Len( HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWsAlternatives ) %>
+																					<% cQuestao := "" %>
+																					<% For nP := 1 to Len(cParam) %>
+																						<% If Substr(cParam, nP, 1) == "1" %>
+																							<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternativeID) + " - " %>
+																						<% ElseIf Substr(cParam, nP, 1) == "2" %>
+																							<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternative) + " - " %>
+																						<% ElseIf Substr(cParam, nP, 1) == "3" %>
+																							<% cQuestao += AllTrim(Str(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:nPercentage)) + " - " %>
+																						<% EndIf %>
+																					<% Next nP %>
+																					<% If !Empty(cQuestao) %>
+																						<% cQuestao := Substr(cQuestao, 1, Len(cQuestao) - 3) %>
+																					<% EndIf %>															
+																					<% if HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cAlternativeChoice == HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternativeId%>
+																						<option selected value="<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternativeId%>">
+																							<%=cQuestao%>
+																						</option>
+																					<% else %>
+																						<option value="<%=HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternativeId%>">
+																							<%=cQuestao%>
+																						</option>
+																					<% endif %>
+																					<% cAvaliacaoLeg := cAvaliacaoLeg + IIf( nZ == 1,  "", chr(13) ) + Alltrim(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternativeID) + "-"+ Alltrim(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nZ]:cAlternative)%>
+						 														<% Next nZ %>
+						 													<% EndIf %>
+						 												</select>
+																		<a href="#">
+																			<img src="imagens-rh/interrogacao.gif" alt="<%=cAvaliacaoLeg%>" height="11" border="0">
+																		</a>
+																	<% EndIf %>
+																</td>
+					 										<%//--Se for so visualizacao, so faz a exibicao da opcao escolhida na avaliacao
+					 										Else %>
+																<td valign="top" <%=cColor%>>
+																	<% if HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType $ "124" %>
+																		<% cAvaliacaoLeg := "" %>
+																		<% cQuestao := "" %>
+																		<select name="<%='rsp'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" class="combo" <%=c1StatusCpo%>>
+																			<% If Empty(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cAlternativeChoice) %>
+						  														<option selected>---</option>
+																			<% Else %>
+																				<% nAux := Val(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:cAlternativeChoice) %>
+																				<% For nP := 1 to Len(cParam) %>
+																					<% If Substr(cParam, nP, 1) == "1" %>
+																						<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternativeID) + " - " %>
+																					<% ElseIf Substr(cParam, nP, 1) == "2" %>
+																						<% cQuestao += AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:cAlternative) + " - " %>
+																					<% ElseIf Substr(cParam, nP, 1) == "3" %>
+																						<% cQuestao += AllTrim(Str(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWSQuestions[nX]:oWSListOfAlternative:oWSAlternatives[nAux]:nPercentage)) + " - " %>
+																					<% EndIf %>
+																				<% Next nP %>
+																				<% If !Empty(cQuestao) %>
+																					<% cQuestao := Substr(cQuestao, 1, Len(cQuestao) - 3) %>
+																				<% EndIf %>	
+						  														<option selected><%=cQuestao%></option>
+						  													<% EndIf %>		
+						  												</select>
+						 											<% EndIf %>
+																</td>
+															<% EndIf %>
+														</tr>
+													<% EndIf %>
+												<% elseIf HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cObjectType == "3" %>
+													<% c1StatusCpo	:= IIf(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cEdit == "1", "readonly", IIf(HttpSession->cStatus=="2","readonly",))%>
+													<% If !(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWsListOfQuestion:oWsQuestions[nX]:cEdit == "1" .and. Empty(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cAnswerDescription))
+														if cColor == "class='Fundo5'"
+															cColor := "class='Fundo6'"
+														else
+															cColor := "class='Fundo5'"
+														endif
+														%>
+														<tr>
+				    										<td <%=cColor%> colspan="7">
+				    											&nbsp;
+					    									</td>
+					    								</tr>
+														<tr>
+					      									<td <%=cColor%>>
+						      									&nbsp;
+						      								</td>
+							  								<td colspan="7" <%=cColor%>>
+																<span class="texto">
+								  									<%=AllTrim(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cQuestion)%>
+																</span>
+		                	  								</td>
+   	                    								</tr>
+					  										<% //MOSTRA OUTROS DADOS APENAS SE FOR ALTERACAO DE DADOS
+					  										If HttpSession->cStatus == "1"
+					  										%>
+															<tr>
+																<td <%=cColor%>>
+																	&nbsp;
+																</td>
+																<td colspan="7" <%=cColor%>>
+																	<span class="texto">
+																		<strong>
+																			<%=STR0011%>
+																		</strong>
+																	</span>
+																	<BR>
+						  											<textarea readonly name="<%='TXAUTO'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" cols="55%" rows="3" wrap=virtual><%=AllTrim(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cSelfAnswer)%>
+																  	</textarea>
+																</td>
+															</tr>
+															<tr>
+																<td <%=cColor%>>
+																	&nbsp;
+																</td>
+																<td colspan="7" <%=cColor%>>
+																	<span class="texto">
+																		<strong>
+																			<%=STR0013%>
+																		</strong>
+																	</span>
+																	<BR>
+						  											<textarea readonly name="<%='TXSUP'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" cols="55%" rows="3" wrap=virtual><%=AllTrim(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cEvaluatorAnswer)%>
+						  											</textarea>
+																</td>
+															</tr>
+														<% EndIf %>
+														<tr>
+															<td <%=cColor%>>
+																&nbsp;
+															</td>
+															<td colspan="7" <%=cColor%>>
+																<span class="texto">
+																	<strong>
+																		<%=STR0014%>
+																	</strong>
+																</span>
+																<BR>
+						  										<textarea <%=c1StatusCpo%> name="<%='TX'+StrZero(nCompetencia,2)+StrZero(nX,3)%>" cols="55%" rows="3" wrap=virtual><%=AllTrim(HttpSession->GETPEVALUATE[1]:oWsListOfCompetence:oWsCompetences[nCompetencia]:oWSListOfQuestion:oWsQuestions[nX]:cAnswerDescription)%>
+						  										</textarea>
+															</td>
+														</tr>
+													<%endif%>
+												<%endif%>
+											<% next nx %>
+										</table>
+									</td>
+								</tr>
+        					</table>
+        				</td>
+          			</tr>
+        		</table>
+
+				<br>
+				<table align="right">
+		  			<tr>
+						<td>
+							<input name="Voltar" type="button" class="Botoes" onClick="fSubmit(1, <%=_nAnt%>)" value="Voltar" style="width:150px; height: 15px"><!--Voltar-->
+							<% If HttpSession->cStatus == "2" %>
+								<% If nCompetencia < len(HttpSession->GetPEvaluate[1]:oWsListOfCompetence:oWsCompetences) %>								   
+									<input name="Prosseguir" type="button" class="Botoes" onClick="fSubmit(2, 0)" value="<%=STR0019%>" style="width:150px; height: 15px"><!--Avancar-->
+								<% Else %>			
+									<input name="Fechar" type="button" class="Botoes" onClick="fSubmit(0, 0)" value="<%=STR0016%>" style="width:150px; height: 15px">&nbsp;&nbsp;&nbsp;&nbsp;
+						     	<% EndIf %>
+							<% EndIf %>	  
+						</td>
+		  			</tr>
+				</table>
+    		</td>
+  		</tr>
+	</table>
+	<input type="hidden" name="cProject" value="<%=HttpSession->GETPEVALUATE[1]:cProject%>">
+	<input type="hidden" name="cEvaluatedID" value="<%=If(!Empty(HttpGet->cEvaluatedID), HttpGet->cEvaluatedID, HttpSession->cEvaluatedID)%>">
+	<input type="hidden" name="cPEvaluateID" value="<%=If(!Empty(HttpGet->cPEvaluateID), HttpGet->cPEvaluateID, HttpSession->cPEvaluateID)%>">
+	<input type="hidden" name="cEvaluatorID" value="<%=If(!Empty(HttpGet->cEvaluatorID), HttpGet->cEvaluatorID, HttpSession->cEvaluatorID)%>">
+	<input type="hidden" name="cTipoAV" value="<%=If(!Empty(HttpGet->cTipoAV), HttpGet->cTipoAV, HttpSession->cTipoAV)%>">
+</form>
+</body>
+</html>

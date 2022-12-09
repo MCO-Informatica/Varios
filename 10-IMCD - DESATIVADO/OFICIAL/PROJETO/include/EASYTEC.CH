@@ -1,0 +1,62 @@
+#IFDEF SPANISH
+         #define STR0001  "NT"
+         #define STR0002  "Directorio Export.Exe no Existe"
+         #define STR0003  "Directorio Datos no Existe"
+         #define STR0004  "Directorio MDB TecWin no Existe"
+         #define STR0005  "Confirma Grabacion de Datos"
+         #define STR0006  "Grabacion EasyTec"
+         #define STR0007  'No fue posible grabar archivo INI'
+         #define STR0008  "Grabando Archivo N∫.: "
+         #define STR0009  "Procesamiento concluido con suceso !"
+         #define STR0010  "No hay area disponible para apertura del Archivo de Work"
+         #define STR0011  "Informacion"
+         #define STR0012  "Grabando Archivo N∫.: "
+         #define STR0013  "Esperando procesamiento del Export ..."
+         #define STR0014  "Directorio Export.Exe no Existe"
+         #define STR0015  "Directorio Datos no Existe"
+         #define STR0016  "Directorio MDB TecWin no Existe"
+         #define STR0017  "Confirma Grabacion de Datos"
+         #define STR0018  "Grabacion ConfWin"
+
+#ELSE
+   #IFDEF ENGLISH
+         #define STR0001  "NT"
+         #define STR0002  "Diret¢rio Export.Exe n∆o Existe"
+         #define STR0003  "Diret¢rio Dados n∆o Existe"
+         #define STR0004  "Diret¢rio MDB TecWin n∆o Existe"
+         #define STR0005  "Confirma a Gravaá∆o dos Dados"
+         #define STR0006  "Gravaá∆o EasyTec"
+         #define STR0007  'Nao foi possivel gravar arquivo INI'
+         #define STR0008  "Gravando Registro nro: "
+         #define STR0009  "Processamento concluido com sucesso !"
+         #define STR0010  "N∆o h† †rea dispon°vel para abertura do cadastro de Work"
+         #define STR0011  "InformaÁ„o"
+         #define STR0012  "Gravando Registro nro: "
+         #define STR0013  "Aguardando processamento do Export ..."
+         #define STR0014  "Diret¢rio Export.Exe n∆o Existe"
+         #define STR0015  "Diret¢rio Dados n∆o Existe"
+         #define STR0016  "Diret¢rio MDB TecWin n∆o Existe"
+         #define STR0017  "Confirma a Gravaá∆o dos Dados"
+         #define STR0018  "Gravaá∆o ConfWin"
+
+   #ELSE
+         #define STR0001  "NT"
+         #define STR0002  "Diret¢rio Export.Exe n∆o Existe"
+         #define STR0003  "Diret¢rio Dados n∆o Existe"
+         #define STR0004  "Diret¢rio MDB TecWin n∆o Existe"
+         #define STR0005  "Confirma a Gravaá∆o dos Dados"
+         #define STR0006  "Gravaá∆o EasyTec"
+         #define STR0007  'Nao foi possivel gravar arquivo INI'
+         #define STR0008  "Gravando Registro nro: "
+         #define STR0009  "Processamento concluido com sucesso !"
+         #define STR0010  "N∆o h† †rea dispon°vel para abertura do cadastro de Work"
+         #define STR0011  "InformaÁ„o"
+         #define STR0012  "Gravando Registro nro: "
+         #define STR0013  "Aguardando processamento do Export ..."
+         #define STR0014  "Diret¢rio Export.Exe n∆o Existe"
+         #define STR0015  "Diret¢rio Dados n∆o Existe"
+         #define STR0016  "Diret¢rio MDB TecWin n∆o Existe"
+         #define STR0017  "Confirma a Gravaá∆o dos Dados"
+         #define STR0018  "Gravaá∆o ConfWin"
+   #ENDIF
+#ENDIF

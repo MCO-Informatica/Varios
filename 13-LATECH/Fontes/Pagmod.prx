@@ -1,0 +1,19 @@
+#include "rwmake.ch"      
+
+User Function Pagmod()     
+
+SetPrvt("_AMODEL,")
+
+/////  PROGRAMA PARA INDICAR A MODALIDADE DO PAGAMENTO POS.264-265
+
+IF SUBSTR(SEA->EA_MODELO,1,2) == "01"
+   If SE2->E2_PORTADO =="237"
+      _aModel := "01"
+   Else
+      _aModel := "03"
+   Endif
+Else
+   _aModel := SUBSTR(SEA->EA_MODELO,1,2)
+EndIf 
+
+Return(_aModel) 

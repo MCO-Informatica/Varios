@@ -1,0 +1,32 @@
+#Include 'Protheus.ch'
+ 
+//---------------------------------------------------------------------------------
+// Rotina | RFATG20              | Autor | Lucas Baia          | Data | 04/08/2021  			
+//---------------------------------------------------------------------------------
+// Descr. | (Descrição sobre Fonte)												
+//---------------------------------------------------------------------------------
+// Uso    | Protheus 12.1.27														
+//---------------------------------------------------------------------------------
+// OBS    | Colocar esse fonte através do Gatilho de C5_FORMAPG para C6_TES. 
+//--------------------------------------------------------------------------------- 
+User Function RFATG20()
+ 
+Local cFormPG   := M->C5_FORMAPG
+Local cTES      := ""
+Local cAuxTES   := ""
+
+IF cFormPG  = "TR"
+    cTES    := MaTesInt(2,"6 ",M->C5_CLIENT,M->C5_LOJAENT,If(M->C5_TIPO$"DB","F","C"),M->C6_PRODUTO,"C6_TES")
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_OPER" })] := "6 "
+ELSEIF cFormPG  = "BN"
+    cTES    := MaTesInt(2,"04",M->C5_CLIENT,M->C5_LOJAENT,If(M->C5_TIPO$"DB","F","C"),M->C6_PRODUTO,"C6_TES")
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_OPER" })] := "04"
+ELSE
+    cTES    := U_RFATG17()
+ENDIF
+
+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_TES" })] := cTES
+
+cAuxTES := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_TES" })]
+ 
+Return cAuxTES

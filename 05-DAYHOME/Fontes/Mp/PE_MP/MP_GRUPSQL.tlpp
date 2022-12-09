@@ -1,0 +1,56 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  11/04/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ ponto de entrada meus pedidos ALTERA QUERRY GRUPOS	      บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function MP_GRUPSQL
+local aContas 	:= PARAMIXB[1]	// ARRY COM CONTAS
+local cFilMp 	:= PARAMIXB[2]	// FILIAL ATIVA
+local cCtaMp	:= PARAMIXB[3]  // CODIGO DA CONTA
+local nz	 	:= PARAMIXB[4]	// POSIวรO DO ACONTAS
+local cFilComp  := FWModeAccess("SZV",3)
+local cFilEnt 	:= iif(cFilComp=='E',cFilMp,XFILIAL("SZV")) 
+local aRet		:= {}
+
+	BEGINSQL alias "TMP"
+	
+		SELECT 
+			ZV_COD,
+			ZV_DESCRI,
+			D_E_L_E_T_  AS del,
+			R_E_C_N_O_ AS REC
+		FROM %table:SZV%
+			WHERE D_E_L_E_T_ + ZV_XMPTRAN <> '* 'AND
+			 	ZV_FILIAL = %exp:cFilEnt% AND 
+			 	(ZV_XMPTRAN <> 'I' OR
+					NOT EXISTS(SELECT * FROM %TABLE:MP1% MP1 WHERE 
+								MP1.MP1_FILIAL = %EXP:cFilMp% AND
+								MP1.MP1_CTAMP = %EXP:cCtaMp%  AND
+								MP1.MP1_IDPROT = ZV_COD AND 
+								MP1.MP1_TPREG = 'GRUPO' AND 
+								MP1.D_E_L_E_T_ <> '*'))			
+
+	ENDSQL                  
+	
+	while TMP->(!eof())
+		aadd(aRet,{  	TMP->ZV_COD ,;
+						alltrim(TMP->ZV_DESCRI),;
+						iif(!empty(TMP->del),"true","false") ,;
+						TMP->REC })
+	TMP->(DBSKIP())                                                    
+	ENDDO 
+	TMP->(DBCLOSEAREA())   
+
+Return(aRet)

@@ -1,0 +1,303 @@
+#include "PROTHEUS.CH"
+#include "AP5MAIL.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³HCTE003   ºAutor  ³HCI                 º Data ³  06/13/08   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ aVISO DE eNTRADA DE MERCADORIAS                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+USER Function HCTE003(cOc,cItem,cCod,cDescri,cQtd,cFornece,cLoja,cNreduz,cRI,cCorrida,cAlmox,cStatus)
+//  HCTE003(SZI->ZI_COMPRA,SZI->ZI_ITEM,SZI->ZI_COD,SZI->ZI_DESCRI,SZI->ZI_QTD,SZI->ZI_FORNECE,SZI->ZI_LOJA,SZI->ZI_NREDUZ,SZI->ZI_RIDENT,SZI->ZI_ALMOX,SZI->ZI_STATUS)
+Local dDtVenc    := dDataBase  // Data de Vencimento 
+Local nRegSx6	 := SX6->(Recno())
+Local aUsrMat    := SUBSTR(cUsuario,7,15)  
+Local aUsuarios  := {}
+Local cMensag    := ""
+Local cTVenc     := DATE()
+Local cDesCod    := ""
+Local cMsg       := ""
+Local cDescQI3   := ""
+Local nIndQI2    := 0
+Local nIndQI3    := 0
+Local nIndQI5    := 0
+Local cKey       := ""
+Local cFiltro    := "" 
+Local cFilUsr    := "" // Filial do usuario
+Local cMatUsr    := "" // Matricula do usuario
+Local aMail      := {} // Corpo do E-mail
+Local cEmitente
+Local cMail
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ-¿
+//³aMail  ==>  aMail[x][1] --> Tipo              ³
+//³aMail  ==>  aMail[x][2] --> Pedido            ³
+//³            aMail[x][3] --> Item              ³
+//³            aMail[x][4] --> Cliente           ³
+//³            aMail[x][5] --> Vencimento        ³ 
+//³            aMail[x][6] --> Qtd Casada        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ-Ù
+dbSelectArea("SZK")
+DbSetOrder(4)
+IF LEN(TRIM(cItem))<3 
+  MsSeek(xFilial("SZK")+"OS"+cOc+LEFT(cItem,2))  
+ELSE
+  MsSeek(xFilial("SZK")+"OC"+cOc+substring(cItem,2,3))
+ENDIF 
+While (SZK->ZK_OC=cOc .AND. SZK->ZK_ITEM=if(LEN(TRIM(cItem))<3,LEFT(TRIM(cItem),2),substring(cItem,2,3)))
+// Adiciona Informacoes sobre Quais vendas estao sendo atendidas pelo movimento
+  AADD(aMail,{SZK->ZK_TIPO, SZK->ZK_REF,SZK->ZK_REFITEM,SZK->ZK_NOME,SZK->ZK_PRAZO,SZK->ZK_QTS})
+  DBSKIP()
+ENDDO
+If Len(aMail) > 0
+		cMensag  := "Aviso de Entrada de Mat. RI:"+cRI
+		cTVenc   := "Vendas que Serao Atendidas pelo Movimento"
+	    cDesCod  := "Numero da Venda"
+		cMail    := Posicione("PHC",1,xFilial("PHC")+"HCTE003","PHC_EMAIL")
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Monta o Corpo do E-mail no Formato HTML ou Texto.³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ		
+		cMsg := HCEM003(1,aMail,1,cMensag,cTVenc,cDesCod,cOc,cItem,cCod,cDescri,cQtd,cFornece,cLoja,cNreduz,cRI,cCorrida,cAlmox,cStatus) 
+		cAttach := ""
+		aMsg:={{cMensag + Space(5)+DTOC(Date())+"-"+SubStr(TIME(),1,5) , cMsg, cAttach } }
+	    AADD(aUsuarios, {SUBSTR(cUsuario,7,15)  ,cMail, aMsg} )
+//"denilson.nunes@hci.ind.br;eder.cassiano@hci.ind.br;claudio.monteiro@hci.ind.br;marco.antonio@hci.ind.br;claudete.santana@hci.ind.br;douglas.miguel@hci.ind.br;robson.bueno@hci.ind.br"      
+endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Envia E-mail para cada usuario  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ-ÄÙ
+If Len(aUsuarios) > 0	
+	HCEN003(aUsuarios,,,,SUBSTR(cUsuario,7,15) ,"1")
+EndIf
+
+
+
+Return( Nil )
+ 
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³HCCE003   ºAutor  ³Microsiga           º Data ³  06/13/08   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³CORPO DO E-MAIL AVISO DE RESTRICAO DE CREDITO               º±±
+±±³          ³ ExpN1 = Numerico definindo o  modulo que esta chamando     ³±±
+±±³          ³ ExpA1 = Array contendo os dados do Corpo do E-mail         ³±±
+±±³          ³ ExpN2 = Formato do E-mail (1=HTML / 2=Texto)               ³±±
+±±³          ³ ExpC1 = Titulo do Cabecalho                                ³±±
+±±³          ³ ExpC1 = Sub-Titulo do Corpo do E-mail                      ³±±
+±±³          ³ ExpC1 = Descricao do Codigo                                ³±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+
+STATIC Function HCEM003(nMod,aMail,nTpMail,cTitCab,cSTitCor,cDesCod,cOc,cItem,cCod,cDescri,cQtd,cFornece,cLoja,cNreduz,cRI,cCorrida,cAlmox,cStatus)
+                     //(1   ,aMail,1      ,cMensag , cTVenc,cDesCod ,cOc,cItem,cCod,cDescri,cQtd,cFornece,cLoja,cNreduz,cRI,cCorrida,cAlmox,cStatus) 
+
+// Modulo 1 --> SIGAQNC
+// Modulo 2 --> SIGAQDO
+// Modulo 3 --> SIGAQAD
+
+Local cMsg    := ""
+Local cRoda   := ""
+Local cMakCod := ""
+Local cTpAud  := ""
+Local i       := 0
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Verifica se vai usar o formato HTML ou texto³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If nTpMail == 1
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Monta o Cabecalho de acordo com o modulo que esta chamando.³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If nMod == 1
+		cMsgCab := StrTran(PadR("Pedido/Item/Cliente/Vencimento/Qtd Saldo",55)," ",'&nbsp;') +'</font></P>' //"Vencimento"
+    ENDIF		
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Apos definicao do Cabecalho, monta o Corpo  do E-mail (HTML)³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cMsg+='<html> <head> <title>SIGAEST</title> </head>'
+	cMsg+='<body>'
+	cMsg+='<table border=1 width="657" height="29" cellspacing="1" bordercolorlight="#0099cc" bordercolordark="#0099cc" bordercolor="#0099cc" bgcolor="#0099cc" >'
+	cMsg+='	<tr><td width="606" height="1" align="left" bordercolor="#0099cc" bordercolorlight="#0099cc" bordercolordark="#0099cc" bgcolor="#0099cc" >'
+	cMsg+='		<p align="center"><font size="3" face="Courier New" color="#FFFFFF"><b> AVISO DE MOVIMENTACAO DE MERCADORIAS </b></font></td>'	//
+	cMsg+='	</tr>'
+	cMsg+='	<tr><td height="26" bordercolor="#0099cc" bordercolorlight="#0099cc" bordercolordark="#0099cc" bgcolor="#FFFFFF" width="606">'
+	cMsg+='		<p align="left"><br><br>Prezado Srs(as):<br><br> Segue abaixo aviso de movimentacao de produtos...'
+	if len(TRIM(cItem))>2 
+	  cMsg+='	    <br><br>Tipo de Entrada:OC<br>'
+    else	
+	  cMsg+='	    <br><br>Tipo de Entrada:OS<br>'	
+	endif
+	cMsg+='	    <br>    N.Pedido/OS.....:'+cOc
+	cMsg+='	    <br>    Item Pedido/OS :'+cItem
+	cMsg+='	    <br>    Fornecedor .......:'+cFornece+"/"+cLoja+"/"+cNreduz
+	cMsg+='	    <br>    Cod Produto .....:'+cCod
+	cMsg+='	    <br>    Descricao ..........:'+cDescri
+	cMsg+='	    <br>    QTD .................:'+STR(cQtd)
+	cMsg+='	    <br><br>'	
+    cMsg+='	    <br>    RI ................:<b>'+cRI
+    cMsg+='	</b><br>    Corrida ........:<b>'+cCorrida
+    cMsg+='	</b><br>    Almox ..........:<b>'+cAlmox	
+    cMsg+='	</b><br><br>Ocorrencia:'		
+	
+	
+	//A=A Classificar;C=Classificado;I=Inspecionado;R=Recebido;D=Disponivel;B=Baixado;N=Nao Conforme 
+	if cStatus="A"
+	  cMsg+='<b>ATENCAO - EXTORNADA CLASSIFICACAO (O RI SERA UTILIZADO PARA OUTRA ENTRADA</b><br>'
+	endif
+	if cStatus="C"
+	  cMsg+='<b>O PRODUTO CHEGOU NA HCI - AGUARDANDO INSPECAO</B><br>'
+	endif
+	if cStatus="I"
+	  cMsg+='<b>PRODUTO INSPECIONADO - ((((((APROVADO)))))</b><br>'
+	Endif
+	if cStatus="N"
+	  cMsg+='<b>PRODUTO INSPECIONADO - ((((((NAO CONFORME)))))))</b><br>'
+	Endif
+	cMsg+='</td></tr>'
+	cMsg+='</table>'
+	cMsg+='<BR>'
+	cMsg+='<TABLE borderColor=#000080 width=658 border=1>'
+	cMsg+='<TBODY>'
+	cMsg+='<TR>'
+	cMsg+='<TD width=648>'
+	cMsg+='<p align="center"><font color="#0000FF"><b>' + cSTitCor + '</b></font></TD></TR>'
+	cMsg+='<TR>'
+	cMsg+='<TD width=648>'
+	cMsg+='<P style="MARGIN: 0px"><font face="Courier New" size="2"> <b>'
+	cMsg+= cMsgCab + '<P style="MARGIN: 0px">&nbsp;</P> </b>'
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Varre o array que foi passado para esta funcao e imprime³
+	//³os dados de acordo com o modulo que esta chamando       |
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	For i:=1 To Len(aMail)
+		cMsg+='<P style="MARGIN: 0px"><font face="Courier New" size="2">'
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Imprime itens co corpo do e-mail                                 .³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cMakCod := aMail[I,1]+'&nbsp;&nbsp;'+StrTran(TransForm(aMail[I,2],"@R ######"), " ", '&nbsp;') + "/" + aMail[I,3]+'&nbsp;&nbsp;'+aMail[I,4]+'&nbsp;&nbsp;'+DTOC(aMail[I,5])+'&nbsp;&nbsp;'+STR(aMail[I,6])
+         
+
+		cMsg+= cMakCod + '&nbsp;&nbsp;<br><br>'
+	Next i
+	
+	// RODAPE DO E-MAIL
+    cRoda := "Mensagem Gerada Automaticamente pelo Sistema de Recebimento HCI pelo Usuario: " +SUBSTR(cUsuario,7,15)
+
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Termina de contar o corpo do E-mail.³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cMsg+='</TD></TR></TBODY></TABLE>'
+	cMsg+='<BR>'
+	cMsg+='<p><FONT size=2><EM>'+cRoda+'</EM></FONT></p>'
+	cMsg+='</body></html>'
+
+EndIf
+
+Return (cMsg)
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³HCEN001   ³ Autor ³ Aldo Marini Junior    ³ Data ³ 26/07/00 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Rotina que envia e-mail de acordo com array                ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ QAEnvMail(ExpA1)                                           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ ExpA1 = Array com os dados de envio (To,Subject,Body,      ³±±
+±±³          ³         Attachment)                                        ³±±
+±±³          ³ ExpC1 = Caracter contendo conta de acesso ao servidor      ³±±
+±±³          ³ ExpC2 = Caracter contendo o endereco do servidor           ³±±
+±±³          ³ ExpC3 = Caracter contendo senha de acesso ao servidor      ³±±
+±±³          ³ ExpC4 = Caracter contendo a conta do Usuario logado        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Retorno  ³ lResult = Logico retornando se houve algum erro no envio   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ GENERICO                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+static Function HCEN003(aUsuarios,cMailConta,cMailServer,cMailSenha,cSendConta,cTipoemail)
+Local lResult	:= .F.
+Local aRetUser := {}
+Local nAtConta
+Default cMailConta  := AllTrim(GETMV("MV_RELACNT"))
+Default cMailServer := AllTrim(GETMV("MV_RELSERV"))
+Default cMailSenha  := AllTrim(GETMV("MV_RELPSW"))
+Default cSendConta  := "SIGA"+cModulo
+Default cTipoemail	:= "1" //1=Sistemas 2=Usuario
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica se a conta de email do usuario esta com mais de uma e considera apenas ³
+//³ a primeira para conectar e enviar email                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ";" $ cSendConta
+	nAtConta := AT(";",cSendConta)
+	cSendConta := SubStr(cSendConta,1,nAtConta-1)
+Endif
+
+If Len(aUsuarios) == 0
+	Return(.F.)
+Endif
+
+IF cTipoemail=="2"  //Tipo 2=Usuario
+	If cSendConta == ("SIGA"+cModulo) .Or. Empty(AllTrim(cSendConta))
+		PswOrder(1)
+		PswSeek(__CUSERID)
+		aRetUser := PswRet(1)
+		If !Empty(aRetUser[1][14])
+			cSendConta := AllTrim(aRetUser[1][14])
+	    Else                      
+	        cSendConta := GetMV("MV_EMCONTA")
+	        IF Empty(AllTrim(cSendConta))    
+				cSendConta := "SIGA"+cModulo+"@PROTHEUS"
+			Endif	
+		EndIf
+	Endif
+Else				//Tipo 1=Sistemas
+	cSendConta := GetMV("MV_EMCONTA")
+	IF Empty(AllTrim(cSendConta))                
+		cSendConta := "SIGA"+cModulo+"@PROTHEUS"
+	Endif		
+Endif	
+
+If Empty(AllTrim(cMailConta))
+   cMailConta :=AllTrim(GETMV("MV_RELACNT"))
+Endif
+
+If Empty(AllTrim(cMailServer))
+   cMailServer:=AllTrim(GETMV("MV_RELSERV"))
+Endif
+
+If Empty(AllTrim(cMailSenha))
+   cMailSenha :=AllTrim(GETMV("MV_RELPSW"))
+Endif
+
+LjMsgRun(OemToAnsi("Enviando Workflow..."),OemtoAnsi("Aguarde"),{||QARunMail(aUsuarios,cMailConta,cMailServer,cMailSenha,@lResult,cSendConta)})  //"Enviando e-Mail para os Usuarios..." ### "Aguarde"
+
+Return(lResult)

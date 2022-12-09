@@ -1,0 +1,9 @@
+User Function C7PRECO()
+Local nPreco:=  M->C7_DHPRECU+((M->C7_DHPRECU*aCols[n,GDFieldPos("C7_DHVLRII")])/100)                
+
+M->C7_PRECO                    := nPreco
+aCols[n,GDFieldPos("C7_PRECO")]:= nPreco
+__ReadVar:= "M->C7_PRECO"
+U_SyEnterCpo("C7_PRECO",nPreco,n)
+
+Return(nPreco)

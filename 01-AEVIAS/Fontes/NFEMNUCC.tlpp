@@ -1,0 +1,17 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | NFEMNUCC          | Autor | Lucas Baia          | Data |   09/09/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada responsável pelo MENU da Rotina CCe (Carta de Correção)																		
+//---------------------------------------------------------------------------------
+// Uso    | AEVIAS																		
+//---------------------------------------------------------------------------------
+
+User Function NFEMNUCC()
+
+Local aRotina := {}
+
+aadd(aRotina,{'Imprime CC-e','U_CPRTCCE' , 0 , 3,0,NIL})
+
+Return aRotina

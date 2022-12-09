@@ -1,0 +1,373 @@
+#include 'protheus.ch'
+#include 'fwlibversion.ch'
+/*/{Protheus.doc} GeraItensImportacaoJob
+Job para realizar a geração de SI (Solicitação de importação)
+a partir da SC (Solicitação de compra)
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/04/2020
+@param cEmpProc, character, empresa para realizar o processamento
+@return nil, nil
+/*/
+user function GeraItensImportacaoJob(cEmpProc,cIntervalo, cTimeIni, cTimeEnd)
+    local aEmpresas as array
+    local oUtils     as object     //Objeto com funções de uso comum entre as rotinas.
+    local cArq         as character
+	local cJobName   as character
+	
+    default cEmpProc := "01"
+    default cIntervalo := "02:00:00"
+    default cTimeIni   := "00:00:00"
+    default cTimeEnd   := "23:59:59"
+
+
+    
+    //---------------------------------
+    //Prepara o ambiente para a empresa
+    //----------------------------------
+    rpcSetEnv(cEmpProc,"01",,,"COM")
+
+	
+	//---------------------------------------------------------------
+	//Incializando variáveis
+	//---------------------------------------------------------------                  
+    oUtils  := ComprasUtils():New()            
+	cJobName    := "GERAITIMP"+cEmpAnt
+
+
+	//Verifica se o controller está sendo executado por um JOB.
+    cArq   := cJobName+".tmp"
+    
+    //Verifica se o intervalo venceu para poder executar o job.
+    If  !oUtils:getSchedule(cArq, cIntervalo, cTimeIni, cTimeEnd) 
+        Return  //Cancela a execucao antes de preparar o ambiente.
+    else
+        //Tenta reservar o semáforo
+        if !oUtils:useSemaforo(cJobName)	
+			FWLogMsg("INFO", "", "BusinessObject", cJobName , "", "", "["+FwTimeStamp(3)+"] "+cJobName+"- esta em uso.", 0, 0)		
+            return 
+        endif 
+    endif
+
+    //-------------------------------
+    //Verifica as filiais da empresa
+    //-------------------------------
+    aEmpresas := FWAllFilial()
+
+
+    //-----------------------------------------
+    //Realiza o processamento de geração de SI
+    //------------------------------------------
+    aEval(aEmpresas, {|cEmpAtu| cFilAnt := cEmpAtu,U_GeraItensImportacao()})
+        
+	oUtils:setSchedule(cArq)
+
+    //Libera o semáforo
+	oUtils:liberaSemaforo(cJobName)
+	
+	//Limpeza do objeto Sysfiutl
+	freeObj(oUtils) 
+
+    aSize(aEmpresas,0)
+    rpcClearEnv()
+
+return
+
+/*/{Protheus.doc} GeraItensImportacao
+Função para realizar a preparação e
+chamada do processamento de geração da SI.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/04/2020
+@return nil, nil
+/*/
+user function GeraItensImportacao()
+    local cFiltroSC1 as character
+    local bFiltroSC1
+    Local lIntegracao as logical
+    private lAProvSI as logical
+    private cMarca   as character
+    private lInverte as logical
+    private dDataEmis as date
+    private oMark112 as object
+
+
+    lIntegracao:= IIf (GetMv("MV_EASY")="S",.T.,.F.)
+    dDataEmis  := date()-14
+    cMarca     := GetMark()
+    lAProvSI   := GetNewPar("MV_APROVSI",.F.)
+    lInverte   := .F.   
+
+    //---------------------
+    //Filtros da tabela SC1
+    //----------------------
+    cFiltroSC1 := " C1_FILIAL == cFilAnt .AND. empty(C1_RESIDUO) .AND. C1_EMISSAO >= dDataEmis .AND. "+;
+                  "  C1_COTACAO=='IMPORT' .AND. empty(C1_NUM_SI) .AND. C1_IMPORT=='S'"+IIF(lAprovSI,".AND. (Empty(C1_APROV) .Or. C1_APROV  $ ' ,L') ","")
+    bFiltroSC1 := {||C1_FILIAL == cFilAnt .AND. empty(C1_RESIDUO) .AND. C1_EMISSAO >= dDataEmis .AND.;
+                    C1_COTACAO=='IMPORT' .AND. empty(C1_NUM_SI) .AND. C1_IMPORT=='S' .AND. ((lAprovSI .AND. (Empty(C1_APROV) .Or. C1_APROV  $ ' ,L')) .OR. !lAprovSI) }
+
+
+    //---------------------------------------------------
+    //Caso a integração do EIC esteja habilitada realiza 
+    //o processamento
+    //----------------------------------------------------
+    if lIntegracao
+        dbSelectArea("SC1")
+        SC1->(dbSetOrder(1))
+
+        //-------------------------------
+        //Realiza o filtro na tabela SC1
+        //--------------------------------
+        SC1->(DbSetFilter(bFiltroSC1, cFiltroSC1))
+
+        //---------------------------------------------------
+        //Coloca a marca em todos os registros para realizar 
+        //o processamento dos registros
+        //----------------------------------------------------
+        SC1->(dbEval({||reclock("SC1", .F.),SC1->C1_OK := cMarca, SC1->(msUnlock())}))
+
+        MV_PAR07 := 1
+        MV_PAR04 := ""
+        MV_PAR05 := ""
+
+        SC1->(dbGoTop())
+
+        //------------------------
+        //Realiza a criação da SI
+        //------------------------
+		BEGIN TRANSACTION 
+        	a112Gera(cMarca,lInverte)
+		END TRANSACTION
+
+        SC1->(dbGoTop())
+
+        //---------------------------------------------------
+        //Retira a marca de todos os registros 
+        //----------------------------------------------------
+        SC1->(dbEval({||reclock("SC1", .F.),SC1->C1_OK := '', SC1->(msUnlock())}))
+
+
+        SC1->(dbClearFilter())
+    endif
+
+
+return
+
+/*/{Protheus.doc} a112Gera
+Função de geração de SI baseada no fonte MATA112.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/04/2020
+@param cMarca, character, marca
+@param lInverte, logical, param_description
+@return nil, nil
+/*/
+static function a112Gera(cMarca,lInverte)
+
+    Local cUnidReq    := ""
+    Local cCodComp    := ""
+    Local cIndex      := ""
+    Local cCond       := "" 
+    Local lMT112GRV	  := ExistBlock("MT112GRV")
+    Local lMT112IT	  := ExistBlock("MT112IT")
+    Local lMT112Num   := ExistBlock("MT112NUM")
+    Local lMT112Ok    := ExistBlock("MT112OK")
+    Local lUnidCom    := GetMv("MV_UNIDCOM",,2) == 2 // a Segunda unidade de medida e a unidade de compra internacional
+    Local lOk         := .F.
+    Local lFirst      := .T.
+    Local lNaoGerou   := .F. 
+    Local lGeraSC     := .T.
+    Local nSaveSX8    := GetSX8Len()
+    Local nReg        := 0
+    Local nIndex      := 0
+    Local nNextRec    := 0
+
+
+    While SC1->(!Eof()) 
+    
+    	cNum   :=  SC1->C1_NUM
+    	lFirst := .T.
+    
+    	If lMT112Ok
+    		lGeraSC := ExecBlock("MT112OK",.F.,.F.)
+    	EndIf	
+    
+    	If !lGeraSC
+    		lNaoGerou := .F.
+    		Exit
+    	EndIf
+
+    	While  SC1->C1_NUM == cNum
+
+    		cUnidReq := IIF(!Empty(MV_PAR04) .And. Empty(SC1->C1_UNIDREQ),MV_PAR04,SC1->C1_UNIDREQ)
+    		cCodComp := IIF(!Empty(MV_PAR05) .And. Empty(SC1->C1_CODCOMP),MV_PAR05,SC1->C1_CODCOMP)
+    
+    		IF  SC1->C1_OK != cMarca .Or.  Empty(cUnidReq) .Or. Empty(cCodComp)
+    			If Empty(cUnidReq) .Or. Empty(cCodComp)
+    				lNaoGerou := .T.
+    			EndIf	
+    			dbSelectArea("SC1")
+    			dbSkip()
+    			Loop
+    		Endif
+
+    		dbSelectArea("SC1")
+    		dbSkip()
+
+    		nNextRec := RecNo()
+    		dbSkip(-1)
+    
+    		Begin Transaction
+
+    		//---------------------------------------------------------------
+    		// Grava o Header da Solicitacao de Importacao.                
+    		//---------------------------------------------------------------	
+    		If lFirst
+
+    			dbSelectArea("SW0")
+    			cNumSi := GetSx8Num("SW0","W0__NUM")
+    
+    			//---------------------------------------------------------------
+    			//Ponto de entrada para possível troca do numero da solicitacao
+    			//---------------------------------------------------------------
+    			If lMt112Num
+    				cNumSi := ExecBlock("MT112NUM",.F.,.F.)
+    			Endif
+    
+    			While !lOk
+    				If MsSeek(xFilial("SW0")+cUnidReq+cNumSI)
+    					While ( GetSX8Len() > nSaveSX8 )
+    						ConfirmSX8()
+    					EndDo
+    					cNumSi := GetSx8Num("SW0","W0__NUM")
+    				Else
+    					lOk := .T.
+    				Endif
+    			EndDo
+    
+    			dbSelectArea("SY3")
+    			dbSetOrder(1)
+    			MsSeek(xFilial("SY3")+cUnidReq)
+
+    			dbSelectArea("SW0")
+    			RecLock("SW0",.T.)
+    			SW0->W0_CONTR  := '2'
+    			SW0->W0_FILIAL := cFilial
+    			SW0->W0__CC    := cUnidReq
+    			SW0->W0_SOLIC  := SC1->C1_SOLICIT
+    			SW0->W0__NUM   := cNumSI
+    			SW0->W0__DT    := SC1->C1_EMISSAO
+    			SW0->W0__POLE  := SY3->Y3_LE
+    			SW0->W0_COMPRA := cCodComp
+    			SW0->W0_C1_NUM := SC1->C1_NUM
+    			If SC1->(FieldPos("C1_NATUREZ")) > 0
+    				SW0->W0_NATUREZ := SC1->C1_NATUREZ
+    			EndIf
+
+    			MSUnLock()
+
+    		Endif
+    
+    		//---------------------------------------------------------------
+    		// Verifica o proximo numero do produto                         
+    		//---------------------------------------------------------------
+    		nReg := 0
+    		dbSelectArea("SW1")
+    		If MsSeek(xFilial("SW1")+SW0->W0__CC+SW0->W0__NUM+SC1->C1_PRODUTO)
+    			While !Eof() .and. SW1->W1_FILIAL+SW1->W1_CC+SW1->W1_SI_NUM+SW1->W1_COD_I == xFilial("SW1")+SW0->W0__CC+SW0->W0__NUM+SC1->C1_PRODUTO
+    				nReg++
+    				dbSkip()
+    			Enddo
+    		Endif
+
+    		//---------------------------------------------------------------
+    		// Grava o Detal da Solic. Importacao                           
+    		//---------------------------------------------------------------
+    		dbSelectArea("SW1")
+    		RecLock("SW1",.T.)
+
+    		SW1->W1_FILIAL  := cFilial
+    		SW1->W1_COD_I   := SC1->C1_PRODUTO
+    		SW1->W1_FABR    := SC1->C1_FABR
+    		SW1->W1_FORN    := SC1->C1_FORNECE
+    		SW1->W1_CLASS   := SC1->C1_CLASS
+    		SW1->W1_QTDE    := SC1->C1_QUANT
+    		SW1->W1_SALDO_Q := SC1->C1_QUANT
+    		SW1->W1_DTENTR_ := SC1->C1_DATPRF
+    		SW1->W1_CC      := SW0->W0__CC
+    		SW1->W1_SI_NUM  := SW0->W0__NUM
+    		SW1->W1_POSICAO := SC1->C1_ITEM
+    		SW1->W1_REG     := ++nReg
+    		SW1->W1_QTSEGUM := SC1->C1_QTSEGUM
+    		SW1->W1_SEGUM   := SC1->C1_SEGUM
+    		//FDR - 20/01/12 - Posição do item	
+    	   SW1->W1_POSIT:= SC1->C1_ITEM
+    		//FDR - 19/01/12 - Centro de Custo
+    	   SW1->W1_CTCUSTO:= SC1->C1_CC
+
+
+
+            //FDR - 19/01/12 - Tratamento de loja
+            If EicLoja()
+               SW1->W1_FORLOJ:= SC1->C1_LOJA
+            EndIf
+            //DFS - 30/04/13 - Inclusão de tratamento de loja para fabricante.
+            If EicLoja() 
+               SW1->W1_FABLOJ:= SC1->C1_FABRLOJ
+            EndIf
+
+
+    		If lUnidcom
+    			SB1->(DBSETORDER(1))
+    			IF SB1->(MsSeek(xfilial("SB1")+SW1->W1_COD_I))  .AND. !EMPTY(SC1->C1_QTSEGUM)
+    				SW1->W1_QTDE     := SC1->C1_QTSEGUM
+    				SW1->W1_SALDO_Q  := SC1->C1_QTSEGUM
+    				SW1->W1_QTSEGUM  := SC1->C1_QUANT
+    				SW1->W1_SEGUM	 := SC1->C1_UM
+    			ENDIF
+    		ENDIF
+
+    		MSUnLock()
+
+    		dbSelectArea("SC1")
+    		RecLock("SC1",.F.)
+
+    		SC1->C1_NUM_SI  := cNumSI
+    		SC1->C1_COTACAO := "IMPORX"
+
+    		MSUnLock()
+
+    		End Transaction
+
+    		If lFirst
+    			If lMT112GRV
+    				ExecBlock("MT112GRV",.F.,.F.)
+    			EndIf
+    			lFirst	:= .F.
+    		EndIf
+
+    		If lMT112IT
+    			ExecBlock("MT112IT",.F.,.F.)
+    		EndIf
+
+    		dbSelectArea("SC1")
+    		MsGoTo(nNextRec)
+
+    	EndDo
+
+    	While ( GetSX8Len() > nSaveSX8 )
+    		ConfirmSX8()
+    	EndDo
+
+    EndDo
+
+
+    If Empty( SC1->( IndexOrd() ) )
+    	SC1->( dbSetOrder( 1 ) )
+    EndIf
+
+
+Return

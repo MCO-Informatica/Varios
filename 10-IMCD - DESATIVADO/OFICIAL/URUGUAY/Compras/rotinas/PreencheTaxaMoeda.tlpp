@@ -1,0 +1,100 @@
+#include 'protheus.ch'
+#include 'tryexception.ch'
+
+/*/{Protheus.doc} PreencheTaxaMoeda
+Função responsável pelo preenchimento
+da taxa da moeda na aba invoice (MATA143- DESPACHO)
+de acordo com a "Fecha de Declaración" informada
+Ela é acionada via gatilho pelos campos DBA_DT_AVE,
+DBB_MOEDA.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 27/03/2020
+@return any, conteúdo do campo do gatilho
+/*/
+user function PreencheTaxaMoeda()
+    local cNomeCampo as character
+    local dDataDI    as date
+    local nPosTxMoed as numeric
+    local nPosMoed   as numeric
+    local nMoeda     as numeric
+    local nIndCol    as numeric
+    local oException as object
+    local xRet       
+    local bRefreTx  
+
+
+    cNomeCampo := strtran(readVar(),"M->","")
+    bRefreTx  := {||(Eval(bRefresh),Eval(bGDRefresh)) }
+    nPosTxMoed := aScan(aHeader, {|aFieldSeek|alltrim(aFieldSeek[2]) == "DBB_TXMOED"})
+    nPosMoed   := aScan(aHeader, {|aFieldSeek|alltrim(aFieldSeek[2]) == "DBB_MOEDA"})
+    dDataDi    := M->DBA_DT_AVE
+    
+    //-------------------------------------------------
+    //Navega entre todas as linhas da grid "invoice"
+    //para atualiza a taxa da moeda.
+    //-------------------------------------------------
+    for nIndCol := 1 to len(aCols)
+
+        nMoeda   := aCols[nIndCol][nPosMoed]
+        //-----------------------------------------
+        //Verifica a taxa da moeda e grava na linha
+        //------------------------------------------ 
+        dbSelectArea("SM2")
+        if SM2->(dbSeek(dtos(dDataDI)))
+            aCols[nIndCol][nPosTxMoed] := SM2->&("M2_MOEDA"+alltrim(cValToChar(nMoeda)))
+        else
+            aCols[nIndCol][nPosTxMoed] := 0
+        endif
+
+    next nIndCol
+
+    
+    //-------------------------------------------------
+    //Verifica se a chamada foi realiza através dos
+    //campos da tabela DBA (abas da tela superior
+    //da tela MATA143), se foi realiza a atualização
+    //da tela aba invoice e itens da invoice
+    //-------------------------------------------------
+    if  "DBA" $ cNomeCampo
+
+        xRet := M->&(cNomeCampo)
+        //-----------------------------------
+        //Evita error log visual ao usuário
+        //-----------------------------------
+        __cInternet := "AUTOMATICO"
+
+        //--------------------------------------
+        //Realiza o refresh da tela com o valor 
+        //da taxa da moeda atualizada
+        //---------------------------------------
+        eVal(bRefreTx)
+
+        __cInternet := NIL
+    else
+        xRet  := aCols[n][nPosTxMoed]
+    endif
+        
+    if !empty(oException)
+        freeObj(oException)
+    endif
+
+
+return xRet 
+
+/*/{Protheus.doc} limpaMata143
+Realiza a limpeza da variável global __cInternet
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 30/03/2020
+@return return_type, return_description
+/*/
+user function limpaMata143()
+
+    If Type("__cInternet") == "C"
+        __cInternet := NIL
+    endif
+
+return .T.

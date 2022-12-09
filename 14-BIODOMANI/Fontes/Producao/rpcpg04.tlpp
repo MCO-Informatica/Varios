@@ -1,0 +1,26 @@
+#include "rwmake.ch"        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+#include "PROTHEUS.ch"        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+
+User Function RPCPG04()        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+
+Local _cNumOp   :=  ""
+
+
+If cFilant $"0103" //----> SOROCABA
+
+    _cNumOp := GetSx8Num("OP1") // 300001
+    confirmSx8()
+
+ElseIf cFilAnt$"0106" //----> CAJAMAR
+
+    _cNumOp := GetSx8Num("OP2") // 600001
+    confirmSx8()
+Else
+
+   _cNumOp := GetSx8Num("SC2")
+    confirmSx8()
+
+Endif
+
+
+Return(_cNumOp)

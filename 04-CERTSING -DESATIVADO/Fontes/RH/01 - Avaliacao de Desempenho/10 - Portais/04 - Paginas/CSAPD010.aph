@@ -1,0 +1,640 @@
+<%#INCLUDE "PROTHEUS.CH"%>
+<%#INCLUDE "TBICONN.CH"%>
+<%#INCLUDE "TOPCONN.CH"%>  
+
+<%		
+#DEFINE STR0001 "Avaliação de Competências Profissionais"
+#DEFINE STR0002 "Pendências"
+#DEFINE STR0003 "Consulta"
+#DEFINE STR0004 "Selecione a avaliação desejada para que a mesma possa ser respondida."
+#DEFINE STR0005 "Consulta de Avaliações."
+#DEFINE STR0006 "Superior"
+#DEFINE STR0007 "Avaliado"
+#DEFINE STR0008 "Avaliação"
+#DEFINE STR0009 "Período"
+#DEFINE STR0010 "Status"
+#DEFINE STR0011 "Tipo"
+#DEFINE STR0012 "Auto"
+#DEFINE STR0013 "Avaliado"
+#DEFINE STR0014 "De"
+#DEFINE STR0015 "até"
+#DEFINE STR0016 "Finalizado"
+#DEFINE STR0017 "Atrasado"
+#DEFINE STR0018 "Aberto"
+#DEFINE STR0019 "Minhas Avaliações"
+#DEFINE STR0020 "Não existem avaliações a serem consultadas"
+#DEFINE STR0021 "Minha Equipe"
+#DEFINE STR0022 "Pares"
+#DEFINE STR0023 "Voltar"
+#DEFINE STR0024 "Avaliação de Projetos"
+
+Private nI 			:= 0
+Private nZ 			:= 0
+Private nY			:= 0
+Private cAvaliacao 	:= ""
+Private cProjeto 	:= ""        
+Private _cDescA 	:= ""     
+Private _cDescG 	:= ""
+Private _cSql 		:= ""
+Private _cLiderHi	:= ""
+Private _cNameFun	:= ""
+Private _cAvaliacao	:= ""
+Private _cDatIni	:= ""
+Private _cProjeto	:= ""
+Private _cAvaliado	:= ""
+Private _cLink      := ""
+Private _aAvaCon	:= ''
+Private _cDesc		:= ''
+%>
+
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	<link href="imagens-rh/estilo.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<form name="form10" action="" method="post">
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%; ">
+  	<tr>
+	    <td align="left" valign="top">
+			<!--Avaliação de Projetos--><!--Avalia&ccedil;&atilde;o de Competências Profissionais-->
+			<!--"Pendências"-->
+			<!--"Consulta"-->
+			<p class="titulo">
+				<strong>
+					<font size="4">
+			  			<%=IIf(HttpSession->cTpAval == "3", STR0024, "Avaliação de Desempenho")%> - <%=IIf(HttpSession->cStatus == "1", STR0002, STR0003)%>
+					</font>
+				</strong>
+			</p>
+			
+			<!--Avalia&ccedil;&atilde;o de Competências Profissionais--><!--"Pendências"--><!--"Consulta"-->
+			<!--INICIO DA FASE MINHAS AVALIACOES-->
+			<%
+			For nY := 1 To Len(HttpSession->aNewAuto)
+				If len(HttpSession->aNewAuto[nY]) > 0
+			%>
+					<p class="titulo">
+				  		<span class="TituloMenor">
+				  			<font size="3">
+				  				<span class="titulo">&raquo;</span>
+									<strong>
+									<%	If HttpSession->lDescRede == ".T."	%>           
+										<!--Minhas Avaliacoes-->
+										<%=HttpSession->aNewAuto[nY][1]:CNETDESCRIPTION%>
+									<%	Else %>  
+										<!--Minhas Avalia&ccedil;&otilde;es-->
+										<%=STR0019%>
+									<%	EndIf %>
+									</strong>
+								</span>
+							</font>
+						</span>
+					</p>
+				  	<table class="TabelaBorda1" cellspacing="0" cellpadding="0" style="width:100%; ">
+						<tr>
+				  			<td>
+			     				<table cellpadding="2" cellspacing="2" style="width:100%; ">
+								<%
+					            If  len(HttpSession->BRWMYEVALUATES) > 0
+									If  len(HttpSession->BRWMYEVALUATES[1]) > 0
+								%>
+			        				<tr>
+					  					<td height="22" class="Fundo1"><div align="center" class="TituloMenor"><%=STR0008%></div></td>
+										<!--Avalia&ccedil;&atilde;o-->
+					  					<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0009%></div></td><!--Per&iacute;odo-->
+										<% If HttpSession->cStatus == "2" %>
+					  						<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0011%></div></td><!--Tipo-->
+										<% EndIf %>
+					  					<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0010%></div></td><!--Status-->
+									</tr>                                             
+
+	                				<% For nI:=1 to len(HttpSession->BRWMYEVALUATES[1]) %>         
+	                					<!--
+			       						<tr>
+		    	        					<td class="Fundo9">
+		    	        						<div align="center" class="texto">
+													<% If HttpSession->BRWMYEVALUATES[1][nI]:cSelfEvaluate == "3" 
+														_cLink := "u_CSAPD015.APW?cPEvaluateID="+HttpSession->BRWMYEVALUATES[1][nI]:CEVALUATEID
+														_cLink += "&cEvaluatedID="+HttpSession->cParticipantID
+														_cLink += "&cTipoAv="+HttpSession->BRWMYEVALUATES[1][nI]:CSELFEVALUATE
+														_cLink += "&cEvaluatorID="+HttpSession->BRWMYEVALUATES[1][nI]:CEVALUATORID
+														_cLink += "&cDateFrom="+HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE
+														_cLink += "&cProject="+HttpSession->BRWMYEVALUATES[1][nI]:cProject
+													%>
+														<a href=<%=_cLink%> class="texto">
+															<b><%=HttpSession->BRWMYEVALUATES[1][nI]:CDESCRIPTION%><%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->BRWMYEVALUATES[1][nI]:cProjectDescription,Nil)%></b
+														</a>
+			                           					<br>
+			                            				<span class="textoItalico"><em><%=HttpSession->BRWMYEVALUATES[1][nI]:CMODELDESCRIPTION%>
+			                            				</em></span>
+													<% Else 
+														_cLink += "u_CSAPD011.APW?cPEvaluateID="+HttpSession->BRWMYEVALUATES[1][nI]:CEVALUATEID
+														_cLink += "&cDateFrom="+dtoc(HttpSession->BRWMYEVALUATES[1][nI]:DINITIALDATE)
+														_cLink += "&cProject="+HttpSession->BRWMYEVALUATES[1][nI]:cProject
+														_cLink += "&cEvaluatorID=''" 																								
+													%>      
+														<a href=<%=_cLink%> class="texto">
+															<b><%=HttpSession->BRWMYEVALUATES[1][nI]:CDESCRIPTION%><%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->BRWMYEVALUATES[1][nI]:cProjectDescription,Nil)%></b>
+														</a>
+			                           					<br>
+			                            				<span class="textoItalico"><em><%=HttpSession->BRWMYEVALUATES[1][nI]:CMODELDESCRIPTION%>
+			                            				</em></span>
+													<% EndIf %>
+												</div>
+											</td>
+				    	  					<td class="Fundo9">
+				    	  						<div align="center" class="texto">
+													<%If Empty(HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE) .And. Empty(HttpSession->BRWMYEVALUATES[1][nI]:dFINALDATE) %>
+														-
+													<% Else %>
+														<%=HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE%> a <%=HttpSession->BRWMYEVALUATES[1][nI]:dFINALDATE%> 
+													<% EndIf %>
+												</div>
+											</td>
+	                    					<% If HttpSession->cStatus == "2" %>
+			    	        					<td class="Fundo9">
+			    	        						<div align="center" class="texto">
+
+		    		                	 				<%	_cDescA := HttpSession->BRWMYEVALUATES[1][nI]:cSelfEvaluateDescription
+		            		        	 				if _cDescA == "Auto-Avaliador"
+			     						               		_cDescA := "Auto-Avaliação"
+														else
+			  		       									_cDescA := HttpSession->BRWMYEVALUATES[1][nI]:cSelfEvaluateDescription
+		    	                                        endif
+		        		   								%>   
+		                		    	 				<%=_cDescA%>
+		                    		 				</div>
+		                    	 				</td>
+	                    					<% EndIf %>
+		    	        					<td class="Fundo9">
+		    	        						<div align="center" class="texto">
+													
+													<% If HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatus == "2" %>
+														<%=STR0016%>
+													<% ElseIf HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatus == "1" .And. date() > HttpSession->BRWMYEVALUATES[1][nI]:dAnswerFinalDate %>
+														<%=STR0017%>
+													<% Else %>
+														<%=HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatusDescription%>
+													<% EndIf %>
+												</div>
+											</td>
+										</tr>
+										-->
+																				
+										<!-- Verifica existencia de Avaliação de Consenso -->
+										<% 	
+										_cLiderHi	:= HttpSession->_aAvaCon[nI][1]
+										_cDatRet	:= HttpSession->_aAvaCon[nI][2]
+										If !Empty(_cDatRet)
+										%>
+										<tr>
+			    	  						<td class="Fundo9">
+			    	  							<div align="center" class="texto">
+													<%
+													_cLink := "u_CSAPD015.APW?cPEvaluateID="+HttpSession->BRWMYEVALUATES[1][nI]:CEVALUATEID
+													_cLink += "&cEvaluatedID="+HttpSession->cParticipantID
+													_cLink += "&cTipoAv='3'&cEvaluatorID="+_cLiderHi
+													_cLink += "&cDateFrom="+dtoc(HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE)
+													_cLink += "&cProject="+HttpSession->BRWMYEVALUATES[1][nI]:cProject												
+													%>
+													<a 	href=<%=_cLink%> class="texto">
+														<b><%=HttpSession->BRWMYEVALUATES[1][nI]:CDESCRIPTION%><%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->BRWMYEVALUATES[1][nI]:cProjectDescription,Nil)%></b>
+													</a>
+		        	  								<br>
+		          								</div>
+		          							</td>
+			    	        				<td class="Fundo9">
+			    	        					<div align="center" class="texto">
+													<%If Empty(HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE) .And. Empty(HttpSession->BRWMYEVALUATES[1][nI]:dFINALDATE) %>
+														-
+													<% Else %>
+														<%=HttpSession->BRWMYEVALUATES[1][nI]:dINITIALDATE%> a <%=HttpSession->BRWMYEVALUATES[1][nI]:dFINALDATE%> <!--ate-->
+													<% EndIf %>
+												</div>
+											</td>
+		         							
+		         							<% If HttpSession->cStatus == "2" %>
+				    	        				<td class="Fundo9">
+				    	        					<div align="center" class="texto">
+			                 							<!--SE FOR CONSULTA MOSTRA O TIPO PQ PODE SER CONSENSO--> 
+				                    	 				<%_cDescA := "Consenso" %>   
+				                    	 				<%=_cDescA%>
+				                    	 			</div>
+			    	                	 		</td>							
+		          							<% EndIf %>
+			    	        				
+			    	        				<td class="Fundo9">
+			    	        					<div align="center" class="texto">
+													<!--SE ESTIVER EM ABERTO, VERIFICA SE A DATA DE HJ E MAIOR DO QUE A DATA FINAL PARA QUE MUDE O STATUS PARA PENDENTE-->
+													<% If HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatus == "2" %>
+														<%=STR0016%><!--Finalizado-->
+													<% ElseIf HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatus == "1" .And. date() > HttpSession->BRWMYEVALUATES[1][nI]:dAnswerFinalDate %>
+														<%=STR0017%><!--Atrasado-->	
+													<% Else %>
+														<%=HttpSession->BRWMYEVALUATES[1][nI]:cEvaluateStatusDescription%>
+													<% EndIf %>	
+												</div>
+											</td>
+										</tr>
+										<%EndIf%>
+						    		<% Next %>
+								<% Else %>
+									<tr>
+								       <td colspan="4" class="Fundo1">
+									       	<div align="center" class="texto">
+									       		<%=STR0020%><!--Não existem avaliações a serem consultadas-->
+									       	</div>
+								       	</td>
+								   </tr>
+								<% EndIf %>
+							<% Else %>
+								<tr>
+									<td colspan="4" class="Fundo1">
+							       		<div align="center" class="texto">
+							       			<%=STR0020%><!--Não existem avaliações a serem consultadas-->
+							       		</div>
+							  		</td>
+							   	</tr>
+							<% EndIf %>						
+						 	</table>
+						</td>
+					</tr>
+				  </table>
+				<%
+				EndIf
+			Next nY
+			%>
+			<!--FIM DA FASE MINHAS AVALIACOES-->
+			
+			<!--INICIO DA FASE SUPERIORES-->
+			<% 
+			For nZ := 1 To Len(HttpSession->aNewSuper) %>
+				<% If len(HttpSession->aNewSuper[nZ]) > 0  %>
+					<p class="titulo">
+						<span class="TituloMenor">
+					 		<font size="3">
+								<span class="titulo">&raquo;</span>
+									<strong>	
+										<% If HttpSession->lDescRede == ".T." %>
+							  				<%=HttpSession->aNewSuper[nZ][1]:CNETDESCRIPTION%><!--Superior-->
+										<% Else %>
+										  	<%=STR0006%><!--Superior-->
+										<% EndIf %>
+		  						  	</strong>						
+								</span>
+							</font>    
+						</span>
+					</p>
+					<table class="TabelaBorda1" cellspacing="0" cellpadding="0" style="width:100%; ">
+			  			<tr>
+							<td>
+						 		<table cellpadding="2" cellspacing="2" style="width:100%; ">
+						        	<tr>
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0008%></div></td><!--Avalia&ccedil;&atilde;o-->
+										<td height="19" class="Fundo1"><div align="center" class="TituloMenor"><%=STR0007%></div></td><!--Avaliado-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0009%></div></td><!--Per&iacute;odo-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0010%></div></td><!--Status-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0011%></div></td><!--Tipo-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0012%><br>
+										<%="Avaliação"%></div></td><!--Auto--><!--Avaliado-->
+					                </tr>
+	
+				                    <% for nI:=1 to len(HttpSession->aNewSuper[nZ]) %>
+							       	<tr>
+				                        <td class="Fundo9">
+				                        	<div align="center" class="texto">
+						                        <% if HttpSession->aNewSuper[nZ][nI]:cSelfEvaluate == "3" 
+													_cLink := "u_CSAPD015.APW?cPEvaluateID="+HttpSession->aNewSuper[nZ][nI]:CEVALUATEID
+													_cLink += "&cEvaluatedID="+HttpSession->aNewSuper[nZ][nI]:CEVALUATEDID
+													_cLink += "&cTipoAv="+HttpSession->aNewSuper[nZ][nI]:CSELFEVALUATE
+													_cLink += "&cDateFrom="+dtoc(HttpSession->aNewSuper[nZ][nI]:dINITIALDATE)
+													_cLink += "&cProject="+HttpSession->aNewSuper[nZ][nI]:cProject
+													%>					                        
+													<a href=<%=_cLink%> class="texto">
+														<b><%=HttpSession->aNewSuper[nZ][nI]:CDESCRIPTION%><%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->aSuperior[1][nI]:cProjectDescription,Nil)%></b>
+													</a>
+													<% If !Empty(HttpSession->aSuperior[1][nI]:CMODELDESCRIPTION) %>
+														<br><span class="textoItalico"><em><%=HttpSession->aSuperior[1][nI]:CMODELDESCRIPTION%></em></span>
+													<% EndIf %>
+				    		                    <% else 
+													_cLink := "u_CSAPD012.APW?cPEvaluateID="+HttpSession->aNewSuper[nZ][nI]:CEVALUATEID
+													_cLink += "&cEvaluatedID="+HttpSession->aNewSuper[nZ][nI]:CEVALUATEDID
+													_cLink += "&cTipoAv="+HttpSession->aNewSuper[nZ][nI]:CSELFEVALUATE
+													_cLink += "&cDateFrom="+dtoc(HttpSession->aNewSuper[nZ][nI]:dINITIALDATE)
+													_cLink += "&cProject="+HttpSession->aNewSuper[nZ][nI]:cProject
+													%>					                        
+				    		                    
+													<a href=<%=_cLink%> 
+														class="texto">
+														<b><%=HttpSession->aNewSuper[nZ][nI]:CDESCRIPTION%><%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->aSuperior[1][nI]:cProjectDescription,Nil)%></b>
+													</a>
+													<% If !Empty(HttpSession->aNewSuper[nZ][nI]:CMODELDESCRIPTION) %>
+														<br><span class="textoItalico"><em><%=HttpSession->aNewSuper[nZ][nI]:CMODELDESCRIPTION%></em></span>
+													<% EndIf %>
+				        		                <% endIf %>
+											</div>
+										</td>
+			                        	<td class="Fundo9"><div align="center" class="texto"><%=HttpSession->aNewSuper[nZ][nI]:CEVALUATEDNAME%></div></td>
+			                        	<td class="Fundo9"><div align="center" class="texto">
+			                        		<%=HttpSession->aNewSuper[nZ][nI]:dINITIALDATE%> a <%=HttpSession->aNewSuper[nZ][nI]:dFINALDATE%></div>
+			                        	</td>
+			                        	<td class="Fundo9">
+			                        		<div align="center" class="texto">
+					                        	<!--SE ESTIVER EM ABERTO, VERIFICA SE A DATA DE HJ E MAIOR DO QUE A DATA FINAL PARA QUE MUDE O STATUS PARA PENDENTE-->
+						                        <% If HttpSession->aNewSuper[nZ][nI]:cEvaluateStatus == "2" %>
+													<%=STR0016%><!--Finalizado-->
+					                          	<% ElseIf HttpSession->aNewSuper[nZ][nI]:cEvaluateStatus == "1" .And. date() > HttpSession->aNewSuper[nZ][nI]:dAnswerFinalDate %>
+													<%=STR0017%><!--Atrasado-->
+						 			  			<% ElseIf HttpSession->aNewSuper[nZ][nI]:cEvaluateStatus == "1"%>
+													<%=STR0018%><!--Aberto-->
+												<% Else %>
+													<%=HttpSession->aNewSuper[nZ][nI]:cEvaluateStatusDescription%>
+												<% EndIf %>
+	                        				</div>
+	           							</td>
+	                  					<td class="Fundo9"><div align="center" class="texto"><%=HttpSession->aNewSuper[nZ][nI]:cSelfEvaluateDescription%></div></td>
+	                       				<td class="Fundo9">
+	                        				<div align="center" class="texto">
+												<% If HttpSession->aNewSuper[nZ][nI]:cAutoEvaluated == "Nao" .And. date() > HttpSession->aNewSuper[nZ][nI]:dFINALDATE %>
+													<%=STR0017%><!--Atrasado-->
+												<% ElseIf HttpSession->aNewSuper[nZ][nI]:cAutoEvaluated == "Nao" %>
+													<%=STR0018%><!--Aberto-->
+												<% ElseIf HttpSession->aNewSuper[nZ][nI]:cAutoEvaluated == "Sim" %>
+													<%=STR0016%><!--Finalizado-->
+												<% Else %>
+													-
+												<%EndIf%>
+	           								</div>
+	           							</td>
+	                   				</tr>
+	                   				<% next %>
+	            				</table>
+							</td>
+						</tr>
+					</table>
+	     		<% EndIf %>
+	        <% Next nZ %>
+			<!--FIM DA FASE SUPERIORES-->
+			
+			<!--INICIO DA FASE EQUIPE-->
+			<% _aAux := {}
+
+			For nZ := 1 To Len(HttpSession->aNewSubor)
+				If len(HttpSession->aNewSubor[nZ]) > 0  
+			%>
+				<p class="titulo"><span class="TituloMenor"><font size="3"><span class="titulo">&raquo;</span>
+					<% If HttpSession->lDescRede == ".T." %>
+						<strong><%=HttpSession->BRWMYEVALUATED[1][nZ]:CNETDESCRIPTION%></strong></font></span></p><!--Minha Equipe-->
+	 				<% Else %>
+						<strong><%=STR0021%></strong></font></span></p><!--Minha Equipe-->
+	 				<% EndIf %>
+	
+					<table class="TabelaBorda1" cellspacing="0" cellpadding="0" style="width:100%; ">
+						<tr>
+							<td>
+								<table cellpadding="2" cellspacing="2" style="width:100%; ">
+									<tr>
+										<td height="19" class="Fundo1"><div align="center" class="TituloMenor"><%=STR0007%></div></td><!--Avaliado-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0009%></div></td><!--Per&iacute;odo-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0010%></div></td><!--Status-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0011%></div></td><!--Tipo-->
+										<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0012%><br><%="Avaliação"%></div></td>
+										<!--Auto--><!--Avaliado-->
+									</tr>
+	
+									<% 
+									cAvaliacao  := HttpSession->BRWMYEVALUATED[1][1]:CEVALUATEID  
+									cProjeto	:= ''
+									For nI := 1 To Len(HttpSession->aNewSubor[nZ])
+										_cNameFun 	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEDNAME
+										_cAvaliacao	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEID
+										_cDatIni	:= HttpSession->aNewSubor[nZ][nI]:DINITIALDATE
+										_cProjeto	:= HttpSession->aNewSubor[nZ][nI]:cProject
+										_cAvaliado	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEDID	
+										
+						  				If HttpSession->aNewSubor[nZ][nI]:cSelfEvaluate == "3" 										
+											If cAvaliacao != HttpSession->aNewSubor[nZ][nI]:CEVALUATEID  .or. cProjeto != HttpSession->BRWMYEVALUATED[1][nI]:cPROJECT  												
+												if !empty(cProjeto) .or. !empty(_cDesc)
+												%>
+									  				<tr>
+						    		  					<td colspan= "5" class="Fundo9" style="height:5px"></td>
+							        	   			</tr>
+							        	   		<%endif
+							        	   		_cDesc := HttpSession->aNewSubor[nZ][nI]:CDESCRIPTION 
+							        	   		If HttpSession->cTpAval == "3"
+							        	   			_cDesc += " - "+HttpSession->BRWMYEVALUATED[1][nI]:cProjectDescription
+							        	   		endif
+							        	   		%>
+									       		<tr>
+						    		      			<td colspan= "5" height="18" align="left" class="Fundo1">
+						    		      				<span class="texto">
+						    		      					<b>
+																<%=_cDesc%>
+															</b>
+														</span>
+													</td>
+						       					</tr>
+					    	    	   			<% cProjeto := HttpSession->BRWMYEVALUATED[1][nI]:cPROJECT
+											EndIf %>
+											<tr>   		
+					  							<td class="Fundo9">
+					  								<div align="center" class="texto">
+								                        <% 	_cLink := "u_CSAPD015.APW?cPEvaluateID="+HttpSession->aNewSubor[nZ][nI]:CEVALUATEID
+															_cLink += "&cEvaluatedID="+HttpSession->aNewSubor[nZ][nI]:CEVALUATEDID
+															_cLink += "&cTipoAv="+HttpSession->aNewSubor[nZ][nI]:CSELFEVALUATE
+															_cLink += "&cDateFrom="+dtoc(HttpSession->aNewSubor[nZ][nI]:DINITIALDATE)
+															_cLink += "&cProject="+HttpSession->aNewSubor[nZ][nI]:cProject
+															_cLink += "&cEvaluatorID="+HttpSession->aNewSubor[nZ][nI]:cEvaluatorId
+												 
+					                         				_cNameFun 	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEDNAME
+					                         				_cAvaliacao	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEID
+					                         				_cDatIni	:= HttpSession->aNewSubor[nZ][nI]:DINITIALDATE
+					                         				_cProjeto	:= HttpSession->aNewSubor[nZ][nI]:cProject
+					                         				_cAvaliado	:= HttpSession->aNewSubor[nZ][nI]:CEVALUATEDID
+														%>
+									 			 
+									  					<a href=<%=_cLink%> class="texto"><b><%=HttpSession->aNewSubor[nZ][nI]:CEVALUATEDNAME%></b></a>
+										 			</div>
+										 		</td>
+										 		
+										 		<td class="Fundo9">
+										 			<div align="center" class="texto">
+				                          				<%=HttpSession->aNewSubor[nZ][nI]:dINITIALDATE%> a <%=HttpSession->aNewSubor[nZ][nI]:dFINALDATE%><!--ate-->
+										  			</div>
+										  		</td>
+										 		
+										 		<td class="Fundo9">
+										 			<div align="center" class="texto">
+														<!--SE ESTIVER EM ABERTO, VERIFICA SE A DATA DE HJ E MAIOR DO QUE A DATA FINAL PARA QUE MUDE O STATUS PARA PENDENTE-->
+												  		<% If HttpSession->aNewSubor[nZ][nI]:cEvaluateStatus == "2" %>
+															<%=STR0016%><!--Finalizado-->
+												  		<% ElseIf HttpSession->aNewSubor[nZ][nI]:cEvaluateStatus == "1" .And. date() > HttpSession->aNewSubor[nZ][nI]:dAnswerFinalDate %>
+															<%=STR0017%><!--Atrasado-->
+						                          		<% ElseIf HttpSession->aNewSubor[nZ][nI]:cEvaluateStatus == "1" %>
+															<%=STR0018%><!--Aberto-->
+														<% Else %>
+															<%=HttpSession->aNewSubor[nZ][nI]:cEvaluateStatusDescription%>
+					                              		<% EndIf %>
+										  			</div>
+										  		</td>
+												
+												<td class="Fundo9">
+													<div align="center" class="texto">
+										  				<%	_cDescG := "Consenso"%>   
+	                    	 							<%=_cDescG%>										  			
+                        			 				</div>
+                        			 			</td>
+										  			
+									  			<td class="Fundo9">
+									  				<div class="texto" align="center">
+														<% If HttpSession->aNewSubor[nZ][nI]:cAutoEvaluated == "Nao" .And. date() > HttpSession->aNewSubor[nZ][nI]:dAnswerFinalDate %>
+															<%=STR0017%><!--Atrasado-->
+														<% ElseIf HttpSession->aNewSubor[nZ][nI]:cAutoEvaluated == "Nao" %>
+															<%=STR0018%><!--Aberto-->
+														<% ElseIf HttpSession->aNewSubor[nZ][nI]:cAutoEvaluated == "Sim" %>
+															<%=STR0016%><!--Finalizado-->
+														<% Else %>
+													
+														<%EndIf%>
+													</div>
+												</td>
+											</tr>
+											<%EndIf
+											cAvaliacao := HttpSession->BRWMYEVALUATED[1][nI]:CEVALUATEID
+										Next%>
+					            	</table>
+								</td>
+							</tr>
+						</table>
+				<% EndIf
+				Next nZ %>
+			
+				<!--FIM DA FASE EQUIPE-->
+				<!--INICIO DA FASE PARES-->
+				<% For nZ := 1 To Len(HttpSession->aNewPares) %>
+					<% If len(HttpSession->aNewPares[nZ]) > 0  %>
+						<p class="titulo">
+							<span class="TituloMenor">
+								<font size="3">
+									<span class="titulo">&raquo;</span>
+									<% If HttpSession->lDescRede == ".T." %>
+										<strong><%=HttpSession->aNewPares[nZ][1]:CNETDESCRIPTION%></strong><!--Pares-->
+							      	<% Else %>
+										<strong><%=STR0022%></strong>
+							      	<% EndIf %>
+								</font>
+							</span>
+						</p>
+						
+						<table class="TabelaBorda1" cellspacing="0" cellpadding="0" style="width:100%; ">
+							<tr>
+								<td>
+									<table cellpadding="2" cellspacing="2" style="width:100%; ">
+								 		<tr>
+					      					<td height="19" class="Fundo1"><div align="center" class="TituloMenor"><%=STR0008%></div></td>
+												<!--Avalia&ccedil;&atilde;o-->
+										  	<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0007%></div></td><!--Avaliado-->
+					                      	<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0009%></div></td><!--Per&iacute;odo-->
+					                      	<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0010%></div></td><!--Status-->
+					                      	<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0011%></div></td><!--Tipo-->
+					                      	<td class="Fundo1"><div align="center" class="TituloMenor"><%=STR0012%><br>
+												<%="Avaliação"%></div></td><!--Auto--><!--Avaliado-->
+										</tr>
+	
+										<% For nI := 1 To Len(HttpSession->aNewPares[nZ]) %>
+											<tr>
+						     					<td class="Fundo9">
+						          					<div align="center" class="texto">
+								             			<% if HttpSession->aNewPares[nZ][nI]:cSelfEvaluate == "3" 
+															_cLink := "u_CSAPD015.APW?cPEvaluateID="+HttpSession->aNewPares[nZ][nI]:CEVALUATEID
+															_cLink += "&cEvaluatedID="+HttpSession->aNewPares[nZ][nI]:CEVALUATEDID
+															_cLink += "&cTipoAv="+HttpSession->aNewPares[nZ][nI]:CSELFEVALUATE
+															_cLink += "&cDateFrom="+dtoc(HttpSession->aNewPares[nZ][nI]:DINITIALDATE)
+															_cLink += "&cProject="+HttpSession->aNewPares[nZ][nI]:cProject
+															_cLink += "&cEvaluatorID="+HttpSession->aNewPares[nZ][nI]:cEvaluatorId
+								       					%>
+															<a href=<%=_cLink%> class="texto">
+																<b><%=HttpSession->aNewPares[nZ][nI]:CDESCRIPTION%>
+																	<%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->aNewPares[nZ][nI]:cProjectDescription,Nil)%>
+																</b>
+															</a>
+															<% If !Empty(HttpSession->aNewPares[nZ][nI]:CMODELDESCRIPTION) %>
+																<br><span class="textoItalico"><em><%=HttpSession->aNewPares[nZ][nI]:CMODELDESCRIPTION%></em></span>
+															<% EndIf
+								       					else 
+								            				_cLink := "u_CSAPD012.APW?cPEvaluateID="+HttpSession->aNewPares[nZ][nI]:CEVALUATEID
+															_cLink += "&cEvaluatedID="+HttpSession->aNewPares[nZ][nI]:CEVALUATEDID
+															_cLink += "&cTipoAv="+HttpSession->aNewPares[nZ][nI]:CSELFEVALUATE
+															_cLink += "&cDateFrom="+dtoc(HttpSession->aNewPares[nZ][nI]:DINITIALDATE)
+															_cLink += "&cProject="+HttpSession->aNewPares[nZ][nI]:cProject
+															_cLink += "&cEvaluatorID="+HttpSession->aNewPares[nZ][nI]:cEvaluatorId
+														%>
+															<a href="" class="texto">
+																<b>
+																	<%=HttpSession->aNewPares[nZ][nI]:CDESCRIPTION%>
+																	<%=IIf(HttpSession->cTpAval == "3", " - "+HttpSession->aNewPares[nZ][nI]:cProjectDescription,Nil)%>
+																</b>
+															</a>
+															<% If !Empty(HttpSession->aNewPares[nZ][nI]:CMODELDESCRIPTION) %>
+																<br><span class="textoItalico"><em><%=HttpSession->aNewPares[nZ][nI]:CMODELDESCRIPTION%></em></span>
+															<% EndIf
+								        				endIf %>
+													</div>
+												</td>
+						      					<td class="Fundo9"><div align="center" class="texto"><%=HttpSession->aNewPares[nZ][nI]:CEVALUATEDNAME%></div></td>
+						           				<td class="Fundo9">
+					                        		<div align="center" class="texto">
+					                            		<%=HttpSession->aNewPares[nZ][nI]:dINITIALDATE%> a <%=HttpSession->aNewPares[nZ][nI]:dFINALDATE%> <!--ate-->
+						                        	</div>
+						                        </td>
+					                        	<td class="Fundo9">
+					                        		<div align="center" class="texto">
+														<!--SE ESTIVER EM ABERTO, VERIFICA SE A DATA DE HJ E MAIOR DO QUE A DATA FINAL PARA QUE MUDE O STATUS PARA PENDENTE-->
+	
+												  		<% If HttpSession->aNewPares[nZ][nI]:cEvaluateStatus == "2" %>
+												  			<%=STR0016%><!--Finalizado-->
+							                      		<% ElseIf HttpSession->aNewPares[nZ][nI]:cEvaluateStatus == "1" ;
+							                      			      .And. Date() > HttpSession->aNewPares[nZ][nI]:dAnswerFinalDate %>
+															<%=STR0017%><!--Atrasado-->
+														<% Else %>
+															<%=HttpSession->aNewPares[nZ][nI]:cEvaluateStatusDescription%>
+						                          		<% EndIf %>
+													</div>
+												</td>
+										  		<td class="Fundo9">
+										  			<div align="center" class="texto">
+										  				<%=HttpSession->aNewPares[nZ][nI]:cSelfEvaluateDescription%>
+										  			</div>
+										  		</td>
+												<td class="Fundo9">
+													<div align="center" class="texto">
+														<% If HttpSession->aNewPares[nZ][nI]:cAutoEvaluated == "NAO" ;
+															  .And. date() > HttpSession->aNewPares[nZ][nI]:dFINALDATE %>
+															<%=STR0017%><!--Atrasado-->
+														<% ElseIf HttpSession->aNewPares[nZ][nI]:cAutoEvaluated == "NAO" %>
+															<%=STR0018%><!--Aberto-->
+														<% ElseIf HttpSession->aNewPares[nZ][nI]:cAutoEvaluated == "SIM" %>
+															<%=STR0016%><!--Finalizado-->
+														<% Else %>
+															 -
+														<%EndIf%>
+					       							</div>
+					       						</td>
+					             			</tr>
+						               <% next
+					                EndIf %>
+						        </table>
+							</td>
+						</tr>
+					</table>
+		   		<% Next nZ %>
+			</table>
+		</td>
+	</tr>
+</table>
+</form>
+</body>
+</html>

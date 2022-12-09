@@ -1,0 +1,2964 @@
+#INCLUDE "PROTHEUS.CH"
+//#INCLUDE "ORC001.CH"
+
+User Function HCIORC()
+
+	Local lRet := MsgNoYes("Caro usuário, esta rotina tem como objetivo realizar a integração automatica do pedido de venda, baseado no orçamento gerado! Deseja continuar ?","HCIBR")
+	
+	IF lRet
+		ORC001()
+	EndIF
+
+Return		
+
+Static Function ORC001(xAutoCab,xAutoItens)
+
+	Local lGerar   := .F.
+	Local lContinua:=.F.
+	Local cAlias   := Alias()
+	Local nOps     := 0
+	Local nOpc     := 0
+	Local nX       := 0
+	Local nCntFor  := 0
+	Local nMaxFor  := 0
+	Local aCores := {	{ 'SCJ->CJ_STATUS=="A"'	, 'ENABLE' 		},;
+						{ 'SCJ->CJ_STATUS=="B"'	, 'DISABLE'		},;
+						{ 'SCJ->CJ_STATUS=="C"'	, 'BR_PRETO'	},;
+						{ 'SCJ->CJ_STATUS=="D"'	, 'BR_AMARELO'	},;
+						{ 'SCJ->CJ_STATUS=="F"'	, 'BR_MARROM'	}}
+	Local cFiltraSCJ	:= " "
+	Local bFiltraBrw	:= " "
+	Local aIndexSCJ		:= {}
+		
+	PRIVATE aHeadC6:= {}
+	PRIVATE aHeadD4:= {}
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Variaveis utilizadas na geracao de SCS aglutinadas por data  ³
+	//³ de necessidade.                                              ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	PRIVATE aDataOPC1 := {}
+	PRIVATE aDataOPC7 := {}
+	PRIVATE aOPC1     := {}
+	PRIVATE aOPC7     := {}
+	PRIVATE lEnd      := .F.
+	PRIVATE INCLUI    := .T.
+	PRIVATE lMTA650I  := (ExistBlock( "MTA650I" ) )
+	PRIVATE lMT650C1  := (ExistBlock( "MT650C1" ) )
+	PRIVATE lM650EmpT := (ExistTemplate( "EMP650"  ) ) 
+	PRIVATE lM650Emp  := (ExistBlock( "EMP650"  ) )
+	PRIVATE cPedido   := ""
+	PRIVATE cItemPV   := ""
+	//PRIVATE cCadastro := OemtoAnsi(STR0001) //"Baixa de Or‡amentos"
+	PRIVATE cCadastro := OemtoAnsi("Baixa de Orcamentos") 
+	PRIVATE l416Auto  := ( xAutoCab <> NIL  .and. xAutoItens <> NIL )
+	PRIVATE aAutoCab  := {}
+	PRIVATE aAutoItens:= {}
+	PRIVATE aValidGet := {}
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Variaveis utilizadas para integracao com programa MATA650    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	PRIVATE aSav650 := Array(20)
+	PRIVATE lConsTerc
+	PRIVATE lConsNPT
+	PRIVATE aRotina := MenuDef()
+	
+	AjustaHelp()
+	
+	If ExistBlock("ORC001A")
+		ExecBlock("ORC001A",.F.,.F.)
+	EndIf	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ mv_par01 Mostra Ordem de Producao   ? Sim/Nao        ³
+	//³ mv_par02 Mostra Empenho do PV.      ? Sim/Nao        ³
+	//³ mv_par03 Gera PV s/ SugestÆo        ? Sim/Nao        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Ativa tecla F-10 para parametros                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	Pergunte("MTA416",.F.)
+	If !(l416Auto)
+		SetKey( VK_F12 , {|| Pergunte("MTA416",.T.) } )
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Monta aHeader do SC6                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	aHeadC6 := {}
+	dbSelectArea("SX3")
+	dbSetOrder(1)
+	MsSeek("SC6",.T.)
+	While ( !Eof() .And. (SX3->X3_ARQUIVO == "SC6") )
+		If (  ((X3Uso(SX3->X3_USADO) .And. ;
+				!( Trim(SX3->X3_CAMPO) == "C6_NUM" ) .And.;
+				Trim(SX3->X3_CAMPO) != "C6_QTDEMP"  .And.;
+				Trim(SX3->X3_CAMPO) != "C6_QTDENT") .And.;
+				cNivel >= SX3->X3_NIVEL) .Or.;
+				Trim(SX3->X3_CAMPO)=="C6_NUMORC" .Or. ;
+				Trim(SX3->X3_CAMPO)=="C6_NUMOP"  .Or. ;
+				Trim(SX3->X3_CAMPO)=="C6_ITEMOP" .Or. ;
+				Trim(SX3->X3_CAMPO)=="C6_OP" .Or. ;
+				Trim(SX3->X3_CAMPO)=="C6_OPC" )	
+			Aadd(aHeadC6,{TRIM(X3Titulo()),;
+				SX3->X3_CAMPO,;
+				SX3->X3_PICTURE,;
+				SX3->X3_TAMANHO,;
+				SX3->X3_DECIMAL,;
+				If(Trim(SX3->X3_CAMPO)=="C6_NUMORC",".F.",SX3->X3_VALID),;
+				SX3->X3_USADO,;
+				SX3->X3_TIPO,;
+				SX3->X3_ARQUIVO,;
+				SX3->X3_CONTEXT } )
+		EndIf
+		dbSelectArea("SX3")
+		dbSkip()
+	EndDo
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Monta aHeader do SD4                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SX3")
+	dbSetOrder(1)
+	MsSeek("SD4")
+	While ( !Eof() .And. SX3->X3_ARQUIVO == "SD4" )
+		If ( X3Uso(SX3->X3_USADO) .And. cNivel >= SX3->X3_NIVEL )
+			Aadd(aHeadD4,{ Trim(X3Titulo()),;
+				SX3->X3_CAMPO,;
+				SX3->X3_PICTURE,;
+				SX3->X3_TAMANHO,;
+				SX3->X3_DECIMAL,;
+				SX3->X3_VALID,;
+				SX3->X3_USADO,;
+				SX3->X3_TIPO,;
+				SX3->X3_ARQUIVO,;
+				SX3->X3_CONTEXT })
+		EndIf
+		dbSelectArea("SX3")
+		dbSkip()
+	EndDo
+	dbSelectArea("ABI")
+	dbSelectArea("SCJ")
+	dbSetOrder(1)
+	If (l416Auto)
+		aAutoCab   := xAutoCab
+		aAutoItens := xAutoItens
+		MBrowseAuto(4,Aclone(aAutoCab),"SCJ")
+	Else
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Ponto de Entrada para alterar cores do Browse do Cadastro    ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If ExistBlock("MA416COR")
+			aCores := ExecBlock("MA416COR",.F.,.F.,aCores)
+		EndIf
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Verificacao de filtro na Mbrowse                                        ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If ( ExistBlock("MA416FIL") )
+			cFiltraSCJ := AllTrim(ExecBlock("MA416FIL",.F.,.F.))
+			If Valtype(cFiltraSCJ) == "C" .And. !Empty(cFiltraSCJ)
+				bFiltraBrw 	:= {|| FilBrowse("SCJ",@aIndexSCJ,@cFiltraSCJ)}
+				Eval(bFiltraBrw)
+				If ( Eof() )
+					HELP(" ",1,"RECNO")
+				EndIf
+			EndIf
+		EndIf
+		
+		
+		MsSeek(xFilial("SCJ"))
+		mBrowse( 6, 1,22,75,"SCJ",,,,,,aCores)
+	EndIf
+	INCLUI := .F. // For‡ado para compatibilizacao
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se existe SC's ou OP's para serem geradas           ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetKey( VK_F12 , Nil )
+	Pergunte("MTA650",.F.)
+	//Salvar variaveis existentes
+	For nx := 1 to 20
+		aSav650[nx] := &("mv_par"+StrZero(nx,2))
+	Next nx
+	lConsNPT  := (aSav650[14] == 1)
+	lConsTerc := !(aSav650[15] == 1)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Gera SC's aglutinadas por OP.                                ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If ( aSav650[06] == 2 )
+		nMaxFor  := Len(aOPC1)
+		For nCntFor := 1 to nMaxFor
+			A650GravC1(	aOPC1[nCntFor,1],aOPC1[nCntFor,2],aOPC1[nCntFor,3],;
+				aOPC1[nCntFor,4],aOPC1[nCntFor,5],aOPC1[nCntFor,6],;
+				aOPC1[nCntFor,7],aOPC1[nCntFor,8],aOPC1[nCntFor,9],;
+				aOPC1[nCntFor,10])
+		Next nCntFor
+		nMaxFor  := Len(aOPC7)
+		For nCntFor := 1 to nMaxFor
+			A650GravC7(	aOPC7[nCntFor,1],aOPC7[nCntFor,2],aOPC7[nCntFor,3],;
+				aOPC7[nCntFor,4],aOPC7[nCntFor,5],aOPC7[nCntFor,6],;
+				aOPC7[nCntFor,7])
+		Next nCntFor
+	ElseIf ( aSav650[06] == 3 )
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Gera SC's aglutinadas por data de Necessidade.               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nMaxFor := Len(aDataOPC1)
+		For nCntFor := 1 to nMaxFor
+			A650GravC1(	aDataOPC1[nCntFor,1],aDataOPC1[nCntFor,2],;
+				aDataOPC1[nCntFor,3],aDataOPC1[nCntFor,4],;
+				aDataOPC1[nCntFor,5],aDataOPC1[nCntFor,6],;
+				aDataOPC1[nCntFor,7],aDataOPC1[nCntFor,8],;
+				aDataOPC1[nCntFor,9],aDataOPC1[nCntFor,10])
+		Next nCntFor
+		nMaxFor := Len(aDataOPC7)
+		For nCntFor := 1 to nMaxFor
+			A650GravC7(	aDataOPC7[nCntFor,1],aDataOPC7[nCntFor,2],;
+				aDataOPC7[nCntFor,3],aDataOPC7[nCntFor,4],;
+				aDataOPC7[nCntFor,5],aDataOPC7[nCntFor,6],;
+				aDataOPC7[nCntFor,7])
+		Next nCntFor
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se existe OP's Intermediarias para geracao          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If If(SC2->(FieldPos("C2_BATCH")) > 0 .And. FindFunction('a650RegOPI') , lContinua:= .T., A650OpenBatch()) 
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica o Numero de Registros a Processar                   ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If lContinua
+			a650RegOPI(@lGerar, @nOps, Funname())		
+		Else
+			dbSelectArea("BAT")
+			dbSetOrder(2)
+			While !Eof()
+				If ( Empty(BAT->OK) .And. BAT->OR == "S" )
+					lGerar := .T.
+					nOps++
+				EndIf
+				dbSkip()
+			End
+		EndIf
+		If ( lGerar )
+			MTA650OK(@nOpc)
+			If ( nOpc == 1 )
+				//Processa({|lEnd| MA650Process(@lEnd,nOps,.T.)},STR0019,OemToAnsi(STR0020),.F.)   //"Gera‡„o de OPs Intermediarias e SCs"###"Gerando OPs Intermediarias e SCs..."
+				Processa({|lEnd| MA650Process(@lEnd,nOps,.T.)},"Geracao de OPs Intermediarias e SCs",OemToAnsi("Gerando OPs Intermediarias e SCs..."),.F.)   
+
+			EndIf
+		EndIf
+		If SC2->(FieldPos("C2_BATCH")) <= 0
+			dbSelectArea("BAT")
+			dbCloseArea()
+		EndIf	
+	Endif
+	dbSelectArea(cAlias)
+Return(.T.)
+
+
+Static Function A416GrvBx()
+
+	Local aArea     := GetArea()
+	Local bSetKey   := SetKey(VK_F12,Nil)
+	Local lLibPv	 := .F.
+	Local lShowPV := SuperGetMv("MV_FATTEPO",,.T.)
+	
+	If SuperGetMV("MV_ORCSLIB",,.F.)
+		Pergunte("MTA410",.F.)
+		lLibPV := MV_PAR01==1
+	EndIf
+	
+	Pergunte("MTA416",.F.)
+	
+	MaBxOrc(SCJ->CJ_NUM,MV_PAR01==1,MV_PAR02==1,MV_PAR03==1,lShowPV,aHeadC6,aHeadD4,lLibPV)
+	
+	SetKey(VK_F12,bSetKey)
+	RestArea(aArea)
+
+Return(.T.)
+
+
+Static Function MA416Auto()
+
+	Local aArea   := GetArea()
+	Local nOpcA   := 0
+	Local bSetKey := SetKey(VK_F12,Nil)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ mv_par01 Orcamento de       ?                                 ³
+	//³ mv_par02 Orcamento ate      ?                                 ³
+	//³ mv_par03 Emissao de         ?                                 ³
+	//³ mv_par04 Emissao ate        ?                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	AjustaSX1()
+	Pergunte("MT416A",.F.)
+	/*FormBatch(cCadastro,{   OemToAnsi(STR0024),;    //"  Este programa  tem  como  objetivo  gerar automaticamente as libera‡”es     "
+		OemToAnsi(STR0025),;    //"  de pedidos, tomando-se como base o cr‚dito do cliente e a existencia         "
+		OemToAnsi(STR0026) },;  //"  dos produtos em estoque e a data de entrega do item do pedido.               "*/
+	FormBatch(cCadastro,{   OemToAnsi("  Este programa  tem  como  objetivo  gerar automaticamente as liberacoes     "),; 
+		OemToAnsi("  de pedidos, tomando-se como base o credito do cliente e a existencia         "),;   
+		OemToAnsi("  dos produtos em estoque e a data de entrega do item do pedido.               ") },;  
+		{ { 5,.T.,{|o| Pergunte("MT416A",.T.)}},;
+		{ 1,.T.,{|o| nOpcA := 1, o:oWnd:End()   }},;
+		{ 2,.T.,{|o| o:oWnd:End()}}})
+	If ( nOpcA == 1 )
+		Processa({|lEnd| Ma416Proc()})
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Restaura a integridade da rotina                             ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetKey(VK_F12,bSetKey)
+	RestArea(aArea)
+Return(.T.)
+
+
+Static Function MA416Proc()
+
+	Local aArea     := GetArea()
+	
+	Local cAliasSCJ := "SCJ"
+	
+	Local cQuery    := ""
+	Local lQuery    := .F.
+	Local lBaixa    := .T. 
+	Local lMTA416BX := ExistBlock( "MTA416BX" ) 
+	
+	#IFDEF TOP 
+		Local aStruSCJ  := {} 
+		Local nLoop     := 0 	               
+	#ELSE 	
+		Local cArqTmp   := ""	
+		Local nIndex    := 0  	
+	#ENDIF 
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ mv_par01 Orcamento de       ?                                 ³
+	//³ mv_par02 Orcamento ate      ?                                 ³
+	//³ mv_par03 Emissao de         ?                                 ³
+	//³ mv_par04 Emissao ate        ?                                 ³
+	//³ mv_par05 Libera PV          ?                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Selecao dos orcamentos a serem baixados                      ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SCJ")
+	dbSetOrder(1)
+	#IFDEF TOP
+		lQuery    := .T.
+		cAliasSCJ := "MA416PROC"
+	               
+		If lMTA416BX                           
+			cQuery := "SELECT * "	
+		Else
+			cQuery := "SELECT CJ_FILIAL,CJ_NUM "
+		EndIf 	
+			
+		cQuery += "FROM "+RetSqlName("SCJ")+" SCJ "
+		cQuery += "WHERE SCJ.CJ_FILIAL='"+xFilial("SCJ")+"' AND "
+		cQuery += "SCJ.CJ_NUM >= '"+MV_PAR01+"' AND "
+		cQuery += "SCJ.CJ_NUM <= '"+MV_PAR02+"' AND "
+		cQuery += "SCJ.CJ_EMISSAO >= '"+Dtos(MV_PAR03)+"' AND "
+		cQuery += "SCJ.CJ_EMISSAO <= '"+Dtos(MV_PAR04)+"' AND "	
+		If SuperGetMV("MV_ORCCOT")
+			cQuery += "SCJ.CJ_COTCLI='"+Space(Len(SCJ->CJ_COTCLI))+"' AND "
+		EndIf
+		cQuery += "SCJ.CJ_STATUS='A' AND "
+		cQuery += "SCJ.D_E_L_E_T_=' ' "
+		cQuery += "ORDER BY "+SqlOrder(SCJ->(IndexKey()))
+	
+		cQuery := ChangeQuery(cQuery)
+	
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSCJ,.T.,.T.)
+		
+		If lMTA416BX 
+			aStruSCJ := SCJ->( dbStruct() ) 
+			For nLoop := 1 To Len( aStruSCJ ) 
+				If aStruSCJ[ nLoop, 2 ] <> "C" 
+					TcSetField( cAliasSCJ, aStruSCJ[ nLoop, 1 ],aStruSCJ[ nLoop, 2 ],aStruSCJ[ nLoop, 3 ],aStruSCJ[ nLoop, 4 ])
+				EndIf 		
+			Next nLoop
+		EndIf 	 	
+	
+	#ELSE
+		cArqTmp := CriaTrab(,.F.)
+		cQuery := "CJ_FILIAL='"+xFilial("SCJ")+"' .AND. "
+		cQuery += "CJ_NUM >= '"+MV_PAR01+"' .AND. "	
+		cQuery += "CJ_NUM <= '"+MV_PAR02+"' .AND. "
+		cQuery += "Dtos(CJ_EMISSAO) >= '"+Dtos(MV_PAR03)+"' .AND. "
+		cQuery += "Dtos(CJ_EMISSAO) <= '"+Dtos(MV_PAR04)+"' .AND. "
+		If SuperGetMV("MV_ORCCOT")
+			cQuery += "CJ_COTCLI=='"+Space(Len(SCJ->CJ_COTCLI))+"' .AND. "
+		EndIf	
+		cQuery += "CJ_STATUS='A' "
+	
+		dbSelectArea("SCJ")
+		IndRegua("SCJ",cArqTmp,SCJ->(IndexKey()),,cQuery)
+		nIndex := RetIndex("SCJ")
+		#IFNDEF TOP
+			dbSetIndex(cArqTmp+OrdBagExt())
+		#ENDIF
+		dbSetOrder(nIndex+1)
+		dbGotop()
+	#ENDIF
+	dbSelectArea(cAliasSCJ)
+	ProcRegua(SCJ->(LastRec()))
+	While ( !Eof() .And. (cAliasSCJ)->CJ_FILIAL == xFilial("SCJ") )
+	     
+		lBaixa := .T. 
+		If lMTA416BX 
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Ponto de entrada para selecionar os itens a serem baixados   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			lBaixa := ExecBlock( "MTA416BX", .F., .F., { cAliasSCJ } )
+		EndIf 	
+	
+		If lBaixa	
+			MaBxOrc((cAliasSCJ)->CJ_NUM,.F.,.F.,.T.,.F.,aHeadC6,aHeadD4,MV_PAR05==1)
+			FreeUsedCode(.T.)
+		EndIf 		
+	
+		IncProc()
+	
+		dbSelectArea(cAliasSCJ)
+		dbSkip()
+	EndDo
+	If lQuery
+		dbSelectArea(cAliasSCJ)
+		dbCloseArea()
+		dbSelectArea("SCJ")
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Restaura a integridade da rotina                             ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	RestArea(aArea)
+Return(.T.)
+
+Static Function AjustaSX1()
+
+	Local aArea	  := GetArea()
+	Local nx      := 0
+	Local ny      := 0
+	Local nPosCpo := 0
+	Local aReg	:= {}
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Variavel lPyme utilizada para Tratamento do Siga PyME        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	Local lPyme:= Iif(Type("__lPyme") <> "U",__lPyme,.F.)
+	
+	aadd(aReg,{{"X1_GRUPO","MT416A    "},{"X1_ORDEM","01"},{"X1_PERGUNT","Nr.Orc.de"},;
+		{"X1_PERSPA","Nr.Orc.de"},{"X1_PERENG","Nr.Orc.de"},{"X1_VARIAVL","mv_ch1"},;
+		{"X1_TIPO","C"},{"X1_TAMANHO",6},{"X1_DECIMAL",0},	{"X1_PRESEL",0},;
+		{"X1_GSC","G"},{"X1_VAR01","mv_par01"},{"X1_F3",""},{"X1_PYME","S"}})
+	aadd(aReg,{	{"X1_GRUPO","MT416A    "},{"X1_ORDEM","02"},{"X1_PERGUNT","Nr.Orc.ate"},;
+		{"X1_PERSPA","Nr.Orc.ate"},{"X1_PERENG","Nr.Orc.ate"},{"X1_VARIAVL","mv_ch2"},;
+		{"X1_TIPO","C"},{"X1_TAMANHO",6},{"X1_DECIMAL",0},	{"X1_PRESEL",0},;
+		{"X1_GSC","G"},{"X1_VAR01","mv_par02"},{"X1_F3",""},{"X1_PYME","S"} })
+	aadd(aReg,{	{"X1_GRUPO","MT416A    "},{"X1_ORDEM","03"},{"X1_PERGUNT","Emissao de"},;
+		{"X1_PERSPA","Emissao de"},{"X1_PERENG","Emissao de"},{"X1_VARIAVL","mv_ch3"},;
+		{"X1_TIPO","D"},{"X1_TAMANHO",8},{"X1_DECIMAL",0},	{"X1_PRESEL",0},;
+		{"X1_GSC","G"},	{"X1_VAR01","mv_par03"},{"X1_F3",""},{"X1_PYME","S"} })
+	aadd(aReg,{	{"X1_GRUPO","MT416A    "},{"X1_ORDEM","04"},{"X1_PERGUNT","Emissao ate"},;
+		{"X1_PERSPA","Emissao ate"},{"X1_PERENG","Emissao ate"},{"X1_VARIAVL","mv_ch4"},;
+		{"X1_TIPO","D"},{"X1_TAMANHO",8},{"X1_DECIMAL",0},	{"X1_PRESEL",0},;
+		{"X1_GSC","G"},	{"X1_VAR01","mv_par04"},{"X1_F3",""},{"X1_PYME","S"} })
+	aadd(aReg,{	{"X1_GRUPO","MT416A    "},{"X1_ORDEM","05"},{"X1_PERGUNT","Libera PV"},;
+		{"X1_PERSPA","Libera PV"},{"X1_PERENG","Libera PV"},{"X1_VARIAVL","mv_ch5"},;
+		{"X1_TIPO","N"},{"X1_TAMANHO",1},{"X1_DECIMAL",0},	{"X1_PRESEL",2},;
+		{"X1_GSC","C"},	{"X1_VAR01","mv_par05"},{"X1_F3",""},{"X1_PYME","S"},;
+		{"X1_DEF01","Sim"},{"X1_DEFSPA1","Sim"},{"X1_DEFENG1","Sim"},;
+		{"X1_DEF02","Nao"},{"X1_DEFSPA2","Nao"},{"X1_DEFENG2","Nao"} })	
+	
+	dbSelectArea("SX1")
+	dbSetOrder(1)
+	For nx := 1 to Len(aReg)
+		If !dbSeek(aReg[nx][1][2]+aReg[nx][2][2])
+			RecLock("SX1",.T.)
+			For ny := 1 to Len(aReg[nx])
+				nPosCpo := SX1->(FieldPos(aReg[nx][ny][1]))
+				If nPosCpo > 0
+					SX1->(FieldPut(nPosCpo,aReg[nx][ny][2]))
+				EndIf
+			Next ny
+			MsUnlock()
+		Else
+			If lPyme .And. SX1->X1_PYME == "N"
+				RecLock("SX1",.F.)
+				SX1->X1_PYME := "S"
+				MsUnlock()
+			EndIf	
+		EndIf
+	Next nx
+	
+	RestArea(aArea)
+Return
+
+Static Function MaBxOrc(cNumOrc,lMostraOP,	lMostraEmp,lGeraPV,lMostraPV,aHeadC6,aHeadD4,lLibPV)
+
+	Local aArea     := GetArea()
+	Local aAreaSCJ  := SCJ->(GetArea())
+	Local aAreaOrc  := {}
+	Local aRegSCK   := {}
+	Local aRegSCJ   := {}
+	Local aLockSCJ  := {}
+	Local aRegSC2   := {}
+	Local aRegSD4   := {}
+	Local aRegPed   := {}
+	Local aStruSCK  := {}
+	Local aDadosCfo := {}
+	
+	Local lSugestao := .F. // Indica se h  uma sugestao de Or‡amento
+	Local lPedido   := .F. // Indica se ser  gerado um PV.
+	Local lPedGrv   := .T. // Indica se o pedido foi gravado
+	Local lEstrutura:= .F. // Indica se o Produto possui estrutura
+	Local lOpPai    := .F. // Indica se foi gerada OP para o PV
+	Local lOpPV     := .F.
+	Local lMta416PV := (existblock("MTA416PV"))
+	
+	Local aOpPai    := {}  // Numero das Op's Geradas
+	Local aLoteEco  := {}
+	Local aColsC6 	:= {}
+	Local aColsD4   := {}
+	
+	Local nPos1     := 0
+	Local nSaldo    := 0 // Saldo do item ( OP )
+	Local nCntFor   := 0
+	Local nMaxFor   := 0
+	Local nAcols    := 0
+	Local nUsado    := 0
+	Local nParcTp9  := GetMv("MV_NUMPARC")
+	Local nX        := 0
+	Local nY        := 0
+	Local nMaxVend  := Fa440CntVen()
+	Local nStack    := GetSX8Len()  
+	
+	Local bCampo    := {|x| FieldName(x) }
+	
+	Local cCampo    := ""
+	Local cCotacao  := ""
+	Local cEstado   := GetMv("MV_ESTADO")
+	Local cNumOp    := ""
+	Local cItemOp   := ""
+	Local cSeqC2    := "000"
+	Local cRoteiro  := ""
+	Local cQuery    := ""
+	Local cAliasSCK := "SCK"
+	Local cAliasSCJ := "SCJ"
+	Local cSavFil   := cFilAnt
+	Local cItSC6    := "00"
+	Local cVend     := "1"          
+	Local cParcela  := "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0"
+	
+	Local oDlg
+	
+	Private aSize		:= MsAdvSize()
+	Private aObjects 	:= {} 
+	Private aInfo    := {} 
+	Private aPosObj  	:= {} 
+	
+	PRIVATE aHeader   := {}
+	PRIVATE aCols     := {{.F.}}
+	PRIVATE aHeadGrade:= {}
+	PRIVATE aColsGrade:= {}
+	
+	If Type("aGEMCVnd") == "U"
+		PRIVATE aGEMCVnd :={"",{},{}}
+	EndIf
+	
+	l416Auto          := If (Type("l416Auto") == "U",.f.,l416Auto)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Inicializa os DEFAULT´s do sistema                                      ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DEFAULT lMostraOP := .F.
+	DEFAULT lMostraEmp:= .F.
+	DEFAULT lGeraPV   := .T.
+	DEFAULT lMostraPV := .F.
+	DEFAULT lLibPV    := .F.
+	DEFAULT aHeadC6   := {}
+	DEFAULT aHeadD4   := {}
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Monta aHeader do SC6                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If Empty(aHeadC6)
+		dbSelectArea("SX3")
+		dbSetOrder(1)
+		MsSeek("SC6",.T.)
+		While ( !Eof() .And. (SX3->X3_ARQUIVO == "SC6") )
+			If (  ((X3Uso(SX3->X3_USADO) .And. ;
+					!( Trim(SX3->X3_CAMPO) == "C6_NUM" ) .And.;
+					Trim(SX3->X3_CAMPO) != "C6_QTDEMP"  .And.;
+					Trim(SX3->X3_CAMPO) != "C6_QTDENT") .And.;
+					cNivel >= SX3->X3_NIVEL) .Or.;
+					Trim(SX3->X3_CAMPO)=="C6_NUMORC" .Or. ;
+					Trim(SX3->X3_CAMPO)=="C6_NUMOP"  .Or. ;
+					Trim(SX3->X3_CAMPO)=="C6_ITEMOP" .Or. ;
+					Trim(SX3->X3_CAMPO)=="C6_OP" .Or. ;
+					Trim(SX3->X3_CAMPO)=="C6_OPC" )	
+				Aadd(aHeadC6,{TRIM(X3Titulo()),;
+					SX3->X3_CAMPO,;
+					SX3->X3_PICTURE,;
+					SX3->X3_TAMANHO,;
+					SX3->X3_DECIMAL,;
+					If(Trim(SX3->X3_CAMPO)=="C6_NUMORC".Or.Trim(SX3->X3_CAMPO)=="C6_OP",".F.",SX3->X3_VALID),;
+					SX3->X3_USADO,;
+					SX3->X3_TIPO,;
+					SX3->X3_ARQUIVO,;
+					SX3->X3_CONTEXT } )
+			EndIf
+			dbSelectArea("SX3")
+			dbSkip()
+		EndDo
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Monta aHeader do SD4                                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If Empty(aHeadD4)
+		dbSelectArea("SX3")
+		dbSetOrder(1)
+		MsSeek("SD4")
+		While ( !Eof() .And. SX3->X3_ARQUIVO == "SD4" )
+			If ( X3Uso(SX3->X3_USADO) .And. cNivel >= SX3->X3_NIVEL )
+				Aadd(aHeadD4,{ Trim(X3Titulo()),;
+					SX3->X3_CAMPO,;
+					SX3->X3_PICTURE,;
+					SX3->X3_TAMANHO,;
+					SX3->X3_DECIMAL,;
+					SX3->X3_VALID,;
+					SX3->X3_USADO,;
+					SX3->X3_TIPO,;
+					SX3->X3_ARQUIVO,;
+					SX3->X3_CONTEXT })
+			EndIf
+			dbSelectArea("SX3")
+			dbSkip()
+		EndDo
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Posiciona no Orcamento de Venda                                         ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SCJ")
+	dbSetOrder(1)
+	MsSeek(xFilial("SCJ")+cNumOrc)
+	aAreaOrc := GetArea()
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Orderna os orcamentos de venda por filiais para gerar o pedido de venda ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	#IFDEF TOP
+		cAliasSCK := "MABXORC"
+	
+		cQuery := "SELECT "
+		cQuery += "CK_FILENT,CK_FILVEN,"
+		cQuery += "CK_PRODUTO,CK_LOCAL,CK_ITEM,R_E_C_N_O_ SCKRECNO "
+		cQuery += "FROM "+RetSqlName("SCK")+" "
+		cQuery += "WHERE CK_FILIAL='"+xFilial("SCK")+"' AND "
+		cQuery += "CK_NUM='"+SCJ->CJ_NUM+"' AND "
+		cQuery += "D_E_L_E_T_=' ' "	
+	
+		cQuery := ChangeQuery(cQuery)
+	
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSCK,.T.,.T.)	
+	
+		While !Eof()
+			aadd(aRegSCK,{ MABXORC->SCKRECNO,MABXORC->CK_FILENT,MABXORC->CK_FILVEN,MABXORC->CK_ITEM })
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Tratamento para DEAD - LOCK do SB2                                      ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+			dbSelectArea("MABXORC")
+			dbSkip()	
+		EndDo
+	
+		dbSelectArea("MABXORC")
+		dbCloseArea()
+		dbSelectArea("SCK")
+	
+	#ELSE
+		dbSelectArea("SCK")
+		dbSetOrder(1)
+		MsSeek(xFilial("SCK")+SCJ->CJ_NUM,.T.)
+		While ( !Eof() .And. xFilial("SCK")==SCK->CK_FILIAL .And. ;
+				SCJ->CJ_NUM == SCK->CK_NUM )
+			aadd(aRegSCK,{ SCK->(RecNo()),SCK->CK_FILENT,SCK->CK_FILVEN,SCK->CK_ITEM })
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Tratamento para DEAD - LOCK do SB2                                      ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+			dbSelectArea("SCK")
+			dbSkip()
+		EndDo
+	#ENDIF
+	aRegSCK := aSort(aRegSCK,,,{|x,y| x[2]+x[3]+x[4] < y[2]+y[3]+y[4] })
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Tratamento para DEAD - LOCK do SCJ                                      ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If SuperGetMV("MV_ORCCOT") .And. !Empty(SCJ->CJ_COTCLI)
+		#IFDEF TOP
+			cAliasSCJ := "MABXORC"
+	
+			cQuery := "SELECT "
+			cQuery += "R_E_C_N_O_ SCJRECNO,CJ_NUM "
+			cQuery += "FROM "+RetSqlName("SCJ")+" SCJ "
+			cQuery += "WHERE SCJ.CJ_FILIAL='"+xFilial("SCJ")+"' AND "
+			cQuery += "SCJ.CJ_COTCLI='"+SCJ->CJ_COTCLI+"' AND "
+			cQuery += "SCJ.CJ_NUM<>'"+cNumOrc+"' AND "
+			cQuery += "SCJ.CJ_STATUS='A' AND "
+			cQuery += "SCJ.D_E_L_E_T_=' ' "	
+	
+			cQuery := ChangeQuery(cQuery)
+	
+			dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSCJ,.T.,.T.)	
+	
+			While !Eof()
+				aadd(aRegSCJ,MABXORC->SCJRECNO)
+				aadd(aLockSCJ,MABXORC->CJ_NUM)
+				dbSelectArea("MABXORC")
+				dbSkip()	
+			EndDo
+	
+			dbSelectArea("MABXORC")
+			dbCloseArea()
+			dbSelectArea("SCJ")
+		#ELSE
+			cCotacao := SCJ->CJ_COTCLI
+			dbSelectArea("SCJ")
+			dbSetOrder(2)
+			MsSeek(xFilial("SCJ")+SCJ->CJ_COTCLI)
+			While !Eof() .And. xFilial("SCJ")==SCJ->CJ_FILIAL .And.;
+					SCJ->CJ_COTCLI == cCotacao
+				If SCJ->CJ_NUM<>cNumOrc .And. SCJ->CJ_STATUS == 'A'
+					aadd(aRegSCJ,SCJ->(RecNo()))
+					aadd(aLockSCJ,SCJ->CJ_NUM)
+				EndIf
+				dbSelectArea("SCJ")	
+				dbSkip()
+			EndDo
+		#ENDIF
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Verifica se o Estoque esta disponivel para atualizacoes                 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If MultLock("SCJ",aLockSCJ,1) .AND. Len(aRegSCK) > 0
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Inicia a baixa do Orcamento de venda                                    ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		RestArea(aAreaOrc)
+		SCK->(MsGoto(aRegSCK[1,1]))
+		If SCJ->(SimpleLock())
+			For nX := 1 To Len(aRegSCK)
+				aOpPai := {}	
+				If Empty(SCK->CK_NUMPV)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Verifica a filial de gravacao do pedido de venda                        ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !Empty(SCK->CK_FILENT)
+						cFilAnt := SCK->CK_FILENT
+					EndIf
+	
+					aadd(aRegPed,SCK->(RecNo()))
+					lPedGrv := .F.
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Localiza a sugestao de orcamento                                        ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					dbSelectArea("SBG")
+					dbSetOrder(1)
+					MsSeek(xFilial("SBG")+SCK->CK_PRODUTO,.F.)
+					If ( SBG->(Found()) )
+						lSugestao := .T.
+					Else
+						lSugestao := .F.
+					EndIf
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Gera Pedido de Venda quando:                                            ³
+					//³ - Quando a Sugestao de orcamento indicar que deve ser gerado um PV     ³
+					//³ - Quando nao ha sugestao mas o parametro lGeraPV solicitar a gravacao  ³	
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If ( ((lSugestao .And. SBG->BG_GERAPV $ "S") .Or.;
+							(!lSugestao .And. lGeraPV)) .And. Empty(SCK->CK_NUMPV) )
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Posiciona registros                                                     ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						dbSelectArea("SA1")
+						dbSetOrder(1)
+						MsSeek(xFilial("SA1")+SCJ->CJ_CLIENTE+SCJ->CJ_LOJA)
+		
+						dbSelectArea("SB1")
+						dbSetOrder(1)
+						MsSeek(xFilial("SB1")+SCK->CK_PRODUTO)
+		
+						dbSelectArea("SE4")
+						dbSetOrder(1)
+						MsSeek(xFilial("SE4")+SCJ->CJ_CONDPAG)
+		
+						dbSelectArea("SF4")
+						dbSetOrder(1)
+						MsSeek(xFilial("SF4")+SCK->CK_TES)
+						If ( !lPedido )
+						
+							lPedido := .T.
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Cria as variaveis do Pedido de Venda                                    ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							dbSelectArea("SC5")
+							nMaxFor := FCount()
+							For nCntFor := 1 To nMaxFor
+								M->&(EVAL(bCampo,nCntFor)) := CriaVar(FieldName(nCntFor),.T.)
+							Next nCntFor
+							M->C5_TIPO    := "N"
+							M->C5_CLIENTE := SCJ->CJ_CLIENTE
+							M->C5_LOJACLI := SCJ->CJ_LOJA
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Atualiza as informacoes padroes a partir do Cliente                     ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							ALTERA := l416Auto
+							a410Cli("C5_CLIENTE",M->C5_CLIENTE,.F.)
+							a410Loja("C5_LOJACLI",M->C5_LOJACLI,.F.)										
+							M->C5_CLIENT := SCJ->CJ_CLIENT
+							a410Cli("C5_CLIENT",M->C5_CLIENT,.F.)	
+							
+							M->C5_LOJAENT := SCJ->CJ_LOJAENT
+							a410Loja("C5_LOJAENT",M->C5_LOJAENT,.F.)
+							M->C5_TIPOCLI := SA1->A1_TIPO
+							M->C5_CONDPAG := SCJ->CJ_CONDPAG
+		
+							M->C5_TABELA  := If( Empty(SCJ->CJ_TABELA), Space( Len( SC5->C5_TABELA ) ), SCJ->CJ_TABELA )
+		
+							M->C5_DESC1   := SCJ->CJ_DESC1
+							M->C5_DESC2   := SCJ->CJ_DESC2
+							M->C5_DESC3   := SCJ->CJ_DESC3
+							M->C5_DESC4   := SCJ->CJ_DESC4
+							M->C5_FRETE   := SCJ->CJ_FRETE
+							M->C5_SEGURO  := SCJ->CJ_SEGURO
+							M->C5_DESPESA := SCJ->CJ_DESPESA
+							M->C5_FRETAUT := SCJ->CJ_FRETAUT
+							M->C5_ACRSFIN := SE4->E4_ACRSFIN
+							M->C5_MOEDA   := SCJ->CJ_MOEDA
+							M->C5_TXMOEDA := SCJ->CJ_TXMOEDA 
+							M->C5_TIPLIB  := SCJ->CJ_TIPLIB
+							M->C5_TPCARGA := SCJ->CJ_TPCARGA
+							M->C5_DESCONT := SCJ->CJ_DESCONT
+							M->C5_PDESCAB := SCJ->CJ_PDESCAB
+							M->C5_PAISENT := SA1->A1_PAIS
+							
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Transfere condicao de pagamento tipo 9                                  ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							For nCntFor :=  1 To nParcTp9
+								cCampo := SubStr( cParcela, nCntFor, 1 ) 
+								cCampo := "CJ_PARC"+cCampo
+								nPos1 := SCJ->(FieldPos(cCampo))
+								cCampo := "C5"+SubStr(cCampo,3)
+								M->&(cCampo) := SCJ->(FieldGet(nPos1))
+								cCampo := If(nCntFor<10,StrZero(nCntFor,1),Chr(55+nCntFor))
+								cCampo := "CJ_DATA"+cCampo
+								nPos1 := SCJ->(FieldPos(cCampo))
+								cCampo := "C5"+SubStr(cCampo,3)	
+								M->&(cCampo) := SCJ->(FieldGet(nPos1))
+							Next nCntFor
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Transfere vendedores                                                    ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							For nCntFor := 1 To nMaxVend
+								cCampo := "CJ_VEND"+cVend
+								If SCJ->(FieldPos(cCampo)) > 0
+									nPos1 := SCJ->(FieldPos(cCampo))
+									cCampo := "C5"+SubStr(cCampo,3)	
+									M->&(cCampo) := SCJ->(FieldGet(nPos1))
+								EndIf
+								cCampo := "CJ_COMIS"+cVend
+								If SCJ->(FieldPos(cCampo)) > 0
+									nPos1 := SCJ->(FieldPos(cCampo))
+									cCampo := "C5"+SubStr(cCampo,3)	
+									M->&(cCampo) := SCJ->(FieldGet(nPos1))
+								EndIf
+								cVend := Soma1(cVend,1)
+							Next nCntFor
+							
+						EndIf
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Preenche o Acols do Pedido de Venda                                     ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						nUsado := Len(aHeadC6)
+						aadd(aColsC6,Array(nUsado+1))
+						nAcols := Len(aColsC6)
+						aColsC6[nAcols,nUsado+1] := .F.
+						For nCntFor := 1 To nUsado
+							Do Case
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_ITEM" )
+								cItSC6 := Soma1(cItSC6)
+								aColsC6[nAcols,nCntFor] := cItSC6
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_PRODUTO" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_PRODUTO
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_UM" )
+								aColsC6[nAcols,nCntFor] := SB1->B1_UM
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_COMIS1" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_COMIS1
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_QTDVEN" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_QTDVEN
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_PRCVEN" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_PRCVEN
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_VALOR" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_VALOR
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_TES" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_TES
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_CF" )
+							
+								aDadosCfo := {}
+								
+							 	Aadd(aDadosCfo,{"OPERNF","S"}) 
+							 	Aadd(aDadosCfo,{"TPCLIFOR",M->C5_TIPOCLI})
+							 	Aadd(aDadosCfo,{"UFDEST",SA1->A1_EST})
+							 	Aadd(aDadosCfo,{"INSCR" ,SA1->A1_INSCR})
+								aColsC6[nAcols,nCntFor] := MaFisCfo(,SF4->F4_CF,aDadosCfo)
+								
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_SEGUM" )
+								aColsC6[nAcols,nCntFor] := SB1->B1_SEGUM
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_CODISS" )
+								aColsC6[nAcols,nCntFor] := SB1->B1_CODISS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_LOCAL" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_LOCAL
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_VALDESC" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_VALDESC
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_DESCONT" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_DESCONT
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_ENTREG" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_ENTREG
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_PEDCLI" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_PEDCLI
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_DESCRI" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_DESCRI
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_PRUNIT" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_PRUNIT
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_NUMORC" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_NUM+SCK->CK_ITEM
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_OPC" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_OPC
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_OBS" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_OBS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_CLASFIS" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_CLASFIS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_PROJPMS" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_PROJPMS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_TASKPMS" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_TASKPMS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_EDTPMS" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_EDTPMS
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_QTDLIB" )
+								If lLibPV
+									aColsC6[nAcols,nCntFor] := SCK->CK_QTDVEN
+								Else
+									aColsC6[nAcols,nCntFor] := 0
+								EndIf
+							Case ( "C6_COMIS" $ AllTrim(aHeadC6[nCntFor,2])  )
+								If	SCK->(FieldPos("CK"+SubStr(AllTrim(aHeadC6[nCntFor,2]),3)))>0
+									aColsC6[nAcols,nCntFor] := SCK->(FieldGet(FieldPos("CK"+SubStr(AllTrim(aHeadC6[nCntFor,2]),3))))
+								Else
+									aColsC6[nAcols,nCntFor] := CriaVar(aHeadC6[nCntFor,2],.T.)
+								EndIf
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_CONTRAT" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_CONTRAT
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_ITEMCON" )
+								aColsC6[nAcols,nCntFor] := SCK->CK_ITEMCON
+							OtherWise
+								aColsC6[nAcols,nCntFor] := CriaVar(aHeadC6[nCntFor,2],.T.)
+								
+								// Template GEM
+								// Retorna os valores para o campos criados pelo template
+								If ExistTemplate("GEMSCKField",,.T.) 
+									aColsC6[nAcols,nCntFor] := ExecTemplate("GEMSCKField",.F.,.F.,{ AllTrim(aHeadC6[nCntFor,2]) ,aColsC6[nAcols,nCntFor] })
+								EndIf
+								
+							EndCase
+						Next nCntFor
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Execblock para alteracao do aHeader e do aCols                          ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If ( lMta416PV )
+							// Variaveis para o ExecBlock
+							_aCols 	:= aColsC6
+							_aHeader	:= aHeadC6
+							ExecBlock("MTA416PV",.F.,.F.,Len(_aCols)) 
+							aColsC6  :=  _aCols
+							aHeadC6  := _aHeader						
+						EndIf
+					EndIf                                                                       
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Verifica a necessida das Ordens de Producao                             ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If ( lSugestao )
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Posiciona registros                                                     ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						dbSelectArea("SB1")
+						dbSetOrder(1)
+						MsSeek(xFilial("SB1")+SCK->CK_PRODUTO)
+		
+						dbSelectArea("SF4")
+						dbSetOrder(1)
+						MsSeek(xFilial("SF4")+SCK->CK_TES)
+		
+						dbSelectArea("SB2")
+						dbSetOrder(1)
+						If !MsSeek(xFilial("SB2")+SCK->CK_PRODUTO+SCK->CK_LOCAL)
+							CriaSB2(SCK->CK_PRODUTO,SCK->CK_LOCAL)
+						EndIf
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Gera Ordem de Producao para o Produto Pai ( SCK )                       ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						If ( SBG->BG_GERAOP $ "S" .And. Empty(SCK->CK_NUMOP) )
+							Pergunte("MTA650",.F.)
+							Begin Transaction
+								//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+								//³Verifica o saldo em estoque para identificar a necessiade da OP.        ³
+								//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+								nSaldo := (SaldoSB2(.T.)+SB2->B2_SALPEDI-SB2->B2_QEMPN+AvalQtdPre("SB2",2)) - SCK->CK_QTDVEN
+								If ( nSaldo  < 0 .And. SF4->F4_ESTOQUE=="S" )
+									//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+									//³Grava a Ordem de Producao para o Pedido de Venda                        ³
+									//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+									lOpPai := .T.
+									aLoteEco := CalcLote(SCK->CK_PRODUTO,Abs(nSaldo),"F")
+									cNumOp   := GetNumSc2(.T.)
+									cItemOp  := "01"
+									cSeqC2   := "000"
+									cRoteiro := SB1->B1_OPERPAD
+									nMaxFor  := Len(aLoteEco)
+		
+									For nCntFor := 1 To 1 //nMaxFor
+										cSeqC2:=Soma1(cSeqc2)
+										aadd(aOpPai,{ 	cNumOp+cItemOp+cSeqC2,;
+											aLoteEco[nCntFor] ,;
+											Abs(nSaldo) })
+		
+										a650GeraC2( SCK->CK_PRODUTO,;
+											aLoteEco[nCntFor],;
+											dDataBase,dDataBase,dDataBase, , , , ,.T.,SCK->CK_LOCAL,;
+											SCK->CK_OPC,;
+											NIL,;
+											NIL,;
+											NIL,;
+											cNumOp,;
+											cItemOp,;
+											cSeqC2,"","")
+										RecLock("SC2")
+										SC2->C2_OBS    := "ORC.N."+SCK->CK_NUM
+		
+										aadd(aRegSC2,SC2->(RecNo()))
+		
+									Next nCntFor
+									//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+									//³Guarda o Numero da Ordem de Producao no Orcamento de Venda              ³
+									//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+									RecLock("SCK",.F.)
+									SCK->CK_NUMOP := cNumOp+cItemop
+									A650PutBatch(SC2->C2_FILIAL+SC2->C2_NUM+SC2->C2_ITEM+SC2->C2_SEQUEN+SC2->C2_ITEMGRD,.T.,SC2->C2_DATPRI,SC2->C2_DATPRF)
+								EndIf
+							End Transaction
+							If ( lMostraOp )
+								For nY := 1 To Len(aRegSC2)
+									//cCadastro := STR0021 //"Ordem de Produ‡Æo"
+									cCadastro := "Ordem de Producao"
+									SC2->(AxVisual("SC2",aRegSC2[nY],2))
+								Next nY
+								aRegSC2 := {}
+							EndIf
+						EndIf
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Guarda o Numero da Ordem de Producao no Orcamento de Venda              ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						For nCntFor := 1 To nUsado
+							Do Case
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_NUMOP" )
+								aColsC6[nAcols,nCntFor] := SubStr(SCK->CK_NUMOP,1,6)
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_ITEMOP" )
+								aColsC6[nAcols,nCntFor] := SubStr(SCK->CK_NUMOP,7,2)
+							Case ( AllTrim(aHeadC6[nCntFor,2]) == "C6_OP" )
+								If !Empty(SCK->CK_NUMOP)
+									aColsC6[nAcols,nCntFor] := "01"
+								EndIf
+							EndCase
+						Next nCntFor
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Gera as Ordens de Producao para os sub-itens do orcamento de venda      ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						Begin Transaction
+							If ( SBG->BG_GERAOPI $ "S" )
+								dbSelectArea("SCL")	
+								dbSetOrder(1)
+								MsSeek(xFilial("SCL")+SCJ->CJ_NUM+SCK->CK_ITEM,.T.)
+								While ( !Eof() .And. xFilial("SCL") ==  SCL->CL_FILIAL .And.;
+										SCJ->CJ_NUM  == SCL->CL_NUM .And.;
+										SCK->CK_ITEM == SCL->CL_ITEMORC )
+									If ( Empty(SCL->CL_NUMOP) )
+										//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+										//³ Posiciona Registros                                  ³
+										//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+										dbSelectArea("SB1")
+										dbSetOrder(1)
+										MsSeek(xFilial("SB1")+SCL->CL_PRODUTO)
+		
+										dbSelectArea("SB2")
+										dbSetOrder(1)
+										If !MsSeek(xFilial("SB2")+SCL->CL_PRODUTO+SCK->CK_LOCAL,.F.)
+											CriaSB2(SCL->CL_PRODUTO,SCK->CK_LOCAL)
+										EndIf
+		
+										dbSelectArea("SG1")
+										dbSetOrder(1)
+										If MsSeek(xFilial("SG1")+SCL->CL_PRODUTO,.F.)
+											lEstrutura := .T.
+										Else
+											lEstrutura := .F.
+										EndIf
+										//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+										//³Verifica o saldo em estoque para identificar a necessiade da OP.        ³
+										//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+										nSaldo := (SaldoSB2(.T.)+SB2->B2_SALPEDI-SB2->B2_QEMPN+AvalQtdPre("SB2",2))
+										nSaldo -= ( SCK->CK_QTDVEN * SCL->CL_QUANT )							
+										If ( nSaldo < 0 .And. Empty(SCL->CL_NUMOP) .And. SF4->F4_ESTOQUE == "S")
+											//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+											//³Grava a Ordem de Producao para os Itens do Orcamento de Venda           ³
+											//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+											If ( Empty(cNumOp) )
+												cNumOp   := GetNumSc2(.T.)
+												cItemOp  := "01"
+												cSeqC2   := "001"
+											EndIf
+											aLoteEco := CalcLote(SCL->CL_PRODUTO,Abs(nSaldo),If(lEstrutura,"F","C"))
+											cRoteiro := SB1->B1_OPERPAD
+											nMaxFor := Len(aLoteEco)
+											For nCntFor := 1 To nMaxFor
+												If ( lEstrutura )
+													cItemOp := Soma1(cItemOp,2)
+													cSeqC2  := "001"
+													a650GeraC2( SCL->CL_PRODUTO,;
+														Abs(aLoteEco[nCntFor]),;
+														dDataBase,dDataBase,dDataBase, , , , , ,SCK->CK_LOCAL,;
+														SCK->CK_OPC,;
+														NIL,;
+														NIL,;
+														NIL,;
+														cNumOp,;
+														cItemOp,;
+														cSeqC2,"","")
+		
+													RecLock("SC2")
+													SC2->C2_OBS := "ORC.N."+SCK->CK_NUM
+		
+													aadd(aRegSC2,SC2->(RecNo()))
+		
+													RecLock("SCL",.F.)
+													SCL->CL_NUMOP := cNumOp
+		
+													A650PutBatch(SC2->C2_FILIAL+SC2->C2_NUM+SC2->C2_ITEM+SC2->C2_SEQUEN+SC2->C2_ITEMGRD,.T.,SC2->C2_DATPRI,SC2->C2_DATPRF)
+												Else
+													a650GeraC1(SCL->CL_PRODUTO,;
+														Abs(aLoteEco[nCntFor]),;
+														"",dDataBase,,,0,SCK->CK_LOCAL)
+													RecLock("SCL",.F.)
+													SCL->CL_NUMOP := "SC GERADA"
+												EndIf
+											Next nCntfor
+										EndIf
+									EndIf
+									//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+									//³Verifica se o empenho deve ser feito para as Ordens de Producao         ³
+									//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+									If ( SBG->BG_GERAEMP $ "S" .And. lOpPai )
+										nMaxFor := Len(aOpPai)
+										For nCntFor := 1 To nMaxFor
+											nSaldo := ( aOpPai[nCntFor,2] )*SCL->CL_QUANT
+											dbSelectArea("SD4")
+											RecLock("SD4",.T.)
+											SD4->D4_FILIAL  := xFilial("SD4")
+											SD4->D4_COD     := SCL->CL_PRODUTO
+											SD4->D4_LOCAL   := SCK->CK_LOCAL
+											SD4->D4_OP      := aOpPai[nCntFor,1]
+											SD4->D4_DATA    := dDataBase
+											SD4->D4_QSUSP   := 0.00
+											SD4->D4_QTDEORI := nSaldo
+											SD4->D4_QUANT   := nSaldo
+											SD4->D4_QTSEGUM := ConvUM(SD4->D4_COD, nSaldo, 0, 2)
+											SD4->D4_TRT     := SCL->CL_ITEM
+											SD4->D4_NUMLOTE := ""
+											SD4->D4_LOTECTL := ""
+											SD4->D4_DTVALID := Ctod("")
+											SD4->D4_OPORIG  := ""
+		
+											aadd(aRegSD4,SD4->(RecNo()))
+		
+											RecLock("SB2",.F.)
+											SB2->B2_QEMP  := SB2->B2_QEMP + SD4->D4_QUANT
+											SB2->B2_QEMP2 := SB2->B2_QEMP2 + SD4->D4_QTSEGUM
+		
+										Next nCntFor
+		
+									EndIf						
+									dbSelectArea("SCL")
+									dbSkip()
+								EndDo				
+							EndIf
+						End Transaction
+						If ( lMostraOp )
+							For nY := 1 To Len(aRegSC2)
+								//cCadastro := STR0021 //"Ordem de Produ‡Æo"
+								cCadastro := "Ordem de Producao"
+								SC2->(AxVisual("SC2",aRegSC2[nY],2))
+							Next nY
+							aRegSC2 := {}
+						EndIf
+						If ( lMostraEmp )
+							aColsD4 := {}
+							For nY := 1 To Len(aRegSD4)
+								dbSelectArea("SD4")
+								MsGoto(aRegSD4[nY])
+		
+								nUsado := Len(aHeadD4)						
+								aadd(aColsD4,Array(nUsado+3))	// Colunas do Alias e Recno do Walk-Thru e flag de delecao
+								nPos1 := Len(aColsD4)
+								For nAcols := 1 To nUsado
+									aColsD4[nPos1,nAcols]:= FieldGet(FieldPos(aHeadD4[nACols,2]))
+								Next nACols
+								aColsD4[nPos1,nUsado+1] := "SD4"			// Utilizado no Walk-Thru
+								aColsD4[nPos1,nUsado+2] := aRegSD4[nY]		// Utilizado no Walk-Thru
+								aColsD4[nPos1,nUsado+3] := .F.
+		
+							Next nY
+							aCols   := aColsD4
+							aHeader := aHeadD4
+							
+							// Cria campos para Walk-Thru
+							ADHeadRec("SD4")
+	
+							If Len(aCols)>0
+								aSize := MsAdvSize()
+								aObjects := {}
+								AAdd( aObjects, { 100, 100, .t., .t. } )
+								
+								aInfo := { aSize[ 1 ], aSize[ 2 ], aSize[ 3 ], aSize[ 4 ], 3, 3 }
+								aPosObj := MsObjSize( aInfo, aObjects )
+								
+								//DEFINE MSDIALOG oDlg TITLE OemToAnsi(STR0023) From aSize[7],0 to aSize[6],aSize[5] of oMainWnd PIXEL
+								DEFINE MSDIALOG oDlg TITLE OemToAnsi("Interface") From aSize[7],0 to aSize[6],aSize[5] of oMainWnd PIXEL
+								MsGetDados():New(aPosObj[1,1], aPosObj[1,2] ,aPosObj[1,3],  aPosObj[1,4],1,"AllwaysTrue","AllwaysTrue","",.T.)	
+								ACTIVATE MSDIALOG oDlg On INIT EnchoiceBar(oDlg,{||oDlg:End()},{||oDlg:End()})
+							EndIf
+							aRegSD4 := {}
+						EndIf
+					EndIf
+				EndIf
+		
+				SCK->(MsGoto(aRegSCK[Min(nX+1,Len(aRegSCK)),1]))
+				If ( lPedido .And. ( SCK->CK_FILENT <> cFilAnt .Or. nX == Len(aRegSCK)) )
+					If !Empty(aColsC6)
+		
+						SCK->(MsGoto(aRegSCK[nX,1]))
+						aCols   := aColsC6
+						aHeader := aHeadC6
+						For nCntFor := 1 To Len(aCols)
+							MatGrdMont(nCntFor)
+						Next nCntFor
+						
+						//
+						// Template GEM - Gestao de Empreendimentos Imobiliarios 
+						// Carrega a condicao de venda customizado do orcamento para o pedido de venda
+						//
+						If ExistTemplate("GEMORCxPV",,.T.) .And. HasTemplate("LOT")
+							// Copia a condicao de venda do orcamento para o pedido de venda
+							// Alias LJT para LJN
+							aGEMCVnd := ExecTemplate("GEMORCxPV",.F.,.F.,{ SCJ->CJ_NUM ,SCJ->CJ_CONDPAG })
+						EndIf
+						
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³ Variaveis Utilizadas pela Funcao a410Inclui          ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						PRIVATE ALTERA := .F.
+						PRIVATE INCLUI := .T.
+						PRIVATE lShowOpc := .T.// considerar opcionais se houver alteração na efetivacao do Orcamento.
+									
+						If lMostraPV
+							//cCadastro := STR0022 //"Pedido de Venda"
+							cCadastro := "Pedido de Venda"
+							Pergunte("MTA410",.F.)
+							lPedGrv := SC5->(a410Inclui(Alias(),Recno(),4,.T.,nStack,aRegPed)) == 1
+						Else
+							//lPedGrv := SC5->(A410Grava(.F.,.F.,1,NIL,NIL,NIL,NIL,nStack))
+							lPedGrv := SC5->(PedGrava(.F.,.F.,1,NIL,NIL,NIL,NIL,nStack))
+							For nY := 1 To Len(aRegPed)
+								SCK->(MsGoto(aRegSCK[nY][1]))
+								RecLock("SCK",.F.)
+								SCK->CK_NUMPV := M->C5_NUM
+								MsUnLock()
+							next nY
+						EndIf
+					EndIf
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Apos gerar o pedido reinicializa as variaveis de controle               ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ			
+					aRegPed := {}
+					aColsC6 := {}
+					lPedido := .F.
+					cItSC6  := "00"
+				EndIf
+		
+				SCK->(MsGoto(aRegSCK[Min(nX+1,Len(aRegSCK)),1]))
+		
+			Next nX
+			If lPedGrv
+				Begin Transaction
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Atualiza o status do orcamento - Baixa                                 ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ			
+					RecLock("SCJ",.F.)
+					MaAvalOrc("SCJ",13)
+					SCJ->CJ_STATUS := "B" //Nao retirar, pode ser que a transacao falhe.
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Atualiza o status dos orcamentos vinculados a cotacao - Cancelado      ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ			
+					For nY := 1 To Len(aRegSCJ)
+		
+						SCJ->(dbGoto(aRegSCJ[nY]))
+						dbSelectArea("SCK")
+						dbSetOrder(1)    		
+						#IFDEF TOP
+							lQuery := .T.
+							cAliasSCK := "MABXORC"
+							aStruSCK  := SCK->(dbStruct())
+		
+							cQuery := "SELECT * "
+							cQuery += "FROM "+RetSqlName("SCK")+" "
+							cQuery += "WHERE CK_FILIAL='"+xFilial("SCK")+"' AND "
+							cQuery += "CK_NUM='"+SCJ->CJ_NUM+"' AND "
+							cQuery += "D_E_L_E_T_=' '"
+		
+							cQuery := ChangeQuery(cQuery)
+		
+							dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSCK,.T.,.T.)
+		
+							For nX := 1 To Len(aStruSCK)
+								If aStruSCK[nX][2] <> "C"
+									TcSetField(cAliasSCK,aStruSCK[nX][1],aStruSCK[nX][2],aStruSCK[nX][3],aStruSCK[nX][4])
+								EndIf
+							Next nX
+		
+						#ELSE    		
+							MsSeek(xFilial("SCK")+SCJ->CJ_NUM)
+						#ENDIF
+		
+						While ( !Eof() .And. (cAliasSCK)->CK_FILIAL==xFilial("SCK") .And.;
+								(cAliasSCK)->CK_NUM == SCJ->CJ_NUM )
+		
+							MaAvalOrc(cAliasSCK,4)
+		
+							dbSelectArea(cAliasSCK)
+							dbSkip()
+		
+						EndDo
+						If lQuery
+							dbSelectArea(cAliasSCK)
+							dbCloseArea()
+							dbSelectArea("SCJ")
+						EndIf
+						RecLock("SCJ")
+						MaAvalOrc("SCJ",14)
+						MsUnlock()
+					Next nY
+				End Transaction
+			EndIf
+			If ( ExistBlock("MT416FIM") )
+				RestArea(aAreaOrc)
+				ExecBlock("MT416FIM",.f.,.f.)
+			EndIf		
+		EndIf
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Restaura a Integridade da rotina                                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cFilAnt := cSavFil
+	MsUnLockAll()
+	RestArea(aAreaSCJ)
+	RestArea(aArea)
+Return(.T.)
+
+
+Static Function M416AtuSCK(aRegSCK)              
+
+	Local nY := 0 
+	
+	Default aRegSCK := {}
+	
+	For nY := 1 To Len(aRegSCK)
+		SCK->(MsGoto(aRegSCK[nY]))
+		RecLock("SCK",.F.)
+		SCK->CK_NUMPV := M->C5_NUM
+		MaAvalOrc("SCJ",3)
+		MsUnLock()
+		
+		dbSelectArea("SBG")
+		dbSetOrder(1)
+		If MsSeek(xFilial("SBG")+SCK->CK_PRODUTO,.F.)
+		
+			If SBG->BG_GERAOP == "S"
+	
+				dbSelectArea("SC6")
+				dbSetOrder(1)
+				MsSeek(xFilial("SC6")+M->C5_NUM,.T.)
+				While ( !Eof() .And. xFilial("SC6")==SC6->C6_FILIAL .And.;
+							SC6->C6_NUM == M->C5_NUM )
+					If ( !Empty(SC6->C6_NUMOP) )
+						lOpPV := .F.
+						dbSelectArea("SC2")
+						dbSetOrder(1)
+						MsSeek(xFilial()+SC6->C6_NUMOP+SC6->C6_ITEMOP)
+						While ( !Eof() .And. xFilial("SC2")==SC2->C2_FILIAL .And.;
+								SC6->C6_NUMOP  == SC2->C2_NUM .And.;
+								SC6->C6_ITEMOP == SC2->C2_ITEM )
+							lOpPv := .T.
+							Reclock("SC2")
+							SC2->C2_PEDIDO := SC6->C6_NUM
+							SC2->C2_ITEMPV := SC6->C6_ITEM
+							dbSelectArea("SC2")
+							dbSkip()
+						EndDo
+						If ( !lOpPv )
+							RecLock("SC6")
+							SC6->C6_NUMOP  := ""
+							SC6->C6_ITEMOP := ""
+							SC6->C6_OP		:= ""
+						EndIf
+					EndIf
+					dbSelectArea("SC6")
+					dbSkip()
+				EndDo
+			Endif							
+		Endif
+	Next nY
+
+Return(.T.)
+
+Static Function MenuDef()
+   /*            
+	Private aRotina := {	{ STR0002,"AxPesqui"	, 0 , 1 , 0 , .F.},;	//"Pesquisar"
+							{ STR0003,"A415Visual"	, 0 , 2 , 0 , NIL},;	//"Visualizar"
+							{ STR0004,"A415Exclui"	, 0 , 2 , 0 , NIL},;	//"Excluir"
+							{ STR0005,"A415Baixa"	, 0 , 4 , 0 , NIL},;	//"eFetivar"
+							{ STR0038,"A416Desbl"	, 0 , 2 , 0 , NIL},;	//"Desbloquear" 
+							{ STR0006,"A415Cancel"	, 0 , 2 , 0 , NIL},;	//"Cancelar"
+							{ STR0027,"Ma416Auto"	, 0 , 4 , 0 , NIL},;
+							{ STR0028,"A416Legend"	, 0 , 2 }}   			//"Legenda"
+	*/
+			
+	Private aRotina := {	{ "Pesquisar","AxPesqui"	, 0 , 1 , 0 , .F.},;	
+							{ "Visualizar","A415Visual"	, 0 , 2 , 0 , NIL},;	
+							{ "Excluir","A415Exclui"	, 0 , 2 , 0 , NIL},;	
+							{ "eFetivar","A415Baixa"	, 0 , 4 , 0 , NIL},;	
+							{ "Desbloquear","A416Desbl"	, 0 , 2 , 0 , NIL},;	 
+							{ "Cancelar","A415Cancel"	, 0 , 2 , 0 , NIL},;	
+							{ "Automatico","Ma416Auto"	, 0 , 4 , 0 , NIL},;
+							{ "Legenda","A416Legend"	, 0 , 2 }}   										
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Verifica motivo de bloqueio por regra/verba                             ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If	SuperGetMv("MV_VEBLQRG", .F., .F.)	
+		If	FindFunction("OrcBlqRegB")	
+			//Aadd(aRotina,{STR0039,"OrcBlqRegB", 0 , 0 , 0 , .F.})		// "Blq. Regra"
+			Aadd(aRotina,{"Blq. Regra","OrcBlqRegB", 0 , 0 , 0 , .F.})		
+		EndIf	
+	EndIf
+	
+	
+	If ExistBlock("MA416MNU")
+		ExecBlock("MA416MNU",.F.,.F.)
+	EndIf
+
+Return(aRotina)
+
+Static Function A416Legend()
+/*
+	Local aCores := {	{ 'ENABLE'    , STR0029 },; //'Orcamento em Aberto'
+						{ 'DISABLE'   , STR0030 },; //'Orcamento Baixado'
+						{ 'BR_PRETO'  , STR0031 },; //'Orcamento Cancelado' 	
+						{ 'BR_AMARELO', STR0032 },; //'Orcamento nao Orcado'
+						{ 'BR_MARROM' , "Orcamento bloqueado"}}
+*/		
+	Local aCores := {	{ 'ENABLE'    , "Orcamento em Aberto" },;
+						{ 'DISABLE'   , "Orcamento Baixado" },; 
+						{ 'BR_PRETO'  , "Orcamento Cancelado" },;  	
+						{ 'BR_AMARELO', "Orcamento nao Orcado" },; 
+						{ 'BR_MARROM' , "Orcamento bloqueado"}}				
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Ponto de Entrada para alterar cores da legenda    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ           	
+	If ExistBlock("MA415LEG")
+		aCores := ExecBlock("MA415LEG",.F.,.F.,aCores)
+	Endif
+						
+	//BrwLegenda(cCadastro,STR0028,aCores )   //Pedido Liberado
+	BrwLegenda(cCadastro,"Pedido Liberado",aCores )
+	
+Return(.T.)
+
+Static Function A416Desbl(cAlias,nReg,nOpcx)
+
+	Local aArea := GetArea()
+	
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Chama a funcao p/ visualizacao da Proposta ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	DbSelectArea("ADY")
+	DbSetOrder(1)
+	If DbSeek(xFilial("ADY")+SCJ->CJ_PROPOST)
+		A600Mnt("ADY", ADY->(Recno()), 2)
+	Else
+		HELP(" ",1,"A416DESBL")	
+	EndIf	
+	
+	RestArea(aArea)
+Return Nil
+
+Static Function AjustaHelp()
+
+	Local aHelpPor	:= {}
+	Local aHelpEng	:= {}
+	Local aHelpSpa	:= {}
+	
+	PutHelp("PA416DESBL",	{"Opção disponível apenas para Orçamentos ","com Proposta Comercial."} ,;
+							{"Option only available for Quotations ","with Business Proposal."} ,;
+							{"¡Opción disponible sólo para presu- ","puestos con propuesta comercial!"} ,;
+						     .T.)
+							 
+				    
+	aHelpPor := {"O Orçamento de Venda não pode ser ",;
+			     "baixado pois já se encontra como ",;
+				 "Orcamento Baixado"}
+	aHelpSpa := {"El Presupuesto de Venta no puede ser",;
+			    "cancelado, pues já se encuentra como ",;
+			    "Presupuesto Baixado"}
+	aHelpEng := {"The Sale Budget cannot be written ",;
+				 "off since it is a budget written off"}
+	                   
+	PutHelp("PA415BAIXA",aHelpPor,aHelpEng,aHelpSpa,.T.) 
+	  
+	
+	aHelpPor	:= {}
+	aHelpEng	:= {}
+	aHelpSpa	:= {}
+	
+	aHelpPor := {"O Orçamento de Venda não pode ser ",;
+			     "baixado pois encontra-se como ",;
+				 "Orcamento Cancelado"}
+	aHelpSpa := {"El Presupuesto de Venta no puede ser",;
+			    "cancelado, pues se encuentra como ",;
+			    "Presupuesto Cancelado"}
+	aHelpEng := {"The Sale Budget cannot be written ",;
+				 "off since it is a budget Cancelled"}  
+	
+	PutHelp("PA415BAIXAC",aHelpPor,aHelpEng,aHelpSpa,.T.) 
+	
+	aHelpPor	:= {}
+	aHelpEng	:= {}
+	aHelpSpa	:= {}
+	
+	aHelpPor := {"O Orçamento de Venda não pode ser ",;
+			     "baixado pois encontra-se como ",;
+				 "Orcamento não Orçado"}
+	aHelpSpa := {"El Presupuesto de Venta no puede ser",;
+			    "cancelado, pues se encuentra como ",;
+			    "Presupuesto no presupuestados"}
+	aHelpEng := {"The Sale Budget cannot be written ",;
+				 "off since it is a Budget not Budgeted"} 
+				 
+	PutHelp("PA415BAIXAD",aHelpPor,aHelpEng,aHelpSpa,.T.) 
+	
+	aHelpPor	:= {}
+	aHelpEng	:= {}
+	aHelpSpa	:= {}
+	
+	aHelpPor := {"O Orçamento de Venda não pode ser ",;
+			     "baixado pois encontra-se como ",;
+				 "Orcamento Bloqueado"}
+	aHelpSpa := {"El Presupuesto de Venta no puede ser",;
+			    "cancelado, pues se encuentra como ",;
+			    "Presupuesto Cerrado"}
+	aHelpEng := {"The Sale Budget cannot be written ",;
+				 "off since it is a locked budget"} 
+				 
+	PutHelp("PA415BAIXAF",aHelpPor,aHelpEng,aHelpSpa,.T.) 
+
+Return   
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³ PedGrava ³ Autor ³Eduardo Riera          ³ Data ³17.03.99  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Efetua a Gravacao de um pedido de Vendas.                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ExpL1: Indica se houve gravacao de itens                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ExpL1: Liberacao Parcial                                    ³±±
+±±³          ³ExpL2: Transfere Locais                                     ³±±
+±±³          ³ExpN3: Tipo de Operacao a ser executada  ( Opcional )       ³±±
+±±³          ³       [1] Inclusao      mento                              ³±±
+±±³          ³       [2] Alteracao                                        ³±±
+±±³          ³       [3] Exclusao                                         ³±±
+±±³          ³       [4] Inclusao via XML                                 ³±±
+±±³          ³ExpA4: aHeader das formas de pagamento ( Opcional )         ³±±
+±±³          ³ExpA5: aCols das formas de pagamento   ( Opcional )         ³±±
+±±³          ³ExpA6: Registros do SC6                ( Opcional )         ³±±
+±±³          ³ExpA7: Registros do SCV                ( Opcional )         ³±±
+±±³          ³ExpN8: Tamanho da pilha do semaforo    ( Opcional )         ³±±
+±±³          ³ExpN8: Array com relacionamento entre SD4 X SC6( Opcional ) ³±±
+±±³          ³ExpA9: Array com Adiantamentos relacionado ao Pedido (Opc)  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Observacao³Necessita das variaveis: aHeader,aCols,aHeadGrade,aColsGrade³±±
+±±³          ³e INCLUI                                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao Efetuada                         ³±±
+±±³16/03/2010³ Marcos Justo  ³Incluida a contabilização do pedido on-line ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function PedGrava(lLiber,lTransf,nOpcao,aHeadFor,aColsFor,aRegSC6,aRegSCV,nStack,aEmpBn,aRecnoSE1,aHeadAGG,aColsAGG) 
+
+Local aArea     := GetArea("SC5")
+Local aRegLib   := {}
+Local bCampo 	:= {|nCPO| Field(nCPO) }
+Local lTravou   := .F.
+Local lTravou2  := .F.
+Local lLiberou  := .F.
+Local lLiberOk	:= .T.
+Local lResidOk	:= .T.
+Local lFaturOk	:= .F.
+Local lGravou	:= .F.
+Local lContinua := .F.
+Local lQuery    := .F.
+Local lXml      := .F.
+Local lMta410I  := ExistBlock("MTA410I")
+Local lMta410E  := ExistBlock("MTA410E")
+Local cPedido   := ""
+Local cMay      := ""
+Local cArqQry   := "SC6"
+Local cProdRef	:= "" 
+//---------- Variavel existente somente para manter legado ate R4              
+Local cMascara	:= SuperGetMv("MV_MASCGRD")                       
+//------------------------------------------------------------------
+Local nTamRef	:= If(IsAtNewGrd(),0,Val(Substr(cMascara,1,2)))
+Local nMaxFor	:= Len(aCols)
+Local nMaxFor2	:= 0
+Local nPItem    := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_ITEM"})
+Local nPProduto := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_PRODUTO"})
+Local nTpProd	 := aScan(aHeader,{|x| AllTrim(x[2]) == "C6_TPPROD"})
+Local nVlrCred  := 0
+Local nX        := 0
+Local nY        := 0
+Local nZ        := 0
+Local nW        := 0
+Local xZ			 := 0
+Local nDeleted  := Len(aHeader)+1
+Local nDeleted2 := 0
+Local nMoedaOri := 1
+Local nCntForma := 0
+Local nCount    := 0
+Local aSaldoSDC := {} 
+Local aRegStatus:= {}   
+Local lCtbOnLine := .F.
+Local lDigita := .F.
+Local lAglutina	 := .F.
+Local aCtbDia	 := {}  
+Local bCtbOnLine := {|| .T.}
+Local cArqCtb    := ""       
+Local nTotalCtb  := 0            
+Local c612       := ""  
+Local c621       := "" 
+Local c632       := "" 
+Local c636       := "" 
+Local aCt5       := {}           
+Local nHdlPrv    := 0
+Local aAreaSX1   := {}
+Local lMata410	 := IIF(FUNNAME()=="MATA410",.T.,.F.)
+
+Local lAtuSGJ	 := SuperGetMV("MV_PVCOMOP",.F.,.F.)
+Local nUsadoAGG  := 0
+LOCAL cCondPOld  := ""
+Local nTpCtlBN   := A410CtEmpBN()
+Local aAreaAtu   := {} 
+
+#IFDEF TOP 
+	Local cQuery    := ""
+#ENDIF
+//-- Gravacao de campos Memo por SYP no SC6
+Local nI         := 0  
+Local cCpoSC6    := '' 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Integracao SIGAFAT e SIGADPR                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local aItemDPR	:= {}
+Local lIFatDpr	:= SuperGetMV("MV_IFATDPR",.F.,.F.)
+
+Local lBkpINCLUI	:= INCLUI
+
+Local cChave		:= "" 
+Local aAutoAO4Aux	:= {} 
+Local aAutoAO4	:= {}
+Local nOperation	:= MODEL_OPERATION_INSERT 
+Local cSerieId  := ""
+Local cCodUsr	:= ""
+Local lRateio	:= .F.
+
+//-- Variaveis utilizadas pela funcao wmsexedcf
+Private aLibSDB	:= {}
+Private aWmsAviso:= {}
+Private nValItPed := 0
+PRIVATE cCondPAdt   := "0" //Controle p/ cond. pgto. com aceite de Adt. 0=normal 1=Adt
+
+DEFAULT nOpcao     := 0
+DEFAULT aHeadFor   := {}
+DEFAULT aColsFor   := {}
+DEFAULT aRegSC6    := {}
+DEFAULT aRegSCV    := {}
+DEFAULT nStack     := 0 
+DEFAULT aEmpBn	   := {}
+DEFAULT aRecnoSE1  := {}
+DEFAULT aHeadAGG   := {}
+DEFAULT aColsAGG   := {} 
+
+If ValType(nOpcao)=='N' .And. IsInCallStack("A410INCLUI")
+	lBkpINCLUI := .T.
+	If Type("INCLUI") == "L"
+		INCLUI := lBkpINCLUI
+	EndIf
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ avalia e mostra motivo de bloqueio por regra/verba (se houver)         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+A410BlqReg() 
+
+// limpa a static aUltResult 
+Fat190DVerb()
+
+If Type( "nAutoAdt" ) == "N" .AND. nAutoAdt == 4
+	cCondPOld := SC5->C5_CONDPAG
+EndIf
+
+nMaxFor2  := Len(aColsFor)
+nDeleted2 := Len(aHeadFor)+1
+
+aRegStatus := Array( Len( aRegSC6 ) )
+AFill( aRegStatus, .T. )
+
+// Não contabiliza a alteração - !ALTERA
+If nOpcao <> 3
+	aAreaSX1 := SX1->(GetArea())
+	SaveInter()
+	Pergunte("MTA410",.F.)
+	//Carrega as variaveis com os parametros da execauto
+	Ma410PerAut()
+	lCtbOnLine := lMata410 .And. MV_PAR05==1 .And. !ALTERA .And. !Empty( SC5->( FieldPos( "C5_DTLANC" ) ) )
+	lAglutina  := MV_PAR06==1
+	lDigita := MV_PAR07==1
+	RestInter()
+	RestArea(aAreaSX1)
+Else
+	aAreaSX1 := SX1->(GetArea())
+	SaveInter()
+	Pergunte("MTA410",.F.)
+	//Carrega as variaveis com os parametros da execauto
+	Ma410PerAut()
+	
+	lCtbOnLine := lMata410 .And. !ALTERA .And. !Empty( SC5->( FieldPos( "C5_DTLANC" ) ) )
+	lAglutina  	:= MV_PAR06==1
+	lDigita 	:= MV_PAR07==1
+	RestInter()
+	RestArea(aAreaSX1)
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Ponto de entrada antes de iniciar a manutencao do pedido               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ExistBlock("M410AGRV")
+	ExecBlock("M410AGRV",.f.,.f.,{ nOpcao })
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Ponto de entrada para pegar os registros de SDC para reconstruir as    ³
+//³ as liberações na alteração dos Itens do Pedidos.                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( (ExistBlock("M410PSDC") ) )
+	aSaldoSDC := ExecBlock("M410PSDC",.f.,.f.)
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Se Grade estiver ativa, grava Acols conf.AcolsGrade  para depois       ³
+//³ continuar a gravar como um pedido comum.                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( MaGrade().And. If(IsAtNewGrd(),Type("oGrade")=="O",Type('aHeadGrade')<>'U') )
+	Ma410GraGr()
+	nMaxFor	:= Len(aCols)
+EndIf
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica se ha itens a serem gravados                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+For nX := 1 To nMaxFor
+	If nOpcao == 3
+		aCols[nX][nDeleted] := .T.
+	EndIf
+	If !aCols[nX][nDeleted]
+		lGravou   := .T.
+		lContinua := .T.
+		Exit
+	EndIf
+Next nX
+
+If !lGravou .And. !INCLUI
+	nOpcao := 3
+	lContinua := .T.
+EndIf
+
+If nOpcao == 3
+	For nX := 1 To nMaxFor2
+		aColsFor[nX][nDeleted2] := .T.
+	Next nX
+	lGravou := .T.
+EndIf
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica se a gravacao via JOB XML esta ativa                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If lContinua .And. nOpcao == 1 .And. GetNewPar("MV_MSPVXML",.F.)
+	lXml := Ma410GrXml()
+EndIf
+If nOpcao == 4
+	nOpcao :=1
+EndIf
+
+nMoedaOri := M->C5_MOEDA
+
+//Montagem dos dados da execauto de rateio
+If Type( "nAutoAdt" ) == "N" .AND. nAutoAdt > 0 .And. Len(aRatCTBPC) > 0  
+   aHeadAGG:={}
+   aColsAGG:={}
+   DbSelectArea("SX3")
+	dbSetOrder(1)
+	MsSeek("AGG")
+	While !EOF() .And. (SX3->X3_ARQUIVO == "AGG")
+		If X3USO(SX3->X3_USADO) .AND. cNivel >= SX3->X3_NIVEL .And. !AllTrim(SX3->X3_CAMPO)$"AGG_CUSTO#AGG_FILIAL"
+			aAdd(aHeadAGG,{ TRIM(x3Titulo()),;
+			SX3->X3_CAMPO,;
+			SX3->X3_PICTURE,;
+			SX3->X3_TAMANHO,;
+			SX3->X3_DECIMAL,;
+			SX3->X3_VALID,;
+			SX3->X3_USADO,;
+			SX3->X3_TIPO,;
+			SX3->X3_F3,;
+			SX3->X3_CONTEXT } )
+		EndIf
+		dbSelectArea("SX3")
+		dbSkip()
+	EndDo
+	lRateio := .T.
+	aColsAGG := M410AutRat(aRatCTBPC, aHeadAGG)	
+Endif
+nUsadoAGG := Len(aHeadAGG)
+
+If lRateio .And. Len(aColsAGG[1][2][1]) <= nUsadoAGG
+	nUsadoAGG -= Len(CtbEntArr()) * 2
+EndIf
+		
+//Caso Alteração Automatica deleta os rateios
+If Type( "nAutoAdt" ) == "N" .AND. nAutoAdt==4 .And. Len(aRatCTBPC) > 0
+	aAreaAGG := GetArea()
+	AGG->(DbSetOrder(1)) //CH_FILIAL+CH_PEDIDO+CH_FORNECE+CH_LOJA+CH_ITEMPD+CH_ITEM
+	If AGG->(MsSeek(xFilial("AGG")+SC5->C5_NUM+SC5->C5_CLIENTE+SC5->C5_LOJACLI)) .and. nX==1
+		While !AGG->(EOF()).and. (SC5->C5_FILIAL+SC5->C5_NUM+SC5->C5_CLIENTE+SC5->C5_LOJACLI==;
+			AGG->AGG_FILIAL+AGG->AGG_PEDIDO+AGG->AGG_FORNECE+AGG->AGG_LOJA)
+			RecLock("AGG",.F.)
+			AGG->(dbDelete())
+			MsUnlock()
+			AGG->(DbSkip())
+		Enddo
+	EndIf
+	RestArea(aAreaAGG)
+Endif
+
+If IsInCallStack("A410INCLUI")
+	lBkpINCLUI := .T.
+	If Type("INCLUI") == "L"
+		INCLUI := lBkpINCLUI
+	EndIf
+EndIf
+
+If !lXml
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica a Numeracao do pedido de venda                                ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SC5")
+	cPedido := M->C5_NUM
+	If ( INCLUI )
+		cMay := "SC5"+ Alltrim(xFilial("SC5"))
+		SC5->(dbSetOrder(1))
+		While ( DbSeek(xFilial("SC5")+cPedido) .or. !MayIUseCode(cMay+cPedido) )
+			cPedido := Soma1(cPedido,Len(M->C5_NUM))
+		EndDo
+	EndIf
+	M->C5_NUM := cPedido
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Guarda o numero do registro do itens que serao alterados                ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If Empty(aRegSC6) .And. !INCLUI
+		dbSelectArea("SC6")
+		dbSetOrder(1)
+		#IFDEF TOP
+			If TcSrvType()<>"AS/400"
+				cArqQry := "A410GRAVA"
+				lQuery  := .T.
+				cQuery := "SELECT SC6.R_E_C_N_O_ SC6RECNO, SC6.C6_FILIAL, SC6.C6_NUM "
+				cQuery += "FROM "+RetSqlName("SC6")+" SC6 "
+				cQuery += "WHERE SC6.C6_FILIAL='"+xFilial("SC6")+"' AND "
+				cQuery += "SC6.C6_NUM='"+M->C5_NUM+"' AND "
+				cQuery += "SC6.D_E_L_E_T_=' ' "
+
+				cQuery := ChangeQuery(cQuery)
+
+				dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cArqQry,.T.,.T.)
+			Else
+		#ENDIF
+			MsSeek(xFilial("SC6")+M->C5_NUM)
+			#IFDEF TOP
+			EndIf
+			#ENDIF
+		While ( !Eof() .And. xFilial("SC6")==(cArqQry)->C6_FILIAL .And.(cArqQry)->C6_NUM==M->C5_NUM )
+
+			aAdd(aRegSC6,If(lQuery,(cArqQry)->SC6RECNO,(cArqQry)->(Recno())))
+
+			dbSelectArea(cArqQry)
+			dbSkip()
+
+		EndDo
+		If lQuery
+			dbSelectArea(cArqQry)
+			dbCloseArea()
+			dbSelectArea("SC6")	
+		EndIf
+	EndIf
+	If Empty(aRegSCV) .And. !INCLUI
+		dbSelectArea("SCV")
+		dbSetOrder(1)
+		#IFDEF TOP
+			If TcSrvType()<>"AS/400"
+				cArqQry := "A410GRAVA"
+				lQuery  := .T.
+				cQuery := "SELECT SCV.R_E_C_N_O_ SCVRECNO,SCV.CV_FILIAL,SCV.CV_PEDIDO "
+				cQuery += "FROM "+RetSqlName("SCV")+" SCV "
+				cQuery += "WHERE SCV.CV_FILIAL='"+xFilial("SCV")+"' AND "
+				cQuery += "SCV.CV_PEDIDO='"+M->C5_NUM+"' AND "
+				cQuery += "SCV.D_E_L_E_T_=' ' "
+
+				cQuery := ChangeQuery(cQuery)
+
+				dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cArqQry,.T.,.T.)
+			Else
+		#ENDIF
+			MsSeek(xFilial("SCV")+M->C5_NUM)
+			#IFDEF TOP
+			EndIf
+			#ENDIF
+		While ( !Eof() .And. xFilial("SCV")==(cArqQry)->CV_FILIAL .And.(cArqQry)->CV_PEDIDO=M->C5_NUM )
+
+			aAdd(aRegSCV,If(lQuery,(cArqQry)->(Recno()),(cArqQry)->SCVRECNO))
+
+			dbSelectArea(cArqQry)
+			dbSkip()
+
+		EndDo
+		If lQuery
+			dbSelectArea(cArqQry)
+			dbCloseArea()
+			dbSelectArea("SCV")	
+		EndIf
+	EndIf
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Atualiza os dados do pedido do venda                                   ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If lContinua
+		
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Prepara a contabilizacao On-Line do Pedido              ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If lCtbOnLine
+			
+			dbSelectArea("SX5")
+			dbSetOrder(1)
+			If MsSeek(xFilial()+"09FAT")          // Verifica o numero do lote contabil
+				cLoteCtb := AllTrim(X5Descri())
+			Else
+				cLoteCtb := "FAT "
+			EndIf
+			
+			If At(UPPER("EXEC"),X5Descri()) > 0   // Executa um execblock
+				cLoteCtb := &(X5Descri())
+			EndIf
+			
+			nHdlPrv:=HeadProva(cLoteCtb,"MATA410",Subs(cUsuario,7,6),@cArqCtb) // Inicializa o arquivo de contabilizacao
+			
+			If nHdlPrv <= 0
+				HELP(" ",1,"SEM_LANC")
+				lCtbOnLine := .F.
+			EndIf
+			
+		Endif
+		
+	
+		For nX := 1 To nMaxFor
+			
+			Begin Transaction
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ M_SER004_CRM019_Integraçao_Faturamento_DPR                           ³
+			//³ Verifica se o item eh do tipo "Desenvolvimento" e grava num Array    ³
+			//³	para incluir ou alterar uma pendencia de desenvolvimento.			   ³
+			//³ Autor: Alexandre Felicio													   ³
+			//³ Data: 06/05/2014															   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If ( Type("lExAutoDPR") == "L" .And. !lExAutoDPR .Or. IsInCallStack("MaBxOrc") )  .And. ( lIFatDpr ) .And. ( SC6->(FieldPos("C6_TPPROD")) > 0 )  .And. ( AliasInDic("DGC") ) .And. ( AliasInDic("DGP") )
+				If ( ( nOpcao == 3 ) .AND. aCols[nX][nTpProd] == "2" .AND. !IsInCallStack("MaBxOrc")  )
+					If !l410Auto
+						//lContinua := MsgYesNo(STR0232)
+						lContinua := MsgYesNo("Continua?")
+					EndIf
+					If lContinua
+						aItemDPR := {5, xFilial("SC6"), M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto]}
+					EndIf
+				ElseIf ( nOpcao <> 3 .AND. !aCols[nX][nDeleted] )
+					// se efetivação do orçamento o aItemDPR recebe tanto os dados do orçamento como do PD que está sendo gerado
+					If ( IsInCallStack("MaBxOrc") .And. aCols[nX][nTpProd] == "2" )
+						aItemDPR := {7, xFilial("SC6"), SCK->CK_NUM, SCK->CK_ITEM, SCK->CK_PRODUTO, M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto]}
+						// indica que eh um novo item do PV - insere dependencia de desenvolvimento
+					ElseIf (Len(aRegSC6) < nX) .And. (aCols[nX][nTpProd] == "2")
+						aItemDPR := {3, xFilial("SC6"), M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto], ""}
+						// indica que nao eh um novo item, entao verifica se houve alteracao do codigo do produto ou tipo do produto
+					Else
+						If (Type("aColsHist") == "A") .And. (nX <= LEN(aColsHist))
+							If (aColsHist[nX][nPProduto] <> aCols[nX][nPProduto])
+								aItemDPR := {4, xFilial("SC6"), M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto], aColsHist[nX][nPPRoduto]}
+							ElseIf ( (aColsHist[nX][nTpProd] == "1") .And. (aCols[nX][nTpProd] == "2") )
+								aItemDPR := {3, xFilial("SC6"), M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto], ""}
+							ElseIf ( (aColsHist[nX][nTpProd] == "2") .And. (aCols[nX][nTpProd] == "1") )
+								aItemDPR := {5, xFilial("SC6"), M->C5_NUM, aCols[nX][nPItem], aCols[nX][nPPRoduto], ""}
+							EndIf
+						EndIf
+					EndIf
+				EndIf
+				
+				If Len(aItemDPR) > 0 .AND. lContinua
+					lGravou := A410GrvDPR(aItemDPR)
+					aItemDPR := {}
+				EndIf
+			EndIf
+			
+			If lGravou
+				
+				INCLUI := lBkpINCLUI
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Se for o primeiro item e nao for exclusao, grava o cabecalho           ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If nX == 1 .And. nOpcao <> 3
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Estorna  o cabecalho do pedido de venda                                ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !INCLUI
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³ Armazena a moeda original do pedido de venda                           ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						nMoedaOri := SC5->C5_MOEDA
+						MaAvalSC5("SC5",2,Nil,Nil,Nil,Nil,Nil,Nil,Nil,Nil,Nil,Nil,Nil,@nVlrCred)
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Atualiza o cabecalho do pedido de venda                                ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If lGravou
+						RecLock("SC5",INCLUI)
+
+						For nY := 1 TO FCount()
+							If ("FILIAL" $ FieldName(nY) )
+								FieldPut(nY,xFilial("SC5"))
+            				ElseIf ("SERSUBS" $ FieldName(nY) .Or. "C5_SDOCSUB" $ FieldName(nY) ) // Tratamento para gravar os campos C5_SERSUBS E C5_SDOCSUB
+								 If FieldName(nY) <> "C5_SDOCSUB"
+									// Monta o Id para o campo C5_SERSUBS
+									cSerieId := SerieNfId("SC5",4,"C5_SERSUBS",dDataBase,A460Especie( AllTrim( M->&(EVAL(bCampo,nY))) ), AllTrim( M->&(EVAL(bCampo,nY)) ) ) 
+									// grava os campos C5_SERSUBS E C5_SDOCSUB		
+									SerieNfId("SC5",1,"C5_SERSUBS",,,, cSerieId ) 
+								EndIf
+							ElseIf (("TABELA" $ FieldName(nY)) .And. (M->&(EVAL(bCampo,nY)) == PadR("1",Len(DA0->DA0_CODTAB))))
+								FieldPut(nY,"")
+							Else
+								FieldPut(nY,M->&(EVAL(bCampo,nY)))
+							EndIf
+						Next nY
+						SC5->C5_BLQ := ""
+						
+						//
+						// Template GEM - Gestao de Empreendimentos Imobiliarios
+						// Gravacao dos solidarios do cliente do pedido de venda
+						//
+						If ExistTemplate("GEMXGRSOL",,.T.)
+							ExecTemplate("GEMXGRSOL",.F.,.F.,{nOpcao ,M->C5_NUM})
+						EndIf
+						
+						//
+						// Template GEM - Gestao de Empreendimentos Imobiliarios
+						// Gravacao da condicao de venda "personalizada"
+						//
+						If ExistBlock("GEMXGRCVND",,.T.)
+							ExecBlock("GEMXGRCVND",.F.,.F.,{nOpcao ,M->C5_NUM ,M->C5_CONDPAG})
+						ElseIf ExistTemplate("GEMXGRCVND",,.T.)
+							ExecTemplate("GEMXGRCVND",.F.,.F.,{nOpcao ,M->C5_NUM ,M->C5_CONDPAG})
+						EndIf
+						
+						// Contabiliza cabeçalho - Lançamento Padrão 621
+						If lCtbOnLine
+							nTotalCtb+=DetProva(nHdlPrv,"621","MATA410",cLoteCtb)
+						EndIf
+						
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Atualiza as formas de pagamento                                        ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If Len(aColsFor) >= 1 .And. !Empty(aColsFor[1][1])
+						SC5->(FkCommit())
+						For nY := 1 To nMaxFor2
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Verifica se sera alteracao ou inclusao                                  ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If ( Len(aRegSCV) >= nY )
+								dbSelectArea("SCV")
+								MsGoto(aRegSCV[nY])
+								RecLock("SCV",.F.)
+								lTravou2 := .T.
+							Else
+								If ( !aColsFor[nY][nDeleted2] )
+									RecLock("SCV",.T.)
+									lTravou2 := .T.
+								Else
+									lTravou2 := .F.
+								EndIf
+							EndIf
+							If aColsFor[nY][nDeleted2]
+								If lTravou2
+									SCV->(dbDelete())
+								EndIf
+							Else
+								For nZ := 1 To Len(aHeadFor)
+									If aHeadFor[nZ][10] <> "V"
+										SCV->(FieldPut(FieldPos(aHeadFor[nZ][2]),aColsFor[nY][nZ]))
+									EndIf
+								Next nZ
+								SCV->CV_FILIAL := xFilial("SCV")
+								SCV->CV_PEDIDO := M->C5_NUM
+								SCV->(MsUnLock())
+							EndIf
+						Next nY
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Grava o relacionamento com Adiantamentos³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If cPaisLoc $ "ANG|BRA" .and. Type( "nAutoAdt" ) == "N" .AND. (nAutoAdt==3 .OR. nAutoAdt==4) //.OR. nAutoAdt==5
+						If A410UsaAdi( SC5->C5_CONDPAG )
+							IF Len(aAdtPC) > 0
+								If nAutoAdt==3
+									If a410AdtSld(SC5->C5_NUM,aAdtPC,nAutoAdt) > 0
+										FPedAdtGrv("R", 2, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+										FPedAdtGrv("R", 1, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+									Endif
+								Else
+									If a410lCkAdtFR3(SC5->C5_NUM,nAutoAdt)==0
+										If a410AdtSld(SC5->C5_NUM,aAdtPC,nAutoAdt,0) > 0 //Verifica saldo sem apresentar HELP
+											FPedAdtGrv("R", 2, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+											FPedAdtGrv("R", 1, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+										Else
+											If a410AdtSld(SC5->C5_NUM,aAdtPC,nAutoAdt,2) > 0 //Verifica se ao excluir ADT haverá saldo para nova inclusao
+												FPedAdtGrv("R", 2, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+												If a410AdtSld(SC5->C5_NUM,aAdtPC,nAutoAdt) > 0
+													FPedAdtGrv("R", 1, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+												Endif
+											Endif
+										Endif
+									Else
+										Help(" ",1,"A410ADTEMUSO") //"Pedido possui compensação por RA, não pode ser alterado ou excluido!"
+									Endif
+								Endif
+							Else
+								If nAutoAdt==4
+									If a410lCkAdtFR3(SC5->C5_NUM,nAutoAdt)==0
+										aRecnoSE1 := FPedAdtPed("R",{SC5->C5_NUM}, .F.,0)
+										If Len(aRecnoSE1)<>0
+											FPedAdtGrv("P", 2, SC5->C5_NUM, aRecnoSE1)
+										Endif
+									Else
+										Help(" ",1,"A410ADTEMUSO") //"Pedido possui compensação por RA, não pode ser alterado ou excluido!"
+									Endif
+								Endif
+							Endif
+						Else
+							If nAutoAdt==4
+								If a410lCkAdtFR3(SC5->C5_NUM,nAutoAdt)==0
+									If A410UsaAdi( cCondPOld )
+										FPedAdtGrv("R", 2, SC5->C5_NUM, aRecnoSE1,,,,aAdtPC,nAutoAdt)
+									Endif
+								Else
+									Help(" ",1,"A410ADTEMUSO") //"Pedido possui compensação por RA, não pode ser alterado ou excluido!"
+								Endif
+							Endif
+						Endif
+					Else
+						If cPaisLoc $ "ANG|BRA|MEX"
+							If A410UsaAdi( SC5->C5_CONDPAG ) .AND. ((cPaisLoc == "MEX" .AND. !A410NatAdi(SC5->C5_NATUREZ)) .OR. cPaisLoc <> "MEX")
+								FPedAdtGrv( "R", 1, SC5->C5_NUM, aRecnoSE1 )
+							EndIf
+						Endif
+					EndIf
+				EndIf
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Atualiza os itens do pedido de venda                                   ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Verifica se sera alteracao ou inclusao de um item do PV                 ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If ( Len(aRegSC6) >= nX )
+					dbSelectArea("SC6")
+					
+					If aRegStatus[ nX ]
+						MsGoto(aRegSC6[nX])
+					Endif
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Verifica se o item (acols) corresponde ao item gravado.Quando utiliza-se³
+					//³grade de produtos os itens podem ser adicionados no em qualquer ordem   ³
+					//³prejudicando a atualizacao dos campos Qtd.Entregue e Empenhada          ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Na situacao da troca de um produto que pertence a grade, os registros   ³
+					//³posteriores nao podem ser reaproveitados, tendo que ser excluidos e in  ³
+					//³seridos novamente                                                       ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If IsAtNewGrd()
+						If ( aCols[nX][nPItem] == SC6->C6_ITEM .And. SC6->C6_GRADE=="S" .And. aRegStatus[nX])
+							cProdRef := aCols[nX][nPProduto]
+							MatGrdPrRf(@cProdRef,.T.)
+							nTamRef	:= Len(cProdRef)
+							If SubStr(aCols[nX][nPProduto],1,nTamRef) <> SubStr(SC6->C6_PRODUTO,1,nTamRef)
+								AFill( aRegStatus, .F., nX )
+								
+								For nCount := nX to Len( aRegSC6 )
+									
+									SC6->(MsGoto(aRegSC6[nCount]))
+									
+									//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+									//³Efetua o estorno dos itens do pedido de venda                           ³
+									//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+									RecLock("SC6")
+									MaAvalSC6("SC6",2,"SC5",lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,@nVlrCred,Nil,Nil,nMoedaOri)
+									If !GetMv("MV_AVALCRD")
+										nVlrCred := 0
+									EndIf
+									lTravou := .T.
+									
+									//-- Libera empenhos vinculados ao item do pedido
+									If nTpCtlBN == 1 // metodo antigo - unico envio: gravacao na SD4
+										dbSelectArea("SD4")
+										dbSetOrder(6)
+										If dbSeek(xFilial("SD4")+SC6->(C6_NUM+C6_ITEM))
+											RecLock("SD4",.F.)
+											Replace D4_NUMPVBN With CriaVar("D4_NUMPVBN",.F.)
+											Replace D4_ITEPVBN With CriaVar("D4_ITEPVBN",.F.)
+											MsUnLock()
+										EndIf
+										dbSelectArea("SDC")
+										dbSetOrder(1)
+										If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+											RecLock("SDC",.F.)
+											Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+											Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+											MsUnLock()
+										EndIf
+									ElseIf nTpCtlBN == 2 // metodo novo - multiplos envios: gravacao na SGO
+										dbSelectArea("SGO")
+										dbSetOrder(2) // GO_FILIAL+GO_NUMPV+GO_ITEMPV+GO_OP+GO_COD+GO_LOCAL
+										dbSeek(xFilial("SGO")+SC6->C6_NUM+SC6->C6_ITEM)
+										If ( GO_FILIAL+GO_NUMPV+GO_ITEMPV == SC6->C6_FILIAL+SC6->C6_NUM+SC6->C6_ITEM )
+											RecLock("SGO", .F.)
+											dbDelete()
+											MsUnLock()
+										EndIf
+										dbSelectArea("SDC")
+										dbSetOrder(1)
+										If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+											RecLock("SDC",.F.)
+											Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+											Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+											MsUnLock()
+										EndIf
+									EndIf
+									SC6->( dbDelete() )
+									aRegStatus[ nCount ] := .F.
+								Next nCount
+							EndIf
+						Endif
+					Else
+						If ( aCols[nX][nPItem] == SC6->C6_ITEM .And. SubStr(aCols[nX][nPProduto],1,nTamRef) <> SubStr(SC6->C6_PRODUTO,1,nTamRef) .And.;
+							SC6->C6_GRADE=="S"  .And. aRegStatus[ nX ] )
+							AFill( aRegStatus, .F., nX )
+							
+							For nCount := nX to Len( aRegSC6 )
+								
+								SC6->(MsGoto(aRegSC6[nCount]))
+								
+								//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+								//³Efetua o estorno dos itens do pedido de venda                           ³
+								//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+								RecLock("SC6")
+								MaAvalSC6("SC6",2,"SC5",lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,@nVlrCred,Nil,Nil,nMoedaOri)
+								If !GetMv("MV_AVALCRD")
+									nVlrCred := 0
+								EndIf
+								lTravou := .T.
+								
+								//-- Libera empenhos vinculados ao item do pedido
+								If nTpCtlBN == 1 // metodo antigo - unico envio: gravacao na SD4
+									dbSelectArea("SD4")
+									dbSetOrder(6)
+									If dbSeek(xFilial("SD4")+SC6->(C6_NUM+C6_ITEM))
+										RecLock("SD4",.F.)
+										Replace D4_NUMPVBN With CriaVar("D4_NUMPVBN",.F.)
+										Replace D4_ITEPVBN With CriaVar("D4_ITEPVBN",.F.)
+										MsUnLock()
+									EndIf
+									dbSelectArea("SDC")
+									dbSetOrder(1)
+									If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+										RecLock("SDC",.F.)
+										Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+										Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+										MsUnLock()
+									EndIf
+								ElseIf nTpCtlBN == 2 // metodo novo - multiplos envios: gravacao na SGO
+									dbSelectArea("SGO")
+									dbSetOrder(2) // GO_FILIAL+GO_NUMPV+GO_ITEMPV+GO_OP+GO_COD+GO_LOCAL
+									dbSeek(xFilial("SGO")+SC6->C6_NUM+SC6->C6_ITEM)
+									If ( GO_FILIAL+GO_NUMPV+GO_ITEMPV == SC6->C6_FILIAL+SC6->C6_NUM+SC6->C6_ITEM )
+										RecLock("SGO", .F.)
+										dbDelete()
+										MsUnLock()
+									EndIf
+									dbSelectArea("SDC")
+									dbSetOrder(1)
+									If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+										RecLock("SDC",.F.)
+										Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+										Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+										MsUnLock()
+									EndIf
+								EndIf
+								SC6->( dbDelete() )
+								aRegStatus[ nCount ] := .F.
+							Next nCount
+						Endif
+						
+					EndIf
+					
+					If aRegStatus[ nX ]
+						If SC6->C6_GRADE=="S" .And. ( IsAtNewGrd() )
+							cProdRef := aCols[nX][nPProduto]
+							MatGrdPrRf(@cProdRef,.T.)
+							nTamRef	:= Len(cProdRef)
+						EndIf
+						
+						If ( aCols[nX][nPItem] <> SC6->C6_ITEM .Or. (aCols[nX][nPProduto] <> SC6->C6_PRODUTO .And. SubStr(aCols[nX][nPProduto],1,nTamRef) == SubStr(SC6->C6_PRODUTO,1,nTamRef)) .And.;
+							SC6->C6_GRADE=="S" )
+							If ( !aCols[nX][nDeleted] )
+								RecLock("SC6",.T.)
+								lTravou := .T.
+							Else
+								lTravou := .F.
+							EndIf
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Move os Recnos do SC6 para posterior atualizacao                        ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							aAdd(aRegSC6,0)
+							aAdd(aRegStatus,.T.)
+							For nZ := Len(aRegSC6) To nX+1 STEP -1
+								aRegSC6[nZ] := aRegSC6[nZ-1]
+							Next nZ
+						Else
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³Efetua o estorno dos itens do pedido de venda                           ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							RecLock("SC6")
+							MaAvalSC6("SC6",2,"SC5",lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,@nVlrCred,Nil,Nil,nMoedaOri)
+							
+							If !GetMv("MV_AVALCRD")
+								nVlrCred := 0
+							EndIf
+							lTravou := .T.
+						EndIf
+					Else
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Caso o produto tenha sido trocado sera estornado o registro e incluido  ³
+						//³novamente. Somsnte quando a troca for por produto de grade              ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						
+						RecLock( "SC6", .T. )
+						
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Atualiza os itens do pedido de venda                                    ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						For nY := 1 to Len(aHeader)
+							If aHeader[nY][10] <> "V"
+                               If AllTrim(aHeader[nY][2]) == "C6_SERIORI" .Or. AllTrim(aHeader[nY][2]) == "C6_SDOCORI"
+								 If AllTrim(aHeader[nY][2]) <> "C6_SDOCORI"
+									SerieNfId("SC6",1,"C6_SERIORI",,,, aCols[nX][nY] )
+								 EndIf 	
+                               Else
+									SC6->(FieldPut(FieldPos(aHeader[nY][2]),aCols[nX][nY]))
+                               EndIf
+							EndIf
+						Next nY
+						If SC6->C6_QTDLIB > 0 .Or. SC5->C5_TIPO $ "CIP"
+							lLiberou := .T.
+						EndIf
+						MaAvalSC6("SC6",1,"SC5",lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,@nVlrCred)
+						
+						//Grava relacionamento entre SC6 e SD4,SDC
+						If !Empty(aEmpBn)
+							nY := aScan(aEmpBn, {|x| x[3] == SC6->C6_ITEM})
+							While !Empty (nY) .AND. nY <= Len(aEmpBn) .And. aEmpBn[nY,3] == SC6->C6_ITEM
+								(aEmpBn[nY,1])->(dbGoTo(aEmpBn[nY,2]))
+								If nTpCtlBN == 1 // metodo antigo - unico envio: gravacao na SD4
+									RecLock(aEmpBn[nY,1],.F.)
+									If aEmpBn[nY,1] == "SD4"
+										Replace D4_NUMPVBN With SC6->C6_NUM
+										Replace D4_ITEPVBN With SC6->C6_ITEM
+									Else
+										Replace DC_PEDIDO With SC6->C6_NUM
+										Replace DC_ITEM   With SC6->C6_ITEM
+									EndIf
+									MsUnLock()
+								ElseIf nTpCtlBN == 2 // metodo novo - multiplos envios: gravacao na SGO
+									If aEmpBn[nY,1] == "SDC"
+										RecLock("SDC",.F.)
+										Replace DC_PEDIDO With SC6->C6_NUM
+										Replace DC_ITEM   With SC6->C6_ITEM
+									ElseIf aEmpBn[nY,1] == "SD4"
+										SGO->(dbSetOrder(2)) // GO_FILIAL+GO_NUMPV+GO_ITEMPV+GO_OP+GO_COD+GO_LOCAL
+										If !(SGO->(dbSeek(xFilial("SGO")+SC6->C6_NUM+SC6->C6_ITEM+SD4->D4_OP+SD4->D4_COD+SD4->D4_LOCAL)))
+											RecLock("SGO",.T.)
+											Replace GO_FILIAL  With xFilial("SGO")
+											Replace GO_OP      With SD4->D4_OP
+											Replace GO_COD     With SD4->D4_COD
+											Replace GO_LOCAL   With SD4->D4_LOCAL
+											Replace GO_NUMPV   With SC6->C6_NUM
+											Replace GO_ITEMPV  With SC6->C6_ITEM
+											Replace GO_TRT     With SD4->D4_TRT
+											Replace GO_RECNOD4 With SD4->(Recno())
+										Else
+											RecLock("SGO", .F.)
+										EndIf
+										Replace GO_QUANT   With SC6->C6_QTDVEN
+										Replace GO_QTSEGUM With ConvUM(SD4->D4_COD, SC6->C6_QTDVEN, 0, 2)
+									EndIf
+									MsUnLock()
+								EndIf
+								nY++
+							End
+						EndIf
+					Endif
+				Else
+					If ( !aCols[nX][nDeleted] )
+						RecLock("SC6",.T.)
+						lTravou := .T.
+					Else
+						lTravou := .F.
+					EndIf
+				EndIf
+				
+				If aCols[nX][nDeleted]
+					
+					If (lTravou)
+						
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³ Grava os lancamentos nas contas orcamentarias SIGAPCO    ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						PcoDetLan("000100","02","MATA410")
+						
+						//-- Libera empenhos vinculados ao item do pedido
+						If nTpCtlBN == 1 // metodo antigo - unico envio: gravacao na SD4
+							dbSelectArea("SD4")
+							dbSetOrder(6)
+							If dbSeek(xFilial("SD4")+SC6->(C6_NUM+C6_ITEM))
+								RecLock("SD4",.F.)
+								Replace D4_NUMPVBN With CriaVar("D4_NUMPVBN",.F.)
+								Replace D4_ITEPVBN With CriaVar("D4_ITEPVBN",.F.)
+								MsUnLock()
+							EndIf
+							dbSelectArea("SDC")
+							dbSetOrder(1)
+							If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+								RecLock("SDC",.F.)
+								Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+								Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+								MsUnLock()
+							EndIf
+						ElseIf nTpCtlBN == 2 // metodo novo - multiplos envios: gravacao na SGO
+							dbSelectArea("SGO")
+							dbSetOrder(2) // GO_FILIAL+GO_NUMPV+GO_ITEMPV+GO_OP+GO_COD+GO_LOCAL
+							dbSeek(xFilial("SGO")+SC6->C6_NUM+SC6->C6_ITEM)
+							If ( GO_FILIAL+GO_NUMPV+GO_ITEMPV == SC6->C6_FILIAL+SC6->C6_NUM+SC6->C6_ITEM )
+								RecLock("SGO", .F.)
+								dbDelete()
+								MsUnLock()
+							EndIf
+							dbSelectArea("SDC")
+							dbSetOrder(1)
+							If dbSeek(xFilial("SDC")+SC6->(C6_PRODUTO+C6_LOCAL)+"SC2"+SC6->(C6_NUM+C6_ITEM))
+								RecLock("SDC",.F.)
+								Replace DC_PEDIDO With CriaVar("DC_PEDIDO",.F.)
+								Replace DC_ITEM	With CriaVar("DC_ITEM",.F.)
+								MsUnLock()
+							EndIf
+						EndIf
+						
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³ Executa a exclusao da tabela SGJ                    ³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						If lAtuSGJ
+							A650DelSGJ("I")		//Por Item
+						Endif
+						
+						//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+						//³Efetua a Exclusão do Rateio³
+						//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+						
+						aAreaAGG := GetArea()
+						If (nY	:= aScan(aColsAGG,{|x| AllTrim(x[1]) == AllTrim(SC6->C6_ITEM) })) > 0
+							For nZ := 1 To Len(aColsAGG[nY][2])
+								AGG->(DbSetOrder(1)) //AGG_FILIAL+AGG_PEDIDO+AGG_FORNEC+AGG_LOJA+AGG_ITEMPD+AGG_ITEM
+								If AGG->(MsSeek(xFilial("AGG")+SC5->C5_NUM+SC5->C5_CLIENTE+SC5->C5_LOJACLI+SC6->C6_ITEM+GdFieldGet("AGG_ITEM",nz,NIL,aHeadAGG,ACLONE(aColsAGG[NY,2]))))
+									RecLock("AGG",.F.)
+									AGG->(dbDelete())
+									MsUnlock()
+								EndIf
+							Next nZ
+						EndIf
+						RestArea(aAreaAGG)
+						
+						dbSelectArea("SC6")
+						dbDelete()
+						MsUnLock()
+						
+						// Verifica se o C5_DTLANC esta preenchido, se estiver preenchido contabiliza a exclusão dos itens.
+						If lCtbOnLine
+							If !Empty(SC5->C5_DTLANC)
+								nTotalCtb+=DetProva(nHdlPrv,"632","MATA410",cLoteCtb)
+							Endif
+						EndIf
+						
+						
+						If lMta410E
+							ExecBlock("MTA410E",.f.,.f.)
+						EndIf
+					EndIf
+				Else
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Altera o campo C6_OP para permitir que a rotina de geracao de OP's por  ³
+					//³venda seja executada novamente para este item                           ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If nOpcao == 2 .And. SC6->C6_PRODUTO <> aCols[nX][nPProduto] .And. !(SC6->C6_OP $ '01#03')
+						SC6->C6_OP := ""
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Atualiza os itens do pedido de venda                                    ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					For nY := 1 to Len(aHeader)
+						If aHeader[nY][10] <> "V"
+							If AllTrim(aHeader[nY][2]) == "C6_SERIORI" .Or. AllTrim(aHeader[nY][2]) == "C6_SDOCORI"
+								If AllTrim(aHeader[nY][2]) <> "C6_SDOCORI"
+									SerieNfId("SC6",1,"C6_SERIORI",,,, aCols[nX][nY] )
+								EndIf
+							Else
+								SC6->(FieldPut(FieldPos(aHeader[nY][2]),aCols[nX][nY]))
+							EndIf
+						EndIf
+					Next nY
+										
+					// Se for alteracao, e mudaram o cliente do pedido, nao considerar o valor o estorno
+					// como um credito, pois o estorno considera um cliente e a gravacao considera outro.
+					If nOpcao == 2 .And. (SC6->C6_CLI+SC6->C6_LOJA <> M->C5_CLIENTE+M->C5_LOJACLI)
+						nVlrCred := 0
+					EndIf
+					SC6->C6_FILIAL	:= xFilial("SC6")
+					SC6->C6_NUM		:= M->C5_NUM
+					SC6->C6_CLI		:= M->C5_CLIENTE
+					SC6->C6_LOJA 	:= M->C5_LOJACLI
+					
+					// Contabiliza itens do pedido de venda
+					If lCtbOnLine
+						nTotalCtb+=DetProva(nHdlPrv,"612","MATA410",cLoteCtb)
+					EndIf
+					
+					If SC6->C6_QTDLIB > 0.Or. SC5->C5_TIPO $ "CIP"
+						lLiberou := .T.
+					EndIf
+					
+					//Grava relacionamento entre SC6 e SD4,SDC
+					If !Empty(aEmpBn)
+						aAreaAtu := GetArea()
+						nY := aScan(aEmpBn, {|x| x[3] == SC6->C6_ITEM})
+						While !Empty (nY) .AND. nY <= Len(aEmpBn) .And. aEmpBn[nY,3] == SC6->C6_ITEM
+							(aEmpBn[nY,1])->(dbGoTo(aEmpBn[nY,2]))
+							If nTpCtlBN == 1 // metodo antigo - unico envio: gravacao na SD4
+								RecLock(aEmpBn[nY,1],.F.)
+								If aEmpBn[nY,1] == "SD4"
+									Replace D4_NUMPVBN With SC6->C6_NUM
+									Replace D4_ITEPVBN With SC6->C6_ITEM
+								Else
+									Replace DC_PEDIDO With SC6->C6_NUM
+									Replace DC_ITEM   With SC6->C6_ITEM
+								EndIf
+								MsUnLock()
+							ElseIf nTpCtlBN == 2 // metodo novo - multiplos envios: gravacao na SGO
+								If aEmpBn[nY,1] == "SDC"
+									RecLock("SDC",.F.)
+									Replace DC_PEDIDO With SC6->C6_NUM
+									Replace DC_ITEM   With SC6->C6_ITEM
+								ElseIf aEmpBn[nY,1] == "SD4"
+									SGO->(dbSetOrder(2)) // GO_FILIAL+GO_NUMPV+GO_ITEMPV+GO_OP+GO_COD+GO_LOCAL
+									If !(SGO->(dbSeek(xFilial("SGO")+SC6->C6_NUM+SC6->C6_ITEM+SD4->D4_OP+SD4->D4_COD+SD4->D4_LOCAL)))
+										RecLock("SGO",.T.)
+										Replace GO_FILIAL  With xFilial("SGO")
+										Replace GO_OP      With SD4->D4_OP
+										Replace GO_COD     With SD4->D4_COD
+										Replace GO_LOCAL   With SD4->D4_LOCAL
+										Replace GO_NUMPV   With SC6->C6_NUM
+										Replace GO_ITEMPV  With SC6->C6_ITEM
+										Replace GO_TRT     With SD4->D4_TRT
+										Replace GO_RECNOD4 With SD4->(Recno())
+									Else
+										RecLock("SGO", .F.)
+									EndIf
+									Replace GO_QUANT   With SC6->C6_QTDVEN
+									Replace GO_QTSEGUM With ConvUM(SD4->D4_COD, SC6->C6_QTDVEN, 0, 2)
+								EndIf
+								MsUnLock()
+							EndIf
+							nY++
+						End
+						RestArea(aAreaAtu)
+					EndIf
+					If Type('aMemoSC6') <> 'U'
+						For nI := 1 To Len(aMemoSC6)
+							cCpoSC6 := aMemoSC6[nI,1]
+							MSMM(&cCpoSC6,,,GDFieldGet( aMemoSC6[nI,2], nX ),1,,,'SC6',aMemoSC6[nI,1])
+						Next nI
+					EndIf
+					MaAvalSC6("SC6",1,"SC5",lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,@nVlrCred)
+					
+					If lAtuSGJ
+						A650AvalPV()
+					Endif
+					
+					AGG->(DbSetOrder(1)) //AGG_FILIAL+AGG_PEDIDO+AGG_FORNEC+AGG_LOJA+AGG_ITEMPD+AGG_ITEM
+					If (nY	:= aScan(aColsAGG,{|x| Alltrim(x[1]) == Alltrim(SC6->C6_ITEM) })) > 0
+						For nZ := 1 To Len(aColsAGG[nY][2])
+							If Type( "nAutoAdt" ) == "N" .AND. nAutoAdt == 0
+								cItemSCH := GdFieldGet("AGG_ITEM",nz,NIL,aHeadAGG,ACLONE(aColsAGG[NY,2]))
+							Else
+								cItemSCH := aRatCTBPC[nY][2][nZ][aScan(aRatCTBPC[nY][2][nZ],{|x| x[1] == "AGG_ITEM"})][2]
+							EndIf
+							lAchou:=AGG->(MsSeek(xFilial("AGG")+SC5->C5_NUM+SC5->C5_CLIENTE+SC5->C5_LOJACLI+SC6->C6_ITEM+cItemSCH) )
+							If !aColsAGG[nY][2][nZ][nUsadoAGG+1]
+								RecLock("AGG",!lAchou)
+								For nW := 1 To nUsadoAGG
+									If aHeadAGG[nW][10] <> "V"
+										AGG->(FieldPut(FieldPos(aHeadAGG[nW][2]),aColsAGG[nY][2][nZ][nW]))
+									EndIf
+								Next nW
+								AGG->AGG_FILIAL	:= xFilial("AGG")
+								AGG->AGG_PEDIDO	:= SC5->C5_NUM
+								AGG->AGG_FORNEC:= SC5->C5_CLIENTE
+								AGG->AGG_LOJA	:= SC5->C5_LOJACLI
+								AGG->AGG_ITEMPD	:= SC6->C6_ITEM
+								MsUnlock()
+							ElseIf lAchou
+								RecLock("AGG",.F.)
+								AGG->(dbDelete())
+								MsUnlock()
+							EndIf
+						Next nZ
+					EndIf
+				EndIf
+				
+				//
+				// Template GEM - Gestao de Empreendimentos Imobiliarios
+				// Gera o contrato baseado nos dados do pedido de venda
+				//
+				If  HasTemplate("LOT") .AND. ExistTemplate("GEMXPV",,.T.)
+					// atualiza o status do empreendimento
+					ExecTemplate("GEMXPV",.F.,.F.,{ aCols[nX][nDeleted] ,SC6->C6_CODEMPR, 2 })
+				EndIf
+				
+				If lMta410I
+					ExecBlock("MTA410I",.f.,.f.,nX)
+				EndIf
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Caso seja o ultimo item e exclusao, exclui o cabecalho                 ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If nX == nMaxFor .And. nOpcao == 3
+					
+					If Len(aRegSCV) > 0
+						dbSelectArea("SCV")
+						For nCntForma := 1 to Len(aColsFor)
+							dbSelectArea("SCV")
+							MsGoto(aRegSCV[nCntForma])
+							RecLock("SCV")
+							dbDelete()
+							MsUnLock()
+						Next
+					Endif
+					
+					dbSelectArea("SC5")
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Atualiza os acumulados do SC5                                           ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					MaAvalSC5("SC5",2,lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,Nil,Nil,Nil,Nil,Nil,@nVlrCred)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Grava os lancamentos nas contas orcamentarias SIGAPCO    ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					PcoDetLan("000100","04","MATA410")
+					
+					//
+					// Template GEM - Gestao de Empreendimentos Imobiliarios
+					// Exclui os solidarios do cliente gravados no pedido de venda
+					//
+					If ExistTemplate("GEMXGRSOL",,.T.)
+						ExecTemplate("GEMXGRSOL",.F.,.F.,{nOpcao ,SC5->C5_NUM})
+					EndIf
+					
+					//
+					// Template GEM - Gestao de Empreendimentos Imobiliarios
+					// Exclui a condicao de venda "personalizada" do cliente gravado no pedido de venda
+					//
+					If ExistBlock("GEMXGRCVND",,.T.)
+						ExecBlock("GEMXGRCVND",.F.,.F.,{nOpcao ,SC5->C5_NUM ,SC5->C5_CONDPAG})
+					ElseIf ExistTemplate("GEMXGRCVND",,.T.)
+						ExecTemplate("GEMXGRCVND",.F.,.F.,{nOpcao ,SC5->C5_NUM ,SC5->C5_CONDPAG})
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Executa a exclusao da tabela SGJ                    ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If lAtuSGJ
+						A650DelSGJ("T")		//Por Total
+					Endif
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Exclui o SC5                                                           ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					dbSelectArea("SC5")
+					RecLock("SC5")
+					dbDelete()
+					MsUnLock()
+					// Verifica se o C5_DTLANC esta preenchido, se estiver preenchido contabiliza cabeçalho do PV.
+					If lCtbOnLine
+						If !Empty(SC5->C5_DTLANC)
+							nTotalCtb+=DetProva(nHdlPrv,"636","MATA410",cLoteCtb)
+						Endif
+					EndIf
+					
+					If (ExistBlock("MA410DEL"))
+						ExecBlock("MA410DEL",.F.,.F.)
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Apaga o SALDO do relacionamento com Adiantamentos³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If A410UsaAdi( SC5->C5_CONDPAG )
+						aRecnoSE1 := FPedAdtPed( "R", { SC5->C5_NUM }, .F. )
+						FPedAdtGrv( "R", 2, SC5->C5_NUM, aRecnoSE1 )
+					EndIf
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Retira relacionamento coma tabela NPM - SIGAAGR(UBS)			³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					
+					NPM->(dbSetOrder(2))
+					If NPM->(dbSeek(xFilial("NPM")+SC5->C5_NUM))
+						RecLock("NPM",.F.)
+						NPM->NPM_NUMPV := Space(TamSX3("NPM_NUMPV")[1])
+						MsUnlock()
+					EndIf
+					
+				EndIf
+				
+				
+				If SC5->C5_TIPLIB=="2" .And. !aCols[nX][nDeleted]
+					aAdd(aRegLib,SC6->(RecNo()))
+				EndIf
+			EndIf
+			CLOSETRANSACTION LOCKIN "SC5,SC6"
+			
+		Next nX
+		
+		Begin Transaction
+		
+		If ( lGravou ) .And. nOpcao <> 3
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Verifica a liberacao por pedido de venda                                ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If ( SC5->C5_TIPLIB=="2" .And. (lLiberou .Or. MaTesSel(SC6->C6_TES)) )
+				MaAvalSC5("SC5",3,lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,Nil,Nil,aRegLib,Nil,Nil,@nVlrCred)
+			EndIf
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Atualiza os acumulados do SC5                                           ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			MaAvalSC5("SC5",1,lLiber,lTransf,@lLiberOk,@lResidOk,@lFaturOk,Nil,Nil,Nil,Nil,Nil,Nil,@nVlrCred)
+			If INCLUI
+				While GetSX8Len() > nStack
+					ConfirmSX8()
+				EndDo
+			EndIf
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Pontos de entrada para todos os itens do pedido.    ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If ExistTemplate("MTA410T")
+				ExecTemplate("MTA410T",.F.,.F.)
+			EndIf
+			
+			If nModulo == 72
+				KEXF920()
+			EndIf
+			
+			If ExistBlock("MTA410T")
+				ExecBlock("MTA410T",.F.,.F.)
+			EndIf
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³  Processa Gatilhos                                   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			EvalTrigger()
+			//-- Integrado ao wms devera avaliar as regras para convocacao do servico e disponibilizar os
+			//-- registros do SDB para convocacao
+			If	IntDL() .And. !Empty(aLibSDB)
+				WmsExeDCF('2')
+			EndIf
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³EXECUTAR CHAMADA DE FUNCAO p/ integracao com sistema de Distribuicao - NAO REMOVER ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If SuperGetMv("MV_FATDIST") == "S" // Apenas quando utilizado pelo modulo de Distribuicao
+				D630Descon(cPedido)
+			EndIf
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Envia os dados para o modulo contabil             ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If lCtbOnLine
+				RodaProva(nHdlPrv,nTotalCtb)
+				If nTotalCtb > 0
+					cA100Incl(cArqCtb,nHdlPrv,1,cLoteCtb,lDigita,lAglutina)
+				EndIf
+			EndIf
+			
+			// Flag de contabilização on-line.
+			If lCtbOnLine
+				RecLock("SC5")
+				SC5->C5_DTLANC := dDataBase
+				MsUnlock()
+			Endif
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Adiciona ou Remove o privilegios deste registro.  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If nOpcao == 1 .OR. nOpcao == 3
+				
+				If !Empty(RetCodUsr())
+					cCodUsr:= RetCodUsr() //Usuário do protheus
+				Else
+					cCodUsr:= UsrPrtErp() //Usuario do portal
+				EndIf
+				nOperation	:= IIF(nOpcao==1,MODEL_OPERATION_INSERT,MODEL_OPERATION_DELETE)
+				cChave 	:= PadR(xFilial("SC5")+M->C5_NUM,TAMSX3("AO4_CHVREG")[1])
+				aAutoAO4	:= CRMA200PAut(nOperation,"SC5",cChave,cCodUsr,/*aPermissoes*/,/*aNvlEstrut*/,/*cCodUsrCom*/,/*dDataVld*/)
+				
+				If nOperation == MODEL_OPERATION_INSERT
+					
+					DbSelectArea("AO3")
+					AO3->(DbSetOrder(1))	// AO3_FILIAL+AO3_CODUSR
+
+					If AO3->(DbSeek(xFilial("AO3")+cCodUsr))
+						
+						If !Empty(M->C5_VEND1) .AND. AO3->AO3_VEND <> M->C5_VEND1
+							DbSelectArea("AO3")
+							AO3->(DbSetOrder(2))	// AO3_FILIAL+AO3_VEND
+							
+							If AO3->(DbSeek(xFilial("AO3")+M->C5_VEND1))
+								aAutoAO4Aux := CRMA200PAut(nOperation,"SC5",cChave,AO3->AO3_CODUSR,/*aPermissoes*/,/*aNvlEstrut*/,cCodUsr,/*dDataVld*/)
+								aAdd(aAutoAO4[2],aAutoAO4Aux[2][1])
+							EndIf
+						EndIf
+						
+					EndIf
+					
+				EndIf
+				
+				CRMA200Auto(aAutoAO4[1],aAutoAO4[2],nOperation)
+				
+			EndIf
+			
+		EndIf
+		
+		End Transaction
+	EndIf
+Else
+	lGravou := lXml
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Aciona integração via mensagem única          				³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If FWHasEAI("MATA410",.T.,,.T.) .And. lGravou
+	If M->C5_TIPO == "N"
+		FwIntegDef( 'MATA410' )
+	EndIf
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Ponto de entrada para refazer as liberações de estoque considerando o  ³
+//³ os registros de SDC da liberação anterior...                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If ( (ExistBlock("M410RLIB") ) )
+	aSaldoSDC := ExecBlock("M410RLIB",.f.,.f.,aSaldoSDC)
+EndIf
+
+RestArea(aArea)
+
+If lGravou .Or. nOpcao == 3
+	If nOpcao == 1
+		IntPVSServ(SC5->C5_NUM,3)
+	ElseIf nOpcao == 2
+		IntPVSServ(SC5->C5_NUM,4)
+	ElseIf nOpcao == 3
+		IntPVSServ(SC5->C5_NUM,5)
+	EndIf
+EndIf
+
+Return(lGravou)                                 

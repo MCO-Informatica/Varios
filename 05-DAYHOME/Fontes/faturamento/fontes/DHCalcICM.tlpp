@@ -1,0 +1,79 @@
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHCalcICM ºAutor  ³ Daniel Viana Moda  º Data ³  06/12/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Calculo da ST no campo C6_DWICMS (Valor ICMS)              º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DayHome                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function DHCalcICM
+
+Local aArea 	:= GetArea()
+Local nICMSDest := 0
+Local nMargem   := 0
+Local nPGRPROD := Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_GRPROD"}) 
+Local nICMSRET := Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_ICMSRET"})
+Local nDHICMS  := Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_DHICMS"})
+Local nVALOR   := Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_VALOR"})
+Local nDWIPI   := Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_DWIPI"})
+
+
+
+DbSelectArea("SF7")
+DbSetOrder(1)
+If DbSeek(XFilial("SF7")+aCols[n,nPGRPROD])
+//aCols[n,73])
+	
+	While AllTrim(SF7->F7_GRTRIB) == AllTrim(aCols[n,nPGRPROD])
+		
+		If SA1->A1_EST == SF7->F7_EST
+			
+			nMargem := SF7->F7_MARGEM
+			
+		EndIf
+		
+		SF7->(DbSkip())
+		
+	EndDo
+	
+	If SA1->A1_EST $ GetMv("MV_DHICM18")
+		
+		nICMSDest := 0.18
+		
+	ElseIf SA1->A1_EST $ GetMv("MV_DHICM12")
+		
+		nICMSDest := 0.12
+		
+	Else
+		
+		nICMSDest := 0.07                          
+		
+	EndIf
+	
+	If nMargem > 0
+
+		aCols[n,nDHICMS]  := Round(((((aCols[n,nVALOR]+aCols[n,nDWIPI])*(1+(nMargem/100)))*0.18))-(aCols[n,nVALOR]*nICMSDest),2)
+//		aCols[n,nICMSRET] := Round(((((aCols[n,nVALOR]+aCols[n,nDWIPI])*(1+(nMargem/100)))*0.18))-(aCols[n,nVALOR]*nICMSDest),2)
+	
+		//M->C6_DWICMS := ((M->C6_VALOR+M->C6_DWIPI)*nMargem*0.18)-(M->C6_VALOR*nICMSDest)
+		
+		If aCols[n,nDHICMS] <= 0
+			
+			aCols[n,nDHICMS] := 0.00
+			
+		EndIf
+		
+	EndIf
+	
+EndIf
+
+RestArea( aArea )
+
+Return

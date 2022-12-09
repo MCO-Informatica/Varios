@@ -1,0 +1,43 @@
+#include "protheus.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ EMP650   ³ Autor ³ GENILSON LUCAS      	³ Data ³ 24/06/10 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Ponto de Entrada para verificar se existe MP disponível.	  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Especifico Shangri-la                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function EMP650()
+
+    Local nPosProdOri	:= SC2->C2_PRODUTO
+    Local nOP			:= SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN
+    Local nPosProd  	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "G1_COMP"})
+    Local nPosArmaz 	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_LOCAL"})
+    Local nPosQuant		:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_QUANT"})
+    Local nPosDescri	:= aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "B1_DESC"})
+    Local _aArea        := GetArea()
+    local 	nI			:= 0
+    Local _nFator       := 0
+
+    For nI := 1 To Len(aCols)
+
+        _nFator  := Posicione("SB1",1,xFilial("SB1")+nPosProdOri,"B1_XPEMPEN")
+        
+		If Posicione("SB1",1,xFilial("SB1")+aCols[nI,nPosProd],"B1_TIPO")$"EM"
+            aCols[nI,nPosQuant] := Round((aCols[nI,nPosQuant]*(1+Iif(_nFator>0,_nFator,1)/100)),0)
+        else
+            aCols[nI,nPosQuant] := Round((aCols[nI,nPosQuant]*(1+Iif(_nFator>0,_nFator,1)/100)),8)
+        Endif
+
+    Next nI
+
+    RestArea(_aArea)
+
+    Return

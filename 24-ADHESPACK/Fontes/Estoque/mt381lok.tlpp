@@ -1,0 +1,31 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina |           | Autor | Lucas Baia          | Data |    //2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+
+User Function MT381LOK()
+
+Local _Inclui       := PARAMIXB[1]
+Local _Altera       := PARAMIXB[2]
+Local _lRet         := .T.
+Local _nTemNF       := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D4_XTEMNF" })]
+Local _nNumDoc      := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D4_XNUMDOC" })]
+Local _nNumSerie    := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D4_XNUMSER" })]
+
+IF _Inclui .OR. _Altera
+    IF _nTemNF == "S"
+        IF EMPTY(_nNumDoc) .OR. EMPTY(_nNumSerie)
+            _lRet   := .F.
+            FWAlertError("O Campo Tem NF está como 'S', precisa-se preencher os campos Número da NF e Série da NF!", "ATENÇÃO")
+        ENDIF
+    ENDIF
+ENDIF
+     
+Return (_lRet)

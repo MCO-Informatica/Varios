@@ -1,0 +1,88 @@
+#Include 'Protheus.ch'
+#Include 'TopConn.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina |           | Autor | Lucas Baia          | Data |    //2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+User Function xLibePDV(cPedido)
+Local lRet := .T.
+Local cPedido := SC5->C5_NUM //RECEBE O NÚMERO DO PEDIDO SELECIONADO
+
+Processa( {|| xLibPDV(cPedido)}, "Pedido de Venda", "Processando a Liberação...", .f.)
+
+return lRet
+
+Static Function xLibPDV(nPedido)
+Local lRet := .T.
+Local aArea := GetArea()
+Local aAreaC5 := SC5->(GetArea())
+Local aAreaC6 := SC6->(GetArea())
+Local nPedido := SC5->C5_NUM //RECEBE O NÚMERO DO PEDIDO SELECIONADO
+Local aAreaAux := {}
+Default nPedido := ""
+
+DbSelectArea('SC5')
+SC5->(DbSetOrder(1)) //C5_FILIAL + C5_NUM
+
+DbSelectArea('SC6')
+SC6->(DbSetOrder(1)) //C6_FILIAL + C6_NUM + C6_ITEM
+
+DbSelectArea('SC9')
+SC9->(DbSetOrder(1)) //C9_FILIAL + C9_PEDIDO + C9_ITEM
+
+//Se conseguir posicionar no pedido
+IF SC5->(DbSeek(FWxFilial('SC5') + nPedido))
+
+//Se conseguir posicionar nos itens do pedido
+IF SC6->(DbSeek(FWxFilial('SC6') + nPedido))
+   aAreaAux := SC6->(GetArea())
+
+IF !EMPTY(SC5->C5_NOTA) .AND. !EMPTY(SC5->C5_SERIE)
+    lRet := .F.
+    MsgAlert("O Pedido de Venda "+nPedido+" já está Faturado.")
+ELSEIF SC5->C5_LIBEROK == 'S'
+    lRet := .F.
+    MsgAlert("O Pedido de Venda "+nPedido+" já está liberado."+chr(13)+;
+    chr(13)+; 
+    "Desta forma, pode realizar a Nota Fiscal!")
+ELSE
+    lRet := .T.
+    IF DbSeek(xFilial("SC9")+nPedido)
+        While SC9->(!EOF()) .AND. SC9->C9_PEDIDO = nPedido
+            If SC9->C9_BLEST <> "10" .OR. SC9->C9_BLCRED <> "10"
+                A460Estorna(.T.)
+            EndIf
+        SC9->(dbSkip())
+        End
+    EndIf
+//Percorre todos os itens
+WHILE SC6->(!EoF()) .And. SC6->C6_NUM == nPedido
+    IF EMPTY(SC6->C6_NOTA) .AND. EMPTY(SC6->C6_SERIE)
+        RecLock("SC6",.F.)
+        MaLibDoFat(SC6->(RecNo()),SC6->C6_QTDVEN,,,.T.,.T.,.F.,.F.)
+        SC6->(MsUnLock())
+        SC6->(MaLiberOk({nPedido},.T.))
+        SC6->(DbSkip())
+    ENDIF
+ENDDO
+
+RecLock("SC5", .F.)
+    C5_LIBEROK := "S"
+SC5->(MsUnLock())
+
+MsgInfo("Pedido de Venda "+nPedido+" liberado com sucesso!","ATENÇÃO")
+
+ENDIF
+ENDIF
+ENDIF
+
+RestArea(aAreaC6)
+RestArea(aAreaC5)
+RestArea(aArea)
+Return lRet

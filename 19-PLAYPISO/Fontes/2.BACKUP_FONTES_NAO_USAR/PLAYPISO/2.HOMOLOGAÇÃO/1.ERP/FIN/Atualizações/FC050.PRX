@@ -1,0 +1,419 @@
+#include "FINC050.CH"
+#Include "PROTHEUS.Ch"
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³ Fun‡„o	 ³ FC050	³ Autor ³ Mauro                    ³ Data ³ 02/05/12 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Descri‡„o³ Consulta Titulos Baixados (Fornecedores)			   		  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Sintaxe  ³ FC050()      										                 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso		 ³ Lisonda													              ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function FC050 ()
+
+// ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+// ³ Par„metros para tela de atualiza‡“es ³
+// ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL nAlias, nValor, nSaldo
+Local nAcres  := 0
+Local nDecres := 0
+LOCAL oDlg,nOpca,oBrw,oCol,aBrowse:={},ni,aCpos
+Local aAreaSe2 := SE2->(GetArea())
+Local aArea := GetArea()
+Local nAbatim := 0
+Local cBcoPa := CRIAVAR("EF_BANCO",.F.)
+Local cAgePa := CRIAVAR("EF_AGENCIA",.F.)
+Local cCtaPa := CRIAVAR("EF_CONTA",.F.)
+Local cChqPa := CRIAVAR("EF_NUM",.F.)
+Local aCores 	:= {}
+Local aBut050 := {}
+
+Private cCadastro := STR0001  // "Contas a Pagar"
+//Private cNomearq, cSe2
+Private cSe2
+Private nJuros := 0
+Private dBaixa := dDataBase
+Private nCasas := GetMv("MV_CENT")
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Verifica se ‚ um registro Principal												³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If SE2->E2_TIPO $ MVABATIM
+	Return
+EndIf
+
+/*SaveInter()
+
+MsgMeter({| oMeter, oText, oDlg, lFim | ;
+			cNomeArq := Fn050Cria(oMeter, oText, oDlg, @lFim,@aCpos)},;
+			 STR0005,;  //"Criando Arquivo Tempor rio..."
+			 "Processando o Titulos a Pagar")
+			 //STR0024)	//"Consulta de T¡tulos a Pagar"
+*/			 
+			         
+cNomeArq := Fn050Cria(	@aCpos)			
+			
+If SE2->E2_SALDO = 0
+   dBaixa := SE2->E2_BAIXA
+   nSaldo := SE2->E2_VALOR
+Else
+   nSaldo := SaldoTit(SE2->E2_PREFIXO, SE2->E2_NUM, SE2->E2_PARCELA,;
+                      SE2->E2_TIPO, SE2->E2_NATUREZ, "P", SE2->E2_FORNECE, 1,;
+                      ,,SE2->E2_LOJA,,If(cPaisLoc=="BRA",SE2->E2_TXMOEDA,0))
+EndIf
+
+//Desconto Financeiro e Abatimento
+If !(SE2->E2_TIPO $ MVPAGANT+"/"+MV_CPNEG)
+	//Abatimento
+//	nAbatim	 := SomaAbat(SE2->E2_PREFIXO, SE2->E2_NUM, SE2->E2_PARCELA,"P",SE2->E2_MOEDA,,SE2->E2_FORNECE,SE2->E2_LOJA)
+//	fa080Juros(1, nSaldo)
+Else
+	aArea := GetArea()
+	DbSelectArea("SEF")
+	DbSetOrder(3)
+	//PA com cheque
+	If MsSeek(xFilial("SEF")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO))
+		Do While !Eof() .AND. SEF->(EF_FILIAL+EF_PREFIXO+EF_TITULO+EF_PARCELA+EF_TIPO) == ;
+								xFilial("SEF")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO)
+			If SEF->(EF_FORNECE+EF_LOJA) == SE2->(E2_FORNECE+E2_LOJA)
+				cBcoPa := EF_BANCO
+				cAgePa := EF_AGENCIA
+				cCtaPa := EF_CONTA
+				cChqPa := EF_NUM
+				Exit
+			EndIf		
+			DbSkip()
+		EndDo
+	Else	//PA sem cheque
+		DbSelectArea("SE5")
+		DbSetOrder(7)
+		If MsSeek(xFilial("SE5")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO+E2_FORNECE+E2_LOJA))
+			Do While !Eof() .AND. SE5->(E5_FILIAL+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA) == ;
+									xFilial("SE5")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO+E2_FORNECE+E2_LOJA)
+				If SE5->E5_TIPODOC == "PA"  //Registro inicial do PA
+					cBcoPa := E5_BANCO
+					cAgePa := E5_AGENCIA
+					cCtaPa := E5_CONTA
+					cChqPa := E5_NUMCHEQ
+					Exit
+				EndIf		
+				DbSkip()
+			EndDo
+		EndIf	
+	EndIf		
+	RestArea(aArea)
+EndIf
+
+nValor := xMoeda(SE2->E2_VALOR,SE2->E2_MOEDA,1,SE2->E2_EMISSAO,,If(cPaisLoc=="BRA",SE2->E2_TXMOEDA,0))
+
+RestInter()
+SE2->(RestArea(aAreaSe2))
+RestArea(aArea)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³ Fun‡„o	 ³ Fn050Cria³ Autor ³ Alessandro Freire	    ³ Data ³ 12/11/96 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Descri‡„o³ Cria o arquivo de trabalho para consulta titulos baixados  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Sintaxe  ³ Fn050Cria ()												  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso		 ³ Finc050													  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+//Static Function Fn050Cria(oMeter,oText,oDlg,lFim,aCampos)
+Static Function Fn050Cria(lFim,aCampos)
+
+Local cNomeArq := ""
+Local aTamSX3  := {}
+Local  aTamSX3a := {}
+
+Private nCont := 1
+//oMeter:nTotal := SE2->(RecCount())
+
+aTamSx3:= TamSX3("E5_DOCUMEN")
+aTamSx3a:= TamSX3("E5_HISTOR")
+
+aCampos	:= {{"OK","N",1,0},;
+				 {"DATAX", "D", 08, 0 }, ;
+				 { "JUROS     ", "N", 16, 2 }, ;
+				 { "MULTA     ", "N", 16, 2 }, ;
+				 { "CORRECAO  ", "N", 16, 2 }, ;
+				 { "DESCONTOS ", "N", 16, 2 }, ;
+				 { "PIS       ", "N", 16, 2 }, ;
+ 				 { "COFINS    ", "N", 16, 2 }, ;
+ 				 { "CSLL      ", "N", 16, 2 }, ;
+				 { "VALORPAGO ", "N", 16, 2 }, ;
+				 { "MOTIVO    ", "C", 03, 0 }, ;
+				 { "TIPODOC   ", "C", 02, 0 }, ;
+				 { "HISTORICO ", "C", aTamSx3a[1]+1,aTamSx3a[2]}, ;
+				 { "DATACONT  ", "D", 08, 0 }, ;
+				 { "DATADISP  ", "D", 08, 0 }, ;
+				 { "LOTE      ", "C", 04, 0 }, ;
+				 { "BANCO     ", "C", 03, 0 }, ;
+				 { "AGENCIA   ", "C", 05, 0 }, ;
+				 { "CONTA     ", "C", 10, 0 }, ;
+				 { "NROCHEQUE ", "C", 15, 0 }, ;
+				 { "DOCUMENTO ", "C", aTamSx3[1],aTamSx3[2]},;
+				 { "FILIAL    ", "C", 02, 0 }, ;
+				 { "RECONC    ", "C", 01, 0 },;
+				 { "NATUREZ   ", "C", 10, 0 }}
+
+If (Select("cNomeArq")<>0)
+	dbSelectArea ("cNomeArq")
+	dbCloseArea()
+Endif
+cNomeArq := CriaTrab(aCampos)
+dbUseArea (.T.,, cNomeArq, "cNomeArq", NIL, .F.)
+
+
+//Fr050Temp(oMeter,oText,oDlg,lFim)
+Fr050Temp()
+
+dbSelectArea("cNomeArq")
+dbGotop()
+
+Return cNomeArq
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o	 ³ Fr050Temp³ Autor ³ Pilar S. Albaladejo   ³ Data ³ 10.01.96 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Cria registro para arquivo tempor rio para consulta titulos³±±
+±±³			 ³ baixados 												  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe	 ³ Fr050Temp												  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso		 ³ Finc050													  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+//Static Function Fr050Temp(oMeter,oText,oDlg,lFim)
+Static Function Fr050Temp()
+
+Local cMoeda
+Local cSeq, nCorrec, nMulta, nDescont, nValPag, cMotivo, nJuros:=0
+Local cFilOrig  // Filial de Origem do Titulo
+Local aTamSX3   	:= TamSX3("E5_NUMERO")
+Local aFiliais    := {}
+Local nRegEmp  	:= SM0->(Recno())
+Local nRegAtu  	:= SM0->(Recno())
+Local lExclusivo  := !Empty(xFilial("SE5"))
+Local cEmpAnt  	:= SM0->M0_CODIGO
+Local nI
+Local nSituaca    := 1   
+Local nPis        := 0
+Local nCofins     := 0
+Local nCsll       := 0
+
+//Controla o Pis Cofins e Csll na baixa
+Local lPCCBaixa := SuperGetMv("MV_BX10925",.T.,"2") == "1"  .and. (!Empty( SE5->( FieldPos( "E5_VRETPIS" ) ) ) .And. !Empty( SE5->( FieldPos( "E5_VRETCOF" ) ) ) .And. ; 
+				 !Empty( SE5->( FieldPos( "E5_VRETCSL" ) ) ) .And. !Empty( SE5->( FieldPos( "E5_PRETPIS" ) ) ) .And. ;
+				 !Empty( SE5->( FieldPos( "E5_PRETCOF" ) ) ) .And. !Empty( SE5->( FieldPos( "E5_PRETCSL" ) ) ) .And. ;
+				 !Empty( SE2->( FieldPos( "E2_SEQBX"   ) ) ) .And. !Empty( SFQ->( FieldPos( "FQ_SEQDES"  ) ) ) )
+
+
+*ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+*³Salva ordem atual																		³
+*ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SE2")
+dbSetOrder(1)
+
+//bBlock:={|| oMeter:Set(nCont), SysRefresh(), !lFim}
+//EVAL(bBlock)
+nCont++
+
+cMoeda	:= IIF(Empty(SE2->E2_MOEDA),"1",StrZero(SE2->E2_MOEDA,1))
+
+dbSelectArea("SM0")
+dbSeek(cEmpAnt,.T.)
+nRegAtu := SM0->(RECNO())
+While !Eof() .and. SM0->M0_CODIGO == cEmpAnt
+	AADD(aFiliais,SM0->M0_CODFIL)
+	DbSkip()
+Enddo
+SM0->(dbGoto(nRegAtu))
+
+For nI := 1 to Len(aFiliais)
+
+   cFilAtu := aFiliais[nI]
+	cEmpAnt := SM0->M0_CODIGO
+	Do While !Eof() .and. M0_CODIGO == cEmpAnt .and. M0_CODFIL == cFilAtu
+	
+		DbSelectArea("SE2")
+		cFilAnt := SM0->M0_CODFIL
+	
+		DbSelectArea("SE5")
+		DbSetOrder(7)
+	
+		*ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		*³Grava as baixas do titulo															³
+		*ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If DbSeek(xFilial("SE5")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO+E2_FORNECE+E2_LOJA))
+			Do While !SE5->(Eof()) .and. ;
+				SE5->(E5_FILIAL+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA) == ;
+				xFilial("SE5")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO+E2_FORNECE+E2_LOJA)
+		
+                /*
+				If	(SE5->E5_RECPAG == "P" .AND. SE5->E5_TIPODOC == "ES") .OR. ;
+					(SE5->E5_RECPAG 	== "R" .and. SE5->E5_TIPODOC != "ES" .AND. ;
+					 !(SE5->E5_TIPO $ MVPAGANT+"/"+MV_CPNEG))
+				*/	 
+				//substituido bloco acima pelo abaixo [Mauro Nagata, Actual Trend, 20160310]
+			    If	(SE5->E5_RECPAG == "P" .AND. SE5->E5_TIPODOC == "ES") .OR. ;
+					(SE5->E5_RECPAG 	== "R" .and. SE5->E5_TIPODOC != "ES" .AND. ;
+					 !(SE5->E5_TIPO $ MVPAGANT+"/"+MV_CPNEG)) .Or. (SE5->E5_TIPODOC = "BA" .And. SE5->E5_MOTBX = "DAC")
+					 
+					SE5->(DbSkip())
+					Loop
+				EndIf
+		
+				If !Empty(xFilial("SE5")) .and. !Empty(xFilial("SE2"))
+					//Busca movimento de compensacao em outra filial
+					cFilOrig := SE5->E5_FILIAL
+					If SE5->E5_MOTBX == "CMP" .and. Empty(SE5->E5_LOTE)
+						If Empty(SE5->E5_FILORIG)
+							nRecSe5 := Recno()
+							dbGoto(nRecSE5-1)
+							cFilOrig := SE5->E5_FILORIG
+							dbGoto(nRecSe5)
+						Else
+							cFilOrig := SE5->E5_FILORIG
+						EndIf			
+					EndIf
+					//Verifico se o movimento pertence ao titulo pois posso, quando os arquivos 
+					// forem exclusivos, ter titulos com mesma chave nas diferentes filiais
+					If cFilOrig != SE2->E2_FILIAL
+						SE5->(dbSkip())
+						Loop
+					EndIf		
+				EndIf
+
+				cSeq := SE5->E5_SEQ
+		
+				Do While !SE5->(Eof()) .and. ;
+					SE5->(E5_FILIAL+E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA+E5_SEQ) == ;
+					xFilial("SE5")+SE2->(E2_PREFIXO+E2_NUM+E2_PARCELA+E2_TIPO+E2_FORNECE+E2_LOJA)+cSeq
+		
+			      //Movimento de inclusão do PA
+					If SE5->E5_TIPODOC == "PA"
+						SE5->(dbSkip())
+						Loop
+					EndIf
+			
+					If SE5->E5_SITUACAO == "C" .or. ;
+						SE5->E5_TIPODOC == "ES"
+						nSituaca := 2
+					Else
+						nSituaca := 1
+					EndIf
+
+					nCorrec := 0
+					nJuros  := 0
+					nMulta  := 0
+					nDescont:= 0
+					nValPag := 0
+					cMotivo := ""
+					nPis    := 0
+					nCofins := 0
+					nCsll   := 0
+								
+					If ( SE5->E5_TIPODOC $"VL#BA#V2#ES#CP" )
+						nValPag	:= SE5->E5_VALOR
+						cMotivo	:= SE5->E5_MOTBX 
+						If SE5->E5_MOTBX == "CMP"
+							nJuros   := SE5->E5_VLJUROS
+							nDescont := SE5->E5_VLDESCO				
+						EndIf
+                  //Impostos Lei 10925
+						If lPccBaixa .and. Empty(E5_PRETPIS) .and. !(E5_MOTBX == "PCC")
+							nPis    := SE5->E5_VRETPIS
+							nCofins := SE5->E5_VRETCOF
+							nCsll   := SE5->E5_VRETCSLL
+						EndIf			
+
+					EndIf
+			
+					If SE5->E5_TIPODOC$"CMüC2/CX/VM"
+						nCorrec := SE5->E5_VALOR
+					EndIf
+					If SE5->E5_TIPODOC$"DCüC2"
+						nDescont := SE5->E5_VALOR
+					EndIf
+			
+					If SE5->E5_TIPODOC$"MTüM2"
+						nMulta  := SE5->E5_VALOR
+					EndIf
+			
+					If SE5->E5_TIPODOC$"JRüJ2"
+						nJuros  := SE5->E5_VALOR
+					EndIf
+			
+					Reclock("cNomeArq",.T.)
+					cNomeArq->OK	      :=	nSituaca
+					cNomeArq->DATAX		:= SE5->E5_DATA
+					cNomeArq->JUROS		:= nJuros
+					cNomeArq->MULTA		:= nMulta
+					cNomeArq->CORRECAO	:= nCorrec
+					cNomeArq->DESCONTOS  := nDescont
+					cNomeArq->PIS        := nPis
+					cNomeArq->COFINS     := nCofins
+					cNomeArq->CSLL       := nCsll
+					cNomeArq->VALORPAGO  := nValPag
+					cNomeArq->MOTIVO  	:= cMotivo
+					cNomeArq->TIPODOC 	:=	SE5->E5_TIPODOC
+					cNomeArq->DATACONT	:= SE5->E5_DTDIGIT
+					cNomeArq->DATADISP	:= SE5->E5_DTDISPO
+					cNomeArq->LOTE	   	:= SE5->E5_LOTE
+					cNomeArq->HISTORICO  := SE5->E5_HISTOR
+					cNomeArq->BANCO		:= SE5->E5_BANCO
+					cNomeArq->AGENCIA	   := SE5->E5_AGENCIA
+					cNomeArq->CONTA		:= SE5->E5_CONTA
+					cNomeArq->NROCHEQUE	:= SE5->E5_NUMCHEQUE
+					If Empty(SE5->E5_IDENTEE)
+						cNomeArq->DOCUMENTO  := Substr(SE5->E5_DOCUMEN,1,3)+"-"+; //prefixo
+											         Substr(SE5->E5_DOCUMEN,4,9)+"-"+;  //numero
+												      Substr(SE5->E5_DOCUMEN,13,2)+"-"+; //parcela   
+												      Substr(SE5->E5_DOCUMEN,15,3)+"-"+; //tipo
+												      Substr(SE5->E5_DOCUMEN,18,8)  //fornecedor e loja
+					Else
+						cNomeArq->DOCUMENTO := SE5->E5_IDENTEE
+					EndIf
+					cNomeArq->FILIAL  := SE5->E5_FILIAL
+					cNomeArq->RECONC  := SE5->E5_RECONC
+					cNomeArq->NATUREZ := SE5->E5_NATUREZ
+			
+					MsUnlock()
+					DbSelectArea("SE5")
+					SE5->( dbSkip() )
+				EndDo
+			EndDo
+		EndIf
+		DbSelectArea("SM0")
+		DbSkip()
+	EndDo
+	//Se o SE5 for compartilhado eu leio apenas uma vez.
+	If !lExclusivo
+		Exit
+	Endif
+Next
+SM0->(dbGoTo(nRegEmp))
+cFilAnt := SM0->M0_CODFIL
+
+dbSelectArea("SE5")
+dbSetOrder(1)
+dbSeek(xFilial("SE5"))
+Return()

@@ -1,0 +1,110 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ MTA455I  ºAutor  ³FONTANELLI          º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Ponto de entrada para efetuar a gravacao da                º±±
+±±º          ³ Liberacao MANUAL (Origem MATA455 Estoque)                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MTA455I()
+
+_aArea:= GetArea()
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+
+	if alltrim(cEmpAnt) == '99'
+		alert ("(SIM) - MTA455I")
+	endif
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Bloqueios do SC9                                                      ³
+	//ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+	//³ C9_BLCRED: 01 - Bloqueio de Credito por Valor                         ³
+	//³            04 - Vencto do Limite de Credito                           ³
+	//³            05 - Bloqueio de Credito por Estorno                       ³
+	//³            06 - Bloqueio de Credito por Risco                         ³
+	//³            09 - Rejeicao de Credito                                   ³
+	//³                                                                       ³
+	//³ C9_BLEST:  02 - Bloqueio de Estoque                                   ³
+	//³            03 - Bloqueio Manual de Estoque                            ³
+	//³                                                                       ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	                          
+	IF SC5->C5_LIBEROK == "S"
+	
+		lCREDITO:= .F.
+		lESTOQUE:= .F.
+		
+		DbSelectArea("SC9")
+		DbSetOrder(1)
+		If DbSeek(xFilial("SC9")+SC5->C5_NUM)
+			While !Eof() .and. SC9->C9_PEDIDO == SC5->C5_NUM
+				
+				If !Empty(SC9->C9_NFISCAL)
+					dbSelectArea("SC9")
+					dbSkip()
+					Loop
+				Endif
+				
+				if SC9->C9_BLCRED $ "01|04|05|06|09"
+					lCREDITO:= .T.
+				endif
+				
+				if SC9->C9_BLEST $ "02|03"
+					lESTOQUE:= .T.
+				endif
+				
+				DbSelectArea("SC9")
+				Dbskip()
+			EndDo
+			
+			ATU_XSTATUS := SC5->C5_XSTATUS
+			
+			If lCREDITO .AND. !lESTOQUE
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS	:= "CRE"
+				SC5->(MsUnlock())
+			endif
+	
+			If lCREDITO .AND. lESTOQUE
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS	:= "AMB"
+				SC5->(MsUnlock())
+			endif
+			
+			If !lCREDITO .AND. !lESTOQUE
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS	:= "LIB"
+				SC5->(MsUnlock())
+			endif
+					
+			If !lCREDITO .AND. lESTOQUE  
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS	:= "EST"
+				SC5->(MsUnlock())
+			endif
+	
+			if ATU_XSTATUS $ 'SEP/CON/FAT'
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS := ATU_XSTATUS
+				SC5->(MsUnlock())
+			endif
+			
+		endif
+	
+	endif	
+
+endif
+
+RestArea(_aArea)
+
+Return

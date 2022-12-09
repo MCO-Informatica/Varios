@@ -1,0 +1,36 @@
+#include 'totvs.ch'
+
+/*
+Robert Santos
+Recalcuar custo da nota
+03 abr 2012
+*/
+user function dh119x( nRecSF1 , nvalabat ) 
+                   
+local nfator // fator por item   
+local ntotal
+         
+// nf
+dbselectarea("SF1")
+SF1->( dbgoto(nRecSF1) ) 
+
+if SF1->F1_TIPO == "C" // filtrar tipo da nf   
+	ntotal := SF1->F1_VALBRUT-nvalabat // total a ser rateado
+	
+	dbselectarea("SD1")  
+	if SD1->( dbseek( SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) ) )
+		while SD1->(D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) .and. !(SD1->(eof()))
+			                    
+			nfator := SD1->D1_TOTAL/SF1->F1_VALBRUT
+			
+			SD1->( reclock("SD1",.f.) )
+			SD1->D1_CUSTO := ntotal * nfator // aplicar valor corrigido
+			SD1->( msunlock() )
+			
+			SD1->(dbskip()) 
+			
+		enddo
+	endif
+endif
+
+return

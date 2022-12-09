@@ -1,0 +1,788 @@
+#Include "Rwmake.ch"
+#Include 'Protheus.ch'
+
+#define IT_ALIQICM	1
+#define IT_VALICM	2
+#define IT_BASEICM	3
+#define IT_VALIPI	4
+#define IT_BASEICM	5
+#define IT_VALMERC	6
+#define IT_DESCONTO	7
+#define IT_PRCUNI	8
+#define IT_VALSOL  	9
+#define NF_DESCZF	10 
+
+/*
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ TMKR3A  ³ Autor ³ Silverio Bastos        ³ Data ³ 02.03.10  ±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Emissao do Orçamento   VERION                               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+*/
+//------------------------------------------------------------------------------//
+//					Alterado em         19/12/2013						   		//
+//					por LEANDO DURAN  -  ADVTEC SOLUÇÕES INTEGRADAS        		// 
+//					Refeito os calculos dos impostos que não batem        		//
+//------------------------------------------------------------------------------//
+User Function TMKR3A
+
+// +-------------------------+
+// | Declaração de Variáveis |
+// +-------------------------+
+Local cDesc1        := "Emissão do Orçamento de Pedidos de Venda, de acordo com"
+Local cDesc2        := "intervalo informado na opção Parâmetros."
+Local cDesc3        := ""
+Local cPict         := ""
+Local Titulo        := "Emissão do Orçamento"            //Emissao do Pedido de Vendas - Televendas
+Local nLin          := 80
+Local Cabec1        := "Código"
+Local Cabec2        := "Nome"
+Local imprime       := .t.
+Local aOrd          := {}
+
+Private _nAliqIcm 	:= 0
+Private _nValIcm 	:= 0
+Private _nBaseIcm 	:= 0
+Private _nValIpi 	:= 0
+Private _nBaseIpi 	:= 0
+Private _nValMerc 	:= 0
+Private _nValSol 	:= 0
+Private _nValDesc 	:= 0
+Private _nPrVen 	:= 0
+Private _nDescZFM := 0
+Private _cProspect := 'F'
+Private _nItem:= 0
+
+Private lEnd        := .f.
+Private lAbortPrint := .f.
+Private Limite      := 132
+Private Tamanho     := "M"
+
+Private NomeProg    := "TMKR3A"
+Private nTipo       := 15
+Private aReturn     := {"Zebrado",1,"Administração",2,2,1,"",0}
+Private nLastKey    := 0
+Private cPerg       := PADR("MTR732",10)
+Private cbTxt       := Space(10)
+Private cbCont      := 0
+Private ContFl      := 1
+Private m_pag       := 1
+Private wnrel       := "TMKR3A"
+Private cString     := "SUA"
+  
+ If SM0->M0_CODIGO == "02"
+     U_2TMKR3A()
+     return()                                                                     
+  endif
+
+
+If msgBox("Imprime Orçamento na Versao do Word?","Confirma","YesNo")
+	If msgBox("Gera Orçamento na Versao do Word no Servidor? SIM = Servidor, NAO = Local        '  OBS - Para LOCAL tem que haver WORD instalado'"	,"Confirma","YesNo")
+		u_ORCCALLC(SUA->UA_NUM,"1")
+		// u_ORCCALLS(,,,,SUA->UA_NUM)
+    	return .t.
+    Else
+		u_ORCCALLC(SUA->UA_NUM,"2")
+		return .t.
+	Endif	
+Endif    
+
+Pergunte(cPerg,.f.)
+
+// +----------------------------------------+
+// | Monta a Interface Padrão com o Usuário |
+// +----------------------------------------+
+wnrel := SetPrint(cString,NomeProg,cPerg,@Titulo,cDesc1,cDesc2,cDesc3,.f.,aOrd,.t.,Tamanho,,.f.)
+
+If nLastKey == 27
+	DbSelectArea(cString)
+	DbSetOrder(1)
+	Set Filter to
+	Return
+EndIf          
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	DbSelectArea(cString)
+	DbSetOrder(1)
+	Set Filter to
+	Return
+EndIf
+
+nTipo := IIF(aReturn[4] == 1,15,18)
+
+// +-----------------------------------------------------+
+// | RPTSTATUS monta Janela com a Régua de Processamento |
+// +-----------------------------------------------------+
+RptStatus({|| RunReport(Cabec1,Cabec2,Titulo,nLin)},Titulo)
+
+SUA->(DBCLOSEAREA())
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFun‡„o    ³RUNREPORT º Autor ³ AP6 IDE            º Data ³  02/03/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri‡„o ³ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS º±±
+±±º          ³ monta a janela com a regua de processamento.               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Programa principal                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function RunReport(Cabec1,Cabec2,Titulo,nLin)
+
+Local nOrdem
+
+_cNrVrOrc := ""
+_cObs     := ""
+
+/*
+DBSELECTAREA("SUA") 
+DBSETORDER(1)
+
+If Empty(mv_par01)
+	_cNrVrOrc := SUA->UA_NUM
+	_cNrVrOrf := SUA->UA_NUM
+Else     
+	_cNrVrOrc := mv_par01
+	_cNrVrOrf := mv_par02
+EndIf
+
+DbSelectArea("SUA")
+DbSetOrder(1)
+
+If Empty(mv_par01)
+	DbSeek(xFilial("SUA") + _cNrVrOrc,.f.)
+Else                                                                                    
+
+	DbSeek(xFilial("SUA") + mv_par01,.f.)
+EndIf
+*/                                        
+
+_cNrVrOrf := SUA->UA_NUM
+While !Eof() .And. SUA->UA_NUM = _cNrVrOrf     //xFilial("SUA") == SUA->UA_FILIAL .And. //SUA->UA_NUM <= _cNrVrOrf
+		_cObs := Alltrim(SUA->UA_VEROBS)
+
+		If SUA->UA_PROSPEC 
+
+			// +----------------------+
+			// | Cadastro de Prospect |
+			// +----------------------+
+
+			DbSelectArea("SUS")
+			DbSetOrder(1)
+			DbSeek(xFilial("SUS") + SUA->UA_CLIENTE + SUA->UA_LOJA,.f.)
+
+		Else
+
+			// +---------------------+
+			// | Cadastro de Cliente |
+			// +---------------------+
+			DbSelectArea("SA1")
+			DbSetOrder(1)
+			DbSeek(xFilial("SA1") + SUA->UA_CLIENTE + SUA->UA_LOJA,.f.)
+
+		EndIf
+
+		// +----------------------+
+		// | Cadastro de Vendedor |
+		// +----------------------+
+
+		DbSelectArea("SA3")
+		DbSetOrder(1)
+		DbSeek(xFilial("SA3") + SUA->UA_VEND,.f.)
+
+		If Month(SUA->UA_EMISSAO) == 1
+			_cDMes := "Janeiro"
+		ElseIf Month(SUA->UA_EMISSAO) == 2
+			_cDMes := "Fevereiro"
+		ElseIf Month(SUA->UA_EMISSAO) == 3
+			_cDMes := "Marco"
+		ElseIf Month(SUA->UA_EMISSAO) == 4
+			_cDMes := "Abril"
+		ElseIf Month(SUA->UA_EMISSAO) == 5
+			_cDMes := "Maio"
+		ElseIf Month(SUA->UA_EMISSAO) == 6
+			_cDMes := "Junho"
+		ElseIf Month(SUA->UA_EMISSAO) == 7
+			_cDMes := "Julho"
+		ElseIf Month(SUA->UA_EMISSAO) == 8
+			_cDMes := "Agosto"
+		ElseIf Month(SUA->UA_EMISSAO) == 9
+			_cDMes := "Setembro"
+		ElseIf Month(SUA->UA_EMISSAO) == 10
+			_cDMes := "Outubro"
+		ElseIf Month(SUA->UA_EMISSAO) == 11
+			_cDMes := "Novembro"
+		ElseIf Month(SUA->UA_EMISSAO) == 12
+			_cDMes := "Dezembro"
+		EndIf
+
+		@ 003 , 046 Psay "Sao Paulo, " + Strzero(Day(SUA->UA_EMISSAO),2) + " de " + _cDMes + " de " + Str(Year(SUA->UA_EMISSAO),4)
+		@ 004 , 046 Psay "N. Cotacao de Projeto ==> " + SUA->UA_NUM
+		@ 005 , 001 Psay "A"
+
+		If SUA->UA_PROSPEC
+			@ 006 , 001 Psay SUS->US_NOME + " - " + SUS->US_COD + " - (Prospect)"
+		Else
+			@ 006 , 001 Psay SA1->A1_NOME + " - " + SA1->A1_COD
+		EndIf
+
+		@ 007 , 001 Psay "A/C: " + SUA->UA_DESCNT
+
+		If SUA->UA_PROSPEC
+			@ 008 , 001 Psay "FONE: " + SUS->US_DDD + " " + SUS->US_TEL
+			@ 008 , 040 Psay "FAX: "  + SUS->US_DDD + " " + SUS->US_FAX
+		Else
+			@ 008 , 001 Psay "FONE: " + SA1->A1_DDD + " " + SA1->A1_TEL
+			@ 008 , 040 Psay "FAX: "  + SA1->A1_DDD + " " + SA1->A1_FAX
+		EndIf
+
+		@ 010 , 001 Psay "VALORES EM REAIS"
+		@ 012 , 001 Psay "CUSTO DE PROJETO. ORÇAMENTO ABAIXO PRECOS E DEMAIS CONDICOES PARA FORNECIMENTO"
+		@ 013 , 001 Psay Replicate("-",132)
+
+/*
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+ITEM   QTD UN CODIGO          DESCRIÇÃO             ENTREGA IPI %  R$ UNIT MOEDA
+ 99  9.999 XX 123456789012345 12345678901234567890 99/99/99 99,99 9.999,99  EURO
+                              12345678901234567890  
+                              1234567890   
+*/
+//                                  1         2         3         4         5         6         7         8         9         A         B         C
+//                        0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012
+		@ 014 , 000 Psay Chr(15)
+		@ 014 , 001 Psay "|IT| QTD|UN|CODIGO         |DESCRICAO                                |ENTR |IPI%|CM|R$ UNIT   |% DESC| SALDO |SD COMPRA |          |"
+		@ 015 , 001 Psay Replicate("-",132)
+
+		Lin    := 16
+		_nTIPI := 0  // Total IPI
+		_nTICM := 0  // Total ICM
+		_nTSUB := 0  // Total Substituição Tributária
+		_nTPcv := 0  // Total Preço de Venda
+		_nTPR  := 0  // Total Preço em Reais
+		_nTPD  := 0  // Total Preço em Dolar
+		_nTPE  := 0  // Total Preço em Euros
+
+		If SUA->UA_PROSPEC == .F.
+			dbSelectArea("SA1")
+			dbSetOrder(1)
+			dbSeek(xFilial()+SUA->UA_CLIENTE+SUA->UA_LOJA)
+			
+			MaFisIni(SA1->A1_COD,SA1->A1_LOJA,"C","N",SA1->A1_TIPO,MaFisRelImp("MTR700",{"SC5","SC6"}),,,"SB1","MTR700")
+		Else
+			dbSelectArea("SUS")
+			dbSetOrder(1)
+			dbSeek(xFilial()+SUA->UA_CLIENTE+SUA->UA_LOJA)
+			MaFisIni(SUS->US_COD,SUS->US_LOJA,"C","N",SUS->US_TIPO,MaFisRelImp("MTR700",{"SUA","SUB"}),,,"SB1","MTR700")
+		EndIf
+		
+		DbSelectArea("SUB")
+		DbSetOrder(1)
+		DbSeek(xFilial("SUB") + SUA->UA_NUM,.f.)
+                                                              
+		_nItem:= 1
+
+		While !Eof() .And. xFilial("SUB") == SUB->UB_FILIAL .And. SUA->UA_NUM == SUB->UB_NUM
+
+				DbSelectArea("SB1")
+				DbSetOrder(1)
+				DbSeek(xFilial("SB1") + SUB->UB_PRODUTO,.f.)
+			
+				_nValIpi 	:= MaFisRet(_nItem,"IT_VALIPI" )  
+				_nValSol 	:= MaFisRet(_nItem,"IT_VALSOL" )
+                _nValicm    := MaFisRet(_nItem,"IT_VALICM" )
+
+				DbSelectArea("SUB")
+
+				@ Lin , 001 Psay "|" + SUB->UB_ITEM + "|"
+				@ Lin , 004 Psay SUB->UB_QUANT						Picture "@e 9,999"
+				@ Lin , 009 Psay "|" + SUB->UB_UM
+				@ Lin , 012 Psay "|" + SUB->UB_PRODUTO
+				@ Lin , 028 Psay "|" + SUBS(SB1->B1_DESC,1,40)
+
+				If mv_par03 == 1
+					@ Lin , 069 Psay "|"
+
+					If UPPER(Alltrim(SUB->UB_VRDDL)) == "IME"
+						@ Lin , 070 Psay Alltrim(SUB->UB_VRDDL)
+					Else
+						@ Lin , 070 Psay Alltrim(SUB->UB_VRDDL) + "DD"
+					EndIf
+
+					@ Lin , 075 Psay "|"
+					@ Lin , 076 Psay SB1->B1_IPI		Picture "@e 99.9"
+				EndIf	
+	
+				If SB1->B1_TPMOEDA <> " "
+
+					If SB1->B1_TPMOEDA == "D"
+
+						If mv_par03 == 1
+							@ Lin , 080 Psay "|"
+							@ Lin , 082 Psay "1"
+						EndIf
+
+						_nTPD := _nTPD + (SUB->UB_VRUNIT * SUB->UB_QUANT)
+					ElseIf SB1->B1_TPMOEDA == "E"
+
+						If mv_par03 == 1
+							@ Lin , 080 Psay "|"
+							@ Lin , 082 Psay "2"
+						EndIf
+
+						_nTPE := _nTPE + (SUB->UB_VRUNIT * SUB->UB_QUANT)
+					EndIf
+
+				Else
+
+					DbSelectArea("SBM")
+					DbSetOrder(1)
+					DbSeek(xFilial("SBM") + SB1->B1_GRUPO,.f.)
+
+					DbSelectArea("SUB")
+		
+					If SBM->BM_MOEDA == "R"
+
+						If mv_par03 == 1
+							@ Lin , 080 Psay "|"
+							@ Lin , 082 Psay "3"
+						EndIf
+
+						_nTPR := _nTPR + (SUB->UB_VRUNIT * SUB->UB_QUANT)
+					ElseIf SBM->BM_MOEDA == "D"
+
+						If mv_par03 == 1
+							@ Lin , 080 Psay "|"
+							@ Lin , 082 Psay "1"
+						EndIf
+
+						_nTPD := _nTPD + (SUB->UB_VRUNIT * SUB->UB_QUANT)
+					ElseIf SBM->BM_MOEDA == "E"
+
+						If mv_par03 == 1
+							@ Lin , 080 Psay "|"
+							@ Lin , 082 Psay "2"
+						EndIf
+
+						_nTPE := _nTPE + (SUB->UB_VRUNIT * SUB->UB_QUANT)
+					EndIf
+
+				EndIf
+
+				If mv_par03 == 1
+					@ Lin , 083 Psay "|"
+					@ Lin , 084 Psay SUB->UB_VRUNIT		Picture "@e 99,999.99"
+					@ Lin , 094 Psay "|"
+				EndIf
+
+				_nTIPI := _nTIPI + _nValIpi//((SUB->UB_VRUNIT * SUB->UB_QUANT) * (SB1->B1_IPI / 100))
+				_nTICM := _nTICM + _nValICM
+				_nTSUB += _nValSol//fValSub()
+				_nTPcv := _nTPcv + ( SUB->UB_VLRITEM)
+				nSdcp  := 0
+				nSaldo := 0
+
+				DbSelectArea("SB2")
+				DbSetOrder(1)
+				If DbSeek(Xfilial("SB2")+SUB->UB_PRODUTO+"01")
+   					nSaldo := (SB2->B2_QATU-(SB2->B2_RESERVA+SB2->B2_QEMP))
+			   		nSdcp  := SB2->B2_SALPEDI
+			   	Endif
+								      
+				@ Lin , 095 Psay SUB->UB_VRDESC 		Picture "@e 99.99"
+				@ Lin , 101 Psay "|"
+				@ Lin , 102 Psay nSaldo          		Picture "@e 99,999"
+				@ Lin , 109 Psay "|" 
+				@ Lin , 110 Psay nSdcp			       	Picture "@e 999,999"
+				@ Lin , 120 Psay "|"      
+				@ Lin , 121 Psay "          "        //	Picture "@e 999,999.99"  // SB1->B1_PRV1
+				@ Lin , 130 Psay "|" 
+				
+				DbSelectArea("SUB")
+				DbSkip()
+			_nItem++
+			Lin += 1
+		End
+
+
+// add impressao item nacional
+		DbSelectArea("SUB")
+		DbSetOrder(1)
+		DbSeek(xFilial("SUB") + SUA->UA_NUM,.f.)
+		_nItem:= 1
+		
+		While !Eof() .And. xFilial("SUB") == SUB->UB_FILIAL .And. SUA->UA_NUM == SUB->UB_NUM
+      
+        	if _nItem = 1
+        		@ Lin , 001 Psay Replicate("-",132)
+            	Lin += 1
+        		@ Lin , 000 Psay Chr(15)
+//				@ Lin , 001 Psay "|IT| QTD|UN|CODIGO         |DESCRICAO                                |ENTR |IPI%|CM|R$ UNIT   |"
+//			                      1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123
+				@ Lin , 001 Psay "|IT| QTD|DESCRICAO COMPLEMENTAR ITEM NACIONAL                                   |VR U.COMPRA|DT.U.COMP |VR COMPRA  |%MARG|R$ UNIT  |"
+				Lin += 1
+				@ Lin , 001 Psay Replicate("-",132)
+            	Lin += 1
+            endif
+       
+      
+          if SUB->UB_XVRCOMP + SUB->UB_XMARGEM > 0
+        	
+            @ Lin , 001 Psay "|" + SUB->UB_ITEM + "|"
+			@ Lin , 004 Psay SUB->UB_QUANT						Picture "@e 9,999"
+			@ Lin , 009 Psay "|"  
+			@ Lin , 010 Psay alltrim(SUBS(SUB->UB_XDESCAD,1,70))			// 01,92
+			@ Lin , 080 Psay "|" 
+			@ Lin , 081 Psay POSICIONE("SB1",1,XFILIAL("SB1")+SUB->UB_PRODUTO,"B1_UPRC") Picture "@e 99,999.99"
+			@ Lin , 092 Psay "|" 
+			@ Lin , 094 Psay POSICIONE("SB1",1,XFILIAL("SB1")+SUB->UB_PRODUTO,"B1_UCOM") 
+			@ Lin , 103 Psay "|" 
+			@ Lin , 104 Psay SUB->UB_VRUNIT 		Picture "@e 99,999.99"
+			@ Lin , 115 Psay "|" 
+			@ Lin , 116 Psay SUB->UB_XMARGEM		Picture "@e 99.99"
+			@ Lin , 121 Psay "|" 
+			@ Lin , 122 Psay SUB->UB_VRUNIT	   		Picture "@e 99,999.99"
+			@ Lin , 131 Psay "|"
+
+           	if  alltrim(SUBS(SUB->UB_XDESCAD,71,70)) <> ''
+				Lin += 1
+				@ Lin , 001 Psay 	 "|  |     |"+alltrim(SUBS(SUB->UB_XDESCAD,71,70))  // 93,92
+				@ Lin , 104 Psay "|           |     |         |" 
+			endif
+
+			if  alltrim(SUBS(SUB->UB_XDESCAD,141,70)) <> ''
+				Lin += 1
+				@ Lin , 001 Psay 	 "|  |     |"+alltrim(SUBS(SUB->UB_XDESCAD,141,70))  // 185,92
+				@ Lin , 104 Psay "|           |     |         |" 
+			endif
+
+			if  alltrim(SUBS(SUB->UB_XDESCAD,211,70)) <> ''
+				Lin += 1
+				@ Lin , 001 Psay 	 "|  |     |"+alltrim(SUBS(SUB->UB_XDESCAD,211,70))  // 277,92
+				@ Lin , 104 Psay "|           |     |         |" 
+			endif
+            Lin += 1 
+		  ENDIF
+		  DbSelectArea("SUB")
+		  DbSkip()
+		 _nItem++
+
+		End
+// fim
+
+
+		@ Lin , 001 Psay Replicate("-",132)
+		Lin += 1
+
+		@ Lin , 000 Psay Chr(18)
+
+		DbSelectArea("SE4")
+		DbSetOrder(1)
+		DbSeek(xFilial("SE4") + SUA->UA_CONDPG,.f.)
+
+		DbSelectArea("SM2")
+		DbSetOrder(1)
+		DbSeek(SUA->UA_EMISSAO,.f.)
+
+		Lin += 1
+
+		@ Lin , 001 Psay "COND. DE PAGTO........: " + SE4->E4_DESCRI
+		Lin += 1
+
+		@ Lin , 001 Psay "VALIDADE DA PROPOSTA..:"
+		Lin += 1
+
+		@ Lin , 001 Psay "I.P.I.................:"
+		@ Lin , 030 Psay _nTIPI								Picture "@ez 99,999.99"
+		Lin += 1
+
+		@ Lin , 001 Psay "I.C.M.S...............:"
+		@ Lin , 030 Psay _nTICM								Picture "@ez 99,999.99"
+		Lin += 1
+
+		@ Lin , 001 Psay "VLR. REAIS............:"
+		@ Lin , 026 Psay _nTPR								Picture "@ez 99,999,999.99"
+		Lin += 1
+
+		@ Lin , 001 Psay "VLR. R$ X TX DOLAR....:"
+		@ Lin , 026 Psay _nTPD								Picture "@ez 99,999,999.99"
+
+		If _nTPD > 0
+			@ Lin , 042 Psay "("
+			@ Lin , 043 Psay SM2->M2_MOEDA2				Picture "@ez 99.9999"
+			@ Lin , 050 Psay ")  =  "
+			@ Lin , 059 Psay (_nTPD/SM2->M2_MOEDA2)	Picture "@ez 99,999,999.99"
+		EndIf
+
+		Lin += 1
+
+		@ Lin , 001 Psay "VLR. R$ X TX EURO.....:"
+		@ Lin , 026 Psay _nTPE								Picture "@ez 99,999,999.99"
+        
+		If _nTPE > 0
+			@ Lin , 042 Psay "("
+			@ Lin , 043 Psay SM2->M2_MOEDA4				Picture "@ez 99.9999"
+			@ Lin , 050 Psay ")  =  "
+			@ Lin , 059 Psay (_nTPE / SM2->M2_MOEDA4)	Picture "@ez 99,999,999.99"
+		EndIf
+
+		Lin += 2
+
+		@ Lin , 001 Psay "VLR.TOTAL DOS PRODUTOS"
+		@ Lin , 026 Psay _nTPcv					Picture "@ez 99,999,999.99"  //Adicionado +_nTSUB por Alex Rodrigues - Adinfo Consultoria - 18/07/2013
+		Lin += 2
+
+		@ Lin , 001 Psay "VLR.TOTAL"
+		Lin += 1
+		@ Lin , 001 Psay "+ IPI + ICMS ST EM R$.:"
+		@ Lin , 026 Psay (_nTPcv+_nTIPI+_nTSUB+SUA->UA_FRETE)					Picture "@ez 99,999,999.99"  //Adicionado +_nTSUB por Alex Rodrigues - Adinfo Consultoria - 18/07/2013
+		Lin += 1
+		@ Lin , 001 Psay "VALOR SEM ICMS       .:"
+		@ Lin , 026 Psay (_nTPcv+_nTIPI+_nTSUB+SUA->UA_FRETE) - _nTICM			Picture "@ez 99,999,999.99"  //Adicionado +_nTSUB por Alex Rodrigues - Adinfo Consultoria - 18/07/2013
+		
+		Lin += 2
+
+			@ Lin , 001 Psay "OBSERVACAO: "
+			@ Lin , 013 Psay MSMM(SUA->UA_CODOBS,43)//SUBS(_cObs,1,60)
+			Lin += 1
+			If Len(SUA->UA_VROBSPV) >0
+			@ Lin , 013 Psay SUA->UA_VROBSPV//SUBS(_cObs,1,60)
+			Lin += 1
+            endif
+			If Len(_cObs) > 0
+			@ Lin , 001 Psay SUBS(_cObs,61,70)
+			Lin += 1 
+			endif
+
+		@ Lin , 001 Psay "- Conversao de Moeda (CM) => 1 = Dolar ; 2 = Euro ; 3 = Reais"
+		Lin += 1
+
+		@ Lin , 001 Psay "- Preco unitario a VISTA + ICMS(INCLUSO), IPI e ICMS ST(NAO INCLUSO),posto VERION-SP (FOB)."
+		Lin += 1
+
+		@ Lin , 001 Psay "- O preco e em REAIS, BASEADO no DOLAR/EURO DE VENDA e que sera CONVERTIDO"
+		Lin := 1
+
+		@ Lin , 001 Psay "  de acordo c/ VARIACAO da moeda do dia anterior efetivo ao faturamento."
+		Lin += 1
+
+		@ Lin , 001 Psay "- COND. PAGTO: Acima + Custo Financeiro**PARCELADO = IMPOSTOS 1 VENCIMENTO."
+		Lin += 1
+
+		@ Lin , 001 Psay "- CUSTO FINANCEIRO: Taxa de mercado vigente na data do efetivo faturamento."
+		Lin += 1
+
+		@ Lin , 001 Psay "- PRAZO ENTREGA:Conf.acima, salvo eventuais vendas ate a colocacao do pedido."
+		Lin += 1
+
+		@ Lin , 001 Psay "- FATURAMENTO MINIMO: R$ 250,00 (DUZENTOS E CINQUENTA REAIS), A VISTA."
+		Lin += 1
+
+		@ Lin , 001 Psay "- REMESSAS PARA IDENTIFICACAO, CONSERTO E GARANTIA: SOMENTE COM NOTA FISCAL."
+		Lin += 1
+
+		@ Lin , 001 Psay "Estamos a sua disposicao para quaisquer esclarecimentos. Sem mais."
+		Lin += 2
+
+		@ Lin , 001 Psay "ATENCIOSAMENTE,"
+		Lin += 1
+
+		@ Lin , 001 Psay SA3->A3_NOME + " E-MAIL E MSN: " + SA3->A3_EMAIL
+		Lin += 1
+
+		@ Lin , 001 Psay "VERION OLEOHIDRAULICA LTDA."
+		Lin += 1
+
+		@ Lin , 001 Psay "Tel.: 11 2100 7400"
+		Lin += 1
+
+		@ Lin , 001 Psay "Fax.: 11 2100 7409"
+		Lin += 1
+
+		@ Lin , 000 Psay Chr(15)
+		@ Lin , 001 Psay "Atendimento : " + SUA->UA_NUM 
+		Lin += 1
+        */
+		@ Lin , 001 Psay "Operador    : " + SUBS(Posicione("SU7",1,xFilial("SU7")+SUA->UA_OPERADO,"U7_NOME"),1,49) 
+		Lin += 1
+
+		@ Lin , 001 Psay "Inicio / Fim: " + SUA->UA_INICIO + " / " + SUA->UA_FIM 
+		@ Lin , 000 PSay Chr(18)
+
+		DbSelectArea("SUA")
+		DbSkip()
+Enddo
+
+/*
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+ITEM   QTD UN CODIGO          DESCRIÇÃO             ENTREGA IPI %  R$ UNIT MOEDA
+ 99  9.999 XX 123456789012345 12345678901234567890 99/99/99 99,99 9.999,99  EURO
+                              12345678901234567890  
+                              1234567890   
+
+         1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+- Preço acima e a VISTA, ICMS INCLUSO + IPI(NÃO INCLUSO), posto VERION - SP.
+- O preço é em REAIS, BASEADO no DOLAR COMERCIAL DE VENDA e que será CONVERTIDO
+  de acordo c/ VARIAÇÃO DO DOLAR do dia anterior efetivo ao faturamento.
+- COND. PAGTO: Acima + Custo Financeiro**PARCELADO = IMPOSTOS 1º VENCIMENTO.
+- CUSTO FINANCEIRO: Taxa de mercado vigente na data do efetivo faturamento.
+- PRAZO ENTREGA: Conf. acima, salvo eventuais vendas até a colocação do pedido.
+- PEDIDO MÍNIMO: R$ 100,00 (CEM REAIS), A VISTA.
+- REMESSAS PARA IDENTIFICAÇÃO, CONSERTO E GARANTIA: SOMENTE COM NOTA FISCAL.
+Estamos a sua disposição para quaisquer esclarecimentos. Sem mais.
+
+ATENCIOSAMENTE,
+VERION LTDA.
+*/
+
+Set Device To Screen
+Set Printer To
+
+RetIndex("SUA")   
+DbSelectArea("SUA")
+Set Filter to
+
+DbSelectArea("SUB")
+Set Filter To
+
+DbSetOrder(1)
+dbGotop()
+
+If ( aReturn[5] = 1 )
+	dbCommitAll()
+	OurSpool(wnrel)
+Endif
+
+Ms_Flush()
+
+Return
+
+//Adicionado por Alex Rodrigues - Adinfo Consultoria
+//Data: 18/07/2013
+//Faz o cálculo do valor da substituição tributária do item
+Static Function fValSub()
+
+//Código base do fonte MATA460.PRX
+_aSolid := {} 
+_nItemBrut := SUB->UB_VRUNIT * SUB->UB_QUANT
+_nPerIcm := AliqIcms("N",'S',SA1->A1_TIPO)
+_nItemIcm:= _nItemBrut * _nPericm / 100
+_nDifBsRet:=0
+_nDescZFranca:=0
+_nDifIcmRet := 0
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Soma o Frete e o IPI do Frete						 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//nItemBrut	 += (nFreBrutIpi + nFreteIpi)
+_aExcecao:=ExcecFis(SB1->B1_GRTRIB,IF(SUA->UA_PROSPEC,,SA1->A1_GRPTRIB))                                     
+//nMargemLucro := IF(_aExcecao[3]>0,_aExcecao[3],IIF(SC6->C6_PICMRET==0,SB1->B1_PICMRET,SC6->C6_PICMRET) )
+
+_nMargemLucro := IF(_aExcecao[3]>0,_aExcecao[3],SB1->B1_PICMRET )
+//If SC5->C5_TIPO == "D"
+//	nMargemLucro := SB1->B1_PICMENT
+//EndIf 
+
+_nBsIcmsRet:=0
+_nIcmsRet:=0
+//If ( SA1->A1_TIPO == "S" .Or. SA1->A1_TIPO == "F" )
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento para pedidos com produtos solidario e     ³
+	//³ nao solidario.                                       ³
+	//³ Denver                                               ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	/*
+	IF l460Solid
+		ICMSITEM 	:= (nItemIcm+nFreteIcm)  // variavel para ponto de entrada
+		QUANTITEM	:= nQuant					 // variavel para ponto de entrada
+		BASEICMRET	:= nItemBrut				 // criado apenas para o ponto de entrada
+		MARGEMLUCR	:= nMargemLucro  
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pontos de Entrada 								     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If (ExistTemplate("M460SOLI"))
+			aSolid := ExecTemplate("M460SOLI",.f.,.f.)
+		Endif
+		
+		If nModulo == 72
+			aSolid := KEXF760()
+		Endif
+
+		If (ExistBlock("M460SOLI"))
+			aSolid := ExecBlock("M460SOLI",.f.,.f.)
+		Endif
+		IF ValType(aSolid) == "A"
+			IF Len(aSolid) == 2
+				nBsIcmsRet := NoRound(aSolid[1])
+				nIcmsRet   := NoRound(aSolid[2])
+			Else
+				aSolid := {}
+			Endif
+		Else
+			aSolid := {}
+		Endif
+	Endif
+	*/
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento SOMENTE para pedido com cliente tipo 'S'  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If _nMargemLucro > 0.00 .And. Len(_aSolid) != 2 //.and. SA1->A1_TIPO == "S"
+		_nBsIcmsRet:=NoRound(_nItemBrut*(1+_nMargemLucro/100),2,@_nDifBsRet,16)
+		If Abs(_nDifBsRet)>=Round(10^(-2),2)
+			_nBsIcmsRet+=NoRound(_nDifBsRet)
+			_nDifBsRet-=NoRound(_nDifBsRet)
+		Endif
+		/*
+		If SF4->F4_BASEICM>0.00 .And. cMVBASERET =="S"
+			_nBsIcmsRet:=nBsIcmsRet*(SF4->F4_BASEICM/100)
+		Endif
+		*/
+//		_nAliqSolid:=AliqIcms(SC5->C5_TIPO,"S",SC5->C5_TIPOCLI,"S")/100
+		_nAliqSolid:=AliqIcms("N","S",SA1->A1_TIPO,"S")/100
+//		_nIcmsRet:=NoRound((_nBsIcmsRet*_nAliqSolid)-(If(_nDescZFranca>0,_nDescZFranca,nItemIcm+nFreteIcm)),2,@nDifIcmRet,16)
+		_nIcmsRet:=NoRound((_nBsIcmsRet*_nAliqSolid)-(If(_nDescZFranca>0,_nDescZFranca,_nItemIcm)),2,@_nDifIcmRet,16)
+		If Abs(_nDifIcmRet)>=Round(10^(-2),2)
+			_nIcmsRet+=NoRound(_nDifIcmRet)
+			_nDifIcmRet-=NoRound(_nDifIcmRet)
+		Endif
+		_nIcmsRet:=IIF(_nIcmsRet<0,0,_nIcmsRet)
+		_nBsIcmsRet:=NoRound(_nBsIcmsRet)
+	Endif
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Acumula valores de ICMS retido que nao entram no	 ³
+	//³ valor total da Nota Fiscal.                     	 ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	/*
+	If SF4->F4_INCSOL=="N"
+		nRetDesc+=nIcmsRet
+	Endif
+	*/
+	//_nTotIcmRet+=nIcmsRet
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Caso o TES nao gere duplicata e o Solidario nao entre³
+	//³ com pagamento do cliente,deve-se desconsiderar o reti³
+	//³ do na base do titulo.                                ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	/*
+	If SF4->F4_DUPLIC != "S" .and. nIcmsRet > 0 .and. SF4->F4_INCSOL == "N"
+		nAbatIcmRet += nIcmsRet
+	Endif
+	nBTotIcmRet+=nBsIcmsRet
+	*/
+//Endif
+
+Return(_nIcmsRet)                           

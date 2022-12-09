@@ -1,0 +1,88 @@
+#include 'totvs.ch'
+
+
+/*/{Protheus.doc} eicctbutils
+Utils para contabilizações de 
+títulos provenientes do EIC.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 21/07/2020
+@return return_type, return_description
+/*/
+user function eicctbutils(cPonto)
+
+    local xRet 
+    local cAliasTrb as character
+    local cNumPC as character
+    local aAreas as array
+    default cPonto := "GETHAWBINV"
+
+    xRet := alltrim(SE2->E2_NUM)
+
+    DO CASE
+        //------------------------------------------
+        //Retorna a PO/Embarque através do título
+        //------------------------------------------
+        CASE cPonto == "GETHAWBINV"
+
+            if alltrim(SE2->E2_TIPO) == 'PR'
+                
+                aAreas := {SC7->(getArea())}
+                cNumPC := alltrim(cValToChar(val(SE2->E2_NUM)))
+
+                dbSelectArea("SC7")
+                SC7->(dbSetOrder(1))
+                if SC7->(dbSeek(SE2->E2_FILIAL+padr(cNumPC,tamSx3("C7_NUM")[1])))
+                    if !empty(SC7->C7_NUMIMP)
+                        xRet := alltrim(SC7->C7_NUMIMP)
+                    endif
+                endif
+
+            elseif alltrim(SE2->E2_TIPO) == 'PRE'
+
+                cAliasTrb := getNextAlias()
+
+                beginSql alias cAliasTrb
+
+                    SELECT  SW62.W6_HAWB FROM %table:SW6% SW62
+                    WHERE SW62.R_E_C_N_O_ = (SELECT MAX(R_E_C_N_O_)FROM %table:SW6% SW6
+                                        WHERE SW6.W6_NUMDUP  = %exp:SE2->E2_NUM%     AND
+                                        SW6.%notDel%)
+                endSql
+
+                if (cAliasTrb)->(!eof())
+                    xRet := alltrim((cAliasTrb)->W6_HAWB)
+                endif 
+
+                (cAliasTrb)->(dbCloseArea())
+
+            elseif alltrim(SE2->E2_TIPO) == 'INV'
+                cAliasTrb := getNextAlias()
+
+                beginSql alias cAliasTrb
+                    SELECT SWB.WB_HAWB FROM %table:SWB% SWB
+                    WHERE SWB.WB_NUMDUP  = %exp:SE2->E2_NUM%     AND
+                          SWB.WB_PREFIXO = %exp:SE2->E2_PREFIXO% AND
+                          SWB.WB_TIPOTIT = %exp:SE2->E2_TIPO%    AND
+                          SWB.WB_PARCELA = %exp:SE2->E2_PARCELA% AND
+                          SWB.WB_FORN    = %exp:SE2->E2_FORNECE% AND
+                          SWB.WB_LOJA    = %exp:SE2->E2_LOJA%    AND
+                          SWB.%notDel%
+                endSql
+
+                if (cAliasTrb)->(!eof())
+                    xRet := alltrim((cAliasTrb)->WB_HAWB)
+                endif 
+
+                (cAliasTrb)->(dbCloseArea())
+
+            endif
+    ENDCASE
+
+    if !empty(aAreas)
+        aEval(aAreas, {|aArea|restArea(aArea)})
+        aSize(aAreas,0)
+    endif
+
+return xRet

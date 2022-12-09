@@ -1,0 +1,208 @@
+#include 'protheus.ch'
+#include 'tbiconn.ch'
+#include 'topconn.ch'
+#include 'fileio.ch'
+#INCLUDE "rwmake.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | PE01NFESEFAZ  | Autor | Lucas Baia - UPDUO         | Data | 08/11/2021
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada utilizado na Rotina de Nfe-Sefaz, serve para todos os 
+//        | fatores assim como Mensagens, Dados de Produtos, Duplicatas e etc...
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+// Links  | https://tdn.totvs.com/pages/releaseview.action?pageId=274327446
+//---------------------------------------------------------------------------
+
+USER FUNCTION PE01NFESEFAZ()
+Local aArea     := GetArea()
+Local aProd     := PARAMIXB[1] //array com dados do Produto (Código produto, descrição de prod, quantidade, lote, unidade de medida....)
+Local cMensCli  := PARAMIXB[2] //mensagem do cliente na nota
+Local cMensFis  := PARAMIXB[3] //mensagem fiscal da nota
+Local aDest     := PARAMIXB[4] //array com dados do destinatario (cnpj, nome, endereço,....)
+Local aNota     := PARAMIXB[5] //array com dados da nota (numero da nota, serie, data emissao ....)
+Local aInfoItem := PARAMIXB[6] //array com as informações dos itens (numero do pedido, numero item pedido....)
+Local aDupl     := PARAMIXB[7] //array com dados das duplicatas (prefixo, numero, parcela, vencimento.....)
+Local aTransp   := PARAMIXB[8] //array com dados do transportador (cnpj, nome, ins. estadual, endereço....)
+Local aEntrega  := PARAMIXB[9] //array com dados da entrega (cnpj, endereco, municipio, bairro, email,.....)
+Local aRetirada := PARAMIXB[10] //array com dados do local de retirada (cnpj, endereço, municipio, bairro, email....)
+Local aVeiculo  := PARAMIXB[11] //array com dados do veiculo transporte (placa, estado, ....)
+Local aReboque  := PARAMIXB[12] //array com dados do segundo veiculo transporte (placa, estado, ....)
+Local aNfVincRur:= PARAMIXB[13] //array com dados da Nota Fiscal de Produtor rural referenciada (nota, serie, emissao da nota, ...)
+Local aEspVol   := PARAMIXB[14] //array com dados do volume da nota (peso liquido, peso bruto,....)
+Local aNfVinc   := PARAMIXB[15] //array com dados do cupom fiscal (numero da nota, serie, emissao, chave da nota,....)
+Local AdetPag   := PARAMIXB[16] //array com detalhes do pagamento (forma pagamento, valor .....)
+Local aObsCont  := PARAMIXB[17] //array com observação do contribuinte
+Local cNatOper  := PARAMIXB[18] //array responsável pela Natureza de Operação.
+Local aRetorno  := {}
+
+fMensCli(aNota[04], @cMensCli) //aNota[04] = Tipo da Nota, cMensCli = "Local cMensCli  := PARAMIXB[2]"
+faDest(aDest[11], aDest[12], @aDest)
+faProd(@aProd,@aNota)
+fcNatOper(@cNatOper,@aNota)
+
+//O retorno deve ser exatamente nesta ordem e passando o conteúdo completo dos arrays
+//pois no rdmake nfesefaz é atribuido o retorno completo para as respectivas variáveis
+//Ordem:
+//      aRetorno[1] -> aProd
+//      aRetorno[2] -> cMensCli
+//      aRetorno[3] -> cMensFis
+//      aRetorno[4] -> aDest
+//      aRetorno[5] -> aNota
+//      aRetorno[6] -> aInfoItem
+//      aRetorno[7] -> aDupl
+//      aRetorno[8] -> aTransp
+//      aRetorno[9] -> aEntrega
+//      aRetorno[10] -> aRetirada
+//      aRetorno[11] -> aVeiculo
+//      aRetorno[12] -> aReboque
+//      aRetorno[13] -> aNfVincRur
+//      aRetorno[14] -> aEspVol
+//      aRetorno[15] -> aNfVinc
+//      aRetorno[16] -> AdetPag
+//      aRetorno[17] -> aObsCont 
+//      aRetorno[18] -> aProcRef 
+ 
+aadd(aRetorno,aProd)
+aadd(aRetorno,cMensCli)
+aadd(aRetorno,cMensFis)
+aadd(aRetorno,aDest)
+aadd(aRetorno,aNota)
+aadd(aRetorno,aInfoItem)
+aadd(aRetorno,aDupl)
+aadd(aRetorno,aTransp)
+aadd(aRetorno,aEntrega)
+aadd(aRetorno,aRetirada)
+aadd(aRetorno,aVeiculo)
+aadd(aRetorno,aReboque)
+aadd(aRetorno,aNfVincRur)
+aadd(aRetorno,aEspVol)
+aadd(aRetorno,aNfVinc)
+aadd(aRetorno,AdetPag)
+aadd(aRetorno,aObsCont)
+aadd(aRetorno,cNatOper)
+ 
+RestArea(aArea)
+
+RETURN aRetorno
+
+
+//*****************************************************/
+
+//---------------------------------------------------------------------------------
+// Rotina | fMensCli      | Autor | Lucas Baia - UPDUO        | Data | 02/06/2021
+//---------------------------------------------------------------------------------
+// Descr. | Foi criado uma Static Function para que possa trabalhar de forma
+//        | organizada no Fonte, neste caso seria para exibir Mensagens na DANFE.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+Static Function fMensCli(c_TpNota, cMensCli)
+
+IF c_TpNota == "0" //Nota Fical de Entrada.
+    cMensCli := SF1->F1_XOBS
+ENDIF
+
+Return Nil
+
+//*****************************************************/
+
+
+
+//*****************************************************/
+
+//---------------------------------------------------------------------------------
+// Rotina | faDest      | Autor | Lucas Baia - UPDUO        | Data | 23/03/2022
+//---------------------------------------------------------------------------------
+// Descr. | Foi criado para facilitar o Preenchimento das tags cPais e xPais.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+Static Function faDest(aDestEST, aDestDESC, aDest)
+
+IF SA1->A1_EST == "EX"
+
+    aDestEST    := IIF(Empty(SA1->A1_PAIS),"1058"  ,Posicione("SYA",1,xFilial("SYA")+SA1->A1_PAIS,"YA_SISEXP"))
+    aDestDESC   := IIF(Empty(SA1->A1_PAIS),"BRASIL",Posicione("SYA",1,xFilial("SYA")+SA1->A1_PAIS,"YA_DESCR" ))
+
+ELSE
+
+    aDestEST    := "1058"
+    aDestDESC   := "BRASIL"
+
+ENDIF
+
+Return Nil
+
+//*****************************************************/
+
+//---------------------------------------------------------------------------------
+// Rotina | faProd      | Autor | Lucas Baia - UPDUO        | Data | 28/03/2022
+//---------------------------------------------------------------------------------
+// Descr. | Foi criado para automatizar NCMs em caso de Exportação.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+Static Function faProd(aProd,aNota)
+
+Local I
+
+IF Alltrim(SF2->F2_EST)  == "EX"
+    For I := 1 To Len(aProd)
+        If !Empty(aProd[I][2])
+            //aProd[I][5]  := "33049990" //NCM zerado, pois se trata de Exportação.
+            aProd[I][8]  := "KG"
+            aProd[I][11] := "KG"
+            aProd[I][41] := ""
+        EndIf
+    Next
+ENDIF
+
+//Tratar o Lote e Data de Validade através dos campos Customizados da SD1.
+
+IF aNota[4] == "0" //1 - NF de Saída e 0 - NF de Entrada.
+
+    For I := 1 To Len(aProd)
+        If !Empty(ALLTRIM(POSICIONE("SD1",2,xFilial("SD1")+aProd[I][2]+aNota[2]+aNota[1],"D1_X_LOTE")))
+            If DTOS(POSICIONE("SD1",2,xFilial("SD1")+aProd[I][2]+aNota[2]+aNota[1],"D1_X_DTLOT")) = "20491231"
+					aProd[I][4] := ALLTRIM(aProd[I][4])+" - LOTE: "+ALLTRIM(POSICIONE("SD1",2,xFilial("SD1")+aProd[I][2]+aNota[2]+aNota[1],"D1_X_LOTE"))+" - VAL.: INDETERMINADO"
+			else
+					aProd[I][4] := ALLTRIM(aProd[I][4])+" - LOTE: "+ALLTRIM(POSICIONE("SD1",2,xFilial("SD1")+aProd[I][2]+aNota[2]+aNota[1],"D1_X_LOTE"))+" - VAL.: "+DTOC(POSICIONE("SD1",2,xFilial("SD1")+aProd[I][2]+aNota[2]+aNota[1],"D1_X_DTLOT"))
+			Endif
+        EndIf
+    Next
+
+ENDIF
+
+Return aProd
+
+//*****************************************************/
+
+
+//---------------------------------------------------------------------------------
+// Rotina | faProd      | Autor | Lucas Baia - UPDUO        | Data | 29/03/2022
+//---------------------------------------------------------------------------------
+// Descr. | Foi criado para mudar a Natureza de Operação com apenas 1 TES.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+Static Function fcNatOper(cNatOper,aNota)
+
+IF aNota[4] == "0" //1 - NF de Saída e 2 - NF de Entrada.
+
+    IF POSICIONE("SD1",1,xFilial("SD1")+aNota[2]+aNota[1],ALLTRIM("SD1->D1_TES"))  == "079"
+
+        cNatOper    := "Nota de Entrada própria emitida por solicitação do Físico para promover autor regularização conforme aviso recebido pelo DEC."
+
+    ENDIF
+
+ENDIF
+
+Return cNatOper
+
+//*****************************************************/

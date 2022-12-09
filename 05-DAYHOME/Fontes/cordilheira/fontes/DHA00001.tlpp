@@ -1,0 +1,99 @@
+#Include 'Protheus.ch'
+#INCLUDE "FWMVCDEF.CH" 
+/*/{Protheus.doc} ${DHA00001}
+(Cadastro de layout de Arquivo X registros do layout)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+User Function DHA00001()
+
+	Local aArea 		:= GetArea()
+
+	Private cCadastro	:= "Cadastro de Layout de arquivo x registros do Layout"
+
+	oBrowse := FWMBrowse():New()
+	oBrowse:SetAlias("Z00")
+	oBrowse:SetDescription(cCadastro)
+	oBrowse:SetUseFilter(.T.)
+	oBrowse:SetUseCaseFilter(.T.)
+
+	oBrowse:AddLegend("Z00_ATIVO == 'N' "	, "RED"		, "Inativo")
+	oBrowse:AddLegend("Z00_ATIVO == 'S' "	, "GREEN"	, "Ativo")
+
+			
+	oBrowse:Activate()
+	
+	RestArea(aArea)
+Return
+/*/{Protheus.doc} MENUDEF
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function MENUDEF()
+
+	Local aRotina 	:= {} 
+	
+	ADD OPTION aRotina TITLE "Pesquisar" 			   		ACTION "PesqBrw"          	OPERATION 1 ACCESS 0
+	ADD OPTION aRotina TITLE "Visualizar" 			  		ACTION "VIEWDEF.DHA00001"	OPERATION 2 ACCESS 0
+	ADD OPTION aRotina TITLE "Incluir" 			  			ACTION "VIEWDEF.DHA00001"	OPERATION 3 ACCESS 0
+	ADD OPTION aRotina TITLE "Alterar"				 		ACTION "VIEWDEF.DHA00001" 	OPERATION 4 ACCESS 0
+	ADD OPTION aRotina TITLE "Excluir"				 		ACTION "VIEWDEF.DHA00001" 	OPERATION 5 ACCESS 0
+					
+Return aRotina
+/*/{Protheus.doc} MODELDEF
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function ModelDef()
+
+Local oStruZ00 := FWFormStruct(1, "Z00")
+Local oModel	:= MPFormModel():New("MDHA00001",,,) 					
+
+oModel:AddFields("Z00UNICA", ,oStruZ00)
+oModel:GetModel("Z00UNICA"):SetDescription("Cadastro de Layout de arquivo x registros do Layout")
+
+Return oModel
+/*/{Protheus.doc} ViewDef
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function ViewDef()
+
+	Local oModel   := FWLoadModel( 'DHA00001' )
+	Local oStruZ00 := FWFormStruct( 2, 'Z00' )
+	Local oView
+
+		oView := FWFormView():New()
+		oView:SetModel( oModel )
+		oView:AddField( 'VIEW_Z00', oStruZ00, "Z00UNICA")
+		oView:CreateHorizontalBox( 'TELA' , 100 )
+		oView:SetOwnerView( 'VIEW_Z00', 'TELA' )
+	
+Return oView        

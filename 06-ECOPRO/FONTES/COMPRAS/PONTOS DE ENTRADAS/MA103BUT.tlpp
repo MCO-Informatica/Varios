@@ -1,0 +1,161 @@
+#Include 'Protheus.ch'
+ 
+//---------------------------------------------------------------------------------
+// Rotina | MA103BUT             | Autor | Lucas Baia          | Data |	13/11/2021
+//---------------------------------------------------------------------------------
+// Descr. | Inclusão de opções na EnchoiceBar pelo Documento de Entrada.											
+//---------------------------------------------------------------------------------
+// Uso    | ECOPRO
+//---------------------------------------------------------------------------------
+// Links  | https://tdn.totvs.com/pages/releaseview.action?pageId=102269141																		
+//---------------------------------------------------------------------------------
+User Function MA103BUT()
+Local aArea := GetArea()
+Local lEdit
+//Local nAba
+Local oCampo
+//Local X3Interm  := {}
+//Local X3VTrans
+Public __cCamNovo := ""
+
+//Public _campNDI, _campDTDI, _campLOCDES, _campUFDES, _campDTDES, _campCODEXP, _campCODFAB, _campLOJFAB, _campLOJEXP,;
+//_campINTERM, _campVTRANS
+
+/*
+CD5_NDI
+CD5_DTDI
+CD5_LOCDES
+CD5_UFDES
+CD5_DTDES
+CD5_CODEXP
+CD5_CODFAB
+CD5_LOJFAB
+CD5_LOJEXP
+CD5_INTERM
+CD5_VTRANS
+
+Adição e Sequencias de Adição.
+
+_campNDI
+_campDTDI
+_campLOCDES
+_campUFDES
+_campDTDES
+_campCODEXP
+_campCODFAB
+_campLOJFAB
+_campLOJEXP
+_campINTERM
+_campVTRANS
+
+1=Importação por conta própria;2=Importação por conta e ordem;3=Importação por encomenda
+*/
+
+/*aAdd(X3Interm , "1=[Importação por conta própria]")
+aAdd(X3Interm , "2=[Importação por conta e ordem]")
+aAdd(X3Interm , "3=[Importação por encomenda]")*/
+
+ 
+//Adiciona uma nova aba no documento de entrada
+oFolder:AddItem("* Observação da Nota Fiscal", .T.)
+//nAba := Len(oFolder:aDialogs)
+
+//oFolder:AddItem("* Importação - D.I", .T.)
+//nAba := oFolder:aDialogs[12]
+//nAba1 := oFolder:aDialogs[13]
+ 
+//Se for inclusão, irá criar a variável e será editável, senão irá buscar do banco e não será editável
+If INCLUI
+    __cCamNovo  := CriaVar("F1_XOBS",.F.)
+    /*_campNDI    := CriaVar("CD5_NDI",.F.)
+    _campDTDI   := CriaVar("CD5_DTDI",.F.)
+    _campLOCDES := CriaVar("CD5_LOCDES",.F.)
+    _campUFDES  := CriaVar("CD5_UFDES",.F.)
+    _campDTDES  := CriaVar("CD5_DTDES",.F.)
+    _campCODEXP := CriaVar("CD5_CODEXP",.F.)
+    _campCODFAB := CriaVar("CD5_CODFAB",.F.)
+    _campLOJFAB := CriaVar("CD5_LOJFAB",.F.)
+    _campLOJEXP := CriaVar("CD5_LOJEXP",.F.)
+    _campINTERM := CriaVar("CD5_INTERM",.F.)
+    _campVTRANS := CriaVar("CD5_VTRANS",.F.)*/
+    lEdit := .T.
+Else
+    __cCamNovo  := SF1->F1_XOBS
+    /*_campNDI    := CD5->CD5_NDI
+    _campDTDI   := CD5->CD5_DTDI
+    _campLOCDES := CD5->CD5_LOCDES
+    _campUFDES  := CD5->CD5_UFDES
+    _campDTDES  := CD5->CD5_DTDES
+    _campCODEXP := CD5->CD5_CODEXP
+    _campCODFAB := CD5->CD5_CODFAB
+    _campLOJFAB := CD5->CD5_LOJFAB
+    _campLOJEXP := CD5->CD5_LOJEXP
+    _campINTERM := CD5->CD5_INTERM
+    _campVTRANS := CD5->CD5_VTRANS*/
+    lEdit := .F.
+EndIf
+
+//Criando na janela o campo OBS
+@ 003, 003 SAY Alltrim(RetTitle("F1_XOBS")) OF oFolder:aDialogs[12] PIXEL SIZE 050,006
+@ 001,035 GET oCampo VAR __cCamNovo SIZE 200,60 MULTILINE OF oFolder:aDialogs[12] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "F1_XOBS", {GetHlpSoluc("F1_XOBS")[1]}, 5  )}
+
+
+//Inicia-se a criação dos campos da CD5
+/*
+@ 003, 003 SAY Alltrim(RetTitle("CD5_NDI")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 001, 045 MSGET oCampo VAR _campNDI SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_NDI", {GetHlpSoluc("CD5_NDI")[1]}, 5  )}
+
+
+@ 016, 003 SAY Alltrim(RetTitle("CD5_DTDI")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 014, 045 MSGET oCampo VAR _campDTDI SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_NDI", {GetHlpSoluc("CD5_NDI")[1]}, 5  )}
+
+@ 029, 003 SAY Alltrim(RetTitle("CD5_LOCDES")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 027, 045 MSGET oCampo VAR _campLOCDES SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_LOCDES", {GetHlpSoluc("CD5_LOCDES")[1]}, 5  )}
+
+@ 042, 003 SAY Alltrim(RetTitle("CD5_UFDES")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 040, 045 MSGET oCampo VAR _campUFDES SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_UFDES", {GetHlpSoluc("CD5_UFDES")[1]}, 5  )}
+
+@ 055, 003 SAY Alltrim(RetTitle("CD5_DTDES")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 053, 045 MSGET oCampo VAR _campDTDES SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_DTDES", {GetHlpSoluc("CD5_DTDES")[1]}, 5  )}
+
+@ 003, 158 SAY Alltrim(RetTitle("CD5_CODEXP")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 001, 200 MSGET oCampo VAR _campCODEXP SIZE 070, 006 OF oFolder:aDialogs[13] F3 "SA2" COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_CODEXP", {GetHlpSoluc("CD5_CODEXP")[1]}, 5  )}
+
+@ 016, 158 SAY Alltrim(RetTitle("CD5_LOJEXP")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 014, 200 MSGET oCampo VAR _campLOJEXP SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_LOJEXP", {GetHlpSoluc("CD5_LOJEXP")[1]}, 5  )}
+
+@ 029, 158 SAY Alltrim(RetTitle("CD5_CODFAB")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 027, 200 MSGET oCampo VAR _campCODFAB SIZE 070, 006 OF oFolder:aDialogs[13] F3 "SA2" COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_CODFAB", {GetHlpSoluc("CD5_CODFAB")[1]}, 5  )}
+
+@ 042, 158 SAY Alltrim(RetTitle("CD5_LOJFAB")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 040, 200 MSGET oCampo VAR _campLOJFAB SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_LOJFAB", {GetHlpSoluc("CD5_LOJFAB")[1]}, 5  )}
+
+@ 055, 158 SAY Alltrim(RetTitle("CD5_INTERM")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+//@ 053, 200 MSGET oCampo VAR _campINTERM SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+@ 053, 200 MSCOMBOBOX oCampo VAR _campINTERM ITEMS {"","1=Importação por conta própria","2=Importação por conta e ordem","3=Importação por encomenda"} SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_INTERM", {GetHlpSoluc("CD5_INTERM")[1]}, 5  )}
+
+@ 003, 313 SAY Alltrim(RetTitle("CD5_VTRANS")) OF oFolder:aDialogs[13] PIXEL SIZE 050,006
+@ 001, 355 MSCOMBOBOX oCampo VAR _campVTRANS VALID cBoxVTrans() SIZE 070, 006 OF oFolder:aDialogs[13] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "CD5_VTRANS", {GetHlpSoluc("CD5_VTRANS")[1]}, 5  )}
+*/
+//Se não houver edição, desabilita os gets
+If ! lEdit
+    oCampo:lActive := .F.
+EndIf
+
+RestArea(aArea)
+
+oFolder:ShowPage(1) //Iniciará com Folder 1 ao entrar na Rotina.
+
+Return

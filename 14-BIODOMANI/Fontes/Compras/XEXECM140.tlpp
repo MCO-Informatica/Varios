@@ -1,0 +1,118 @@
+#Include 'Protheus.ch'
+#Include 'TBICONN.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | XEXECM140        | Autor | Lucas Baia          | Data |    22/03/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para Gerar o Pedido de Vendas para Pré Nota.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+
+User Function XEXECM140()
+
+Local nOpc          := 3
+Local cQuery        := ""
+Local cAliasSC5     := GetNextAlias()
+Private aCabec      := {}
+Private aItens      := {}
+Private aLinha      := {}
+Private lMsErroAuto := .F.
+
+DbSelectArea('SC5')
+SC5->(DbSetOrder(1)) //C5_FILIAL + C5_NUM
+
+DbSelectArea('SC6')
+SC6->(DbSetOrder(1)) //C6_FILIAL + C6_NUM + C6_ITEM + C6_PRODUTO
+
+Area    := GetArea()
+AreaSC5 := SC5->(GetArea())
+AreaSC6 := SC6->(GetArea())
+
+//---> Inicia-se a Consulta Query SQL para que o ExecAuto execute de forma correta.
+//dbSelectArea("SF2")
+
+	cQuery := "SELECT * "
+	cQuery += "FROM "+RetSqlName("SC5")+" SC5 "
+	//cQuery += "INNER JOIN "+RetSqlName("SC6")+" SC6 ON SC5.C5_NUM = SC6.C6_NUM "
+	cQuery += "WHERE SC5.C5_NUM IN ('553483','553488','553491','553486','553503','553519','553521') "
+    cQuery += "AND C5_X_EMPFA = '0121' "
+	cQuery += "AND SC5.D_E_L_E_T_ = '' "
+	//cQuery += "AND SC6.D_E_L_E_T_ = '' "
+	cQuery += "ORDER BY SC5.C5_NUM "
+
+	cQuery := ChangeQuery(cQuery)
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSC5,.T.,.T.)
+
+    (cAliasSC5)->(dbGoTop())
+
+
+    While (cAliasSC5)->(!EOF())
+
+        IF SC6->(dbSeek(xFilial("SC6")+(cAliasSC5)->C5_NUM))
+ 
+            //PREPARE ENVIRONMENT EMPRESA "01" FILIAL "0121" MODULO "COM"
+            aCabec  := {}
+
+            aAdd(aCabec,{'F1_TIPO'      ,'N',NIL})
+            aAdd(aCabec,{'F1_FORMUL'    ,'S',NIL})
+            aAdd(aCabec,{'F1_DOC'       ,NxtSX5Nota("021",.T.),NIL})
+            aAdd(aCabec,{"F1_SERIE"     ,"021",NIL})
+            aAdd(aCabec,{"F1_EMISSAO"   ,dDataBase,NIL})
+            aAdd(aCabec,{'F1_FORNECE'   ,'RH0800',NIL})
+            aAdd(aCabec,{'F1_LOJA'      ,'01',NIL})
+            aAdd(aCabec,{"F1_ESPECIE"   ,"SPED",NIL})
+            aAdd(aCabec,{"F1_COND"      ,'001',NIL})
+            aAdd(aCabec,{"F1_STATUS"    ,'',NIL})
+            
+            aLinha  := {}
+
+            WHILE SC6->(!EOF()) .AND. SC6->C6_NUM == (cAliasSC5)->C5_NUM
+
+            aItens  := {}
+            
+
+            //aAdd(aItens,{'D1_ITEM'      ,"00"+SC6->C6_ITEM,NIL})
+            aAdd(aItens,{'D1_COD'       ,Alltrim(SC6->C6_PRODUTO),NIL})
+            aAdd(aItens,{"D1_QUANT"     ,SC6->C6_QTDVEN,Nil})
+            aAdd(aItens,{"D1_VUNIT"     ,SC6->C6_PRCVEN,Nil})
+            aAdd(aItens,{"D1_TOTAL"     ,SC6->C6_VALOR,Nil})
+            aAdd(aItens,{"D1_LOTECTL"   ,SC6->C6_X_LOTE,Nil})
+            aAdd(aItens,{"D1_LOCAL"     ,SC6->C6_LOCAL,Nil})
+            aAdd(aItens,{"D1_DTVALID"   ,SC6->C6_X_DTLOT,Nil})
+            aAdd(aItens,{"D1_TES"       ,'',NIL})
+            
+            aAdd(aLinha,aItens)
+            SC6->(DBSKIP())
+            ENDDO
+        
+            MSExecAuto({|x,y,z| MATA140(x,y,z)}, aCabec, aLinha, nOpc)
+
+            If lMsErroAuto
+                mostraerro()
+            Else
+                Alert("Nota fiscal "+SF1->F1_DOC+"/"+SF1->F1_SERIE+" inserida com sucesso!")
+            EndIf
+        ENDIF
+
+        DbSelectArea(cAliasSC5)
+        (cAliasSC5)->(DBSKIP())
+
+        lMsErroAuto := .F.
+
+    ENDDO
+
+
+(cAliasSC5)->(DbCloseArea())
+
+MsgInfo("Execauto MATA140 executado com sucesso!","EXECAUTO")
+
+RestArea(Area)
+RestArea(AreaSC5)
+RestArea(AreaSC6)
+
+//RESET ENVIRONMENT
+
+Return

@@ -1,0 +1,61 @@
+#INCLUDE "TOTVS.CH"
+
+USER Function BLQCONSIG()
+
+	Local aUser :={}
+	Local cEmail := ""
+	Local nX := 0
+	Local aAttach := {}
+	Local cPara := ""
+	Local lEnvEmail := SUPERGETMV("ES_EMACONS",.T.,.F.)
+
+	aUser := StrTokArr2(GETMV("ES_BLQCONS"),";", .T.)
+
+	FOR nX := 1 To Len (aUser)
+		cEmail  += alltrim(UsrRetMail(aUser[nX]))+";"
+		cPara += alltrim(UsrRetName(aUser[nX]))+ iif( Len(aUser) - nX < 1 ," "," ou ")
+	NEXT nX
+
+	MsgAlert("Solicitar Liberação do :" +cPara, "BLOQUEADO CONSIGNAÇÃO")
+	M->C5_CONTRA := 'CONS'
+
+	if lEnvEmail 
+
+		cAssunto := "Bloqueio Pedido Consignado - Pedido "+ ALLTRIM(M->C5_NUM)
+		cCC := "junior.gardel@gmail.com"
+		cTextoEmail := CORPOEMAIL()
+
+		cLog := "Enviado email para "+CRLF+cEmail+CRLF+DTOS(DATE())+TIME()
+
+		lEmail := U_ENVMAILIMCD(cEmail,cCC," ",cAssunto,cTextoEmail,aAttach,lEnvEmail)
+
+		U_GrvLogPd(M->C5_NUM,M->C5_CLIENTE,M->C5_LOJACLI,"Bloqueio Consignado",cAssunto, ' ' ,cLog)
+
+	ENDIF
+
+RETURN()
+
+Static Function CORPOEMAIL()
+	//Local nX := 0
+	Local cMensagem := ' '
+	Local cEmpresa := Alltrim(SM0->M0_CODIGO)+"/"+Alltrim(SM0->M0_CODFIL)+" - "+ALLTRIM(SM0->M0_NOME)+" - "+ALLTRIM(SM0->M0_FILIAL )
+
+	cMensagem := '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+	cMensagem += '<html xmlns="http://www.w3.org/1999/xhtml">'
+	cMensagem += '<head>'
+	cMensagem += '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'
+	cMensagem += '<title>PEDIDO DE VENDA '+M->C5_NUM+'</title>'
+	cMensagem += '</head>'
+	cMensagem += '<body>'
+
+	cMensagem += '<h2>Favor efetuar a liberação do pedido.</h2>'
+
+	cMensagem += '<p>Pedido: <strong>'+ ALLTRIM(M->C5_NUM) + '</strong></p>'
+	cMensagem += '<p>Cliente: <strong>'+ ALLTRIM(SA1->A1_NOME) + '</strong></p></br>'
+	cMensagem += '<p>Nome Fantasia: <strong>'+ ALLTRIM(SA1->A1_NREDUZ) + '</strong></p></br>'
+
+	cMensagem += '</BR><p>EMPRESA :<strong>'+ cEmpresa + '</strong></p>'
+	cMensagem += '</body> '
+	cMensagem += '</html>'
+
+Return(cMensagem)

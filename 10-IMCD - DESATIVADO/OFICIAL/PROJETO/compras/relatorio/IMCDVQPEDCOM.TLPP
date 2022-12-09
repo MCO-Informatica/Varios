@@ -1,0 +1,242 @@
+#include "tbiconn.ch
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+#INCLUDE "TOTVS.CH"
+/*/{Protheus.doc} IMCDVQPEDCOM
+Gerar Pedido de Compras para empresa VitaQualy
+@type function
+@version 1.0
+@author Junior Carvalho	
+@since 26/01/2021
+@param 
+@return nil, nil
+/*/
+
+User Function IMCDVQPEDCOM()
+
+	Local aArea := GetArea()
+
+	Local lAdjustToLegacy := .F.
+	Local lDisableSetup  := .T.
+	Local cLocal          := "C:\TEMP\"
+
+	Private oPrn
+//Fontes
+	Private oFont0	:= TFont():New( "Arial",,-07,,.F.,,,,,.F.)
+	Private oFont0N	:= TFont():New( "Arial",,-07,,.T.,,,,,.F.)
+	Private oFont1	:= TFont():New( "Arial",,-08,,.F.,,,,,.F.)
+	Private oFont1N := TFont():New( "Arial",,-08,,.T.,,,,,.F.)
+	Private oFont2 	:= TFont():New( "Arial",,-10,,.F.,,,,,.F.)
+	Private oFont2N := TFont():New( "Arial",,-10,,.T.,,,,,.F.)
+	Private oFont3 	:= TFont():New( "Arial",,-12,,.F.,,,,,.F.)
+	Private oFont3N := TFont():New( "Arial",,-12,,.T.,,,,,.F.)
+	Private oFont4 	:= TFont():New( "Arial",,-14,,.F.,,,,,.F.)
+	Private oFont4N := TFont():New( "Arial",,-14,,.T.,,,,,.F.)
+	//Private oTFont := TFont():New('Century Schoolbook',,-20,.T.)
+	//oTFont:Italic := .T.
+
+	Private nCol 		:=  010
+	Private	nPosCod		:=	020
+	Private	nPosDesc	:=	080
+	Private	nPosQtPed	:=	250
+	Private	nPosTpMoe	:=	300
+	Private	nPosPrcUni	:=	340
+	Private	nPosVlrTot	:=	400
+	Private	nPosDtEnt	:=	530
+	Private nMargDir	:=	590
+	Private nCentroPag	:=	300
+	Private cAliasSC7 := ""
+
+	nOpc := Aviso("Relatório Pedido de Compra", "Gerar o PDF do Pedido "+;
+		SC7->C7_NUM,;
+		{"CANCELAR","CONTINUAR"},2)
+
+	IF nOpc < 2
+		Return()
+	ENDIF
+
+	cFilePrint	:= "PEDIDO_DE_COMPRA_"+sc7->c7_num+"_"+Dtos(MSDate())+StrTran(Time(),":","")+".PD_"
+
+	lPreview := .T.
+	//oPrn  := FWMSPrinter():New(cFilePrint,6,.F.,,.T.)
+	oPrn := FWMSPrinter():New(cFilePrint, IMP_PDF, lAdjustToLegacy,cLocal, lDisableSetup, , , , , , .F., )
+	//oPrn:Setlandscape()
+	oPrn:SetPortrait()
+	oPrn:SetPaperSize(DMPAPER_A4)
+
+	oPrn:StartPage()
+
+
+	cAliasSC7 := GetNextAlias()
+
+	BEGINSQL ALIAS cAliasSC7
+
+	    SELECT  C7_FILIAL,	C7_TIPO	,C7_NUM, C7_ITEM,	C7_PRODUTO,	C7_DESCRI,	C7_UM,
+		C7_QUANT, C7_PRECO, C7_TOTAL,C7_DATPRF, C7_OBS, C7_FORNECE, C7_LOJA, C7_COND,
+		C7_EMISSAO, C7_TXMOEDA,	C7_MOEDA, A2_NOME,A2_END,A2_NR_END,A2_BAIRRO,A2_MUN,
+		A2_CEP,A2_EST, A2_INSCR,A2_CGC, E4_DESCRI	
+
+	    FROM %table:SC7% SC7 
+
+		INNER JOIN %table:SA2% SA2 ON ( SA2.A2_FILIAL = %exp:xFilial("SA2")% and SA2.A2_COD = SC7.C7_FORNECE AND
+		                               SA2.A2_LOJA = SC7.C7_LOJA AND
+									   SA2.%notDel%)
+	
+		INNER JOIN %table:SE4% SE4 ON ( SE4.E4_FILIAL = %exp:xFilial("SE4")% AND SE4.E4_CODIGO = SC7.C7_COND AND  SE4.%notDel%)
+
+	    WHERE SC7.C7_FILIAL =  %exp:xFilial("SC7")% AND 
+	          SC7.C7_NUM =  %exp:SC7->C7_NUM%       AND 
+	          SC7.%notDel%
+	    ORDER BY C7_FILIAL,C7_NUM,C7_ITEM
+
+	ENDSQL
+
+
+	nLin := PRINTCABEC( 1 )
+	cPedido := (cAliasSC7)->C7_NUM
+	vTotProd := 0
+
+	While !EOF() .and. (cAliasSC7)->C7_NUM == cPedido
+
+		oPrn:Say(nLin,nPosCod	, alltrim((cAliasSC7)->C7_PRODUTO) ,oFont0)
+
+		oPrn:Say(nLin,nPosDesc	, alltrim((cAliasSC7)->C7_DESCRI) ,oFont0)
+
+		oPrn:Say(nLin,nPosQtPed , Transform((cAliasSC7)->C7_QUANT,"@E 999,999.99" ) + " " + (cAliasSC7)->C7_UM ,oFont0)
+
+		oPrn:Say(nLin,nPosTpMoe ,  IF((cAliasSC7)->C7_MOEDA = 1,"R$",IF((cAliasSC7)->C7_MOEDA = 4,"EUR","US$"))   ,oFont0,100)
+
+		//Taxamoe := IF((cAliasSC7)->C7_MOEDA = 1,1, (cAliasSC7)->C7_TXMOEDA )
+
+		oPrn:Say(nLin,nPosPrcUni,  Transform((cAliasSC7)->C7_PRECO ,"@E 999,999.99" ) ,oFont0)
+
+		oPrn:Say(nLin,nPosVlrTot, Transform((cAliasSC7)->C7_TOTAL ,"@E 999,999.99" )+Space(5)+'Sem Impostos' ,oFont0)
+
+		oPrn:Say(nLin,nPosDtEnt	, dtoc(stod( (cAliasSC7)->C7_DATPRF )) ,oFont0)
+
+		vTotProd += (cAliasSC7)->C7_TOTAL
+
+		//nLin += 12
+
+		If nLin > 650
+			oPrn:EndPage()
+			oPrn:StartPage()
+			nLin := PRINTCABEC( 2 )
+		Endif
+
+		//nLin += 5
+		//oPrn:Line(nLin, nCol, nLin, nMargDir, 0, "-2")
+		nLin += 10
+
+		DbSelectArea(cAliasSC7)
+		dbSkip()
+	Enddo
+
+	nLin += 12
+
+	If nLin > 650
+		oPrn:EndPage()
+		oPrn:StartPage()
+		nLin := PRINTCABEC(2)
+	Endif
+
+	oPrn:SayAlign(nLin,nPosQtPed, "Totais: " ,oFont2N,100,12, CLR_BLACK, 0, 0 )
+	oPrn:SayAlign(nLin,nPosVlrTot-50, Transform(vTotProd ,"@E 999,999.99" ) ,oFont2N,100, 12, CLR_BLACK, 1, 0 )
+
+	oPrn:EndPage()
+	RestArea(aArea)
+
+	cFilePrint := cLocal+cFilePrint
+	File2Printer( cFilePrint, "PDF" )
+	oPrn:cPathPDF:= cLocal
+
+	oPrn:Preview()
+
+	alert("Arquivo foi salvo na pasta "+cLocal)
+
+	FreeObj(oPrn)
+	oPrn := Nil
+
+Return
+
+Static Function PRINTCABEC( nTipo )
+//Local cStartPath := GetSrvProfString("Startpath","")
+	Local nLinObs2 := 0
+	Local nX := 0
+	Default nTipo := 1
+
+//oPrn:SayBitmap(50, nPosCod+20 ,cStartPath+"FLWIMCDLG.bmp", 090, 0030)    //LOGO DA EMPRESA
+	nRow := 10
+	nCol := 10
+	nBottom := 130
+
+	DbSelectArea("SM0")
+	GetAdvFVal( "SM0", "M0_NOMECOM", cEmpAnt + cFilAnt, 1, "" )
+	aDados := GetAdvFVal("SM0", { "M0_NOMECOM","M0_ENDCOB","M0_CEPCOB", "M0_BAIRCOB",;
+	"M0_CIDCOB", "M0_ESTCOB","M0_CGC", "M0_INSC", "M0_TEL" }, cEmpAnt + cFilAnt, 1, { "", "", "", "", "", "", "", "","" })
+
+	
+	cCEP := aDados[3] +" - "+ capital(AllTrim(aDados[4])+" - "+AllTrim(aDados[5])+" - ")+aDados[6]
+
+	oPrn:Box( nRow, nCol, nBottom, nMargDir, "-4")
+	
+	oPrn:Say(020,nCentroPag-80, "ORDEM DE COMPRA: " + ALLTRIM((cAliasSC7)->C7_NUM) ,oFont3N,100)
+
+	oPrn:Say(050,nPosCod, Capital(AllTrim( aDados[1] )) ,oFont4N,100)
+	oPrn:Say(065,nPosCod, Capital( aDados[2]  ) ,oFont3N,100)
+	oPrn:Say(078,nPosCod, "CEP: "+cCEP,oFont3N,100)
+	oPrn:Say(091,nPosCod, "CNPJ: "+	Transform(aDados[7],"@r 99.999.999/9999-99")  ,oFont3N,100)
+	oPrn:Say(104,nPosCod, "Insc. Estadual: "+Transform(aDados[8],"@r 999.999.999.99") ,oFont3N,100)
+	oPrn:Say(117,nPosCod, "FONE/FAX: "+aDados[9],oFont3N,100)
+	oPrn:Say(117,nMargDir-100, "Emissão: " + dtoc(stod( (cAliasSC7)->C7_EMISSAO)) ,oFont3N,100)
+
+	nLin := 130
+
+	if nTipo == 1 	//BLOCO 1 PAGINA 1
+//FORNECEDOR
+
+		nLin += 010
+		oPrn:Say(nLin ,nPosCod, "Fornecedor: "   ,oFont3N,100)
+		nLin += 010
+		oPrn:Say(nLin ,nPosCod, Alltrim((cAliasSC7)->A2_NOME) ,oFont3,100)
+		nLin += 10
+		oPrn:Say(nLin,nPosCod, Alltrim((cAliasSC7)->A2_END) +" "+(cAliasSC7)->A2_NR_END ,oFont3,100)
+		nLin += 10
+		cBairro := Alltrim((cAliasSC7)->A2_BAIRRO)+" - "+Alltrim((cAliasSC7)->A2_MUN) +" - "+Alltrim((cAliasSC7)->A2_EST)
+		oPrn:Say(nLin,nPosCod,cBairro,oFont3,100)
+		nLin += 10
+		oPrn:Say(nLin,nPosCod, "CEP "+Alltrim((cAliasSC7)->A2_CEP) ,oFont3,100)
+		nLin += 10
+		oPrn:Say(nLin,nPosCod , "Insc. Estadual:    " + Alltrim((cAliasSC7)->A2_INSCR) ,oFont3,100)
+		nLin += 10
+
+		oPrn:Say(nLin,nPosCod , "CNPJ     :    " + TransForm((cAliasSC7)->A2_CGC,"@r 99.999.999/9999-99") ,oFont2,100)
+
+		nLin += 20
+
+		oPrn:Say(nLin,nPosCod , "Condição de Pagamento:    " + ALLTRIM( (cAliasSC7)->E4_DESCRI ) ,oFont3N,100)
+
+		nLin += 20
+
+		oPrn:Say(nLin,nPosCod, "Observação: "+Alltrim( (cAliasSC7)->C7_OBS) ,oFont2,100)
+
+		//nLin += 10
+		//oPrn:Line( nLin, nCol, nLin, nMargDir, 0, "-2")
+		nLin += 20
+
+		oPrn:Say(nLin,nPosCod	, "Codigo" ,oFont2N,100)
+		oPrn:Say(nLin,nPosDesc	, "Produto" ,oFont2N,100)
+		oPrn:Say(nLin,nPosQtPed	, "Qtde" ,oFont2N,100)
+		oPrn:Say(nLin,nPosTpMoe	, "Moeda" ,oFont2N,100)
+		oPrn:Say(nLin,nPosPrcUni, "P. Unitario" ,oFont2N,100)
+		oPrn:Say(nLin,nPosVlrTot, "P. Total" ,oFont2N,100)
+		oPrn:Say(nLin,nPosDtEnt,  "Prev. Entrega" ,oFont2N,100)
+
+		//nLin += 05
+		//oPrn:Line(nLin, nCol, nLin, nMargDir, 0, "-2")
+		nLin += 10
+	Endif
+
+RETURN(nLin)
+
+Return()

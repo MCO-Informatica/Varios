@@ -1,0 +1,219 @@
+#INCLUDE "TBICONN.CH"
+#include "protheus.ch"
+
+//Padrao Zebra   
+
+/*
+configuracoes mais utilizadas de porta
+	cPorta := "COM2:9600,n,8,1"
+	cPorta := "COM2:9600,n,8,2"
+	cPorta := "COM2:9600,n,7,1"
+	cPorta := "COM2:9600,n,7,2"
+	cPorta := "COM2:9600,e,8,1"
+	cPorta := "COM2:9600,e,8,2"
+	cPorta := "COM2:9600,e,7,1"
+	cPorta := "COM2:9600,e,7,2"
+	cPorta := "LPT1"         
+
+	cPorta := "COM1:9600,N,8,1"  
+	MSCBPRINTER("S500-8",cPorta,          , 40   ,.f.)
+*/
+
+User Function EtiProdu //PRODUTO
+
+Local cPorta := "LPT1" 
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SB1", "SM0"
+
+dbselectArea("SB1")
+SB1->(DbGoTop())
+                       
+//MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+MSCBPRINTER("S500-8"  ,cPorta,,,.f.,,,,,"PRODUTO 1")
+ExecBlock("IMG01",,,{1,NIL,NIL,1,NIL,NIL,NIL,NIL,NIL,NIL,NIL,"LOTE00001","",NIL,NIL,NIL,NIL,NIL,NIL,NIL,NIL,0,0})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+
+User Function EtidispiD //DISPOSITIVO DE IDENTIFICACAO DO PRODUTO
+
+Local cPorta := "LPT1" 
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SB1", "SM0"
+
+dbselectArea("SB1")
+SB1->(DbGoTop())
+                       
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("Img01CX",,,{1,NIL,NIL,1,NIL,NIL})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function Etidisdesp  //DISPOSITIVO DE IDENTIFICACAO DE UNIDADE DE DESPACHO DO PRODUTO
+
+Local cPorta := "LPT1" 
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SB1", "SM0"
+
+dbselectArea("SB1")
+SB1->(DbGoTop())
+                       
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("Img01DE",,,{1,"123004"})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+
+User Function EtiVolum //VOLUME 
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SB1", "SM0"                                          
+
+//MSCBPRINTER(ModelPrt,cPorta,nDensidade,nTamanho,lSrv,nPorta,cServer,cEnv,nMemoria,cFila,lDrvWin,cPathIni)    
+MSCBPRINTER("S500-8"  ,cPorta,          ,        ,.f. ,      ,       ,    ,        ,"INTERMED")
+ExecBlock("IMG05",,,{"VOL1234","000675","000006","UNI"})
+MSCBCLOSEPRINTER()
+Return 
+//-------------------------------------------------------------------------------------------------------------------------- 
+User Function EtiVolof //VOLUME OFICIAL 
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SB1", "SM0"                                          
+
+//MSCBPRINTER(ModelPrt,cPorta,nDensidade,nTamanho,lSrv,nPorta,cServer,cEnv,nMemoria,cFila,lDrvWin,cPathIni)    
+MSCBPRINTER("S500-8"  ,cPorta,          ,        ,.f. ,      ,       ,    ,        ,"FORCELINE")
+//MSCBPRINTER("S500-8"  ,cPorta,          ,        ,.f. ,      ,       ,    ,        ,)
+ExecBlock("IMG05OFI",,,{02,05})
+MSCBCLOSEPRINTER()
+Return 
+//-------------------------------------------------------------------------------------------------------------------------- 
+User Function EtiVolEnt //VOLUME DE ENTRADA 
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SA2"
+    
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,)
+//							 volume  Nota       Serie      Fornecedor loja
+ExecBlock("IMG07",,,{"01/05","123456","SA1","Forn01", "01"})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function EtiEnder //ENDERECO
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+
+RPCSETType(3)   
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SBE"    
+
+dbselectArea("SBE")
+SBE->(DbGoTop())
+    
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("IMG02",.f.,,{Nil})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function EtiOperad //OPERADOR
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+
+RPCSETType(3)   
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "CB1"    
+
+dbselectArea("CB1")
+CB1->(DbGoTop())
+    
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("IMG04",.f.,,{Nil})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function EtiTrans //TRASNPORTADORA
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+
+RPCSETType(3)   
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SA4"    
+dbselectArea("SA4")
+SA4->(DbGoTop())
+    
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("IMG06",.f.,,{"Trasportadora Timao"})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function EtiPallet	//PALLET
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,) 
+ExecBlock("IMG10",.f.,,{"PALLET XYZ"})
+MSCBCLOSEPRINTER()
+Return 
+//--------------------------------------------------------------------------------------------------------------------------
+User Function EtiTemp //ETIQUETA TEMPORARIA 
+
+Local cPorta := "LPT1"   
+Private paramixb:={}
+RPCSETType(3) 
+PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" TABLES "SM0"    
+MSCBPRINTER("S500-8",cPorta,,,.f.,,,,)
+ExecBlock("IMGTMP",.f.)
+MSCBCLOSEPRINTER()
+Return 
+//-------------------------------------------------------------------------------------------------------------------------- 
+
+User Function TesteFonte ()
+
+Local nx,ny
+Local cFonte
+Local lin:=0  
+Local cPorta := "LPT1"   
+//Local cPorta := "COM1:9600,N,8,1"  
+
+MSCBPRINTER("S500-8"  ,cPorta,,,.f.,,,,,"FONTES")
+MSCBBEGIN(1,6,500)
+MSCBInfoEti("Produto","50X50")
+	For ny := 20 to 50
+		For nX := 40 to 50 
+			cFonte:= "'" + alltrim(str(nx)) + "," + alltrim(str(ny) )+ "'"		
+			//MSCBLOADGRF("SIGA.GRF")				
+		 	//MSCBBOX(02,01,99,75,4)
+			MSCBSAY(05,05+lin,'ABC123 abc = Fonte: ' + cFonte ,"N","0",@cFonte)			
+			//MSCBSAYBAR(15,44,cCodigo+cLote+cSLote,"N",cTipoBar,8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)
+			lin:= lin+4		 
+		Next	    
+	Next
+MSCBEND()
+MSCBCLOSEPRINTER()
+
+Return 
+
+User Function TESTPRT () 
+
+Local cTipoBar 		:= 'MB07' //128 
+Local cPorta 	:= "LPT1"					// Paralela   
+//Local cPorta := "COM1:9600,N,8,1"		// Serial  
+
+MSCBPRINTER("S500-8"  ,cPorta,,,.f.,,,,,"TESTE")
+MSCBBEGIN(1,6,50)
+	MSCBInfoEti("Produto","50X50")						
+	MSCBBOX(02,01,48,48,4)
+	MSCBSAY(10,10,'TESTE DE IMPRESSAO POR MSCBSPOOL' ,"N","0","40,40")			
+	MSCBSAYBAR(20,20,"1234567890AB","N",cTipoBar,8.36,.F.,.T.,.F.,,2,1,.F.,.F.,"1",.T.)	 
+MSCBEND()
+MSCBCLOSEPRINTER()
+
+Return

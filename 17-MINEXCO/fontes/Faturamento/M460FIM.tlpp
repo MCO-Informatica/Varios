@@ -1,0 +1,33 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | M460FIM       | Autor | Lucas Baia          | Data |    15/03/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado após geração da Nota.
+//---------------------------------------------------------------------------------
+// Uso    | MINEXCO
+//---------------------------------------------------------------------------------
+
+
+User Function M460FIM()
+
+Local lRet      := .T.
+Local aArea     := GetArea()
+Local aAreaC5   := SC5->(GetArea())
+Local nPedido   := SC5->C5_NUM 
+
+DbSelectArea('SC5')
+SC5->(DbSetOrder(1)) //C5_FILIAL + C5_NUM
+
+//Se conseguir posicionar no pedido
+IF SC5->(DbSeek(FWxFilial('SC5') + nPedido ))
+     //Grava o conteúdo na SF2
+    RecLock("SF2", .F.)
+        SF2->F2_MENNOTA := SC5->C5_OBSMIN
+    SF2->(MsUnlock())
+ENDIF
+
+RestArea(aAreaC5)
+RestArea(aArea)
+
+return lRet

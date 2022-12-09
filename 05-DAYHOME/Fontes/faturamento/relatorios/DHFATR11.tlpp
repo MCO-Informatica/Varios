@@ -1,0 +1,611 @@
+#Include "Protheus.Ch"
+#Include "TopConn.Ch"
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR01  ºAutor  ³Irineu Alves Carodoso Filho º Data ³  25/01/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Relatorio de faturas por notas fiscais.                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+Gilberto - 25-03-2010
+Ajuste realizado - Algumas duplicata nao sao apresentados no relatorio
+Motivo - Como a query verifica o Numero da NF no cabecalho do pedido
+nos pedidos parciais nao sao selecionados na query
+Criacao da funcao :fBuscPedNF para buscar o numero do pedido e trazer os dados do pedido
+*/
+
+
+User Function DHFATR11()
+
+	Local cPerg			:= PADR("DHFATR11",10,"X")
+	Local cTitulo		:= "Consulta de Faturas Por Notas Fiscais IPI"
+	Local cDesc			:= "Consulta de Faturas Por Notas Fiscais IPI"
+	
+	Private aDados		:= {}
+	Private oReport		:= Nil
+	Private oSection	:= Nil
+	Private oPen1		:= Nil
+	Private oPen2		:= Nil
+	Private oTFont1  	:= TFont():New("Arial",,-11,,.T.)
+	Private oTFont2 	:= TFont():New("Courier New",,-10,,.F.,,,15,,,,,,,,)
+	Private oTFont3 	:= TFont():New("Mono AS",,8,,.T.,,,15,,,,,,,,)
+	Private oTFont4 	:= TFont():New("Mono AS",,7,,.T.,,,15,,,,,,,,)
+	Private nLinha		:= 3200
+    DbSelectArea("SC5")
+    DbSetOrder(01)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Cria Perguntas no Arquivo SX1.³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	__AJUSTASX1(cPerg)
+	Pergunte(cPerg,.F.)
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Construcao do objeto TReport.³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport := TReport():New(cPerg,cTitulo,cPerg,{|oReport| __Gerencia() },cDesc)
+	oReport:lfooterVisible:=.F.
+	oReport:PrintDialog()
+
+Return
+
+
+Static Function __Gerencia()
+                            
+Local lReturn := .T.
+
+Processa({|| lReturn := __MontaQuery() }, "Selecionando os Registros ..." )
+
+If lReturn
+	MsgRun("Imprimindo Relatorio","DayHome", {|| __PrintRel() } )
+EndIf
+
+Return
+
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³__MontaQuery  ºAutor  ³Irineu Alves Cardoso Filho º Data ³  01/25/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao que gera os dados para a impressao do relatorio.               º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function __MontaQuery()
+
+
+Local nX
+Local cQuery      := ""
+Local lReturn     := .T.
+Local cCampos     := "E1_FILIAL|E1_NUM|E1_PARCELA|E1_VENCTO|E1_VALOR|E1_PREFIXO|E1_EMISSAO|C5_OPER|C5_TABELA|C5_NUM|F2_VALBRUT|F2_VALMERC|A1_NOME"
+Local nReg        := 0
+Local cFilialAtu  := ""
+Local cNumAtu     := ""
+Local cPrefixoAtu := ""
+Local nParc       := 0
+Local cNumPed     := ""
+Local cOperad     := ""
+Local cTabela     := ""
+cQuery += " SELECT	E1_FILIAL " + CRLF
+cQuery += " ,		E1_NUM    " + CRLF
+cQuery += " ,		E1_PARCELA " + CRLF
+cQuery += " ,		E1_VENCTO " + CRLF
+cQuery += " ,		E1_VALOR " + CRLF
+cQuery += " ,		E1_PREFIXO " + CRLF
+cQuery += " ,		E1_EMISSAO " + CRLF
+/*cQuery += " ,		C5_OPER " + CRLF
+cQuery += " ,		C5_TABELA " + CRLF
+cQuery += " ,		C5_NUM " + CRLF  */
+cQuery += " ,		F2_VALBRUT " + CRLF
+cQuery += " ,		F2_VALMERC " + CRLF
+cQuery += " ,		A1_NOME " + CRLF + CRLF
+
+cQuery += " FROM " + RetSqlName("SE1") + " SE1 " + CRLF + CRLF
+
+/*cQuery += " INNER JOIN " + RetSqlName("SC5") + " SC5 " + CRLF
+cQuery += " ON SC5.D_E_L_E_T_ = ' ' " + CRLF
+cQuery += " AND C5_NOTA = E1_NUM " + CRLF
+cQuery += " AND C5_SERIE = E1_PREFIXO " + CRLF + CRLF*/
+
+cQuery += " INNER JOIN " + RetSqlName("SF2") + " SF2 " + CRLF
+cQuery += " ON SF2.D_E_L_E_T_ = ' ' " + CRLF
+cQuery += " AND F2_DOC = E1_NUM " + CRLF
+cQuery += " AND F2_SERIE = E1_PREFIXO " + CRLF + CRLF
+
+cQuery += " INNER JOIN " + RetSqlName("SA1") + " SA1 " + CRLF
+cQuery += " ON SA1.D_E_L_E_T_ = '  ' " + CRLF
+cQuery += " AND A1_COD = E1_CLIENTE " + CRLF
+cQuery += " AND A1_LOJA = E1_LOJA " + CRLF + CRLF
+
+cQuery += " WHERE SE1.D_E_L_E_T_ = ' ' " + CRLF
+cQuery += " AND E1_FILIAL BETWEEN '" + mv_par01 + CRLF + "' AND '" + mv_par02 + "'" + CRLF
+cQuery += " AND E1_EMISSAO BETWEEN '" + Dtos(mv_par03) + "' AND '" + Dtos(mv_par04) + "'" + CRLF
+cQuery += " AND E1_CLIENTE BETWEEN '" + mv_par05 + "' AND '" + mv_par07 + "'" + CRLF
+cQuery += " AND E1_LOJA BETWEEN '" + mv_par06 + "' AND '" + mv_par08 + "'" + CRLF
+//cQuery += " AND C5_OPER BETWEEN '" + mv_par09 + "' AND '" + mv_par10 + "'" + CRLF + CRLF
+
+cQuery += " ORDER BY	E1_FILIAL " + CRLF
+cQuery += " ,			E1_NUM " + CRLF
+cQuery += " ,			E1_PREFIXO " + CRLF
+cQuery += " ,			E1_PARCELA "
+
+MEMOWRITE( "DHFATR11.sql", cQuery )
+TcQuery cQuery New Alias "TEMP"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Tratamento dos campos da Query ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aCampos := __InfoFields(cCampos)
+For nX := 1 To Len(aCampos)
+	TcSetField("TEMP", aCampos[nX][1], aCampos[nX][2], aCampos[nX][3], aCampos[nX][4])
+Next nX
+
+dbSelectArea("TEMP")
+TEMP->(dbGoTop())
+COUNT TO nReg
+TEMP->(dbGoTop())
+
+If nReg < 0
+	MsgInfo("Nao ha dados a serem impressos!")
+	lReturn := .F.
+Else
+	ProcRegua(nReg)
+	While TEMP->(!EOF())
+		cFilialAtu := TEMP->E1_FILIAL
+		cNumAtu := TEMP->E1_NUM
+		cPrefixoAtu := TEMP->E1_PREFIXO
+        cOperad     := ""
+        cTabela     := ""
+        cNumPed     := ""
+		nParc := 0             
+		fBuscPedNF(TEMP->E1_NUM,TEMP->E1_PREFIXO,TEMP->E1_FILIAL,@cOperad,@cTabela,@cNumPed)
+		DbSelectArea("TEMP")
+		If !(cOperad >= mv_par09 .and. cOperad <=  mv_par10)
+		    TEMP->(dbSkip())
+		    Loop
+		Endif
+		IncProc( "Selecionando os registro: FILIAL:" + ALLTRIM(TEMP->E1_FILIAL) + " TITULO: " + ALLTRIM(TEMP->E1_NUM) + "-" + ALLTRIM(TEMP->E1_PREFIXO)  )
+		Aadd(aDados, {	TEMP->E1_FILIAL+TEMP->E1_NUM+TEMP->E1_PREFIXO,; //1 - Chave de Pesquisa
+							TEMP->E1_FILIAL,;	//2 - Filial
+							TEMP->E1_NUM,;		//3 - Numero da Duplicata
+							cNumPed,;		    //4 - Numero do Pedido
+							cTabela     ,;	    //5 - Tabela
+							cOperad    ,;		//6 - Operacao
+							TEMP->E1_EMISSAO,;	//7 - Emissao
+							TEMP->A1_NOME,;		//8 - Nome do Cliente
+							TEMP->F2_VALBRUT,;	//9 - Valor Bruto
+							TEMP->F2_VALMERC,;	//10 - Valor das Mercadorias
+							{ } } )				//11 - Array
+
+		While TEMP->(!EOF()) .AND. ( cFilialAtu == TEMP->E1_FILIAL .AND. cNumAtu == TEMP->E1_NUM .AND. cPrefixoAtu == TEMP->E1_PREFIXO )
+
+			Aadd(aDados[Len(aDados)][11],	{	ALLTRIM(TEMP->E1_NUM)+"/"+IIF( EMPTY(ALLTRIM(TEMP->E1_PARCELA)), "A",ALLTRIM(TEMP->E1_PARCELA)) ,;	// 11.1 - Numero da Duplicata+Parcela
+												TEMP->E1_VENCTO,;	//11.2 - Vencimento
+												TEMP->E1_VALOR,;	//11.3 - Valor da Duplicata Bruto
+												0 } )				//11.4 - Valor da Duplicata - IPI
+			nParc++ //Total de Parcela
+			TEMP->(dbSkip())
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Tratamento para preencher a posicao 11 do array aDados,³
+		//³pois eh o ( VALOR DA MERCADORIA - IPI )                ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nLen := Len(aDados)
+		nParc := Iif(nParc == 0, 1, nParc)
+		For nX := 1 To nParc
+			aDados[nLen][11][nX][4] := aDados[nLen][10]/nParc
+		Next nX
+
+	EndDo
+	TEMP->(dbCloseArea())
+EndIf
+
+Return lReturn
+
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³__PrintRel ºAutor  ³Irineu Filho        º Data ³  25/01/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao para impressao do relatorio apartir do Array aDados  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function __PrintRel()
+	
+	Local nX := 1
+	Local nY
+	Local lFlag := .F.
+
+	For nX := 1 To Len(aDados)
+		If oReport:Cancel()
+	 		Exit
+  		EndIf 
+
+		If nLinha >= 3150
+			nLinha := 225
+			If !lFlag
+				lFlag := .T.
+				oReport:StartPage()
+			Else
+				oReport:EndPage()
+				oReport:StartPage()
+			EndIf
+			__CabecR11()
+		EndIf
+			
+		oReport:Say(nLinha,		0010, aDados[nX][3],oTFont2,,, )
+		oReport:Say(nLinha,		0200, aDados[nX][4],oTFont2,,, )
+		oReport:Say(nLinha,		0350, aDados[nX][5],oTFont2,,, )
+		oReport:Say(nLinha,		0500, aDados[nX][6],oTFont2,,, )
+		oReport:Say(nLinha,		0700, DTOC(aDados[nX][7]),oTFont2,,, )
+		oReport:Say(nLinha,		0900, UPPER(ALLTRIM(aDados[nX][8])),oTFont2,,, )
+		oReport:Say(nLinha,		1600, TRANSFORM( aDados[nX][9], "@R 999,999,999.99" ),oTFont2,,, )
+		oReport:Say(nLinha,		1850, TRANSFORM( aDados[nX][10], "@R 999,999,999.99" ),oTFont2,,, )
+		
+		nLinha += 50
+		If nLinha >= 3150
+			nLinha := 225
+			If !lFlag
+				lFlag := .T.
+				oReport:StartPage()
+			Else
+				oReport:EndPage()
+				oReport:StartPage()
+			EndIf
+			__CabecR11()
+		EndIf
+			
+		oReport:Say(nLinha,		0900, "Duplicata",oTFont1,,, )
+		oReport:Say(nLinha,		1200, "Vencimento",oTFont1,,, )
+		oReport:Say(nLinha,		1800, "Valor Duplicata",oTFont1,,, )
+		
+		nLinha += 50
+		If nLinha >= 3150
+			nLinha := 225
+			If !lFlag
+				lFlag := .T.
+				oReport:StartPage()
+			Else
+				oReport:EndPage()
+				oReport:StartPage()
+			EndIf
+			__CabecR11()
+		EndIf
+			
+		For nY := 1 To Len(aDados[nX][11])
+		    
+			If nLinha >= 3200
+				nLinha := 225
+				If !lFlag
+					lFlag := .T.
+					oReport:EndPage()
+					oReport:StartPage()
+				Else
+					oReport:StartPage()
+				EndIf
+			EndIf
+			
+			oReport:Say(nLinha,		0900, aDados[nX][11][nY][1],oTFont2,,, )
+			oReport:Say(nLinha,		1200, DTOC(aDados[nX][11][nY][2]),oTFont2,,, )
+			oReport:Say(nLinha,		1600, TRANSFORM( aDados[nX][11][nY][3], "@R 999,999,999.99" ),oTFont2,,, )
+			oReport:Say(nLinha,		1850, TRANSFORM( aDados[nX][11][nY][4], "@R 999,999,999.99" ),oTFont2,,, )
+			nLinha += 40
+			
+			If nLinha >= 3150
+				nLinha := 225
+				If !lFlag
+					lFlag := .T.
+					oReport:StartPage()
+				Else
+					oReport:EndPage()
+					oReport:StartPage()
+				EndIf
+				__CabecR11()
+			EndIf
+			
+		Next nY
+		nLinha += 30
+		If nLinha >= 3150
+			nLinha := 225
+			If !lFlag
+				lFlag := .T.
+				oReport:StartPage()
+			Else
+				oReport:EndPage()
+				oReport:StartPage()
+			EndIf
+			__CabecR11()
+		Else
+			oReport:Line (nLinha, 010, nLinha, 2200 )
+			nLinha += 50
+		EndIf
+
+	Next nX
+
+Return
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³__CabecR11  ºAutor  ³Irineu Filho    º Data ³  02/02/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao para impressao do Cabecalho.                      º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function __CabecR11()
+
+	Local oPen1 := TBrush():New("",10223615)
+	oReport:FillRect({nLinha-10,000,nLinha+85,4500},oPen1)	
+	
+	oReport:Say(nLinha,		0010,"Nota",oTFont1,,, )
+	oReport:Say(nLinha+=30,	0010,"Fiscal",oTFont1,,, )
+	oReport:Say(nLinha,		0200,"Pedido",oTFont1,,, )
+	oReport:Say(nLinha,		0350,"Tabela",oTFont1,,, )
+	oReport:Say(nLinha,		0500,"Operação",oTFont1,,, )
+	oReport:Say(nLinha,		0700,"Emissao",oTFont1,,, )
+	oReport:Say(nLinha,		0900,"Cliente",oTFont1,,, )
+	oReport:Say(nLinha,		1850,"Valor",oTFont1,,, )
+	nLinha += 60
+	oReport:Line (nLinha, 010, nLinha, 2200 )
+
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³__AJUSTASX1(cPerg) ºAutor  ³Irineu Filho    º Data ³  02/02/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao que cria o grupo de perguntas no SX1                     º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºParametros³ cPerg -> Variavel contendo o nome do grupo de perguntas.        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function __AJUSTASX1(cPerg)
+
+/*
+	Function PutSx1(cGrupo,cOrdem,cPergunt,cPerSpa,cPerEng,cVar,;
+					cTipo ,nTamanho,nDecimal,nPresel,cGSC,cValid,;
+					cF3, cGrpSxg,cPyme,;
+					cVar01,cDef01,cDefSpa1,cDefEng1,cCnt01,;
+					cDef02,cDefSpa2,cDefEng2,;
+					cDef03,cDefSpa3,cDefEng3,;
+					cDef04,cDefSpa4,cDefEng4,;
+					cDef05,cDefSpa5,cDefEng5,;
+					aHelpPor,aHelpEng,aHelpSpa,cHelp)
+*/
+
+	PutSx1(	cPerg, "01", "Filial de: ",	"Filial de: ", "Filial de: ",;
+					"mv_ch1", "C", 2, 0, 0, "G", "", "XM0",;
+					"", "", "mv_par01",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a filial inicial","",""},;
+					{"Selecione a filial inicial","",""},;
+					{"Selecione a filial inicial","",""}, )
+
+
+
+	PutSx1(	cPerg, "02", "Filial ate: ", "Filial ate: ", "Filial ate: ",;
+						"mv_ch2", "C", 2, 0, 0, "G", "", "XM0",;
+						"", "", "mv_par02",;
+						, , , ,;
+						, , ,;
+						, , ,;
+						, , ,;
+						, , ,;
+						{"Selecione a filial final","",""},;
+						{"Selecione a filial final","",""},;
+						{"Selecione a filial final","",""}, )
+	
+
+	
+	PutSx1(	cPerg, "03", "Emissao de: ", "Emissao de: ", "Emissao de: ",;
+					"mv_ch3", "D", 8, 0, 0, "G", "", "",;
+					"", "", "mv_par03",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a emissao inicial","",""},;
+					{"Selecione a emissao inicial","",""},;
+					{"Selecione a emissao inicial","",""}, )
+
+
+
+	PutSx1(	cPerg, "04", "Emissao ate: ", "Emissao ate: ", "Emissao ate: ",;
+					"mv_ch4", "D", 8, 0, 0, "G", "", "",;
+					"", "", "mv_par04",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a emissao final","",""},;
+					{"Selecione a emissao final","",""},;
+					{"Selecione a emissao final","",""}, )
+					
+	PutSx1(	cPerg, "05", "Cliente de: ", "Cliente de: ", "Cliente de: ",;
+					"mv_ch5", "C", 6, 0, 0, "G", "", "SA1",;
+					"", "", "mv_par05",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione o cliente inicial","",""},;
+					{"Selecione o cliente inicial","",""},;
+					{"Selecione o cliente inicial","",""}, )
+
+
+
+	PutSx1(	cPerg, "06", "Loja de: ", "Loja de: ", "Loja de: ",;
+					"mv_ch6", "C", 2, 0, 0, "G", "", "",;
+					"", "", "mv_par06",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a loja inicial","",""},;
+					{"Selecione a loja inicial","",""},;
+					{"Selecione a loja inicial","",""}, )
+
+
+
+	PutSx1(	cPerg, "07", "Cliente ate: ", "Cliente ate: ", "Cliente ate: ",;
+					"mv_ch7", "C", 6, 0, 0, "G", "", "SA1",;
+					"", "", "mv_par07",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione o cliente final","",""},;
+					{"Selecione o cliente final","",""},;
+					{"Selecione o cliente final","",""}, )
+
+
+
+	PutSx1(	cPerg, "08", "Loja ate: ", "Loja ate: ", "Loja ate: ",;
+					"mv_ch8", "C", 2, 0, 0, "G", "", "",;
+					"", "", "mv_par08",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a loja final","",""},;
+					{"Selecione a loja final","",""},;
+					{"Selecione a loja final","",""}, )
+
+
+	PutSx1(	cPerg, "09", "Operação de: ", "Operação de: ", "Operação de: ",;
+					"mv_ch9", "C", 2, 0, 0, "G", "", "",;
+					"", "", "mv_par09",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a operação inicial","",""},;
+					{"Selecione a operação inicial","",""},;
+					{"Selecione a operação inicial","",""}, )
+
+	PutSx1(	cPerg, "10", "Operação ate: ", "Operação ate: ", "Operação ate: ",;
+					"mv_chA", "C", 2, 0, 0, "G", "", "",;
+					"", "", "mv_par10",;
+					, , , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					, , ,;
+					{"Selecione a operação final","",""},;
+					{"Selecione a operação final","",""},;
+					{"Selecione a operação final","",""}, )
+
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma    ³__InfoFields(cCampos)  ºAutor  ³Irineu Alves Cardoso Filho  º Data ³  25/01/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.       ³ Funcao que retona as informacoes dos campos passados por parametro.             º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºParametros  ³ cCampos -> String com os campos a serem retornados com suas informacoes         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºRetorno     ³ aRetorno -> Array com as informacoes: CAMPO, TIPO, TAMANHO, DECIMAL, TITULO.    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function __InfoFields(cCampos)
+
+Local aCampos	:= Separa(cCampos,"|")
+Local aRetorno	:= {}
+Local nCont		:= 1
+
+For nCont := 1 To Len(aCampos)
+
+	dbSelectArea("SX3")
+	SX3->(dbGoTop())
+	dbSetOrder(2)
+	If dbSeek( aCampos[nCont] )
+		Aadd(aRetorno, { SX3->X3_CAMPO, SX3->X3_TIPO, SX3->X3_TAMANHO, SX3->X3_DECIMAL, SX3->X3_TITULO } )
+	EndIf
+
+Next nCont
+
+Return aRetorno
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma    ³fBuscPedNF             ºAutor  ³Gilberto N. Almeida         º Data ³ 25/03/2010  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.       ³ Funcao busca pedidos no arquivo de vendas.                                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºParametros  ³ cCampos -> String com os campos a serem retornados com suas informacoes         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºRetorno     ³ aRetorno -> Numero do Pedido, C5_OPER C5_TABELA                                 º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function fBuscPedNF(cNumDoc,cSerie,cXfilial,cOperad,cTabela,cNumPed)
+Local cQuery := ""
+Local cNumPed:= ""
+
+cQuery := " SELECT D2_PEDIDO  FROM "+RetSqlName("SD2") + " SD2  WHERE " + CRLF
+cQuery += " D2_FILIAL = '"+cXfilial+"' AND D_E_L_E_T_ = ' ' AND  D2_DOC = '"+cNumDoc+"' AND D2_SERIE = '"+cSerie+"' "+ CRLF
+TcQuery cQuery New Alias "TRB"
+DbSelectArea("TRB")
+DbGoTop()
+
+cNumPed:= TRB->D2_PEDIDO
+TRB->(dbCloseArea())   
+DbSelectArea("SC5")
+DbSeek(cXfilial+cNumPed)
+
+cOperad:=SC5->C5_OPER
+cTabela:=SC5->C5_TABELA
+cNumPed:=SC5->C5_NUM 
+
+Return

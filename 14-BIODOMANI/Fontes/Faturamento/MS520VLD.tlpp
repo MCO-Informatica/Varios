@@ -1,0 +1,31 @@
+#Include 'Protheus.ch'
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+PONTO DE ENTRADA CHAMADA MS520VLD, SE REFERE A VALIDAÇÃO SE PODE OU NÃO EXCLUIR AS NFs.
+
+NESTE CASO ABAIXO, COLOQUEI PARA ANTES DE EXCLUIR, VALIDAR SE A NOTA PASSOU O PRAZO DE 24 HORAS OU REGISTRADO NO PARÂMETRO MV_SPEDEXC, SE PASSOU, NÃO VAI PROSSEGUIR.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+User Function MS520VLD()
+Local lRet       := .T.
+Local nSpedExc 	 := GetNewPar("MV_SPEDEXC",24)
+Local cEspecie   := SF2->F2_ESPECIE
+Local nHoras     := 0
+
+
+If lRet .And. "SPED"$cEspecie .And. (SF2->F2_FIMP$"TS") //verificacao apenas da especie como SPED e notas que foram transmitidas ou impressoo DANFE
+nHoras := SubtHoras(IIF(!Empty(SF2->F2_DAUTNFE),SF2->F2_DAUTNFE,dDataBase),IIF(!Empty(SF2->F2_HAUTNFE),SF2->F2_HAUTNFE,SF2->F2_HORA),dDataBase, substr(Time(),1,2)+":"+substr(Time(),4,2) )
+    If nHoras > nSpedExc
+        lRet := .F.
+        Alert("Não foi possivel excluir a(s) nota(s), pois o prazo para o cancelamento da(s) NF-e é de " + Alltrim(STR(nSpedExc)) +" horas")
+        Return lRet
+	ELSE
+		lRet := .T.
+    EndIf
+EndIf
+
+IF !(RetCodUsr() $ "000094/000006/000247/000289/000270/000194/000286/000287/000273/000207")
+    lRet := .F.
+    Alert("Usuário não autorizado para excluir Nota Fiscal","ATENÇÃO")
+ENDIF
+ 
+Return lRet

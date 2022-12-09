@@ -1,0 +1,39 @@
+#Include 'Protheus.ch'
+#INCLUDE "totvs.CH"
+#INCLUDE "TOPCONN.CH" 
+
+//--------------------------------------------------------------------------
+// Rotina | M460FIM  | Autor | Lucas Baia       | Data | 02/06/2021
+//--------------------------------------------------------------------------
+// Descr. | Ponto de Entrada utilizado após Geração de NF pelo Pedido de 
+//        | Vendas.
+//--------------------------------------------------------------------------
+// Uso    | Protheus 12.1.27 
+//--------------------------------------------------------------------------
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+PONTO DE ENTRADA CHAMADA M460FIM, SE REFERE A GRAVAÇÃO APÓS (DEPOIS) DA PREPARAÇÃO DE DOCUMENTO DE SAÍDA. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+User Function M460FIM()
+
+Local lRet      := .T.
+Local aArea     := GetArea()
+Local aAreaC5   := SC5->(GetArea())
+Local nPedido   := SC5->C5_NUM 
+
+DbSelectArea('SC5')
+SC5->(DbSetOrder(1)) //C5_FILIAL + C5_NUM
+SC5->(DbGoTop())
+
+//Se conseguir posicionar no pedido
+IF SC5->(DbSeek(FWxFilial('SC5') + nPedido ))
+     //Grava o conteúdo na SF1
+    RecLock("SF2", .F.)
+        SF2->F2_XOBS := SC5->C5_XMENNOT
+    SF2->(MsUnlock())
+ENDIF
+
+RestArea(aAreaC5)
+RestArea(aArea)
+
+return lRet

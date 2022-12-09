@@ -1,0 +1,82 @@
+#INCLUDE "RWMAKE.CH"
+
+User Function RESTA02()
+
+
+Processa({||RunProc()},"Apaga Inventário")
+Return
+
+Static Function RunProc()
+
+cPerg := "RESTA02"
+
+//VldSX1()
+
+If !Pergunte(cPerg,.t.)
+	Return()
+EndIf
+
+dbSelectArea("SB7")
+dbSetOrder(1)
+If dbSeek(xFilial("SB7")+Dtos(mv_par01),.f.)
+	
+	ProcRegua(RecCount())
+	
+	While !Eof() .And. Dtos(SB7->B7_DATA) == Dtos(mv_par01)
+		
+		IncProc("Selecionando Produto "+SB7->B7_COD)
+		
+		If SB7->B7_X_GRUPO < MV_PAR02 .Or. SB7->B7_X_GRUPO > MV_PAR03
+			DbSelectArea("SB7")
+			DbSkip()
+			Loop	
+		EndIf
+		
+		DbSelectArea("SB7")
+		RecLock("SB7",.f.)
+		DbDelete()
+		MsUnLock()
+		
+		
+		DbSelectArea("SB7")
+		DbSkip()
+		
+	EndDo
+EndIf
+
+Return()
+
+
+Static Function VldSX1(cPerg)
+
+Local i
+Local xAlias  := GetArea()
+Local aPergunta := {}
+
+Aadd(aPergunta,{cPerg,"01","Data Inventario		?" 	,"mv_ch1","D",08,00,"G","MV_PAR01","","","","","",""})
+
+DbSelectArea("SX1")
+DbSetOrder(1)
+For i := 1 To Len(aPergunta)
+	SX1->(RecLock("SX1",!dbSeek(aPergunta[i,1]+aPergunta[i,2])))
+	SX1->X1_GRUPO 		:= aPergunta[i,1]
+	SX1->X1_ORDEM		:= aPergunta[i,2]
+	SX1->X1_PERGUNT 	:= aPergunta[i,3]
+	SX1->X1_VARIAVL		:= aPergunta[i,4]
+	SX1->X1_TIPO	    := aPergunta[i,5]
+	SX1->X1_TAMANHO	    := aPergunta[i,6]
+	SX1->X1_DECIMAL	    := aPergunta[i,7]
+	SX1->X1_GSC			:= aPergunta[i,8]
+	SX1->X1_VAR01		:= aPergunta[i,9]
+	SX1->X1_DEF01		:= aPergunta[i,10]
+	SX1->X1_DEF02		:= aPergunta[i,11]
+	SX1->X1_DEF03		:= aPergunta[i,12]
+	SX1->X1_DEF04		:= aPergunta[i,13]
+	SX1->X1_DEF05		:= aPergunta[i,14]
+	SX1->X1_F3		    := aPergunta[i,15]
+	SX1->(MsUnlock())
+Next i
+
+RestArea(xAlias)
+
+Return(Nil)

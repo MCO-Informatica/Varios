@@ -1,0 +1,95 @@
+#INCLUDE "PROTHEUS.CH
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "RWMAKE.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³SGFAT001  ºAutor  ³Sergio Lacerda - SNL TECNOLOGIA DA INFORMACAO   º Data ³  10/09/12   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                                                        º±±
+±±º          ³                                                                                        º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function SGFAT001()
+
+Local _cCodCli  := SA1->A1_COD
+Local _cLoja    := SA1->A1_LOJA
+Local _cRetorno := ""
+Local _cTabela  := ""
+Local _cCondPag := ""
+Local _cVend1   := ""
+Local _cVend2   := ""
+Local _nDesc1   := 0
+Local _nDesc2   := 0
+Local _nDesc3   := 0
+Local _nDesc4   := 0
+Local _nComiss1 := 0
+Local _nComiss2 := 0
+Local _cContrato:= ""
+
+DbSelectArea("ADA")
+DbSetOrder(2)
+If DbSeek(xFilial("ADA") + _cCodCli + _cLoja)
+	_cContrato := ADA->ADA_NUMCTR
+	_cRetorno  := ADA->ADA_NUMCTR
+	_cTabela   := ADA->ADA_TABELA
+	_cCondPag  := ADA->ADA_CONDPG
+	_cVend1    := ADA->ADA_VEND1
+	_cVend2    := ADA->ADA_VEND2
+	_nDesc1    := ADA->ADA_DESC1
+	_nDesc2    := ADA->ADA_DESC2
+	_nDesc3    := ADA->ADA_DESC3
+	_nDesc4    := ADA->ADA_DESC4
+	_nComiss1  := ADA->ADA_COMIS1
+	_nComiss2  := ADA->ADA_COMIS2
+	
+	If ValType(M->C5_TABELA) <> "U"
+		M->C5_TABELA := _cTabela
+	Endif
+	
+	If ValType(M->C5_CONDPAG) <> "U"
+		M->C5_CONDPAG := _cCondPag
+	Endif
+	
+	If ValType(M->C5_VEND1) <> "U"
+		M->C5_VEND1 := _cVend1
+	Endif
+	
+	If ValType(M->C5_VEND2) <> "U"
+		M->C5_VEND2 := _cVend2
+	Endif	
+	
+	If ValType(M->C5_DESC1) <> "U"
+		M->C5_DESC1 := _nDesc1
+	Endif
+	
+	If ValType(M->C5_DESC2) <> "U"
+		M->C5_DESC2 := _nDesc2
+	Endif
+	
+	If ValType(M->C5_DESC3) <> "U"
+		M->C5_DESC3 := _nDesc3
+	Endif
+	
+	If ValType(M->C5_DESC4) <> "U"
+		M->C5_DESC4 := _nDesc4
+	Endif			
+	
+	If ValType(M->C5_COMIS1) <> "U"
+		M->C5_COMIS1 := _nComiss1
+	Endif
+	
+	If ValType(M->C5_COMIS2) <> "U"
+		M->C5_COMIS2 := _nComiss2
+	Endif
+Else
+
+Endif
+
+Return(_cRetorno)

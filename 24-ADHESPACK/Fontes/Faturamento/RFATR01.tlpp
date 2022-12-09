@@ -1,0 +1,188 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "Topconn.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | RFATR01          | Autor | Lucas Baia          | Data |    06/04/2022			
+//---------------------------------------------------------------------------------
+// Descr. | Relatório Customizado para trazer informação completa do Pedido de																	
+//        | Vendas.
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+User Function RFATR01()
+
+Private cData1      := CTOD(Space(8))
+Private cData2      := CTOD(Space(8))
+Private cVendedor   := Space(6)
+
+GetParam()
+
+FWMsgRun(, {|oSay| Processa() }, "Buscando Informações dos Pedidos", "Gerando Excel")
+
+Return
+
+
+Static Function Processa()
+
+Local cQuery    := ''
+Local cAlias    := GetNextAlias()
+//Local aDados    := {}
+
+Sleep(5000)
+
+cQuery := "SELECT C5_EMISSAO, C6_NUM, A1_COD, A1_LOJA, A1_NOME, C5_VEND1, A3_NOME, C6_ITEM,C6_PRODUTO, C6_DESCRI, A1_EST, C6_QTDVEN, C6_QTDENT, C6_UM, C6_VALOR, C6_PRCVEN " + CRLF
+cQuery += "FROM "+RetSqlName("SC5")+" SC5 "                                                                                                                       + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SC6")+" SC6 ON SC5.C5_NUM = SC6.C6_NUM AND SC5.C5_FILIAL = SC6.C6_FILIAL "                                                    + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SA1")+" SA1 ON SC5.C5_CLIENTE = SA1.A1_COD AND SC5.C5_LOJACLI = SA1.A1_LOJA "                                                 + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SA3")+" SA3 ON SC5.C5_VEND1 = SA3.A3_COD "                                                                                    + CRLF
+cQuery += "WHERE SC5.C5_FILIAL = '"+xFilial("SC5")+"' "                                                                                                           + CRLF
+cQuery += "AND SC5.C5_EMISSAO BETWEEN  '"+DToS(MV_PAR01)+"' AND '"+DToS(MV_PAR02)+"' "                                                                            + CRLF
+IF !EMPTY(MV_PAR03)
+    cQuery += "AND SC5.C5_VEND1 = '"+MV_PAR03+"' "                                                                                                                + CRLF
+ENDIF
+cQuery += "AND SC5.D_E_L_E_T_ = '' AND SC6.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' AND SA3.D_E_L_E_T_ = '' ORDER BY C5_EMISSAO, C6_NUM, C6_ITEM "                 + CRLF
+
+//cQuery := ChangeQuery(cQuery)
+//dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAlias,.T.,.T.)
+
+TCQUERY cQuery NEW Alias (cAlias)
+
+
+IF !(cAlias)->(EOF())
+	GeraExcel(cAlias)
+Else
+	MsgAlert('A query não retornou registros, por favor verifique os parâmetros informados.', "Erro")
+EndIF
+
+(cAlias)->(DbCloseArea())
+
+Return
+
+
+
+Static Function GeraExcel(cAlias)
+
+Local oExcel    := FWMSEXCEL():New()
+Local oExcelApp := NIL
+Local cAba      := "Pedido de Vendas por Vendedor/Produtos"
+Local cTabela   := "Pedido de Vendas por Vendedor/Produtos"
+Local cArquivo  := "Pedido de Vendas por Vendedor_Produtos" + DTOS(msDate()) + "_" + strtran(Time(), ":", "") + ".XLS"
+Local cPatch    := "C:\TEMP\"
+Local cDefPatch := GetSrvProfString("StartPatch", "\system\")
+Local aDados    := {}
+Local dEmissao
+Local nValorFat := 0
+Local nValaFat  := 0
+
+//IF Len(aDados) > 0
+
+    IF !ApOleClient("MSExcel")
+        MsgAlert("Microsoft Excel não instalado!")
+        Return
+    ENDIF
+
+    oExcel:AddWorkSheet(cAba)
+    oExcel:AddTable(cAba, cTabela)
+
+    oExcel:AddColumn(cAba, cTabela, "DATA DE EMISSAO"           ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "NUMERO DO PEDIDO"          ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COD. CLIENTE"              ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "LOJA CLIENTE"              ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "NOME CLIENTE"              ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COD. VENDEDOR"             ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "NOME VENDEDOR"             ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "ITEM"                      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COD. PRODUTO"              ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DESC. PRODUTO"             ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "UF CLIENTE"                ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "QTD. SOLICITADA"           ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "QTD. FATURADA"             ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "UM"                        ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VALOR TOTAL ITEM"          ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VALOR TOTAL FATURADO"      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VALOR TOTAL A FATURAR"     ,1,1,.F.)
+    
+
+
+    (cAlias)->(DbGoTop())
+
+    Do While !(cAlias)->(EOF())
+
+    dEmissao    := StoD((cAlias)->C5_EMISSAO) //Colocar uma data brasileira. 
+    nValorFat   := Alltrim(Transform((cAlias)->C6_QTDENT*(cAlias)->C6_PRCVEN,"@E 999,999,999.99"))                    //VALOR FATURADO
+    nValaFat    := Alltrim(Transform((cAlias)->C6_QTDVEN*(cAlias)->C6_PRCVEN,"@E 999,999,999.99"))  //VALOR A FATURAR
+
+    aDados := {dEmissao,;
+               (cAlias)->C6_NUM,;                                       //---> NUMERO DO PEDIDO
+               (cAlias)->A1_COD,;                                       //---> COD. CLIENTE
+               (cAlias)->A1_LOJA,;                                      //---> LOJA CLIENTE
+               (cAlias)->A1_NOME,;                                      //---> NOME CLIENTE
+               (cAlias)->C5_VEND1,;                                     //---> COD. VENDEDOR
+               (cAlias)->A3_NOME,;                                      //---> NOME VENDEDOR
+               (cAlias)->C6_ITEM,;                                      //---> ITEM
+               (cAlias)->C6_PRODUTO,;                                   //---> COD. PRODUTO
+               (cAlias)->C6_DESCRI,;                                    //---> DESC. PRODUTO
+               (cAlias)->A1_EST,;                                       //---> UF CLIENTE
+               Transform((cAlias)->C6_QTDVEN,"@E 999,999.99999999"),;   //---> QTD. SOLICITADA               
+               Transform((cAlias)->C6_QTDENT,"@E 999,999.99999999"),;   //---> QTD. FATURADA
+               (cAlias)->C6_UM,;                                        //---> UM
+               Transform((cAlias)->C6_VALOR,"@E 999,999,999.99"),;      //---> VALOR TOTAL ITEM
+               nValorFat,;                                              //VALOR FATURADO
+               nValaFat}                                                // VALOR A FATURAR
+    
+    oExcel:AddRow(cAba, cTabela, aDados)
+
+    (cAlias)->(DbSkip())
+
+    ENDDO
+
+    (cAlias)->(dbSkip())
+
+    IF !EMPTY(oExcel:aWorkSheet)
+
+        oExcel:ACTIVATE()
+        oExcel:GetXMLFile(cArquivo)
+
+        CpyS2T(cDefPatch+cArquivo, cPatch)
+
+        oExcelApp   := MsExcel():New()
+        oExcelApp:WorkBooks:Open(cPatch+cArquivo) //Abre a Planilha
+        oExcelApp:SetVisible(.T.)
+
+    ENDIF
+/*ELSE
+    Alert("Não existem dados para emitir o relatório.")
+ENDIF*/
+
+Return
+
+
+
+Static Function GetParam()
+
+Local alParambox    := {}
+Local clTitulo      := "Parâmetros"
+Local alButtons     := {}
+Local llCentered    := .T.
+Local nlPosx        := NIL
+Local nlPosy        := NIL
+Local clLoad        := ""
+Local llCanSave     := .T.
+Local llUserSave    := .T.
+Local llRet         := .T.
+Local blOk
+Local alParams      := {}
+
+AADD(alParambox,{1,"Data Inicial"    , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+AADD(alParambox,{1,"Data Final"      , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+AADD(alParambox,{1,"Vendedor"        , Space(6)          , "", "", "SA3", "", 60, .F. })
+
+llRet := ParamBox(alParambox, clTitulo, alParams, blOk, alButtons, llCentered, nlPosx, nlPosy,, clLoad, llCanSave, llUserSave)
+
+IF (llRet)
+    cData1      := alParams[1]
+    cData2      := alParams[2]
+    cVendedor   := alParams[3]
+ENDIF
+
+Return

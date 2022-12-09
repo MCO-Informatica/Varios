@@ -1,0 +1,140 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ DHOME02  ºAutor  ³FONTANELLI          º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Tela Cancelar Separação                                    º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+                                                    
+
+User Function DHOME10()                                          
+
+
+Local oButton1
+Local oButton2
+Local oGroup1
+Local oSay1
+Local oSay2
+Local oSay3                          
+Local oSay4                          
+Static oDlg
+Public  oGet1
+Public  cGet1 := SPACE(06)
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+DEFINE MSDIALOG oDlg TITLE "C A N C E L A R - SEPARAÇÃO" FROM 000, 000  TO 305, 400 COLORS 0, 16777215 PIXEL
+
+    @ 003, 004 GROUP oGroup1 TO 134, 196 PROMPT " I N F O R M E" OF oDlg COLOR 0, 16777215 PIXEL
+    @ 136, 118 BUTTON oButton1 PROMPT "C O N F I R M A" SIZE 037, 012 OF oDlg PIXEL ACTION (U_DHOME10G(cGet1),oDlg:End()) 
+    @ 136, 159 BUTTON oButton2 PROMPT "S A I R" SIZE 037, 012 OF oDlg PIXEL ACTION (oDlg:End())
+    @ 020, 011 SAY oSay1 PROMPT "Pedido" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 028, 011 MSGET oGet1 VAR cGet1 F3 "SC5" WHEN .T. VALID (U_DHOME10V(cGet1)) SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    
+  ACTIVATE MSDIALOG oDlg CENTERED 
+
+Return                                                               
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME10V ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Valida Pedido                                               ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME10V(cGet1)     
+ 
+	lRet := .T.
+
+	IF !Empty(cGet1)
+ 
+		dbSelectArea("SC5")
+		dbSetOrder(1)
+		SC5->(DbGoTop())       
+		if !dbSeek(xFilial("SC5")+cGet1)  
+			Aviso("Aviso","PEDIDO: "+cGet1+", não existe !", {"OK"})   
+			lRet := .F.
+		endif
+
+    endif
+
+Return(lRet)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME10G ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Grava Fim Separação                                         ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME10G(cGet1)     
+         
+	if Empty(cGet1)
+		Aviso("Aviso","Pedido NÃO informado !", {"OK"})   
+	else
+	
+		//Caso já exista NOTA na tabela ZZ2
+		cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+		cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+		cQuery += "   AND ZZ2_NUM = '"+cGet1+"' "
+		cQuery += "   AND ZZ2_NOTA <> ' ' "
+		cQuery += "   AND D_E_L_E_T_ = '' "
+		cQuery := ChangeQuery(cQuery)
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+		dbSelectArea("QryZZ2")
+		dbGoTop()
+		nQTDNOTA := 0
+		While !QryZZ2->(Eof())
+			nQTDNOTA += 1
+			QryZZ2->(DbSkip())
+		EndDo
+		QryZZ2->(dbCloseArea())	
+
+		if nQTDNOTA = 0
+			dbSelectArea("SC5")
+		  	dbSetOrder(1)
+			SC5->(DbGoTop())       
+			dbSeek(xFilial("SC5")+cGet1)                           
+			if EMPTY(SC5->C5_XCUSER)
+				RecLock("SC5",.f.)
+				SC5->C5_XSTATUS := "LIB"
+			    SC5->C5_XSUSER  := SPACE(30)
+				SC5->C5_XSDTINI := CTOD("  /  /    ")
+				SC5->C5_XSHRINI := SPACE(5)
+				SC5->C5_XSDTFIN := CTOD("  /  /    ")
+				SC5->C5_XSHRFIN := SPACE(5)
+				SC5->(msunlock())
+				Aviso("Aviso","SEPARAÇÃO cancelada, PEDIDO: "+cGet1+" !", {"OK"})   
+			else
+				Aviso("Aviso","A Conferência já foi iniciada, NÃO é possivel cancelar a SEPARAÇÃO !", {"OK"})   
+			endif
+		else
+			Aviso("Aviso","Já existe NOTA FISCAL emitida para este Pedido, SEPARAÇÃO não pode ser cancelada !", {"OK"})   
+		endif
+					
+	endif
+	
+Return
+

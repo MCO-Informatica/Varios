@@ -1,0 +1,468 @@
+#include 'fivewin.ch'
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ImpII()  บAutor ณLuis Henrique Robustoบ Data ณ  18/07/05   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA CALCULO DE IMPOSTOS VARIAVEIS.                 บฑฑ
+ฑฑบ          ณ Esta funcao tem por objetivo calcular os valores dos impos-บฑฑ
+ฑฑบ          ณ tos variaveis. (como: II, PIS, COFINS.)                    บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ MATA103 (Nota fiscal de entrada).                          บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ  MOTIVO                                         บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function ImpII()
+Local	_xRet 		:= 0,;
+		nI 			:= 0,;
+		_cCalculo 	:= ParamIXB[1],;
+		_nItem 		:= ParamIXB[2],;
+		_aInfo 		:= ParamIXB[3],; //Cod Imp. / Campo para gravar
+		aImpRef,;
+		aImpVal
+
+Local	_nPosQuant := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_QUANT"}),;
+		_nPosPUnit := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_VUNIT"}),;
+		_nPosTotal := aScan(aHeader,{|x| AllTrim(x[2]) == 'D1_TOTAL'})
+Public  _xRetII := 0
+Public  _xRetCof:= 0
+Public  _xRetPis:= 0
+Public  _xRetIPI:= 0 
+
+
+		Do	Case
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a base do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "B" )
+					_xRet += MafisRet(_nItem,"IT_VALMERC") // Pega o valor total do item
+					_xRet += MafisRet(_nItem,"IT_FRETE") // Pega o valor do frete do item
+					_xRet += MafisRet(_nItem,"IT_SEGURO") // Pega o valor do seguro
+					//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+					//ณVerifica se existe algum imposto que incide na ณ
+					//ณbase de calculo, e inclui o valor deste na baseณ
+					//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+					SFC->(DbSetOrder(2))
+					If	(SFC->(MsSeek(xFilial("SFC")+MaFisRet(_nItem,"IT_TES")+_aInfo[1]))) .And. !Empty(SFC->FC_INCIMP)
+						aImpRef := MaFisRet(_nItem,"IT_DESCIV")
+						aImpVal := MaFisRet(_nItem,"IT_VALIMP")
+						For nI:=1 to Len(aImpRef)
+							If	( !Empty(aImpRef[nI]) )
+								If	( AllTrim(aImpRef[nI][1]) $ SFC->FC_INCIMP )
+									_xRet += aImpVal[nI]
+								EndIf
+							EndIf
+						Next nI
+					EndIf
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a aliquota do imposto (esta deve ser pega do campo FB_ALIQ)ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "A" )
+
+					If	Vazio(SB1->B1_POSIPI) .or. SYD->( !DBSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						Return(0)
+					EndIf
+					_xRet := SYD->YD_PER_II 
+					//_xRetII := _xRet
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar o valor do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "V" )
+					_xRet := Round( MafisRet(_nItem,"IT_BASEIV"+_aInfo[2]) * (MafisRet(_nItem,"IT_ALIQIV"+_aInfo[2]) / 100) , 2 )
+                    _xRetII := _xRetII+_xRet 
+		End	Case
+
+		If	( Alltrim(FUNNAME()) == "MATA103" )
+			aCols[_nItem][_nPosTotal] := NoRound(aCols[n][_nPosQuant] * aCols[n][_nPosPUnit],2)
+			A103Total(aCols[_nItem][_nPosTotal])
+		EndIf
+
+Return(_xRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ImpCofinsบAutor ณLuis Henrique Robustoบ Data ณ  30/03/06   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA CALCULO DE IMPOSTOS VARIAVEIS.                 บฑฑ
+ฑฑบ          ณ Esta funcao tem por objetivo calcular o imposto COFINS.    บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ MATA103 (Nota fiscal de entrada).                          บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ  MOTIVO                                         บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function ImpCofins()
+Local	_xRet 		:= 0,;
+		_nPerII		:= 0,;      
+		_nPerIPI	:= 0,;      
+		_nIcmsPad	:= GetMv("MV_ICMPAD"),;
+		_nPercPis	:= GetMv("MV_TPISIM"),;
+		_nPercCof	:= GetMv("MV_TCOFIM"),;
+		_cCalculo 	:= ParamIXB[1],;
+		_nItem 		:= ParamIXB[2],;
+		_aInfo 		:= ParamIXB[3]
+
+Local	_nPosQuant := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_QUANT"}),;
+		_nPosPUnit := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_VUNIT"}),;
+		_nPosTotal := aScan(aHeader,{|x| AllTrim(x[2]) == 'D1_TOTAL'})
+
+		Do	Case
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a base do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "B" )
+					_xRet += MafisRet(_nItem,"IT_VALMERC") // Pega o valor total do item
+					_xRet += MafisRet(_nItem,"IT_FRETE") // Pega o valor do frete do item
+					_xRet += MafisRet(_nItem,"IT_SEGURO") // Pega o valor do seguro
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						_nPerII   := SYD->YD_PER_II 
+						_nPerIPI  := SYD->YD_PER_IPI
+						_nPercPis := SYD->YD_PER_PIS
+						_nPercCof := SYD->YD_PER_COF
+					EndIf
+
+					//_xRet := _xRet * (   ( 1 + (_nIcmsPad/100 * ( _nPerII/100 + (_nPerIPI/100 * (1+_nPerII/100) ))))  / ( (1 - (_nPercPis-_nPercCof) / 100) * (1-_nIcmsPad/100) ) )
+ 					_xRet := (_xRet *(1+(_nPerII/100))*(1+(_nPerIPI/100)) / (1-(_nIcmsPad/100))*(_nIcmsPad/100)+_xRet)  /  (1 - (_nPercCof/100)-(_nPercPis/100))
+                    
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a aliquota do imposto (esta deve ser pega do campo FB_ALIQ)ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "A" )
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						_nPerII := SYD->YD_PER_II
+						_nPercPis := SYD->YD_PER_PIS
+						_nPercCof := SYD->YD_PER_COF
+					EndIf
+
+					_xRet := _nPercCof
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar o valor do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "V" )
+					_xRet := Round( MafisRet(_nItem,"IT_BASEIV"+_aInfo[2]) * (MafisRet(_nItem,"IT_ALIQIV"+_aInfo[2]) / 100) , 2 )
+                    _xRetCof:= _xRetCof+_xRet
+		End	Case
+
+		If	( Alltrim(FUNNAME()) == "MATA103" )
+			aCols[_nItem][_nPosTotal] := NoRound(aCols[n][_nPosQuant] * aCols[n][_nPosPUnit],2)
+			A103Total(aCols[_nItem][_nPosTotal])
+		Endif
+		
+Return(_xRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ImpPis() บAutor ณLuis Henrique Robustoบ Data ณ  30/03/06   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA CALCULO DE IMPOSTOS VARIAVEIS.                 บฑฑ
+ฑฑบ          ณ Esta funcao tem por objetivo calcular o imposto PIS.       บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ MATA103 (Nota fiscal de entrada).                          บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ  MOTIVO                                         บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function ImpPis()
+Local	_xRet 		:= 0,;
+		_nPerII		:= 0,;                     
+		_nPerIPI    := 0,;
+		_nIcmsPad	:= GetMv("MV_ICMPAD"),;
+		_nPercPis	:= GetMv("MV_TPISIM"),;
+		_nPercCof	:= GetMv("MV_TCOFIM"),;
+		_cCalculo 	:= ParamIXB[1],;
+		_nItem 		:= ParamIXB[2],;
+		_aInfo 		:= ParamIXB[3]
+
+Local	_nPosQuant := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_QUANT"}),;
+		_nPosPUnit := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_VUNIT"}),;
+		_nPosTotal := aScan(aHeader,{|x| AllTrim(x[2]) == 'D1_TOTAL'})
+
+		Do	Case
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a base do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "B" )
+					_xRet += MafisRet(_nItem,"IT_VALMERC") // Pega o valor total do item
+					_xRet += MafisRet(_nItem,"IT_FRETE") // Pega o valor do frete do item
+					_xRet += MafisRet(_nItem,"IT_SEGURO") // Pega o valor do seguro
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						_nPerII   := SYD->YD_PER_II 
+						_nPerIPI  := SYD->YD_PER_IPI
+						_nPercPis := SYD->YD_PER_PIS
+						_nPercCof := SYD->YD_PER_COF
+					EndIf
+
+				   //	_xRet := _xRet * (   ( 1 + (_nIcmsPad/100 * ( _nPerII/100 + (_nPerIPI/100 * (1+_nPerII/100) ))))  / ( (1 - (_nPercPis-_nPercCof) / 100) * (1-_nIcmsPad/100) ) )
+					_xRet := (_xRet *(1+(_nPerII/100))*(1+(_nPerIPI/100)) / (1-(_nIcmsPad/100))*(_nIcmsPad/100)+_xRet)  /  (1 - (_nPercCof/100)-(_nPercPis/100))
+                    
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a aliquota do imposto (esta deve ser pega do campo FB_ALIQ)ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "A" )
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						_nPerII := SYD->YD_PER_II
+						_nPercPis := SYD->YD_PER_PIS
+						_nPercCof := SYD->YD_PER_COF
+					EndIf
+
+					_xRet := _nPercPis
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar o valor do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "V" )
+					_xRet := Round( MafisRet(_nItem,"IT_BASEIV"+_aInfo[2]) * (MafisRet(_nItem,"IT_ALIQIV"+_aInfo[2]) / 100) , 2 )
+                    _xRetPis :=  _xRetPis+_xRet
+		End	Case
+
+		If	( Alltrim(FUNNAME()) == "MATA103" )
+			aCols[_nItem][_nPosTotal] := NoRound(aCols[n][_nPosQuant] * aCols[n][_nPosPUnit],2)
+			A103Total(aCols[_nItem][_nPosTotal])
+		EndIf
+
+Return(_xRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCALPISCOF บAutor ณLuis Henrique Robustoบ Data ณ  18/04/06   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Funcao para verificar o valor de impostos: PIS ou COFINS   บฑฑ
+ฑฑบ          ณ OBS: Informar todos os parametros                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ COM002R (Pedidos de Compras)                               บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ MOTIVO                                          บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function CALPISCOF(_cTipo,_xRet,_nPerIPI,_nPerII) // _cTipo=PIS,COFINS //_xRet(com Frete,Seguro)
+Local	_nIcmsPad	:= GetMv("MV_ICMPAD"),;
+		_nPercPis	:= GetNewPar("MV_TPISIM",2.30),;
+		_nPercCof	:= GetNewPar("MV_TCOFIM",10.80),;
+		_nAliqImp	:= IIF(_cTipo=="PIS",_nPercPis,_nPercCof)
+
+		If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+			_nPercPis := SYD->YD_PER_PIS
+			_nPercCof := SYD->YD_PER_COF
+		EndIf
+
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณVerifica o valor de Base de Calculo.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		_xRet := _xRet * ( ( 1 + (_nIcmsPad/100 * ( _nPerII/100 + (_nPerIPI/100 * (1+_nPerII/100) ))))  / ( (1 - (_nPercCof+_nPercPis) / 100) * (1-_nIcmsPad/100) ) )
+
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณCalcula o valor do imposto.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		_xRet := Round( _xRet * _nAliqImp / 100 , 2 )
+
+Return _xRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ImpIPI() บAutor ณLuis Henrique Robustoบ Data ณ  18/07/05   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA CALCULO DE IMPOSTOS VARIAVEIS.                 บฑฑ
+ฑฑบ          ณ Esta funcao tem por objetivo calcular os valores dos impos-บฑฑ
+ฑฑบ          ณ tos variaveis. (como: IPI)                                 บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ MATA103 (Nota fiscal de entrada).                          บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ  MOTIVO                                         บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function ImpIPI()
+Local	_xRet 		:= 0,;
+		nI 			:= 0,;
+		_cCalculo 	:= ParamIXB[1],;
+		_nItem 		:= ParamIXB[2],;
+		_aInfo 		:= ParamIXB[3],; //Cod Imp. / Campo para gravar
+		aImpRef,;
+		aImpVal
+
+Local	_nPosQuant := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_QUANT"}),;
+		_nPosPUnit := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_VUNIT"}),;
+		_nPosTotal := aScan(aHeader,{|x| AllTrim(x[2]) == 'D1_TOTAL'})
+
+		Do	Case
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a base do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "B" )
+					_xRet += MafisRet(_nItem,"IT_VALMERC") // Pega o valor total do item
+					_xRet += MafisRet(_nItem,"IT_FRETE") // Pega o valor do frete do item
+					_xRet += MafisRet(_nItem,"IT_SEGURO") // Pega o valor do seguro
+					//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+					//ณVerifica se existe algum imposto que incide na ณ
+					//ณbase de calculo, e inclui o valor deste na baseณ
+					//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+					SFC->(DbSetOrder(2))
+					If	(SFC->(MsSeek(xFilial("SFC")+MaFisRet(_nItem,"IT_TES")+_aInfo[1]))) .And. !Empty(SFC->FC_INCIMP)
+						aImpRef := MaFisRet(_nItem,"IT_DESCIV")
+						aImpVal := MaFisRet(_nItem,"IT_VALIMP")
+						For nI:=1 to Len(aImpRef)
+							If	( !Empty(aImpRef[nI]) )
+								If	( AllTrim(aImpRef[nI][1]) $ SFC->FC_INCIMP )
+									_xRet += aImpVal[nI] + _xRetII
+								EndIf
+							EndIf
+						Next nI
+					EndIf
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a aliquota do imposto (esta deve ser pega do campo FB_ALIQ)ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "A" )
+
+					If	Vazio(SB1->B1_POSIPI) .or. SYD->( !DBSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						Return(0)
+					EndIf
+					_xRet := SYD->YD_PER_IPI 
+			
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar o valor do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "V" )
+					_xRet := Round( MafisRet(_nItem,"IT_BASEIV"+_aInfo[2]) * (MafisRet(_nItem,"IT_ALIQIV"+_aInfo[2]) / 100) , 2 )
+                    _xRetIPI:= _xRetIPI+_xRet
+		End	Case
+
+		If	( Alltrim(FUNNAME()) == "MATA103" )
+			aCols[_nItem][_nPosTotal] := NoRound(aCols[n][_nPosQuant] * aCols[n][_nPosPUnit],2)
+			A103Total(aCols[_nItem][_nPosTotal])
+		EndIf
+
+Return(_xRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหออออออัอออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ImpICM() บAutor ณLuis Henrique Robustoบ Data ณ  18/07/05   บฑฑ
+ฑฑฬออออออออออุออออออออออสออออออฯอออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ FUNCAO PARA CALCULO DE IMPOSTOS VARIAVEIS.                 บฑฑ
+ฑฑบ          ณ Esta funcao tem por objetivo calcular os valores dos impos-บฑฑ
+ฑฑบ          ณ tos variaveis. (como: ICM)                                 บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ MATA103 (Nota fiscal de entrada).                          บฑฑ
+ฑฑฬออออออออออุออออออออออัอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบDATA      ณ ANALISTA ณ  MOTIVO                                         บฑฑ
+ฑฑฬออออออออออุออออออออออุอออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบ          ณ          ณ                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออฯอออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function ImpICM()
+Local	_xRet 		:= 0,;
+		_nPerII		:= 0,;
+		_nPerIPI    := 0,;
+		_nPerICM    := 0,;
+		_nIcmsPad	:= GetMv("MV_ICMPAD"),;
+		_nPercPis	:= GetMv("MV_TPISIM"),;
+		_nPercCof	:= GetMv("MV_TCOFIM"),;
+		_cCalculo 	:= ParamIXB[1],;
+		_nItem 		:= ParamIXB[2],;
+		_aInfo 		:= ParamIXB[3]
+
+Local	_nPosQuant := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_QUANT"}),;
+		_nPosPUnit := aScan(aHeader,{|x| AllTrim(x[2]) == "D1_VUNIT"}),;
+		_nPosTotal := aScan(aHeader,{|x| AllTrim(x[2]) == 'D1_TOTAL'})
+
+		Do	Case
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a base do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "B" )
+					_xRet += MafisRet(_nItem,"IT_VALMERC") // Pega o valor total do item
+					_xRet += MafisRet(_nItem,"IT_FRETE") // Pega o valor do frete do item
+					_xRet += MafisRet(_nItem,"IT_SEGURO") // Pega o valor do seguro
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						_nPerII   := SYD->YD_PER_II
+						_nPerIPI  := SYD->YD_PER_IPI 
+						_nPercICM := SYD->YD_ICMS_RE 
+						_nPercCof := SYD->YD_PER_COF
+						_nPercPis := SYD->YD_PER_PIS
+					EndIf
+
+					//_xRet := _xRet *  ( 1 + (_nIcmsPad/100) * (1+ ( _nPerII/100) * (1+(_nPerIPI/100)  ))))  / ( (1 - (_nPercCof+_nPercPis+_nPercICM) / 100) * (1-_nIcmsPad/100) ) )
+					//_xRet := _xRet *  (1+ ( _nPerII/100)) * (1+(_nPerIPI/100)) * (1+(_nPercCof/100) * (1+(_nPercPis/100)   / ( (1 - (_nPercCof+_nPercPis+_nPercICM) / 100) * (1-_nIcmsPad/100) ) )
+					
+					_xRet := (_xRet+_xRetII+_xRetCof+_xRetPIS+_xRetIPI) / (1-(_nIcmsPad/100))	 //*  ( 1 + ( _nPerII/100) * ( 1 + (_nPerIPI/100) * ( 1 + ( _nPorcPis/100) * ( 1 + ( _nPorcCofins100) *    / ( 1 + (_nIcmsPad/100) *
+			
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar a aliquota do imposto (esta deve ser pega do campo FB_ALIQ)ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "A" )
+
+					If	!Vazio(SB1->B1_POSIPI) .and. SYD->( DbSeek( xFilial("SYD") + SB1->B1_POSIPI ))
+						//_nPerII := SYD->YD_PER_II
+						_nPercPis := SYD->YD_ICMS_RE//SYD->YD_PER_PIS
+						//_nPercCof := SYD->YD_PER_COF
+					EndIf
+
+					_xRet := _nPercPis
+
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณDeve retornar o valor do impostoณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			Case	( _cCalculo == "V" )
+					_xRet := Round( MafisRet(_nItem,"IT_BASEIV"+_aInfo[2]) * (MafisRet(_nItem,"IT_ALIQIV"+_aInfo[2]) / 100) , 2 )
+
+		End	Case
+
+		If	( Alltrim(FUNNAME()) == "MATA103" )
+			aCols[_nItem][_nPosTotal] := NoRound(aCols[n][_nPosQuant] * aCols[n][_nPosPUnit],2)
+			A103Total(aCols[_nItem][_nPosTotal])
+		EndIf
+
+Return(_xRet)

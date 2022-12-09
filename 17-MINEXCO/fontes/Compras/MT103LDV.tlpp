@@ -1,0 +1,20 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT103LDV         | Autor | Lucas Baia          | Data |    11/09/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de entrada executado durante o preenchimento da linhas das NFs  																		
+//        | de Devoluções a serem enviadas para a rotina automatica.																		
+//---------------------------------------------------------------------------------
+// Uso    | 																		
+//---------------------------------------------------------------------------------
+
+User Function MT103LDV()
+
+Local aLinha    := PARAMIXB[1] //---> Array para Preenchimento de Linhas dos Itens
+Local cAlias    := PARAMIXB[2] //---> Alias da Tabela SD2
+
+aAdd(aLinha,{"D1_LOTECTL",(cAlias)->D2_LOTECTL,Nil})
+aAdd(aLinha,{"D1_DTVALID",(cAlias)->D2_DTVALID,Nil})
+
+Return aLinha

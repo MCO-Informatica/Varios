@@ -1,0 +1,22 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA270           | Autor | Lucas Baia          | Data |    14/10/2021			
+//---------------------------------------------------------------------------------
+// Descr. | É executado após a Inclusão, Alteração e Exclusão de registros de 
+//        | inventário, permitido a manipulação de informações.
+//---------------------------------------------------------------------------------
+// Uso    | https://tdn.totvs.com/pages/releaseview.action?pageId=6087817																		
+//---------------------------------------------------------------------------------
+
+User Function MTA270()
+
+Local nOpc  := PARAMIXB[1]
+
+IF nOpc == 1
+
+Alert("Passou pelo PE MTA270")
+
+ENDIF
+
+Return

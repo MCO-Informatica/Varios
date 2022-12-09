@@ -1,0 +1,165 @@
+#include "totvs.ch"
+
+// IMPRESSORA TLP2844
+#define cPorta  "LPT1"
+#define cModelo "ELTRON"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME15   ºAutor  ³                    º Data ³  10/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Etiqueta Mala Direta                                       º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME15()
+
+Local oDlg                       
+
+Local cP1 := Space(6)                 
+Local cP2 := Space(2)               
+Local cP3 := 'ZZZZZZ'                 
+Local cP4 := 'ZZ' 
+
+Local cP5 := Space(2)             
+Local cP6 := 'ZZ' 
+
+Local cP7 := Space(6)           
+Local cP8 := 'ZZZZZZ'
+
+Local cP9  := Space(6)                 
+Local cP10 := 'ZZZZZZ'
+          
+Local nQTD := 1
+
+SX3->(dbSetOrder(2))
+If	SX3->(dbSeek("A1_GRPVENX"))
+	aOpc := StrToKarr( X3CBox(), ";" )
+	cP9 := aOpc[1] 
+	cP10:= aOpc[1]
+EndIf
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 350,550 PIXEL TITLE "Impressão de Mala Direta"
+
+@ 003+(20*1),010 Say "Cliente de: " of oDlg Pixel
+@ 002+(20*1),070 MsGet oP1 Var cP1  F3 "SA1" when .t. Size 20,10 of oDlg Pixel
+
+@ 003+(20*1),110+40 Say "Loja de: " of oDlg Pixel
+@ 002+(20*1),170+40 MsGet oP2 Var cP2 when .t. Size 20,10 of oDlg Pixel
+
+@ 003+(20*2),010 Say "Cliente ate: " of oDlg Pixel
+@ 002+(20*2),070 MsGet oP3 Var cP3  F3 "SA1" when .t. Size 20,10 of oDlg Pixel
+
+@ 003+(20*2),110+40 Say "Loja ate: " of oDlg Pixel
+@ 002+(20*2),170+40 MsGet oP4 Var cP4 when .t. Size 20,10 of oDlg Pixel
+
+@ 003+(20*3),010 Say "UF de: " of oDlg Pixel
+@ 002+(20*3),070 MsGet oP5 Var cP5  F3 "12" when .t. Size 10,10 of oDlg Pixel
+
+@ 003+(20*3),110+40 Say "UF ate: " of oDlg Pixel
+@ 002+(20*3),170+40 MsGet oP6 Var cP6  F3 "12" when .t. Size 10,10 of oDlg Pixel
+
+@ 003+(20*4),010 Say "Segmento de: " of oDlg Pixel
+@ 002+(20*4),070 MsGet oP7 Var cP7  F3 "T3" when .t. Size 10,10 of oDlg Pixel
+
+@ 003+(20*4),110+40 Say "Segmento ate: " of oDlg Pixel
+@ 002+(20*4),170+40 MsGet oP8 Var cP8  F3 "T3" when .t. Size 10,10 of oDlg Pixel
+
+@ 003+(20*5),010 Say "Grupo de: " of oDlg Pixel
+@ 002+(20*5),070 COMBOBOX oCMB1 Var cP9 ITEMS aOpc when .t. Size 50,10 of oDlg Pixel
+
+@ 003+(20*5),110+40 Say "Grupo ate: " of oDlg Pixel
+@ 002+(20*5),170+40 COMBOBOX oCMB2 Var cP10 ITEMS aOpc when .t. Size 50,10 of oDlg Pixel
+
+@ 145,210 BUTTON "Imprimir" SIZE 28,13 PIXEL OF oDlg ACTION (FPrint(cP1,cP2,cP3,cP4,cP5,cP6,cP7,cP8,cP9,cP10,nQTD),oDlg:End())
+@ 145,240 BUTTON "Sair" SIZE 28,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+
+Static Function FPrint(cP1,cP2,cP3,cP4,cP5,cP6,cP7,cP8,cP9,cP10,nQTD)
+
+IF(nQTD <= 0)
+	MsgInfo("Quantidade Invalida !","Atenção")
+	Return()
+endif
+
+cQuery := "SELECT * FROM "+RetSqlName("SA1")+" "
+cQuery += " WHERE A1_FILIAL = '"+xFilial("SA1")+"' "
+cQuery += "   AND A1_COD BETWEEN '"+cP1+"' AND '"+cP3+"' "
+cQuery += "   AND A1_LOJA BETWEEN '"+cP2+"' AND '"+cP4+"' "
+cQuery += "   AND A1_EST BETWEEN '"+cP5+"' AND '"+cP6+"' "
+cQuery += "   AND A1_SATIV1 BETWEEN '"+cP7+"' AND '"+cP8+"' "
+cQuery += "   AND A1_GRPVENX BETWEEN '"+cP9+"' AND '"+cP10+"' "
+cQuery += "   AND A1_MSBLQL <> '1' "
+cQuery += "   AND D_E_L_E_T_ = '' "
+cQuery := ChangeQuery(cQuery)
+dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"TMP",.T.,.T.)
+dbSelectArea("TMP")
+dbGoTop()
+
+While !TMP->(Eof())
+
+	MSCBPRINTER(cModelo, cPorta)
+	MSCBCHKStatus(.f.)
+	
+	For nS := 1 to nQTD
+	    
+		MSCBBEGIN(1,6)
+		
+		MSCBBOX(07,02,98,34)                
+	
+		MSCBLineH(07,10,98,3) 
+		MSCBLineH(07,16,98,3) 
+		MSCBLineH(07,22,98,3) 
+		MSCBLineH(07,28,98,3) 
+	     
+		MSCBSAY(08,11,"Destinatáro", "N", "1", "1,1")
+		MSCBSAY(08,17,"Endereco", "N", "1", "1,1")
+		MSCBSAY(08,23,"Bairro", "N", "1", "1,1")
+		MSCBSAY(74,23,"Cep", "N", "1", "1,1")
+		MSCBSAY(08,29,"Cidade/UF", "N", "1", "1,1")
+	
+		cNOME    := UPPER(TMP->A1_NOME)
+		
+		if EMPTY(TMP->A1_ENDENT)
+		   cEND := UPPER(TMP->A1_END) 
+		   cBAI := UPPER(TMP->A1_BAIRRO)       
+		   cMUN := UPPER(ALLTRIM(TMP->A1_MUN))+"/"+UPPER(TMP->A1_EST)
+		   cCEP := TransForm(ALLTRIM(TMP->A1_CEP),'@R 99999-999') 
+		else
+		   cEND := UPPER(TMP->A1_ENDENT) 
+		   cBAI := UPPER(TMP->A1_BAIRROE)       
+		   cMUN := UPPER(ALLTRIM(TMP->A1_MUNE))+"/"+UPPER(TMP->A1_ESTE)
+		   cCEP := TransForm(ALLTRIM(TMP->A1_CEPE),'@R 99999-999') 
+		endif                      
+
+		MSCBSAY(08,04,"A/C. COMPRADOR/DIRETOR ", "N", "4", "2,2") 
+		MSCBSAY(08,13,cNOME,"N", "3", "1,1") 
+		MSCBSAY(08,19,cEND, "N", "3", "1,1") 
+		MSCBSAY(08,25,cBAI, "N", "3", "1,1") 
+		MSCBSAY(74,25,cCEP, "N", "3", "1,1") 
+		MSCBSAY(08,31,cMUN, "N", "3", "1,1") 
+	
+		MSCBEND()                                        
+		
+		SLEEP(600)
+		
+	Next nS
+
+	TMP->(DbSkip())
+
+	MSCBCLOSEPRINTER()
+
+EndDo
+
+TMP->(dbCloseArea())
+
+Return nil

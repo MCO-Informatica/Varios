@@ -1,0 +1,29 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT103LEG        | Autor | Lucas Baia          | Data |    20/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para definir as Legendas.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MT103LEG()
+/*
+Local aNewLeg := {}
+
+aAdd(aNewLeg, {"ENABLE"    ,"Docto. nao Classificado"})
+aAdd(aNewLeg, {"BR_LARANJA","Docto. Bloqueado"})
+aAdd(aNewLeg, {"BR_VIOLETA","Doc. C/Bloq. de Mov."})
+aAdd(aNewLeg, {"DISABLE"   ,"Docto. Normal"})
+aAdd(aNewLeg, {"BR_CINZA"  ,"Docto. de Beneficiamento"})
+aAdd(aNewLeg, {"BR_AMARELO","Docto. de Devolucao" })
+aAdd(aNewLeg, {"BR_AZUL"   ,"Docto. de Compl. IPI"})
+aAdd(aNewLeg, {"BR_MARROM" ,"Docto. de Compl. ICMS"})
+aAdd(aNewLeg, {"BR_PINK"   ,"Docto. de Compl. Preco/Frete/Desp. Imp."})
+aAdd(aNewLeg, {"BR_BRANCO" ,"Docto. de Frete Nf de Saida"})
+aAdd(aNewLeg, {"BR_CANCEL"  ,"Docto. rejeitado pelo Setor de Qualidade"})
+
+Return(aNewLeg)*/
+Return

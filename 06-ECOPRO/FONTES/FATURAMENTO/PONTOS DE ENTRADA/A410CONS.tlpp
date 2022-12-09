@@ -1,0 +1,21 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | A410CONS     | Autor | Lucas Baia          | Data |    05/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Na Montagem da EnchoiceBar do Pedido de Venda.
+//---------------------------------------------------------------------------------
+// Uso    | ECOPRO SUSTENTAVEL
+//---------------------------------------------------------------------------------
+
+
+User Function A410CONS()
+
+Local aArea        := GetArea()  
+Local aBotoes    := {}
+ 
+aAdd(aBotoes,{'Imp. Excel', {||U_PVCSV()}, "Imp. Excel","* Imp. Excel"} )
+     
+RestArea(aArea)
+
+Return(aBotoes)

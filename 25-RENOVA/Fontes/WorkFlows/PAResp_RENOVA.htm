@@ -1,0 +1,342 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="pt-br">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Aprovação de pagamento antecipad</title>
+<style>
+<!--
+TD {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10pt
+}
+.TableRowBlueDarkMini {
+	BACKGROUND-COLOR: #000000; COLOR: #FFCC00; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableRowWhiteMini2 {
+	COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px; VERTICAL-ALIGN: top
+}
+.TableColumnTitle {
+	BACKGROUND-COLOR: #FFFF99; COLOR: #000000; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 14px; FONT-WEIGHT: bold; VERTICAL-ALIGN: top
+}
+.Mini {
+	FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 10px
+}
+.TableRowBlueDark {
+BACKGROUND-COLOR: #e4e4e4; COLOR: #19167D; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 14px; VERTICAL-ALIGN: top
+}
+.style1 {color: #19167D}
+.TitleMediumCenter {
+	COLOR: #979797; FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; FONT-SIZE: 22px; FONT-WEIGHT: normal; LINE-HEIGHT: 24px; TEXT-ALIGN: center
+}
+-->
+</style>
+</head>
+
+<body>
+
+<table style="width: 100%; height: 84px; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt" border="0" cellspacing="0" cellpadding="0">
+  <tbody>
+    <tr>
+    <td style="width: 805px; vertical-align: middle; text-align: justify; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt">
+      <div style="text-align: center; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt">
+      <p style="text-align: left">
+      <big><big><font size="3"><span
+ style="color: #666666;font-weight:700">Workflow 
+        - Adiantamento No.: %Z7_NUMSEQ% - </span></font></big></big><b><font size="4" color="#FF0000">%resposta%</font></b><p style="text-align: left">
+		<big><big><font size="3"><span
+ style="color: #666666;font-weight:700">%Z7_FILIAL% - %Z7_FILNOM% </span><font color="#FFFFFF">
+		<span
+ style="font-weight:700">-</span></font></font></big></big></div>
+      </td>
+    <td style="color: rgb(0, 0, 153); width: 141px; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt" bordercolor="#000000" valign="top">
+      	<img
+ alt="logo" src="http://187.94.63.67:93/workflow/html/logo.jpg" width="150" height="150"></td>
+  </tr>
+  </tbody>
+</table>
+
+<table border="0" cellpadding="0" style="border-collapse: collapse; width: 100%">
+	<colgroup>
+		<col width="195" style="width: 146pt">
+	</colgroup>
+	<tr height="19" style="height:14.25pt">
+		<td height="19" style="height: 14.25pt; color: black; font-size: 11.0pt; font-weight: 400; font-style: normal; text-decoration: none; font-family: Calibri, sans-serif; text-align: general; vertical-align: bottom; white-space: nowrap; border: medium none; padding-left: 1px; padding-right: 1px; padding-top: 1px" align="left" width="1307">
+		<hr>
+		<table border="0" width="100%" cellspacing="0" cellpadding="0" style="border-width:0px; ">
+			<tr>
+				<td bgcolor="#3366FF" style="border-style:none; border-width:medium; " height="25">
+				<p align="center"><font color="#FFFFFF" size="3"><b>Dados do 
+				Título</b></font></td>
+				<td bgcolor="#3366FF" style="border-style:none; border-width:medium; " height="25">
+				<p align="center"><font color="#FFFFFF" size="3"><b>Informações 
+				complementares</b></font></td>
+			</tr>
+			</table>
+		</td>
+	</tr>
+	</table>
+
+
+<FORM name="GCAprov_QG" id="GCAprov_EL" action="WFHTTPRET.APL" method="post" style="margin: 0px">
+		
+<div align="center" style="font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt">
+		<table border="0" width="100%" cellspacing="0" cellpadding="0" style="border-right-width: 0px; border-bottom-width: 0px; border-left-width:0px">
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-left-style: none; border-left-width: medium; border-top-style:solid; border-top-width:1px; border-right-style:none; border-right-width:medium; border-bottom-style:none; border-bottom-width:medium">
+		<b>Dt.Emissão :</b></td>
+				<td width="31%" height="22" style="border-left-style: none; border-left-width: medium; border-right-style: none; border-right-width: medium; border-top-style: solid; border-top-width: 1px; border-bottom-style: none; border-bottom-width: medium">%Z7_EMISSAO%</td>
+				<td width="15%" align="right" height="22" bgcolor="#E4E4E4" style="border-top-style: solid; border-top-width: 1px; border-left-style:none; border-left-width:medium; border-right-style:none; border-right-width:medium; border-bottom-style:none; border-bottom-width:medium">
+		<b>Núm. adiantamento : </b></td>
+				<td width="41%" colspan="3" height="22" style="border-right-style: none; border-right-width: medium; border-left-style:none; border-left-width:medium; border-top-style:solid; border-top-width:1px; border-bottom-style:none; border-bottom-width:medium">%Z7_NUMSEQ%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Fornecedor : </b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_FORNECE% -
+		%Z7_LOJA% - %A2_NREDUZ%</td>
+				<td width="15%" align="right" height="22" bgcolor="#E4E4E4" style="border-style: none; border-width: medium">
+		<b>Pedido de compra :</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">
+				<p align="left">%Z7_NUMPED%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Vencimento :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_VENCTO%</td>
+				<td width="15%" align="right" height="22" bgcolor="#E4E4E4" style="border-style: none; border-width: medium">
+		<b>Número do Contrato :</b></td>
+				<td width="16%" height="22" style="border-style:none; border-width:medium; ">%Z7_CONTRA%</td>
+				<td width="11%" height="22" style="border-style:none; border-width:medium; ">
+				<p align="right">
+		<b>Revisão :&nbsp;&nbsp;&nbsp; </b></td>
+				<td width="14%" height="22" style="border-style:none; border-width:medium; ">&nbsp;&nbsp;&nbsp;
+		%Z7_REVISAO%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Valor :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_VALOR%</td>
+				<td width="15%" align="right" height="22" bgcolor="#E4E4E4" style="border-style: none; border-width: medium">
+		<b>Bco/Agência/Conta :</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">%Z7_PABCO% - %Z7_PAAGENC% - %Z7_PACONTA%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Natureza :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">
+				%Z7_NATUREZ%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>Usuário: &nbsp;</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">
+				%Z7_USUINCL% - %Z7_USUNAME%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Centro de Custo :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_CCUSTO%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>Obs usuário:</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">
+				%Z7_OBS%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Projeto : </b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_ITEMCTA%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>Vlr. Total adiantado :</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">%Z7_VALORAD%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Camada :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_CLVL%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>Saldo do contrato:</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">
+				%CTSALDO%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Classe Orc. :</b></td>
+				<td width="31%" height="22" style="border-style: none; border-width: medium">%Z7_EC05DB%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>% já adiantado:</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">
+				%NPERCENT%</td>
+			</tr>
+			<tr>
+				<td width="13%" align="right" height="22" bgcolor="#E4E4E4" style="border-style:none; border-width:medium; ">
+		<b>Conta Contábil :</b></td>
+				<td width="31%" height="22" style="border-style:none; border-width:medium; ">%Z7_CONTA%</td>
+				<td width="15%" align="right" height="22" style="border-style: none; border-width: medium" bgcolor="#E4E4E4">
+		<b>Vlr. Pedido de Compra :</b></td>
+				<td width="41%" colspan="3" height="22" style="border-style:none; border-width:medium; ">%NVALPED%</td>
+			</tr>
+		</table>
+		</td>
+	</tr>
+	</table>
+		<hr>
+
+
+</div>
+
+</form>
+
+
+&nbsp;
+</p>
+		
+<table style="color: rgb(39, 33, 151); font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt" height="19" width="100%" cellspacing="0">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td class="TitleMediumCenter" height="15" width="100%" bgcolor="#3366FF">
+    
+      
+      <p style="text-align: left;">
+    <font size="3" face="Arial" color="#FFFFFF">
+	<span style="font-weight:700; font-style:italic">Processo de Aprova&ccedil;&atilde;o</span></font></p>
+
+      </td>
+
+
+  </tr>
+
+
+  
+  </tbody>
+</table>
+
+
+<table style="width: 100%; font-family:Verdana, Arial, Helvetica, sans-serif; font-size:10pt" border="0" bordercolor="#ffffff" cellspacing="1" cellpadding="0">
+
+
+  <tbody>
+
+    <tr>
+
+
+    <td class="TableRowBlueDarkMini" style="color: rgb(255, 204, 0); background-color:#E4E4E4" align="center" width="6%">
+    <font face="Arial" color="#000000" size="2">N&iacute;vel</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="20%">
+    <font face="Arial" color="#000000" size="2">Usu&aacute;rio</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="17%">
+    <font face="Arial" color="#000000" size="2">Situa&ccedil;&atilde;o</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="15%">
+    <font face="Arial" color="#000000" size="2">Aprovado / Reprovado por</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="10%">
+    <font face="Arial" color="#000000" size="2">Data</font></td>
+
+
+    <td style="color: rgb(255, 204, 0); background-color:#E4E4E4" class="TableRowBlueDarkMini" align="center" width="32%">
+    <font face="Arial" color="#000000" size="2">Observa&ccedil;&otilde;es</font></td>
+
+
+  </tr>
+
+
+  
+  
+  </tbody><tbody>
+
+
+  <tr>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="6%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.1%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="left" width="20%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.2%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="17%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.3%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="15%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.4%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="center" width="10%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.5%</font></td>
+
+
+    <td class="TableRowWhiteMini2" align="left" width="32%" style="border-bottom-style: solid; border-bottom-width: 1px">
+	<font size="1">%t1.6%</font></td>
+
+
+  </tr>
+
+
+  
+  
+  </tbody>
+</table>
+
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt">
+
+	<tbody>
+
+    <tr>
+
+      <td bgcolor="#000000">
+		<img src="../../../../LOGO.gif" height="1" width="1"></td>
+
+    </tr>
+
+
+  
+  </tbody>
+</table>
+
+
+
+
+<table border="0" width="100%" style="font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt">
+  <tbody>
+  <td class="Mini"></td>
+
+	&nbsp;
+	<tr>
+      <td class="Mini">Atenciosamente,</td>
+    </tr>
+	
+  </tbody>
+</table>
+
+<table border="0" width="100%" style="font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt">
+  <tbody>
+  <td class="Mini2"></td>
+
+	&nbsp;
+	
+	<tr>
+      <td class="Mini">WorkFlow @ Renova Energia</td>
+    </tr>
+  
+  </tbody>
+</table>
+
+
+
+
+</body>
+
+</html>

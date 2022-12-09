@@ -1,0 +1,62 @@
+#include "rwmake.ch"
+
+User Function RESTA03()
+
+Processa({|| CUSTO()},"Atualizando Custos...")
+Return
+
+Static Function CUSTO()
+
+
+_cArquivo	:=	cGetFile("Arquivos Dbase|*.dbf", OemToAnsi("Selecione o Arquivo a Importar"),,,.t.)
+
+_nQtde		:=	Len(_cArquivo)
+
+//----> PROCESSA APENAS SE O ARQUIVO FOR SELECIONADO
+If _nQtde > 0
+	_cNome		:=	""
+	
+	For x := _nQtde to 1 Step -1
+		If Subs(_cArquivo,x,1) = "\"
+			Exit
+		Endif
+		_cNome := Subs(_cArquivo,x,1) + _cNome
+	Next
+	
+	_cStartPath := GetSrvProfString("StartPath","")
+	_cStartPath := StrTran(_cStartPath,"/","\")
+	_cStartPath +=If(Right(_cStartPath,1)=="\","","\")
+	
+	//----> COPIA O ARQUIVO DE TRABALHO DA MAQUINA PARA O SERVIDOR
+	CpyT2S(_cArquivo,_cStartPath)
+	
+	_cArquivo	:= _cStartPath+_cNome
+	
+	
+	dbUseArea(.t.,"DBFCDX",_cArquivo ,"PRC",.f.,.f.)
+	
+	
+	dbSelectArea("PRC")
+	dbGoTop()
+	ProcRegua(RecCount())
+	
+	While Eof() == .f.
+		
+		IncProc("Processando Atualizacao de Custos..")
+		
+		dbSelectArea("SB1")
+		dbSetOrder(1)
+		If dbSeek(xFilial("SB1")+PRC->CODIGO,.F.)
+			RecLock("SB1",.f.)
+			SB1->B1_CUSTD  		:=	PRC->CUSTO
+		EndIf
+		
+		
+		dbSelectArea("PRC")
+		dbSkip()
+	EndDo
+Else
+	MsgBox("Nenhum arquivo selecionado para importar","Arquivo nao Selecionado","Stop")
+EndIf
+
+Return

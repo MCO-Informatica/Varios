@@ -1,0 +1,1280 @@
+Group HCI
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project Customizações_hci
+      FoldersCount=2
+      Folder Fontes
+         VSSPath=Fontes
+         FilesCount=418
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\_fFTpPrd.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\_fRHA032.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\_ftst.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\a010tok.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A103CLAS.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A140EXC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A241BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\a250etran.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A410CONS.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A410EXC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A415TDOK.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A460AVALIA.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\a690gtrb.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\A940PRD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI01.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI02.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI03.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI04.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI06.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ACDHCI07.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\acdimg01.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AF036POC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AFTERLOGIN.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AJUSTAFT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT010SN1.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT450ALT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT450FIL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT450GRV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT450OKA.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AT450OKD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\AvPrevEsp.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\BostonCP.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\BostonVL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\BrasilCP.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CADNORMA.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CARM690.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CARM690a.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CBRETEAN.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CHQALM.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CNAB240_CEF.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CNABXFUN.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\CodBar.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Comercio.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ConvLD.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Dacte_X.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\DAMDFE.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Danfe_X.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Danfe_XIII.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\danfeii.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\DEP_AM.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\DEP_OD.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\DESTRUTIVO.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ETIQUETAS.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ExDaCob.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F040BROW.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F40DELPR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F050MDVC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F50DELPR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F190NATU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F190VNAT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F430VAR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F650VAR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F740BROW.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\F750BROW.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FA070BTN.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FA080BTN.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FA200RE2.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FA280OK.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FA290Ok.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FC010FIL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FC021HEAD.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\fContSind.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FCTeste.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FINXFUN.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FR650FIL.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FT300GRA.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FT300MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FT320AG2.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FT320GRV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FT320TSK.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\FTMSREL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ftstmail.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ftstSX5.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\GeraChaveXML.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\GeraVB.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\GERTITST.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\GQREENTR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HC410MC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCEX0001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCEX0002.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCEX0003.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCEX0004.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA010.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA011.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA012.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA013.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA014.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA015.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA016.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA017.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA018.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA019.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA020.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA100.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA121.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA122.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA123.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA241.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA261.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA410.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIA415.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIBM001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCICR001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCICR002.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA002.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA003.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA004.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA005.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA006.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA007.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA008.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA009.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA010.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA011.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA012.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA013.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA014.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA015.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA016.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA017.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA018.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA019.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDA020.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDM001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDM010.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDM011.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIDM012.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIMR001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIMR002.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIMR003.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIMR555.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR010.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR011.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR012.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR013.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR014.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR015.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR016.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR017.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIR490.PRX
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIRAP.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIVIPI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCIXFUN.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCMA001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCMPAA1.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCRMCVL.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCSB8SB7.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCSB801.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCSER001.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTE001.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTE002.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTE003.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTE004.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTE005.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HCTEPHC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\hf_wf_xml.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML00.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML01.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML02.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML03.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML04.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML05.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML06.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML07.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML08.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML09.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXML020.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLFUN.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLR00.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLR01.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLR02.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLW01.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLW02.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLW03.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLW04.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\HFXMLW05.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\IMPCADX.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\IMPORCL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ImportQie.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ImportQip.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ImpVar.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Indeniz.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\IPO400MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ItauCP.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\lerpo.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\LocNfe.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\LOTXM010.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\LOTXM020.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\LPSZZ.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M030EXC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M030Inc.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M261BCHOI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M261D3O.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M410FSQL.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M410LIOK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M410STTS.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M415FSQL.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M415GRV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M440SC9I.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M460FIM.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M460ICM.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M460IPI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\m460mark.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M460SOLI.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M461RTFI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M690DAT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\M996E1.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA020ALT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA020ROT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA020TOK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA030BRW.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA030MEM.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA030ROT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA103OPC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA110BAR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA120BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA126ASC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA140BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA261CPO.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA261D3.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA410COR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA410LEG.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA410MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA415BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA415COR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA415END.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA415LEG.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MA650BUT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MADPCOD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MATA110XML.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Matatec.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MATH098.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MC090MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MCTBM001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MDFESEFAZ.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MIGFOLD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MOSTRA.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MSD2460.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MSD2520.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT010INC.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT093B1.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT100GE2.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT100GRV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT100LOK.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT103FIM.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT103IPC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT110CPO.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT110GRV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120BRW.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120FOL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120GRV.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120LOK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120OK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120TEL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT120VLD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT130FIL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT140ROT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT150GRV.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT150OK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT150ROT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT150SCR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT410CPY.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT416FIM.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT440AT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT490BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT490MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT690ALOC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT690GSH8.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT690TALOC.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MT690TIME.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA010MNU.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA56E.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA097MNU.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA120G2.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA130C8.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA225MNU.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA261MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA390MNU.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA410T.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA416PV.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA440C9.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA455I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA455P.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\MTA650E.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\nfesefaz.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\NFSEXml001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\NFSEXml002.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\NFSEXml003.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\NFSEXml102.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\nfsexmlenv.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagacta.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagagen.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagano.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagban.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Pagcar.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Pagcodbar.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagdoc.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\PagFor.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Pagide.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Pagmod.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Pagnos.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\pagval.prx
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\PrNotXML.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\qdom700.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\qdom710.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\qdom720.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\QE215LL.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\QE215MAR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\QE215ROT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\QNC040BUT.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\QVAL200D.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA010.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA011.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA012.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA013.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA014.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMA015.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMNF.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCOMPV.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RCONV13.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Recacom.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Refeicao.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA001.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA002.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA003.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA004.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA005.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RESTA15.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA010.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA014.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA015.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA016.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA017.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA018.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA019.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA020.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA021.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA023.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA024.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA025.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA030.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA040.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA050.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATA060.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATACOM.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATAPV.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATC010.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATC020.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATR9A.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATR33.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATR98.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATR99.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATRC1.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFATRTB.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RFISC001.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\Rmata030.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RMISC01.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RotAssistMed.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\ROTODONT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RTMSE01.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\RVLPI.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SD1100E.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SD1100I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SD1140I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SF1100I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SF1140I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\SF2460I.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TaxaCB.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TC450COR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TC450LEG.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TC450ROT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TK260FIL.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMata260.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMK260.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMK260A.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMK260D.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMK260OK.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMK341GRV.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\TMKGRSP.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_650001CD.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_CHGAMZHCI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_CopyRoma.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_FisaXML.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_FreteHCI.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_HCIORC.PRX
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\U_ORCHCIBR.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\UPDCARMAR.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\UPDDIGIT.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updhac1.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\UPDHCI17.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updhcp1.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updhft1.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updhft2.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updhmr1.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\UpdIF001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updprt2.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\updprt3.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\VIEWPRW.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\vldlfiscal.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\wfExemplo.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\WFHC001.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\WFHC002.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\WFHCI.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\XMATA730.PRW
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\xmata972.prw
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\XMATR815.PRX
+             Type=T
+         End
+         File \TOTVS12\Microsiga\Protheus\FONTES HCI_CARMAR\XMATR845.PRW
+             Type=T
+         End
+      End
+      Folder Definições
+         VSSPath=Definições
+         FilesCount=0
+      End
+   End
+End

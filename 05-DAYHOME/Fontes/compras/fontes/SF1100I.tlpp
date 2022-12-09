@@ -1,0 +1,149 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+User Function SF1100I()
+
+// NÃO ESTA SENDO UTILIZADO O FONTE ABAIXO
+// MARCOS FONTANELLI
+
+Return()
+
+/*
+_aArea := GetArea()
+
+
+Private _nPeso		:= 0
+Private _cNDI 		:= Space(10)
+Private _dDTDI		:= CTOD("  /  /  ")
+Private _cUFDI		:= Space(02)
+Private _cLocDese	:= Space(03)
+Private _dDTDesem	:= CTOD("  /  /  ")
+Private _cEXPORT	:= Space(07)
+Private _cADICAO	:= Space(03)
+Private _cSEQADI	:= Space(03)
+Private _cFABRICA	:= Space(07)   
+Private _cMsg1	:= Space(70)
+Private _cMsg2	:= Space(70)
+Private _cMsg3	:= Space(70)
+Private _cMsg4	:= Space(70)
+Private _cMsg5	:= Space(70)
+
+_lSair      :=  .F.
+
+//----> VERIFICA SE O FORNECEDOR É ESTRANGEIRO
+If SF1->F1_EST $"EX"
+	While .t.
+		
+		@ 025,005 To 600,705 Dialog janela1 Title OemToAnsi("Nota Fiscal de Importação")
+		
+		@ 010,010 Say OemToAnsi("Nota Fiscal")
+		@ 010,045 Get SF1->F1_DOC Picture "@!" When .f.
+		@ 010,090 Say OemToAnsi("Serie")
+		@ 010,119 Get SF1->F1_SERIE Picture "@!" When .f.
+		@ 010,150 Say OemToAnsi("Emissao")
+		@ 010,180 Get SF1->F1_EMISSAO When .f.
+		@ 025,010 Say OemToAnsi("Fornecedor")
+		@ 025,045 Get SF1->F1_FORNECE When .f.
+		@ 025,090 Say OemToAnsi("Loja")
+		@ 025,125 Get SF1->F1_LOJA When .f.
+		@ 035,045 Get SA2->A2_NOME When .f.
+		@ 050,010 Say OemToAnsi("Numero DI :") Size 50,10
+		@ 050,070 Get _cNDI Picture "@!"  When .t.
+		
+		@ 065,010 Say OemToAnsi("DT DI :") Size 50,10
+		@ 065,070 Get _dDTDI Picture "D"  When .t.
+		
+		@ 080,010 Say OemToAnsi("Estado DI :") Size 50,10
+		@ 080,070 Get _cUFDI Picture "@!"  When .t.
+		
+		@ 095,010 Say OemToAnsi("Local Desembarque :") Size 50,10
+		@ 095,070 Get _cLocDese Picture "@!"  When .t.
+		
+		@ 110,010 Say OemToAnsi("DT Desembarque :") Size 50,10
+		@ 110,070 Get _dDTDesem Picture "D"  When .t.
+		
+		@ 125,010 Say OemToAnsi("Cod. Exportacao :") Size 50,10
+		@ 125,070 Get _cEXPORT Picture "@!"  When .t.
+		
+		@ 140,010 Say OemToAnsi("Adição :") Size 50,10
+		@ 140,070 Get _cADICAO Picture "@!"  When .t.
+		
+		@ 155,010 Say OemToAnsi("Seq. Adição :") Size 50,10
+		@ 155,070 Get _cSEQADI Picture "@!"  When .t.
+		
+		@ 170,010 Say OemToAnsi("Fabricante :") Size 50,10
+		@ 170,070 Get _cFABRICA Picture "@!"  When .t.
+		
+		@ 195,010 Say OemToAnsi("Observacoes :") Size 150,10
+		@ 195,070 Get _cMsg1 Picture "@!"  When .t.Size 150,10
+		@ 210,070 Get _cMsg2 Picture "@!"  When .t.Size 150,10
+		@ 225,070 Get _cMsg3 Picture "@!"  When .t.Size 150,10
+		@ 240,070 Get _cMsg4 Picture "@!"  When .t.Size 150,10
+		@ 255,070 Get _cMsg5 Picture "@!"  When .t.Size 150,10
+
+		@ 270,270 BmpButton Type 1 Action GravaObs()
+		
+		Activate Dialog janela1
+		
+		If _lSair
+			Exit
+		EndIf
+	EndDo
+EndIf
+
+RestArea(_aArea)
+
+SysRefresh()
+
+Return()
+
+
+Static Function CloseJan()
+
+_lSair := .T.
+
+Close(janela1)
+
+Return()
+
+Static Function GravaObs()
+
+RecLock("SF1",.f.)
+SF1->F1_NDI			:= _cNDI
+SF1->F1_DTDI		:= _dDTDI
+SF1->F1_UFDI		:= _cUFDI
+SF1->F1_LOCDESE		:= _cLocDese
+SF1->F1_DTDESEM		:= _dDTDesem
+SF1->F1_EXPORT		:= _cEXPORT
+SF1->F1_X_OBS1		:= _cMsg1
+SF1->F1_X_OBS2		:= _cMsg2
+SF1->F1_X_OBS3		:= _cMsg3
+SF1->F1_X_OBS4		:= _cMsg4
+SF1->F1_X_OBS5		:= _cMsg5
+MsUnLock()
+
+dbSelectArea("SD1")
+_aAreaSD1 := GetArea()
+dbSetOrder(1)
+If dbSeek(SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA),.F.)
+	While Eof() = .f. .And. SD1->(D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA)
+		
+		RecLock("SD1",.f.)
+		SD1->D1_ADICAO	:= _cADICAO
+		SD1->D1_SEQADI	:= _cSEQADI
+		SD1->D1_FABRICA	:= _cFABRICA
+		MsUnLock()
+		
+		dbSelectArea("SD1")
+		dbSkip()
+	EndDo
+EndIf
+
+RestArea(_aAreaSD1)
+
+_lSair := .T.
+
+Close(janela1)
+
+Return()
+*/

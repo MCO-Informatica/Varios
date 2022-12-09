@@ -1,0 +1,9 @@
+#include "totvs.ch"
+
+USER FUNCTION MA410MNU()
+
+xAmbiente  := Upper(GetEnvServ())
+
+aadd(aRotina,{'Emite Pedido Separação','U_FATR999(SC5->C5_FILIAL, SC5->C5_NUM)',0,3,0,NIL})
+
+RETURN()

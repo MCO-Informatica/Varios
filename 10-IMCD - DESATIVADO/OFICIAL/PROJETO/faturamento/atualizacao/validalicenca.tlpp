@@ -1,0 +1,101 @@
+
+#include 'protheus.ch'
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} validalicenca
+Valida licença de clietes/fornecedores/transportadoras.
+@author  marcio.katsumata
+@since   14/02/2020
+@version 1.0
+@param   cLicenca, character, nome da licença
+@param   cAliasLic, character, alias da entidade
+@param   cNomeEntidade, character, nome da razão social
+@param   cNumeroLicenca, character, numero da licença
+@param   dDataLicenca, date, data da licença
+@param   cNumeroProtocolo, character, numero do protocolo
+@param   dDataProtocolo, date, data do protocolo
+@param   cMensagem, character, mensagem de erro
+@return  logical, .T. = Válido
+                  .F. = Inválido
+/*/
+//-------------------------------------------------------------------
+user function validalicenca(cLicenca,cAliasLic,cNomeEntidade,cNumeroLicenca, dDataLicenca,;
+                            cNumeroProtocolo,dDataProtocolo, cMensagem)
+                            
+    local cEntidade as character
+    local lValido   as logical
+    local _nDias    as numeric
+    
+    cMensagem := ""
+    //---------------------------
+    //Inicialização de variáveis
+    //---------------------------
+    _nDias:= GetMv( "MV_AVISOLI" )
+
+    DO CASE
+        CASE cAliasLic == "SA1"
+            cEntidade := "cliente"
+        CASE cAliasLic == "SA2"
+            cEntidade := "fornecedor"
+        CASE cAliasLic == "SA4"
+            cEntidade := "transportadora"
+    ENDCASE
+
+    lValido := .T.
+
+    //-----------------------------------------
+    //Verifica se as duas datas estão vazias
+    //Protocolo e licença
+    //-----------------------------------------
+    if empty(dDataLicenca) .and.  empty(dDataProtocolo)
+        cMensagem := "Data de licença [" +cLicenca+"] não preenchida para o "+cEntidade+" "+cNomeEntidade
+        lValido := .F.
+    else
+        //------------------------------
+        //Verifica a validade da licença
+        //-------------------------------
+        if dDataLicenca >= dDataBase 
+            //-----------------------------------------------
+            //Verifica se o numero da licença está preenchida
+            //-----------------------------------------------
+            if empty(cNumeroLicenca)
+                cMensagem := "Numero da licença [" +cLicenca+"] não preenchida para o "+cEntidade+" "+cNomeEntidade
+                lValido := .F.
+            endif
+            //---------------------------------------------------------
+            //Alerta da proximidade da data de vencimento da licença
+            //----------------------------------------------------------
+            if dDataLicenca <= (dDataBase + _nDias)
+                cMensagem := "Licença [" +cLicenca+"] vencerá no dia "+dtoc(dDataLicenca)+" para o "+cEntidade+" "+cNomeEntidade
+            endif
+        else 
+            //--------------------------------
+            //Verifica a validade do protocolo
+            //---------------------------------
+            if dDataProtocolo >= dDataBase 
+                //--------------------------------------------------
+                //Verifica se o numero do protocolo está preenchido
+                //--------------------------------------------------
+                if empty(cNumeroProtocolo)
+                    cMensagem := "Numero do protocolo da licença [" +cLicenca+"] não preenchida para o "+cEntidade+" "+cNomeEntidade
+                    lValido   := .F.
+                endif
+
+                //---------------------------------------------------------
+                //Alerta da proximidade da data de vencimento do protocolo
+                //----------------------------------------------------------
+                if dDataProtocolo <= (dDataBase + _nDias)
+                    cMensagem := "Protocolo [" +cLicenca+"] vencerá no dia "+dtoc(dDataProtocolo)+" para o "+cEntidade+" "+cNomeEntidade
+                endif
+            else
+                cMensagem := "Protocolo e licença ["+cLicenca+"] vencidos. Vencimentos : Protocolo - "+dtoc(dDataProtocolo)+;
+                                                                                      " Licença - "+dtoc(dDataLicenca)+;
+                                                                                      " para o "+cEntidade+" "+cNomeEntidade
+
+                lValido := .F.
+            endif
+        endif
+            
+    endif
+
+return lValido

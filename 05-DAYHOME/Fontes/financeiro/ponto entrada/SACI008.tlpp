@@ -1,0 +1,44 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"
+
+User Function SACI008()
+
+Local aVetor := {}
+
+_cPrefixo 	:=	SE1->E1_PREFIXO
+_cNum		:=	SE1->E1_NUM
+_cTipo		:=	SE1->E1_TIPO
+_cParcela	:=	SE1->E1_PARCELA
+_nSaldo		:=	SE1->E1_SALDO
+
+
+If _nSaldo > 0 .And. _nSaldo <= 5
+	
+	If MsgBox("O titulo possui saldo de "+Alltrim(Transform(_nSaldo,"@E 999,999,999.99"))+". Deseja baixar como dação?","Baixa por Dação","YesNo")
+		
+		RecLock("SE1",.f.)
+		SE1->E1_SITUACA := "0"
+		MsUnLock()
+		
+		lMsErroAuto := .F.
+		
+		aVetor := {{"E1_PREFIXO"  ,_cPrefixo             ,Nil},;
+		{"E1_NUM"   ,_cNum         ,Nil},;
+		{"E1_PARCELA"  ,_cParcela               ,Nil},;
+		{"E1_TIPO"     ,_cTipo             ,Nil},;
+		{"AUTMOTBX"     ,"DAC"             ,Nil},;
+		{"AUTDTBAIXA"  ,dDataBase         ,Nil},;
+		{"AUTDTCREDITO" ,dDataBase         ,Nil},;
+		{"AUTHIST"     ,'DACAO DAYHOME',Nil},;
+		{"AUTVALREC"  ,_nSaldo               ,Nil }}
+		MSExecAuto({|x,y| fina070(x,y)},aVetor,3) //Inclusao
+		
+		If lMsErroAuto
+			Alert("Erro. Favor avisar o Administrador do sistema.")
+		Endif
+	EndIf
+	
+EndIf
+
+Return
+

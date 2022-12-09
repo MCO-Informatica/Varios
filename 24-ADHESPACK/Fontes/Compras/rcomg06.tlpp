@@ -1,0 +1,43 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOMG06        | Autor | Lucas Baia          | Data |    02/08/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para rodar em Gatilho. A ideia é automatizar o 
+//        | calculo das Moedas na Rotina de Pedido de Compras e Doc. de Entrada.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function RCOMG06(cTab)
+
+Local _nQuant
+Local _nPrecoMoeda
+Local _nTaxaMoerda
+Local _nQuantSD1
+Local _nPrecoMoedaSD1
+Local _nTaxaMoerdaSD1
+Local _nTotal           := 0
+
+IF cTab == "SC7"
+    _nQuant           := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_QUANT" })]
+    _nPrecoMoeda      := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_X_PRECO" })]
+    _nTaxaMoerda      := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_XPTAX" })]
+
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_X_TOTAL" })]   := Round(_nQuant * _nPrecoMoeda,2)
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_PRECO" })]     := Round(_nTaxaMoerda * _nPrecoMoeda,2)
+    _nTotal := Round(_nQuant * aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_PRECO" })],2) // RETORNO DO VALOR TOTAL
+
+ELSEIF cTab == "SD1"
+    _nQuantSD1        := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })]
+    _nPrecoMoedaSD1   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_X_VUNI" })]
+    _nTaxaMoerdaSD1   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_X_PTAX" })]
+
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_X_TOTAL" })]   := Round(_nQuantSD1 * _nPrecoMoedaSD1,2)
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_VUNIT" })]     := Round(_nTaxaMoerdaSD1 * _nPrecoMoedaSD1,2)
+    _nTotal := Round(_nQuantSD1 * aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_VUNIT" })],2) // RETORNO DO VALOR TOTAL
+
+ENDIF
+
+Return (_nTotal)

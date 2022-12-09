@@ -1,0 +1,59 @@
+#INCLUDE "rwmake.ch"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ MTA416PV ³ Autor ³ Rafael de Souza         ³ Data ³ 18/11/2010 ³±±
+±±³          ³          ³       ³ MVG Consultoria Ltda    ³      ³            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³ Carrega Campos Customizados do Orcamento para Pedido           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Observacao³                                                                ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Day Home Comercial Ltda                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³             ATUALIZACOES SOFRIDAS DESDE A CONSTRU€AO INICIAL              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador   ³  Data  ³              Motivo da Alteracao                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³              ³        ³                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+
+//*****************************************************************************
+User Function MTA416PV()
+//*****************************************************************************
+
+Local _aArea	:=	GetArea()
+Local nAcols 	:= 	Len(aCols)
+                         
+//M->C5_EMISSAO	:= SCJ->CJ_EMISSAO
+M->C5_DHNOMCL 	:= Posicione("SA1",1,xFilial("SA1")+SCJ->CJ_CLIENTE+SCJ->CJ_LOJA,"A1_NOME")  
+M->C5_OPER  	:= SCJ->CJ_OPER
+M->C5_DHORIGA 	:= SCJ->CJ_DHORIGA
+M->C5_TRANSP 	:= SCJ->CJ_TRANSP
+M->C5_NTRANSP 	:= SCJ->CJ_NTRANSP
+
+M->C5_DHNOMTI 	:= SCJ->CJ_DHNOMTI
+M->C5_X_DATAB	:= SCJ->CJ_X_DATAB
+ 
+M->C5_DHNOMV1	:= SCJ->CJ_DHNOMV1  
+M->C5_DHNOMV2   := SCJ->CJ_DHNOMV2
+M->C5_ORDCOMP	:= SCJ->CJ_ORDCOMP     
+M->C5_DHREDUZ	:= Posicione("SA1",1,xFilial("SA1")+SCJ->CJ_CLIENTE+SCJ->CJ_LOJA,"A1_NREDUZ")  
+M->C5_CNPJ		:= SCJ->CJ_CNPJ
+
+
+
+_aCOLS[Len(_aCOLS),aScan(_aHeader,{|x| UPPER(AllTrim(x[2]))=="C6_OPER"})]:= SCJ->CJ_OPER
+_aCOLS[Len(_aCOLS),aScan(_aHeader,{|x| UPPER(AllTrim(x[2]))=="C6_XPROMO"})]:= SCK->CK_XPROMO
+_aCOLS[Len(_aCOLS),aScan(_aHeader,{|x| UPPER(AllTrim(x[2]))=="C6_COMIS1"})]:= SCK->CK_COMIS1
+
+//_aCOLS[Len(_aCOLS),aScan(_aHeader,{|x| UPPER(AllTrim(x[2]))=="C6_CI"     })]:= SCK->CK_CI
+
+RestArea(_aArea)
+
+Return(_aCols)

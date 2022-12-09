@@ -1,0 +1,484 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "Topconn.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | RFINA002          | Autor | Lucas Baia          | Data |    03/01/2022			
+//---------------------------------------------------------------------------------
+// Descr. | Relatório Customizado para atender a necessidade do setor de Contas																		
+//        | a Receber.
+//---------------------------------------------------------------------------------
+// Uso    | ECOPRO SUSTENTAVEL.
+//---------------------------------------------------------------------------------
+User Function RFINA002()
+
+Private cData1      := CTOD(Space(8))
+Private cData2      := CTOD(Space(8))
+Private cCliente1   := Space(6)
+Private cLoja1      := Space(4)
+
+GetParam()
+
+FWMsgRun(, {|oSay| Processa() }, "Buscando Informações de Títulos", "Gerando Excel")
+
+Return
+
+
+Static Function Processa()
+
+Local cQuery    := ''
+Local cAlias    := GetNextAlias()
+//Local aDados    := {}
+
+Sleep(5000)
+
+cQuery := "SELECT E1_FILIAL, E1_NUM, E1_PREFIXO, A1_COD, A1_LOJA, A1_NOME, A1_CGC, E1_EMISSAO, C5_CONDPAG, E4_DESCRI, E1_VALOR, E1_PARCELA, E1_VENCREA " + CRLF
+cQuery += "FROM "+RetSqlName("SE1")+" SE1 "                                                                                                              + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SC5")+" SC5 ON SC5.C5_FILIAL = SE1.E1_FILIAL AND SC5.C5_NUM = SE1.E1_PEDIDO "                                        + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SE4")+" SE4 ON SC5.C5_CONDPAG = SE4.E4_CODIGO "                                                                      + CRLF
+cQuery += "INNER JOIN "+RetSqlName("SA1")+" SA1 ON SE1.E1_CLIENTE = SA1.A1_COD AND SE1.E1_LOJA = SA1.A1_LOJA "                                           + CRLF
+cQuery += "WHERE SE1.E1_FILIAL = '"+xFilial("SE1")+"' "                                                                                                  + CRLF
+cQuery += "AND SE1.E1_EMISSAO BETWEEN  '"+DToS(MV_PAR01)+"' AND '"+DToS(MV_PAR02)+"' "                                                                   + CRLF
+IF !EMPTY(MV_PAR03) .AND. !EMPTY(MV_PAR04)
+    cQuery += "AND SA1.A1_COD = '"+MV_PAR03+"' "                                                                                                         + CRLF
+    cQuery += "AND SA1.A1_LOJA = '"+MV_PAR04+"' "                                                                                                        + CRLF
+ENDIF
+cQuery += "AND SE1.D_E_L_E_T_ = '' AND SC5.D_E_L_E_T_ = '' AND SE4.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' ORDER BY E1_EMISSAO, E1_NUM "                 + CRLF
+
+//cQuery := ChangeQuery(cQuery)
+//dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAlias,.T.,.T.)
+
+TCQUERY cQuery NEW Alias (cAlias)
+
+
+IF !(cAlias)->(EOF())
+	GeraExcel(cAlias)
+Else
+	MsgAlert('A query não retornou registros, por favor verifique os parâmetros informados.', "Erro")
+EndIF
+
+(cAlias)->(DbCloseArea())
+
+Return
+
+
+
+Static Function GeraExcel(cAlias)
+
+Local oExcel    := FWMSEXCEL():New()
+Local oExcelApp := NIL
+Local cAba      := "Títulos Contas a Receber Mod. 2"
+Local cTabela   := "Títulos Contas a Receber Mod. 2"
+Local cArquivo  := "Títulos Contas a Receber" + DTOS(msDate()) + "_" + strtran(Time(), ":", "") + ".XLS"
+Local cPatch    := "C:\TEMP\"
+Local cDefPatch := GetSrvProfString("StartPatch", "\system\")
+Local aDados    := {}
+Local dData
+Local dEmissao
+Local cStatus
+Local nAtraso
+
+//IF Len(aDados) > 0
+
+    IF !ApOleClient("MSExcel")
+        MsgAlert("Microsoft Excel não instalado!")
+        Return
+    ENDIF
+
+    oExcel:AddWorkSheet(cAba)
+    oExcel:AddTable(cAba, cTabela)
+
+    oExcel:AddColumn(cAba, cTabela, "FILIAL"          ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "NUMERO TITULO"   ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "PREFIXO"         ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COD. CLIENTE"    ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "LOJA CLIENTE"    ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "NOME CLIENTE"    ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "CNPJ/CPF"        ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DATA EMISSAO"    ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COND. PAG."      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DESC. COND. PAG.",1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VALOR TOTAL"     ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "PARCELA"         ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VENC. REAL"      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "STATUS TITULO"   ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DIAS ATRASO"     ,1,1,.F.)
+
+
+    (cAlias)->(DbGoTop())
+
+    Do While !(cAlias)->(EOF())
+
+    dEmissao := IIF( Empty((cAlias)->E1_EMISSAO), (cAlias)->E1_EMISSAO, StoD((cAlias)->E1_EMISSAO)) //Colocar uma data brasileira.
+    dData    := IIF( Empty((cAlias)->E1_VENCREA), (cAlias)->E1_VENCREA, StoD((cAlias)->E1_VENCREA)) //Colocar uma data brasileira.
+    cStatus  := DescTit(cAlias)
+    nAtraso  := AtrasTit(cAlias)
+
+    aDados := {(cAlias)->E1_FILIAL, (cAlias)->E1_NUM, (cAlias)->E1_PREFIXO, (cAlias)->A1_COD, (cAlias)->A1_LOJA, (cAlias)->A1_NOME, (cAlias)->A1_CGC, dEmissao,;
+                (cAlias)->C5_CONDPAG, (cAlias)->E4_DESCRI, (cAlias)->E1_VALOR, (cAlias)->E1_PARCELA, dData, cStatus, nAtraso }
+    
+    oExcel:AddRow(cAba, cTabela, aDados)
+
+    (cAlias)->(DbSkip())
+
+    ENDDO
+
+    (cAlias)->(dbSkip())
+
+    IF !EMPTY(oExcel:aWorkSheet)
+
+        oExcel:ACTIVATE()
+        oExcel:GetXMLFile(cArquivo)
+
+        CpyS2T(cDefPatch+cArquivo, cPatch)
+
+        oExcelApp   := MsExcel():New()
+        oExcelApp:WorkBooks:Open(cPatch+cArquivo) //Abre a Planilha
+        oExcelApp:SetVisible(.T.)
+
+    ENDIF
+/*ELSE
+    Alert("Não existem dados para emitir o relatório.")
+ENDIF*/
+
+Return
+
+
+
+Static Function GetParam()
+
+Local alParambox    := {}
+Local clTitulo      := "Parâmetros"
+Local alButtons     := {}
+Local llCentered    := .T.
+Local nlPosx        := NIL
+Local nlPosy        := NIL
+Local clLoad        := ""
+Local llCanSave     := .T.
+Local llUserSave    := .T.
+Local llRet         := .T.
+Local blOk
+Local alParams      := {}
+
+AADD(alParambox,{1,"Data Inicial?"    , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+AADD(alParambox,{1,"Data Final?"      , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+AADD(alParambox,{1,"Cliente de"       , Space(08)         , "", "", "SA1", "", 60, .F. })
+AADD(alParambox,{1,"Loja de"          , Space(04)         , "", "", ""   , "", 30, .F. })
+
+llRet := ParamBox(alParambox, clTitulo, alParams, blOk, alButtons, llCentered, nlPosx, nlPosy,, clLoad, llCanSave, llUserSave)
+
+IF (llRet)
+    cData1      := alParams[1]
+    cData2      := alParams[2]
+    cCliente1   := alParams[3]
+    cLoja1      := alParams[4]
+ENDIF
+
+Return
+
+Static Function DescTit(cAlias)
+
+Local cTipo     := Posicione("SE1",1,xFilial("SE1")+(cAlias)->E1_PREFIXO+(cAlias)->E1_NUM+(cAlias)->E1_PARCELA,"E1_TIPO")
+Local nSaldo    := Posicione("SE1",1,xFilial("SE1")+(cAlias)->E1_PREFIXO+(cAlias)->E1_NUM+(cAlias)->E1_PARCELA+cTipo,"E1_SALDO")
+Local cDescri   := ""
+
+//E1_FILIAL + E1_PREFIXO + E1_NUM + E1_PARCELA + E1_TIPO
+IF nSaldo == (cAlias)->E1_VALOR
+
+    cDescri := "TITULO TOTALMENTE ABERTO"
+
+ELSEIF nSaldo == 0
+
+    cDescri := "TITULO BAIXADO TOTALMENTE"
+
+ELSEIF nSaldo > 0 .OR. nSaldo < (cAlias)->E1_VALOR
+
+    cDescri := "TITULO BAIXADO PARCIALMENTE"
+
+ENDIF
+
+Return cDescri
+
+
+
+
+
+Static Function AtrasTit(cAlias)
+
+Local cTipo     := Posicione("SE1",1,xFilial("SE1")+(cAlias)->E1_PREFIXO+(cAlias)->E1_NUM+(cAlias)->E1_PARCELA,"E1_TIPO")
+Local nSaldo    := Posicione("SE1",1,xFilial("SE1")+(cAlias)->E1_PREFIXO+(cAlias)->E1_NUM+(cAlias)->E1_PARCELA+cTipo,"E1_SALDO")
+Local dDataVenc := Posicione("SE1",1,xFilial("SE1")+(cAlias)->E1_PREFIXO+(cAlias)->E1_NUM+(cAlias)->E1_PARCELA+cTipo,"E1_VENCREA") //(cAlias)->E1_VENCREA
+Local nDAtraso  := ""
+
+//E1_FILIAL + E1_PREFIXO + E1_NUM + E1_PARCELA + E1_TIPO
+IF dDataVenc <= dDataBase
+
+    IF nSaldo == 0
+
+        nDAtraso    := "NAO HA ATRASO"
+
+    ELSEIF nSaldo > 0 .OR. nSaldo < (cAlias)->E1_VALOR
+
+        nDAtraso    := cValToChar(DateDiffDay( Date(), dDataVenc ))
+
+    ELSEIF nSaldo == (cAlias)->E1_VALOR
+
+        nDAtraso    := cValToChar(DateDiffDay( Date(), dDataVenc ))
+
+    ENDIF
+ELSE
+
+    nDAtraso    := "TÍTULOS A VENCER"
+
+ENDIF
+
+Return nDAtraso
+
+
+/*
+//VARIAVEIS 
+Private oReport    := Nil
+Private oSection1  := Nil //Primeira Sessão
+Private oSection2  := Nil //Segunda  Sessão
+Private cTitulo    := "Relatório - Contas a Receber Mod. 2"
+Private cDescr     := "Este Relatório tem a finalidade de trazer todos os títulos a Receber." 
+
+Private cPerg 	   := "XCONTREC"
+
+//Função que cria as perguntas/filtros que iremos usar no relatório, na SX1
+//ValidPerg()
+
+//Função responsável por chamar a pergunta criada na função ValidaPerg, a variável PRIVATE cPerg, é passada.
+Pergunte(cPerg,.T.)
+
+//CHAMAMOS AS FUNÇÕES QUE CONSTRUIRÃO O RELATÓRIO
+ReportDef()
+oReport:PrintDialog()
+
+Return 
+
+Static Function ReportDef()
+
+//Local cSitTit := MV_PAR03
+
+oReport := TReport():New("RFINA002",cTitulo,cPerg,{|oReport| PrintReport(oReport)},cDescr)
+oReport:SetLandscape(.T.) // SIGNIFICA QUE O RELATÓRIO SERÁ EM PAISAGEM
+
+//, , , A1_CGC,
+/*
+    //Primeira sessão, terá os dados do fornecedor SA2
+    oSection1 := TRSection():New(oReport,"CLIENTE","SA1")
+    TRCell():New( oSection1, "A1_COD"     , "SA1")
+    TRCell():New( oSection1, "A1_LOJA"    , "SA1")
+    TRCell():New( oSection1, "A1_NOME"    , "SA1")
+    TRCell():New( oSection1, "A1_CGC"     , "SA1")
+
+
+    //TrSection serve para constrole da seção do relatório, neste caso, teremos somente uma
+    oSection2 := TRSection():New( oSection1 , "TITULOS POR CLIENTE","SE1" ) //SE1
+    TRCell():New( oSection2, "E1_FILIAL"  , "SE1","Filial")
+    TRCell():New( oSection2, "E1_NUM"     , "SE1","Num. Título")
+    TRCell():New( oSection2, "E1_PREFIXO" , "SE1","Prefixo Tít.")
+    TRCell():New( oSection2, "E1_EMISSAO" , "SE1","Dt. Emissão")
+    TRCell():New( oSection2, "C5_CONDPAG" , "SE1","Cond. Pag.")
+    TRCell():New( oSection2, "E4_DESCRI"  , "SE1","Desc. Cond. Pag.")
+    TRCell():New( oSection2, "E1_PARCELA" , "SE1","Parcela")
+    TRCell():New( oSection2, "E1_VALOR"   , "SE1","Valor Total")
+    TRCell():New( oSection2, "E1_VENCREA" , "SE1","Venc. Real")
+    TRCell():New( oSection2, "SIT_TITULO" , ,"Sit. Titulo", , 30, ,{|| DescTit() })
+    TRCell():New( oSection2, "DIAS_ATRASO", ,"Dias em Atraso", , , ,{|| AtrasTit() })
+*/
+
+/*
+//Primeira sessão, terá os dados do fornecedor SA2
+    oSection1 := TRSection():New(oReport,"CLIENTE","SA1")
+    TRCell():New( oSection1, (cAlias)->A1_COD     )
+    TRCell():New( oSection1, (cAlias)->A1_LOJA    )
+    TRCell():New( oSection1, (cAlias)->A1_NOME    )
+    TRCell():New( oSection1, (cAlias)->A1_CGC     )
+
+
+    //TrSection serve para constrole da seção do relatório, neste caso, teremos somente uma
+    oSection2 := TRSection():New( oSection1 , "TITULOS POR CLIENTE","SE1" ) //SE1
+    TRCell():New( oSection2, (cAlias)->E1_FILIAL  , ,"Filial")
+    TRCell():New( oSection2, (cAlias)->E1_NUM     , ,"Num. Título")
+    TRCell():New( oSection2, (cAlias)->E1_PREFIXO , ,"Prefixo Tít.")
+    TRCell():New( oSection2, (cAlias)->E1_EMISSAO , ,"Dt. Emissão")
+    TRCell():New( oSection2, (cAlias)->C5_CONDPAG , ,"Cond. Pag.")
+    TRCell():New( oSection2, (cAlias)->E4_DESCRI  , ,"Desc. Cond. Pag.")
+    TRCell():New( oSection2, (cAlias)->E1_PARCELA , ,"Parcela")
+    TRCell():New( oSection2, (cAlias)->E1_VALOR   , ,"Valor Total")
+    TRCell():New( oSection2, (cAlias)->E1_VENCREA , ,"Venc. Real")
+    TRCell():New( oSection2, "SIT_TITULO" , ,"Sit. Titulo", , 30, ,{|| DescTit() })
+    TRCell():New( oSection2, "DIAS_ATRASO", ,"Dias em Atraso", , , ,{|| AtrasTit() })
+
+TRFunction():New(oSection2:Cell((cAlias)->E1_NUM),,"COUNT",, "Contagem de Titulos")
+TRFunction():New(oSection2:Cell((cAlias)->E1_VALOR),,"SUM",, "Totalizador do Valor Total")
+
+
+Return 
+
+Static Function PrintReport(oReport)
+Local cAlias    := GetNextAlias()
+Local cQuery    := ''
+//Local cSitTit   := MV_PAR03
+
+
+oSection1:BeginQuery() //Relatório começa a ser estruturado
+//INICIO DA QUERY
+
+cQuery := "SELECT E1_FILIAL, E1_NUM, E1_PREFIXO, A1_COD, A1_LOJA, A1_NOME, A1_CGC, E1_EMISSAO, C5_CONDPAG, E4_DESCRI, E1_VALOR, E1_PARCELA, E1_VENCREA "
+cQuery += "FROM "+RetSqlName("SE1")+" SE1 "
+cQuery += "INNER JOIN "+RetSqlName("SC5")+" SC5 ON SC5.C5_FILIAL = SE1.E1_FILIAL AND SC5.C5_NUM = SE1.E1_PEDIDO "
+cQuery += "INNER JOIN "+RetSqlName("SE4")+" SE4 ON SC5.C5_CONDPAG = SE4.E4_CODIGO "
+cQuery += "INNER JOIN "+RetSqlName("SA1")+" SA1 ON SE1.E1_CLIENTE = SA1.A1_COD AND SE1.E1_LOJA = SA1.A1_LOJA "
+cQuery += "WHERE SE1.E1_FILIAL = '"+%xFilial:SE1%+"' "
+cQuery += "AND SE1.E1_EMISSAO BETWEEN  '"+DToS(MV_PAR01)+"' AND '"+DToS(MV_PAR02)+"'
+IF !EMPTY(MV_PAR03) .AND. !EMPTY(MV_PAR04)
+    cQuery += "AND SA1.A1_COD = '"+%exp:(MV_PAR03)%+'" "
+    cQuery += "AND SA1.A1_LOJA = '"+%exp:(MV_PAR04)%+'" "
+ENDIF
+cQuery += "AND SE1.D_E_L_E_T_ = '' AND SC5.D_E_L_E_T_ = '' AND SE4.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' ORDER BY E1_EMISSAO, E1_NUM "
+
+cQuery := ChangeQuery(cQuery)
+
+dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAlias,.T.,.T.)
+
+
+//IF cSitTit == 1 // 1 - TODOS
+    /*BeginSql Alias cAlias
+
+        SELECT E1_FILIAL, E1_NUM, E1_PREFIXO, A1_COD, A1_LOJA, A1_NOME, A1_CGC, E1_EMISSAO, C5_CONDPAG, E4_DESCRI, E1_VALOR, E1_PARCELA, E1_VENCREA
+        FROM %table:SE1% SE1
+        INNER JOIN %table:SC5% SC5 ON SC5.C5_FILIAL = SE1.E1_FILIAL AND SC5.C5_NUM = SE1.E1_PEDIDO
+        INNER JOIN %table:SE4% SE4 ON SC5.C5_CONDPAG = SE4.E4_CODIGO
+        INNER JOIN %table:SA1% SA1 ON SE1.E1_CLIENTE = SA1.A1_COD AND SE1.E1_LOJA = SA1.A1_LOJA
+        WHERE
+        SE1.E1_FILIAL = %xFilial:SE1%
+        AND SE1.E1_EMISSAO BETWEEN %exp:(MV_PAR01)% AND %exp:(MV_PAR02)%
+        AND SA1.A1_COD = %exp:(MV_PAR03)%  //IN (%exp:(MV_PAR03)% , %exp:(MV_PAR05)%)
+        AND SA1.A1_LOJA = %exp:(MV_PAR04)% //IN (%exp:(MV_PAR04)% , %exp:(MV_PAR06)%)
+        AND SE1.D_E_L_E_T_ = '' AND SC5.D_E_L_E_T_ = '' AND SE4.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' ORDER BY E1_EMISSAO, E1_NUM;
+
+        /*
+        SELECT A2_COD, A2_LOJA, A2_NOME, A2_CGC, E2_NUM, E2_PREFIXO,  E2_EMISSAO, E2_VENCTO, E2_VENCREA, E2_BAIXA, E2_VALOR, E2_SALDO,
+        E2_VALLIQ FROM %table:SE2% SE2
+        INNER JOIN %table:SA2% SA2 ON E2_FORNECE = A2_COD AND E2_LOJA = A2_LOJA
+        WHERE E2_SALDO > 0 AND E2_VENCREA < CONVERT(CHAR,GETDATE(),112) AND SE2.D_E_L_E_T_<>'*' AND SA2.D_E_L_E_T_<>'*' //ORDER BY E2_VENCREA*/
+
+    //FIM DA QUERY
+    //EndSql
+/*
+ELSEIF cSitTit == 2 // 2 - Em Abertos
+    BeginSql Alias cAlias
+
+        SELECT E1_FILIAL, E1_NUM, E1_PREFIXO, A1_COD, A1_LOJA, A1_NOME, A1_CGC, E1_EMISSAO, C5_CONDPAG, E4_DESCRI, E1_VALOR, E1_PARCELA, E1_VENCREA
+        FROM %table:SE1% SE1
+        INNER JOIN %table:SC5% SC5 ON SC5.C5_FILIAL = SE1.E1_FILIAL AND SC5.C5_NUM = SE1.E1_PEDIDO
+        INNER JOIN %table:SE4% SE4 ON SC5.C5_CONDPAG = SE4.E4_CODIGO
+        INNER JOIN %table:SA1% SA1 ON SE1.E1_CLIENTE = SA1.A1_COD AND SE1.E1_LOJA = SA1.A1_LOJA
+        WHERE
+        SE1.E1_FILIAL = %xFilial:SE1%
+        AND SE1.E1_EMISSAO BETWEEN %exp:(MV_PAR01)% AND %exp:(MV_PAR02)%
+        AND SE1.E1_SALDO > 0
+        AND SE1.D_E_L_E_T_ = '' AND SC5.D_E_L_E_T_ = '' AND SE4.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' ORDER BY E1_EMISSAO, E1_NUM;
+
+        /*
+        SELECT A2_COD, A2_LOJA, A2_NOME, A2_CGC, E2_NUM, E2_PREFIXO,  E2_EMISSAO, E2_VENCTO, E2_VENCREA, E2_BAIXA, E2_VALOR, E2_SALDO,
+        E2_VALLIQ FROM %table:SE2% SE2
+        INNER JOIN %table:SA2% SA2 ON E2_FORNECE = A2_COD AND E2_LOJA = A2_LOJA
+        WHERE E2_SALDO > 0 AND E2_VENCREA < CONVERT(CHAR,GETDATE(),112) AND SE2.D_E_L_E_T_<>'*' AND SA2.D_E_L_E_T_<>'*' //ORDER BY E2_VENCREA*/
+
+    //FIM DA QUERY
+    //EndSql
+/*
+ELSEIF cSitTit == 3 // 3 - Em Atrasos
+    BeginSql Alias cAlias
+
+        SELECT E1_FILIAL, E1_NUM, E1_PREFIXO, A1_COD, A1_LOJA, A1_NOME, A1_CGC, E1_EMISSAO, C5_CONDPAG, E4_DESCRI, E1_VALOR, E1_PARCELA, E1_VENCREA//,;
+        //DATEDIFF(d,GETDATE(),CAST(E1_VENCREA AS DATETIME)) AS DIAS_ATRASO
+        FROM %table:SE1% SE1
+        INNER JOIN %table:SC5% SC5 ON SC5.C5_FILIAL = SE1.E1_FILIAL AND SC5.C5_NUM = SE1.E1_PEDIDO
+        INNER JOIN %table:SE4% SE4 ON SC5.C5_CONDPAG = SE4.E4_CODIGO
+        INNER JOIN %table:SA1% SA1 ON SE1.E1_CLIENTE = SA1.A1_COD AND SE1.E1_LOJA = SA1.A1_LOJA
+        WHERE
+        SE1.E1_FILIAL = %xFilial:SE1%
+        AND SE1.E1_EMISSAO BETWEEN %exp:(MV_PAR01)% AND %exp:(MV_PAR02)%
+        AND SE1.E1_SALDO > 0
+        AND SE1.E1_VENCREA < CONVERT(CHAR,GETDATE(),112)
+        AND SE1.D_E_L_E_T_ = '' AND SC5.D_E_L_E_T_ = '' AND SE4.D_E_L_E_T_ = '' AND SA1.D_E_L_E_T_ = '' ORDER BY E1_EMISSAO, E1_NUM;
+
+        /*
+        SELECT A2_COD, A2_LOJA, A2_NOME, A2_CGC, E2_NUM, E2_PREFIXO,  E2_EMISSAO, E2_VENCTO, E2_VENCREA, E2_BAIXA, E2_VALOR, E2_SALDO,
+        E2_VALLIQ FROM %table:SE2% SE2
+        INNER JOIN %table:SA2% SA2 ON E2_FORNECE = A2_COD AND E2_LOJA = A2_LOJA
+        WHERE E2_SALDO > 0 AND E2_VENCREA < CONVERT(CHAR,GETDATE(),112) AND SE2.D_E_L_E_T_<>'*' AND SA2.D_E_L_E_T_<>'*' //ORDER BY E2_VENCREA*/
+
+    //FIM DA QUERY
+    //EndSql
+
+//ENDIF
+
+/*
+
+oSection1:EndQuery() //Fim da Query
+oSection2:SetParentQuery() 
+oSection2:SetParentFilter({|cCliLoja| (cAlias)->A1_COD+(cAlias)->A1_LOJA = cCliLoja},{|| (cAlias)->A1_COD+(cAlias)->A1_LOJA})
+
+oSection1:Print() //É dada a ordem de impressão, visto os filtros selecionados
+
+//O Alias utilizado para execução da querie é fechado.
+(cAlias)->(DbCloseArea())
+
+Return 
+*/
+/*
+Static Function DescTit()
+
+Local cTipo     := Posicione("SE1",1,xFilial("SE1")+E1_PREFIXO+E1_NUM+E1_PARCELA,"E1_TIPO")
+Local nSaldo    := Posicione("SE1",1,xFilial("SE1")+E1_PREFIXO+E1_NUM+E1_PARCELA+cTipo,"E1_SALDO")
+Local cDescri   := ""
+
+//E1_FILIAL + E1_PREFIXO + E1_NUM + E1_PARCELA + E1_TIPO
+IF nSaldo == E1_VALOR
+
+    cDescri := "TITULO TOTALMENTE ABERTO"
+
+ELSEIF nSaldo == 0
+
+    cDescri := "TITULO BAIXADO TOTALMENTE"
+
+ELSEIF nSaldo > 0 .OR. nSaldo < E1_VALOR
+
+    cDescri := "TITULO BAIXADO PARCIALMENTE"
+
+ENDIF
+
+Return cDescri
+
+
+
+
+
+Static Function AtrasTit()
+
+Local cTipo     := Posicione("SE1",1,xFilial("SE1")+E1_PREFIXO+E1_NUM+E1_PARCELA,"E1_TIPO")
+Local nSaldo    := Posicione("SE1",1,xFilial("SE1")+E1_PREFIXO+E1_NUM+E1_PARCELA+cTipo,"E1_SALDO")
+Local dDataVenc := E1_VENCREA
+Local nDAtraso  := ""
+
+//E1_FILIAL + E1_PREFIXO + E1_NUM + E1_PARCELA + E1_TIPO
+IF nSaldo == 0
+
+    nDAtraso    := "NAO HA ATRASO"
+
+ELSEIF nSaldo > 0 .OR. nSaldo < E1_VALOR
+
+    nDAtraso    := cValToChar(DateDiffDay( Date(), dDataVenc ))
+
+ELSEIF nSaldo == E1_VALOR
+
+    nDAtraso    := cValToChar(DateDiffDay( Date(), dDataVenc ))
+
+ENDIF
+
+Return nDAtraso*/

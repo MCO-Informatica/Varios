@@ -1,0 +1,159 @@
+#include "RWMAKE.CH"
+#Include "PROTHEUS.CH"
+
+user function MA461ROT()
+
+    local aRetorno := {}
+	AAdd( aRetorno, { "Marcar", "U_fMarcar", 2, 0 } )
+
+return(aRetorno) 
+
+
+//Exibe tela para usuario e chama rotina para gravar dados
+user function fMarcar()
+
+    private oMark1 := GetMarkBrow()	
+  
+    private oMark2 := oMark:oBrowse
+  
+    cxMarca        := oMark1:cMark
+    lxInverte      := oMark1:lInvert
+
+    Pergunte("MT461A",.F.)
+
+    cAlias         := "SC9_TMP"
+   
+    cxQuery := " SELECT C9_PEDIDO, C9_ITEM, C9_PRODUTO, C9_OK "
+    cxQuery += "   FROM "+RetSqlName("SC9")+" "
+    cxQuery += "  WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+    cxQuery += "    AND C9_PEDIDO >= '"+MV_PAR05+"'"
+    cxQuery += "    AND C9_PEDIDO <= '"+MV_PAR06+"'"
+    cxQuery += "    AND C9_CLIENTE >= '"+MV_PAR07+"'"
+    cxQuery += "    AND C9_CLIENTE <= '"+MV_PAR08+"'"
+    cxQuery += "    AND C9_LOJA >= '"+MV_PAR09+"'"
+    cxQuery += "    AND C9_LOJA <= '"+MV_PAR10+"'"
+    cxQuery += "    AND C9_DATALIB >= '"+DTOS(MV_PAR11)+"'"
+    cxQuery += "    AND C9_DATALIB <= '"+DTOS(MV_PAR12)+"'"
+    cxQuery += "    AND C9_DATENT >= '"+DTOS(MV_PAR14)+"'"
+    cxQuery += "    AND C9_DATENT <= '"+DTOS(MV_PAR15)+"'"
+    cxQuery += "    AND C9_BLEST <> '10' "
+    cxQuery += "    AND C9_BLCRED <> '10' "
+    cxQuery += "    AND D_E_L_E_T_ = ' ' "
+
+    dbUseArea(.T.,"TOPCONN",TcGenQry(,,cxQuery),cAlias,.T.,.T.)
+    (cAlias)->(dbGoTop())	
+	while !(cAlias)->(eof())        
+        dbSelectArea('SC9')
+        SC9->(dbSetOrder(1))
+        If SC9->(dbSeek(xFilial('SC9')+(cAlias)->C9_PEDIDO+(cAlias)->C9_ITEM))
+    		While SC9->(!EOF()) .AND. SC9->C9_FILIAL == xFilial('SC9') .AND. SC9->C9_PEDIDO == (cAlias)->C9_PEDIDO .AND. SC9->C9_ITEM == (cAlias)->C9_ITEM
+                IF EMPTY(SC9->C9_NFISCAL) .AND. EMPTY(SC9->C9_BLEST) .AND. EMPTY(SC9->C9_BLCRED)
+                    RecLock('SC9',.F.)
+                    SC9->C9_OK := space(04)
+                    SC9->(msUnlock())
+                endif
+                SC9->(dbSkip())
+        	endDo
+        EndIf
+        (cAlias)->(dbSkip())
+	endDo
+
+    (cAlias)->(dbGoTop())	
+	while !(cAlias)->(eof())        
+
+        lExecuta := .F.
+        dbSelectArea('SC5')
+        SC5->(dbSetOrder(1))
+        If SC5->(dbSeek(xFilial('SC5')+(cAlias)->C9_PEDIDO))
+            if SC5->C5_XCONF $ "S"
+                lExecuta := .T.
+            else
+                lExecuta := .F.
+            endif
+        endif
+
+        if lExecuta
+
+            cQuery := " SELECT FILIAL, PEDIDO, PRODUTO, SUM(QTDBIP) QTDBIP, SUM(QTDLIB) QTDLIB "
+            cQuery += "   FROM "
+            cQuery += " 		( "
+            cQuery += " 			   SELECT ZZ2_FILIAL FILIAL, ZZ2_NUM PEDIDO, ZZ2_PRODUT PRODUTO, SUM(ZZ2_QTDLID) QTDBIP, 0 QTDLIB " 
+            cQuery += "                  FROM "+RetSqlName("ZZ2")+" "
+            cQuery += " 				WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+            cQuery += " 				  AND ZZ2_NUM IN  ( "
+            cQuery += " 									SELECT DISTINCT C9_PEDIDO "
+            cQuery += " 									  FROM "+RetSqlName("SC9")+" "
+            cQuery += " 									 WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+            cQuery += "                                        AND C9_PEDIDO  = '"+(cAlias)->C9_PEDIDO+"'"
+            cQuery += "                                        AND C9_PRODUTO = '"+(cAlias)->C9_PRODUTO+"'"
+            cQuery += "                                        AND C9_NFISCAL = ' ' "
+            cQuery += " 									   AND C9_BLEST = ' ' "
+            cQuery += " 									   AND C9_BLCRED = ' ' "
+            cQuery += " 									   AND D_E_L_E_T_ = ' ' "
+            cQuery += " 								) "
+            cQuery += "                   AND ZZ2_NUM = '"+(cAlias)->C9_PEDIDO+"'"
+            cQuery += "                   AND ZZ2_PRODUT = '"+(cAlias)->C9_PRODUTO+"'"
+            cQuery += " 				  AND ZZ2_TIPOSC = 'C' "
+            cQuery += " 				  AND ZZ2_NOTA = ' ' "
+            cQuery += " 				  AND D_E_L_E_T_ = ' ' " 
+            cQuery += " 		  	    GROUP BY ZZ2_FILIAL, ZZ2_NUM, ZZ2_PRODUT "
+            cQuery += " "
+            cQuery += " 			UNION ALL "
+            cQuery += " "
+            cQuery += " 			  SELECT C9_FILIAL FILIAL, C9_PEDIDO PEDIDO, C9_PRODUTO PRODUTO, 0 QTDBIP, SUM(C9_QTDLIB) QTDLIB "
+            cQuery += " 			    FROM "+RetSqlName("SC9")+" "
+            cQuery += " 			   WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+            cQuery += "                  AND C9_PEDIDO  = '"+(cAlias)->C9_PEDIDO+"'"
+            cQuery += "                  AND C9_PRODUTO = '"+(cAlias)->C9_PRODUTO+"'"
+            cQuery += "                  AND C9_NFISCAL = ' ' "
+            cQuery += "                  AND C9_BLEST = ' ' "
+            cQuery += "                  AND C9_BLCRED = ' ' "
+            cQuery += "                  AND D_E_L_E_T_ = ' ' "
+            cQuery += " 			   GROUP BY C9_FILIAL, C9_PEDIDO, C9_PRODUTO "
+            cQuery += " 		) TMP " 
+            cQuery += " GROUP BY FILIAL, PEDIDO, PRODUTO "
+            dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryTMP",.T.,.T.)
+            dbSelectArea("QryTMP")
+   			QryTMP->(dbGoTop())
+            nQTDBIP :=  QryTMP->QTDBIP
+       		QryTMP->(dbCloseArea())	
+
+            dbSelectArea('SC9')
+            SC9->(dbSetOrder(1))
+            If SC9->(dbSeek(xFilial('SC9')+(cAlias)->C9_PEDIDO+(cAlias)->C9_ITEM))
+                While SC9->(!EOF()) .AND. SC9->C9_FILIAL == xFilial('SC9') .AND. SC9->C9_PEDIDO == (cAlias)->C9_PEDIDO .AND. SC9->C9_ITEM == (cAlias)->C9_ITEM
+                    IF EMPTY(SC9->C9_NFISCAL) .AND. EMPTY(SC9->C9_BLEST) .AND. EMPTY(SC9->C9_BLCRED)
+                        RecLock('SC9',.F.)
+                        If !lxInverte // nÃo esta inVertido
+                            if nQTDBIP == 0 
+                                SC9->C9_OK := space(04)
+                            else
+                                SC9->C9_OK := cxMarca
+                            endif
+                        endif
+                        If lxInverte // esta inVertido
+                            if nQTDBIP == 0 
+                                SC9->C9_OK := cxMarca
+                            else
+                                SC9->C9_OK := space(04)
+                            endif
+                        endif
+                        SC9->(msUnlock())
+                    endif
+                    SC9->(dbSkip())
+                enddo    
+            EndIf
+
+        endif
+
+        (cAlias)->(dbSkip())
+	endDo
+
+	(cAlias)->(dbCloseArea())	
+
+    MarkBRefresh()    
+
+    oMark1:oBrowse:Gotop()
+ 
+return()
+

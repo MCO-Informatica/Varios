@@ -1,0 +1,230 @@
+#include "rwmake.ch"               
+#INCLUDE 'PROTHEUS.CH'
+
+User Function RLVDARES() 
+
+Local oProcess
+Local cPerg		:= Padr( "RLVDARESU", LEN( SX1->X1_GRUPO ) )
+Local aSays		:={}
+Local aButtons	:={}
+Local nOpca 	:= 0
+Local cCadastro := "Relatorio de Vendas"
+
+Private nReg        := 0
+Private aSocios     := {}
+
+AADD(aSays,"Esta rotina tem como objetivo gerar informacoes de" )
+AADD(aSays,"vendas, conforme parametros selecionados.")
+
+AADD(aButtons, { 5,.T.,{|| Pergunte(cPerg,.T. ) } } )
+AADD(aButtons, { 1,.T.,{|| nOpca:= 1, FechaBatch() }} )
+AADD(aButtons, { 2,.T.,{|| FechaBatch() }} )
+
+ValidPerg(cPerg)
+Pergunte(cPerg,.f. )	
+
+FormBatch( cCadastro, aSays, aButtons,, 220, 560 )
+
+If nOpca = 1
+	oProcess:= MsNewProcess():New( { |lEnd| OkProces( oProcess, cPerg ) }, "", "", .F. )
+	oProcess:Activate()
+Endif
+
+Return()
+
+Static Function OkProces( oObj, cPerg )
+Local lObj	    := ValType(oObj) == "O"
+Local nMAXPASSO := 3
+
+If lObj
+	oObj:SetRegua1(nMAXPASSO)
+EndIf
+
+If lObj
+	oObj:IncRegua1("Criando arquivo de trabalho")  //1
+EndIf                                                 
+
+GeraTRB(oObj) //gera arquivo TRB 
+
+If nReg <> 0
+  If lObj
+	oObj:IncRegua1("Analisando Regras")  //2
+  EndIf
+  VerRegras(oObj) 
+EndIf
+
+If !empty(aSocios)
+  TelaSocios() 
+ Else
+  Alert("Nao ha nenhum Socio a ser enviado Informativo !!!")
+EndIf
+Return
+
+
+Static Function GeraTRB(oObj) //gera arquivo TRB 
+Local lObj	     := ValType(oObj) == "O"
+Local cQuery     := ""
+//Local cDtIni     := left(dtos(mv_par01-mv_par02),6)"
+//Local cDtFim     := left(dtos(mv_par01-30),6)"
+
+If SELECT("TRB") > 0
+	TRB->(dbClosearea())
+Endif
+
+
+cQuery := " SELECT F2_VEND1,A3_NOME,F2_CLIENTE,F2_LOJA,A1_NOME,A1_MUN,A1_EST,SUBSTRING(F2_EMISSAO,7,2)+'/'+SUBSTRING(F2_EMISSAO,5,2)+'/'+SUBSTRING(F2_EMISSAO,1,4) EMISSAO,F2_DOC,F2_SERIE,D2_COD,B1_DESC,D2_QUANT,D2_PRCVEN,D2_TOTAL,D2_VALIPI,D2_VALBRUT,F2_EMISSAO "
+cQuery += " FROM " + RetSqlName("SF2") + " SF2  "
+cQuery += " INNER JOIN " + RetSqlName("SA3") + " SA3 ON A3_FILIAL = '' AND A3_COD = F2_VEND1 AND SA3.D_E_L_E_T_ = '' "
+cQuery += " INNER JOIN " + RetSqlName("SA1") + " SA1 ON A1_FILIAL = '' AND A1_COD = F2_CLIENTE AND A1_LOJA = F2_LOJA AND SA1.D_E_L_E_T_ = '' "
+cQuery += " INNER JOIN " + RetSqlName("SD2") + " SD2 ON D2_FILIAL = F2_FILIAL AND D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA AND SD2.D_E_L_E_T_ = '' "
+cQuery += " INNER JOIN " + RetSqlName("SB1") + " SB1 ON B1_FILIAL = D2_FILIAL AND B1_COD = D2_COD AND SB1.D_E_L_E_T_ = '' "
+cQuery += " WHERE F2_EMISSAO BETWEEN '20180301' AND '20180331' AND F2_VEND1 BETWEEN '' AND 'ZZZZZZ' AND F2_TIPO = 'N' AND SF2.D_E_L_E_T_ = '' "
+cQuery += " ORDER BY 1,8,3 "
+
+
+cQuery := ChangeQuery(cQuery)
+dbUseArea( .T., "TOPCONN", TCGENQRY(,, cQuery ), "TRB", .F., .T. )
+
+dbSelectArea( "TRB" )
+DbGoTop()
+bAcao:= {|| nReg ++ }
+dbEval(bAcao,,{||!Eof()},,,.T.)
+dbSelectArea("TRB") 
+dbGotop()
+
+Return
+
+
+Static Function VerRegras(oObj)
+
+Local lObj	     := ValType(oObj) == "O"
+Local cCliente   := ""
+Local lOk        := .T.
+
+If lObj
+	oObj:SetRegua2(nReg)
+Endif
+
+dbSelectArea("TRB") 
+dbGotop()
+
+While !eof()                    
+
+	  __CVEND := TRB->F2_VEND1
+	  __CNOME := TRB->A3_NOME
+	  __CCLIE := TRB->F2_CLIENTE
+	  __CLOJA := TRB->F2_LOJA
+	  __CNOMC := TRB->A1_NOME
+	  __CMUNI := TRB->A1_MUN
+	  __CESTA := TRB->A1_EST
+	  __DEMIS := STOD(TRB->F2_EMISSAO)
+	  __CDOCS := TRB->F2_DOC
+	  __CSERI := TRB->F2_SERIE
+	  __CCODI := TRB->D2_COD
+	  __CDESC := TRB->B1_DESC
+	  __NQTDE := TRB->D2_QUANT
+	  __NPRCV := TRB->D2_PRCVEN
+	  __NTOTA := TRB->D2_TOTAL
+	  __NVIPI := TRB->D2_VALIPI
+	  __NBRUT := TRB->D2_VALBRUT 
+
+
+   	 If lObj
+	   oObj:IncRegua2("Analisando Regras ")   
+	 Endif
+
+     dbSelectArea("TRB") 
+      
+     If lOk 
+        aadd(aSocios,{CHR(160)+__CVEND,__CNOME,CHR(160)+__CCLIE,CHR(160)+__CLOJA,__CNOMC,__CMUNI,__CESTA,__DEMIS,CHR(160)+__CDOCS,CHR(160)+__CSERI,CHR(160)+__CCODI,__CDESC,__NQTDE,__NPRCV,__NTOTA,__NVIPI,__NBRUT})
+     EndIf
+
+     dbSelectArea("TRB") 
+     DBSKIP()
+End 
+
+If SELECT("TRB") > 0
+	TRB->(dbClosearea())
+Endif
+
+Return
+
+Static Function ValidPerg(cPerg)
+sAlias := Alias()
+aRegs  := {}
+i      := j := 0
+
+dbSelectArea("SX1")
+dbSetOrder(1)
+cPerg := PADR(cPerg,10)
+
+//GRUPO,ORDEM,PERGUNTA              ,PERGUNTA,PERGUNTA,VARIAVEL,TIPO,TAMANHO,DECIMAL,PRESEL,GSC,VALID,VAR01,DEF01,DEFSPA01,DEFING01,CNT01,VAR02,DEF02,DEFSPA02,DEFING02,CNT02,VAR03,DEF03,DEFSPA03,DEFING03,CNT03,VAR04,DEF04,DEFSPA04,DEFING04,CNT04,VAR05,DEF05,DEFSPA05,DEFING05,CNT05,F3,GRPSXG
+AADD(aRegs,{cPerg,"01","Da Emissao      ?","","","mv_ch1","D",08,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AADD(aRegs,{cPerg,"02","Ate Emissao     ?","","","mv_ch2","D",08,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AADD(aRegs,{cPerg,"03","Do Vendedor     ?","","","mv_ch3","C",06,0,0,"G","","mv_par03","","","","","","","","","","","","","","","","","","","","","","","","","SA3","",""})
+AADD(aRegs,{cPerg,"04","Ate Vendedor    ?","","","mv_ch4","C",06,0,0,"G","","mv_par04","","","","","","","","","","","","","","","","","","","","","","","","","SA3","",""})
+AADD(aRegs,{cPerg,"05","Do Cliente      ?","","","mv_ch5","C",06,0,0,"G","","mv_par05","","","","","","","","","","","","","","","","","","","","","","","","","SA1","",""})
+AADD(aRegs,{cPerg,"06","Ate Cliente     ?","","","mv_ch6","C",06,0,0,"G","","mv_par06","","","","","","","","","","","","","","","","","","","","","","","","","SA1","",""})
+
+For i:=1 to Len(aRegs)
+	If !dbSeek(cPerg+aRegs[i,2])
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			Endif
+		Next
+		MsUnlock()
+	Endif
+Next
+
+dbSelectArea(sAlias)
+
+Return
+
+Static Function TelaSocios()
+Local aSize    := {}
+Local aObjects := {}
+Local aInfo    := {}
+Local cCabec   := "Horarios "
+Local oOk      := LoadBitmap( GetResources(), "BR_VERDE" )
+Local oNo      := LoadBitmap( GetResources(), "BR_VERMELHO" )
+
+
+Private aPosObj  := {}
+Private oDlg2
+Private oListBox2, bLine2
+Private cTitulo2 := "Horarios"
+Private cLine2   := "{ aSocios[oListBox2:nAt][1] "  
+Private aHead_2  := {"Vendedor","Nome","Cliente","Loja","Nome","Municipio","Estado","Emissao","Nota_Fiscal","Serie","Produto","Descri豫o","Qtde","Prc_Unit","Total","Val_IPI",;
+                     "Vlr_Bruto"}
+
+For nI:=2 To Len(aHead_2)
+	cLine2 += " ,aSocios[oListBox2:nAt][" + AllTrim(Str(nI)) + "]"
+Next
+cLine2 += "}"
+bLine2 := &( "{|| " + cLine2 + "}" )
+
+//旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커
+//� Monta Dialog...                                                          �
+//읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸
+aSize    := MsAdvSize()
+aObjects := {}
+AAdd( aObjects, { 100, 1, .F., .T., .F. } )
+AAdd( aObjects, { 1, 1, .T., .T., .F. } )
+
+aInfo   := { aSize[ 1 ], aSize[ 2 ], aSize[ 3 ], aSize[ 4 ], 3, 3 }
+aPosObj := MsObjSize( aInfo, aObjects, .t., .t. )
+aPosObj[2][3] -= 14
+
+DEFINE MSDIALOG oDlg2 TITLE cTitulo2 FROM aSize[7],0 TO aSize[6],aSize[5] OF GetWndDefault() Pixel
+SButton():New(aPosObj[2][3] + 3, aPosObj[2][4] - 30 , 01 , { || oDlg2:End() }, oDlg2, .T. )
+tButton():New(aPosObj[2][3] + 3,aPosObj[2][4] - 250, "Excel", , { || MsAguarde ( { || DlgToExcel({ {"ARRAY",cCabec,aHead_2,aSocios} }) } )}, 085, 010 ,,,,.T.)
+
+oListBox2 := TWBrowse():New( aPosObj[2][1]-32,aPosObj[2][2]-105,aPosObj[2][4],aPosObj[2][3],,aHead_2,,oDlg2,,,,,,,,,,,,.F.,,.T.,,.F.,,,)
+oListBox2:SetArray(aSocios)
+oListBox2:bLine := bLine2
+
+ACTIVATE DIALOG oDlg2  CENTERED
+
+Return

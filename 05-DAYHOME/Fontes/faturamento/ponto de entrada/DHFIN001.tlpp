@@ -1,0 +1,191 @@
+#Include 'Protheus.ch'
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} DHFIN001
+(long_description)
+@type function
+@author Cris
+@since 27/09/2016
+@version 1.0
+@param cFilSF2, character, (filial da nota fiscal)
+@param cNFSF2, character, (Numero da nota fiscal)
+@param cSerieSF2, character, (Série da Nota Fiscal)
+@param cCliSF2, character, (Codigo do Cliente)
+@param cLojSF2, character, (Loja do cliente da nota fiscal)
+@param cDuplSF2, character, (numero do titulo)
+@param cPrefSF2, character, (prefixo do titulo)
+@param cCGCSF2, character, (CNPJ/CPF do cliente)
+@param cTPVPC, character, (Tipo do VPC)
+@param cPVPC, character, (Percentual do VPC)
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+User Function DHFIN001(cFilSF2, cNFSF2, cSerieSF2, cCliSF2, cLojSF2, cDuplSF2, cPrefSF2,cCGCSF2,cTPVPC,cPVPC, nValBrut)
+
+	//Atualiza a primeira parcela com o desconto financeiro
+	if cTPVPC == 'S'
+		
+		//if INCLUI //13.10.16, não descomentar variavel INCLUI esta como .F. (CTP) 
+		
+			DHFINSE1(cFilSF2, cNFSF2, cSerieSF2, cCliSF2, cLojSF2, cDuplSF2, cPrefSF2,cPVPC)
+		
+		//EndIf
+			
+	//Gera um titulo a pagar
+	Elseif cTPVPC == 'P'
+	
+		DHFINSE2(cFilSF2, cNFSF2, cSerieSF2, cCliSF2, cLojSF2,cCGCSF2,cPVPC,nValBrut)
+	
+	EndIf
+
+Return
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} DHFINSE1
+(Atualiza a primeira parcela com o percentual do desconto financeiro informado no campo A1_X_PVPC
+@type function
+@author Cris
+@since 27/09/2016
+@version 1.0
+@param cFilSF2, character, (filial da nota fiscal)
+@param cNFSF2, character, (Numero da nota fiscal)
+@param cSerieSF2, character, (Série da Nota Fiscal)
+@param cCliSF2, character, (Codigo do Cliente)
+@param cLojSF2, character, (Loja do cliente da nota fiscal)
+@param cDuplSF2, character, (numero do titulo)
+@param cPrefSF2, character, (prefixo do titulo)
+@param cPVPC, character, (Percentual do VPC)
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+Static Function DHFINSE1(cFilSF2, cNFSF2, cSerieSF2, cCliSF2, cLojSF2, cDuplSF2, cPrefSF2,cPVPC)
+
+	Local aAreaSE1	:= SE1->(GetArea())
+	Local lNAtuPri	:= .T.
+	
+		dbSelectarea('SE1')
+		SE1->(dbSetORder(1))//E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO
+		if SE1->(dbSeek(cFilSF2+cPrefSF2+cDuplSF2))
+			
+			While cFilSF2+cPrefSF2+cDuplSF2 == SE1->(E1_FILIAL+E1_PREFIXO+E1_NUM)	
+			
+				//Atualiza somente a primeira parcela
+				if lNAtuPri .AND. Alltrim(SE1->E1_TIPO) == 'NF' 
+				
+					SE1->(Reclock('SE1', .F.))
+					SE1->E1_DESCFIN := cPVPC
+					//SE1->E1_TIPODES	:= '1' //1=FIXO 2 PROPORCIONAL 
+					SE1->(MsUnlock())
+					
+					lNAtuPri	:= .F.
+					
+				EndIf
+					
+				SE1->(dbskip())
+				
+			EndDo
+						
+		EndIf
+	
+	RestArea(aAreaSE1)
+
+Return 
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} DHFINSE2
+(long_description)
+@type function
+@author Cris
+@since 27/09/2016
+@version 1.0
+@param cFilSF2, character, (filial da nota fiscal)
+@param cNFSF2, character, (Numero da nota fiscal)
+@param cSerieSF2, character, (Série da Nota Fiscal)
+@param cCliSF2, character, (Codigo do Cliente)
+@param cLojSF2, character, (Loja do cliente da nota fiscal)
+@param cPVPC, character, (Percentual do VPC)
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+Static Function DHFINSE2(cFilSF2, cNFSF2, cSerieSF2, cCliSF2, cLojSF2,cCGCSF2,cPVPC,nValBrut)
+
+	Local aAreaSA2	:= SA2->(GetArea())
+	
+		dbSelectArea('SA2')
+		SA2->(dbSetOrder(3))
+		if SA2->(dbSeek(xFilial('SA2')+cCGCSF2))
+			
+			SA2->(dbSetOrder(1))
+			
+			U_GRFINSE2(cFilSF2, cNFSF2, cSerieSF2,SA2->A2_COD, SA2->A2_LOJA,ROUND((nValBrut*cPVPC)/100,2),3)
+			
+		Else
+			
+			if INCLUI
+			
+				HELP("HELP",, 'Não cadastrado - Fornecedor/Cliente',, "Cliente não esta cadastrado como fornecedor. Titulo a pagar não será gerado. ", 1, 0)
+			
+			EndIf
+						
+		EndIf
+		
+	RestArea(aAreaSA2)
+	
+Return 
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} GRFINSE2
+(long_description)
+@type function
+@author Cris
+@since 27/09/2016
+@version 1.0
+@param cFilSF2, character, (filial da nota fiscal)
+@param cNFSF2, character, (Numero da nota fiscal)
+@param cSerieSF2, character, (Série da Nota Fiscal)
+@param cCliSF2, character, (Codigo do Cliente)
+@param cLojSF2, character, (Loja do cliente da nota fiscal)
+@param nVltit, numérico, (Descrição do parâmetro)
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+User Function GRFINSE2(cFilSF2, cNFSF2, cSerieSF2,cCodFor, cLojFor,nVltit,nOpc)
+
+	Local aAreaSE2	:= SE2->(GetArea())
+	Local aTitPg	:= {}
+	Local cTipoPg	:= SuperGetMv('ES_TPGVPC',,'BOL')// tipo do boleto
+	Local cNatPag	:= SuperGetMv('ES_NPGVPC',,'NOTA DE CR') //natureza
+	Local dDiaAcr	:= SuperGetMv('ES_DPGVPC',,10)	//dias de acrescimo para vencimento
+	Private lMsErroAuto	:= .F.
+	
+	aTitPg := { { "E2_PREFIXO"  , cSerieSF2   			, NIL },;
+				{ "E2_NUM"      , cNFSF2       			, NIL },;
+				{ "E2_TIPO"     , cTipoPg				, NIL },;
+				{ "E2_NATUREZ"  , cNatPag				, NIL },;
+				{ "E2_FORNECE"  , cCodFor           	, NIL },;
+				{ "E2_LOJA"  	, cLojFor           	, NIL },;
+				{ "E2_EMISSAO"  , dDatabase				, NIL },;
+				{ "E2_VENCTO"   , dDatabase+dDiaAcr		, NIL },;
+				{ "E2_VENCREA"  , dDatabase+dDiaAcr		, NIL },;
+				{ "E2_DHCOMPL"  , 'Cliente VPC.'		, NIL },;
+				{ "E2_VALOR"    , nVltit				, NIL } }
+		 
+			MsExecAuto( { |x,y,z| FINA050(x,y,z)}, aTitPg,, nOpc )  // 3 - Inclusao, 4 - Alteração, 5 - Exclusão
+			
+			If lMsErroAuto
+			
+				MostraErro()
+						
+			Endif
+			
+	RestArea(aAreaSE2)
+	
+Return 

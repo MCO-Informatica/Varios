@@ -1,0 +1,46 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+
+User Function SF1100I()
+
+_aArea := GetArea()
+
+dbSelectArea("SD1")
+_aAreaSD1 := GetArea()
+dbSetOrder(1)
+If dbSeek(SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA),.F.)
+	While Eof() = .f. .And. SD1->(D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA)
+		
+		If !Empty(SD1->D1_PEDIDO)
+			
+			dbSelectArea("SC7")
+			dbSetOrder(1)
+			If dbSeek(SD1->D1_FILIAL+SD1->D1_PEDIDO+SD1->D1_ITEMPC,.F.)
+				
+				RecLock("SC7",.f.)
+				SC7->C7_X_NOTA := SD1->D1_DOC
+				SC7->C7_X_SERIE:= SD1->D1_SERIE
+				SC7->C7_X_DATEN:= SD1->D1_DTDIGIT
+				MsUnLock()
+			EndIf
+			
+		EndIf
+		
+		dbSelectArea("SD1")
+		dbSkip()
+	EndDo
+EndIf
+
+//Se a variável pública existir
+If Type("__cCamNovo") != "U"
+ 
+    //Grava o conteúdo na SF1
+    RecLock("SF1", .F.)
+        SF1->F1_XOBS := __cCamNovo
+    SF1->(MsUnlock())
+EndIf
+
+RestArea( _aArea )
+
+Return

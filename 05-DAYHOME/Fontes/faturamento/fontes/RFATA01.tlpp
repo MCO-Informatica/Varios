@@ -1,0 +1,128 @@
+#include "rwmake.ch"
+
+User Function RFATA01()
+
+Processa({|| PRECO()},"Importação Tabela de Preço")
+Return
+
+Static Function PRECO()
+
+Local _cPerg   	:=	"FATA07"
+Local _aRegs   	:=	{}
+Local _lCabec	:=	.t.
+Local _nItens	:=	0
+
+AAdd(_aRegs,{_cPerg,"01","Codigo Tabela      ?","Caminho do Arquivo ?"       ,"Caminho do Arquivo ?"       ,"mv_ch1","C",03,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AAdd(_aRegs,{_cPerg,"02","Nome Tabela        ?","Caminho do Arquivo ?"       ,"Caminho do Arquivo ?"       ,"mv_ch2","C",30,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AAdd(_aRegs,{_cPerg,"03","Data Inicial       ?","Caminho do Arquivo ?"       ,"Caminho do Arquivo ?"       ,"mv_ch3","D",08,0,0,"G","","mv_par03","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AAdd(_aRegs,{_cPerg,"04","Data Final         ?","Caminho do Arquivo ?"       ,"Caminho do Arquivo ?"       ,"mv_ch4","D",08,0,0,"G","","mv_par04","","","","","","","","","","","","","","","","","","","","","","","","",""})
+//AAdd(_aRegs,{_cPerg,"05","Caminho do Arquivo ?","Caminho do Arquivo ?"       ,"Caminho do Arquivo ?"       ,"mv_ch5","C",60,0,0,"G","","mv_par05","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+ValidPerg(_aRegs,_cPerg)
+
+If !Pergunte(_cPerg,.t.)
+	Return()
+EndIf
+
+_cArquivo	:=	cGetFile("Arquivos Dbase|*.dbf", OemToAnsi("Selecione o Arquivo a Importar"),,,.t.)
+
+_nQtde		:=	Len(_cArquivo)
+
+//----> PROCESSA APENAS SE O ARQUIVO FOR SELECIONADO
+If _nQtde > 0
+	_cNome		:=	""
+	
+	For x := _nQtde to 1 Step -1
+		If Subs(_cArquivo,x,1) = "\"
+			Exit
+		Endif
+		_cNome := Subs(_cArquivo,x,1) + _cNome
+	Next
+	
+	_cStartPath := GetSrvProfString("StartPath","")
+	_cStartPath := StrTran(_cStartPath,"/","\")
+	_cStartPath +=If(Right(_cStartPath,1)=="\","","\")
+	
+	//----> COPIA O ARQUIVO DE TRABALHO DA MAQUINA PARA O SERVIDOR
+	CpyT2S(_cArquivo,_cStartPath)
+	
+	_cArquivo	:= _cStartPath+_cNome
+	
+	dbUseArea(.t.,"DBFCDX",_cArquivo ,"PRC",.f.,.f.)
+	
+	
+	dbSelectArea("PRC")
+	dbGoTop()
+	ProcRegua(RecCount())
+	
+	While Eof() == .f.
+		
+		IncProc("Processando Atualizacao de Tabela de Preco...")
+		
+		If _lCabec
+			dbSelectArea("DA0")
+			dbSetOrder(1)
+			If !dbSeek(xfilial("DA0")+mv_par01,.f.)
+				
+				RecLock("DA0",.t.)
+				DA0->DA0_FILIAL		:=	xFilial("DA0")
+				DA0->DA0_CODTAB		:=	mv_par01
+				DA0->DA0_DESCRI		:=	mv_par02
+				DA0->DA0_DATDE		:=	mv_par03
+				DA0->DA0_DATATE		:=	mv_par04
+				DA0->DA0_HORADE		:=	"00:00"
+				DA0->DA0_HORATE		:=	"23:59"
+				DA0->DA0_TPHORA		:=	"1"
+				DA0->DA0_ATIVO		:=	"1"
+				MsUnLock()
+				
+				_lCabec	:=	.f.
+				
+			Else
+				MsgBox("Tabela de preço "+mv_par01+" já existe","Tabela Existe","Stop")
+				Return()
+			EndIf
+		EndIF
+		
+		_nItens++
+		
+		dbSelectArea("DA1")
+		dbSetOrder(1)
+		If !dbSeek(xFilial("DA1")+mv_par01+PRC->PRODUTO,.F.)
+			
+			dbSelectArea("SB1")
+			dbSetOrder(1)
+			If dbSeek(xFilial("SB1")+PRC->PRODUTO,.F.)
+			
+			RecLock("DA1",.t.)
+			DA1->DA1_FILIAL		:=	XFILIAL("DA1")
+			DA1->DA1_ITEM		:=	StrZero(_nItens,4)
+			DA1->DA1_CODPRO		:=	PRC->PRODUTO
+//			DA1->DA1_X_ALTE		:=	PRC->DA1_X_ALTE
+			DA1->DA1_PRCVEN		:=	PRC->VALOR
+//			DA1->DA1_X_PROM		:=	PRC->DA1_X_PROMO
+			DA1->DA1_MOEDA		:=  1
+			DA1->DA1_DATVIG		:=	MV_PAR03
+			DA1->DA1_CODTAB		:=	MV_PAR01
+			DA1->DA1_ATIVO		:=	'1'
+			DA1->DA1_TPOPER		:=	'4'
+			DA1->DA1_QTDLOT		:=	999999.99
+			DA1->DA1_INDLOT		:= 	'000000000999999.99'
+			DA1->DA1_DESC		:=	PRC->DESC
+			MsUnLock()
+			Else
+				MsgBox("O produto "+PRC->PRODUTO+" não está cadastrado.","Produto Não Cadastrado","Stop")
+			EndIf
+		Else
+			MsgBox("O produto "+PRC->PRODUTO+" já existe nesta tabela de preço","Produto Existe","Stop")
+		EndIf
+		
+		
+		dbSelectArea("PRC")
+		dbSkip()
+	EndDo
+Else
+	MsgBox("Nenhum arquivo selecionado para importar","Arquivo nao Selecionado","Stop")
+EndIf
+
+Return

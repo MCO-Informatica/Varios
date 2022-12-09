@@ -1,0 +1,41 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO4     º Autor ³ Lucas Pereira      º Data ³  11/04/17   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ ponto de entrada meus pedidos ALTERA QUERRY GRUPOS	      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function MP_ESTJSON
+local aContas 	:= PARAMIXB[1]	// ARRY COM CONTAS
+local cFilMp 	:= PARAMIXB[2]	// FILIAL ATIVA
+local cCtaMp	:= PARAMIXB[3]  // CODIGO DA CONTA
+local nz	 	:= PARAMIXB[4]	// POSIÇÃO DO ACONTAS
+local aItem		:= PARAMIXB[5]	// Item
+local cFilComp  := FWModeAccess("SB1",3)
+local cFilEnt 	:= iif(cFilComp=='E',cFilMp,XFILIAL("SB1")) 
+
+local nEstoque  := aItem[2]
+local cJson
+
+
+	if SB1->(DBSETORDER(1),DBSEEK(cFilEnt+aItem[4]))
+		nEstoque 	:= if( nEstoque > SB1->B1_XMPLIM , SB1->B1_XMPLIM , nEstoque )
+	endif
+	
+	cJson := '{'
+	cJson +=    '"produto_id": '+cvaltochar(aItem[3])+','
+	cJson +=    '"novo_saldo": '+cvaltochar(nEstoque)
+	cJson += '}'
+	
+
+Return(cJson)

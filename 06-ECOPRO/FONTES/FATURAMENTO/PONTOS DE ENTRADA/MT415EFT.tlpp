@@ -1,0 +1,72 @@
+#Include "Protheus.ch"
+
+#DEFINE cFONT   '<b><font size="6" color="red"><b><u>'
+#DEFINE cFONTOK '<font size="5" color="black">'
+#DEFINE cNOFONT '</b></font></u></b> '
+/*/{Protheus.doc} User Function MT415EFT 
+    Ponto de Entrada responsável por validar a Autorização de Efetivação de Orçamento.
+    @type  Function
+    @author user
+    @since 25/05/2021
+    @version version
+    @param  
+    @return lRet 
+    @example
+    (examples)
+    @see https://tdn.totvs.com/pages/releaseview.action?pageId=6784394
+    /*/
+User Function MT415EFT()
+	Local lRet      := .T.
+	Local nParc     := 1
+	Local nX        := 0
+	Local nEntra    := 0
+	Local nTotal    := 0
+	Local cCondPag  := ""
+	Local cTipoCp   := ""
+	Local aArea     := GetArea()
+	Local aAreaA1   := SA1->(GetArea())
+
+
+	cTipoCp := Posicione("SE4",1,xFilial("SE4")+SCJ->CJ_CONDPAG,"E4_TIPO")
+
+	If cTipoCp == '1'
+		cCondPag := AllTrim(Posicione("SE4",1,xFilial("SE4")+SCJ->CJ_CONDPAG,"E4_COND"))
+		For nX := 1 to Len(cCondPag)
+			If SubStr(cCondPag,nX,1) == ","
+				nParc++
+			EndIf
+		Next
+
+	EndIf
+
+	DbSelectArea("TMP1")
+	TMP1->(DbGoTop())
+
+	While TMP1->(!Eof())
+		nTotal  += TMP1->CK_VALOR //--> Gravará o valor total do Orçamento
+		TMP1->(DbSkip())
+	EndDo
+
+	If (Left(AllTrim(cCondPag),1)  == "0" .OR. Left(AllTrim(cCondPag),2)  == "1,") .AND. cTipoCp == '1' .AND. nTotal > 0 
+		nEntra := Round(nTotal / nParc,2)
+	EndIF
+
+
+	DbSelectArea('SA1')
+	SA1->(DbSetOrder(1)) //C5_FILIAL + C5_NUM
+	SA1->(DbGoTop())
+
+	IF SA1->(DbSeek(FWxFilial('SA1') +SCJ->CJ_CLIENTE+SCJ->CJ_LOJA))
+		IF nTotal > (SA1->A1_LC + nEntra) .AND. !"CARTAO"$AllTrim(M->CJ_XDESCPG) //--> Verificará se o Valor Total é maior do que o Limite de Crédito do Cliente, se caso SIM, não deixará concluir o Orçamento.
+			lRet := .F.
+			Alert( cFONT+"ATENÇÃO" + cNOFONT + cFONTOK + "<br>Efetivação de Orçamento não permitida, pois o Limite de Crédito do Cliente é inferior!"+chr(13)+;
+				"<br>Limite de Crédito do Cliente: R$ "+Transform((SA1->A1_LC + nEntra),"@E 999,999,999.99")+chr(13)+;
+				"Valor do Orçamento: R$ "+Transform(nTotal,"@E 999,999,999.99")+cNOFONT)
+			//Alert("Efetivação de Orçamento não permitida, pois o Limite de Crédito do Cliente é inferior!")
+		ENDIF
+	ENDIF
+
+	RestArea(aAreaA1)
+	RestArea(aArea)
+
+Return lRet

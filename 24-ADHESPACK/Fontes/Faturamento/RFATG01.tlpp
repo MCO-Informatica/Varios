@@ -1,0 +1,21 @@
+#Include 'Protheus.ch'
+
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+FONTE CUSTOMIZADO PARA ATENDER O GATILHO ENTRE FORNECEDOR E CLIENTE NA ROTINA DE TRANSMISSÃO DE NF.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+User Function RFATG01()
+Local aAreaSF2  := SF2->(GetArea())
+Local cTipoNFS  := SF2->F2_TIPO //CAMPO TIPO
+Local cCliente  := SF2->F2_CLIENTE //CAMPO CÓDIGO DE CLIENTE/FORNECEDOR
+Local cLojaCli  := SF2->F2_LOJA
+Local cNomeClie
+
+IF cTipoNFS $ "D/B" //D - DEVOLUÇÃO DE COMPRA, B - UTILIZA FORNECEDOR
+    cNomeClie := Posicione("SA2",1,xFilial("SA2")+cCliente+cLojaCli,'A2_NOME') //GATILHO PARA TRAZER O NOME DE FORNECEDOR
+ELSE
+    cNomeClie := Posicione("SA1",1,xFilial("SA1")+cCliente+cLojaCli,'A1_NOME') //GATILHO PARA TRAZER O NOME DE CLIENTE
+ENDIF
+
+RestArea(aAreaSF2)
+
+Return(cNomeClie)

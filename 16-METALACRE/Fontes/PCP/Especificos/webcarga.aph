@@ -1,0 +1,181 @@
+<%#include "tbiconn.ch"%>
+<%#include "topconn.ch"%>
+<html>
+<head>
+  <meta
+ content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>Monitor Carga Fabrica</title>
+  <meta http-equiv="refresh"
+ content="30;URL=http://192.168.0.13:8087/h_webcarga.apl">
+</head>
+<body>
+<%             
+set century off
+set date british
+
+dLimite := Date()
+
+nTotDias	:= Iif(Left(Time(),5)<='12:00',5,6)
+While nTotDias > 0 	// Bloqueia Entregas aos Fins de Semana .F. Não Libera .T. Libera
+	If Dow(dLimite) <> 1 .And. Dow(dLimite) <> 7	// Nao é Sab nem Domingo
+		dLimite++
+		nTotDias--
+	ElseIf Dow(dLimite) == 1 .Or. Dow(dLimite) == 7
+		dLimite++
+	Endif        
+Enddo
+
+dDataIni	:= dLimite
+
+%>
+<table
+ style="font-family: Arial; width: 1205px; height: 232px; text-align: left; margin-left: auto; margin-right: auto;"
+ border="1" cellpadding="2" cellspacing="2">
+  <tbody>
+    <tr>
+      <td
+ style="text-align: center; font-weight: bold; width: 145px; background-color: rgb(153, 255, 153);"><img
+ style="width: 261px; height: 97px;" alt=""
+ src="http://192.168.0.13:8087/logo_metalacre.gif"></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 264px; background-color: rgb(255, 255, 255);"
+ colspan="19" rowspan="1"><big><big><big><big>CARGA
+FABRICA - Atual<br>
+      </big></big></big></big><br>
+      <img
+ style="width: 15px; height: 15px;" alt=""
+ src="http://192.168.0.13:8087/bl_verde.png"> - Saldo
+Dispon&iacute;vel&nbsp;<img
+ style="width: 15px; height: 15px;" alt=""
+ src="http://192.168.0.13:8087/bl_azul.png"> - Saldo
+Zerado <img
+ style="width: 15px; height: 15px;" alt=""
+ src="http://192.168.0.13:8087/bl_vermelha.png"> -
+Saldo Negativo&nbsp; </td>
+    </tr>
+<%        
+//PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" MODULO "FAT" TABELA {'SX5'}
+RpcClearEnv()   
+RpcSetType(3)
+RpcSetEnv("01","01",,,,GetEnvServer(),{ "SX5" } )//"99"
+SetModulo( "SIGAFAT" , "FAT" )
+
+set century off
+
+				cQueryCad := " SELECT BM_GRUPO, "
+				cQueryCad += " 		BM_DESC, "
+				cQueryCad += " 		BM_CAPDIA, "
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni)) + "') DIA00, "
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+01)) + "') DIA01, "
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+02)) + "') DIA02,"
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+03)) + "') DIA03,"
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+04)) + "') DIA04,"
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+05)) + "') DIA05,"
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+06)) + "') DIA06,"
+				cQueryCad += " 		(SELECT ISNULL(SUM(ZH_SLDGRP),0) FROM " + RetSqlName("SZH") + " ZH (NOLOCK) WHERE ZH.D_E_L_E_T_ = '' AND ZH.ZH_GRUPO = BM.BM_GRUPO AND ZH_DATA = '" + DtoS(DataValida(dDataIni+07)) + "') DIA07 "
+				cQueryCad += " FROM " + RetSqlName("SBM") + " BM (NOLOCK) "
+				cQueryCad += " WHERE BM_CAPDIA > 0 "
+				cQueryCad += " AND BM.D_E_L_E_T_ = '' "
+				cQueryCad += " ORDER BY BM_GRUPO " 
+	
+            	Conout(cQueryCad)
+
+               	TCQuery cQueryCad NEW ALIAS "FER"                      
+               
+			   	Set Century On
+               	dbSelectArea("FER")
+               	dbgotop()
+               	nConta := 1
+			    WHILE !EOF()   
+			    	If nConta == 1
+			    		%>
+						
+						    <tr>
+						      <td
+						 style="text-align: center; font-weight: bold; width: 145px; background-color: rgb(192, 192, 192);"><big><big>Grupo</big></big></td>
+						      <td
+						 style="text-align: center; font-weight: bold; width: 223px; background-color: rgb(192, 192, 192);"><big>Descricao Grupo</big></td>
+						      <td
+						 style="text-align: center; font-weight: bold; width: 111px; background-color: rgb(192, 192, 192);"><big>Capacidade</big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+1)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+2)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+3)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+4)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+5)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+6)) %></big></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"></td>
+						      <td
+						 style="text-align: center; font-weight: width: 96px; background-color: rgb(192, 192, 192);"><big><%= DtoC(DataValida(dDataIni+7)) %></big></td>
+						    </tr>
+		             <%
+		             Endif
+		             nConta+=1
+			    	
+               		%>
+					    <tr>
+					      <td style="font-weight: bold; width: 145px; text-align: center;"> <%= FER->BM_GRUPO %> </td>
+					      <td style="font-weight: text-align: center; width: 200px; white-space: nowrap;"> <%= FER->BM_DESC %> </td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->BM_CAPDIA,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA00<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA00>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA00,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA01<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA01>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA01,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA02<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA02>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA02,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA03<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA03>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA03,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA04<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA04>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA04,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA05<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA05>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA05,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA06<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA06>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA06,"9,999,999") %> </td>
+						  <td style="text-align: center;"><img style="width: 15px; height: 15px;" alt="" src= <%= Iif(FER->DIA07<0,"http://192.168.0.13:8087/bl_vermelha.png",Iif(FER->DIA07>0,"http://192.168.0.13:8087/bl_verde.png","http://192.168.0.13:8087/bl_azul.png")) %> ></td>
+					      <td style="width: 111px; text-align: right;"><%= TransForm(FER->DIA07,"9,999,999") %> </td>
+				  	    </tr>
+		             <%
+                    
+                    FER->(dbSkip(1))
+				Enddo
+               	FER->(dbCloseArea())
+               
+               RESET ENVIRONMENT %>
+        </tr>
+    <tr>
+      <td
+ style="background-color: rgb(204, 204, 255); width: 264px;"
+ colspan="19" rowspan="1">Mensagens:</td>
+    </tr>
+    <tr>
+    </tr>
+  </tbody>
+</table>
+<br style="font-family: Arial;">
+</body>
+</html>
+
+

@@ -1,0 +1,129 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RESTA12       | Autor | Lucas Baia          | Data |    04/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para realizar o ExecAuto da Rotina Inventário para
+//        | Movimentos Internos.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+
+User Function RESTA12()
+
+Processa( {|| xExecMata241()}, "Processando Iventário...")
+
+Return
+
+Static Function xExecMata241()
+
+Local nOpc          := 3
+Local cQuery        := ""
+Local cQuer1        := ""
+Local cAliasSB7     := GetNextAlias()
+Local nAtual        := 0
+Local nTotal        := 0 
+Local nStatus       := ""
+Local cDoc          := ""
+Local dData         := ""
+Private aCabec      := {}
+Private aItens      := {}
+Private aLinha      := {}
+Private lMsErroAuto := .F.
+Private cPerg 	    := "RESTA12"
+
+Pergunte(cPerg,.T.)
+
+DbSelectArea('SB7')
+SB7->(DbSetOrder(1)) //B7_FILIAL + DTOS(B7_DATA) + B7_COD + B7_LOCAL + B7_LOCALIZ + B7_NUMSERI + B7_LOTECTL + B7_NUMLOTE + B7_CONTAGE
+
+DbSelectArea('SD3')
+SD3->(DbSetOrder(5)) //D3_FILIAL + D3_TM + D3_COD
+
+Area    := GetArea()
+AreaSB7 := SB7->(GetArea())
+AreaSD3 := SD3->(GetArea())
+
+//---> Inicia-se a Consulta Query SQL para que o ExecAuto execute de forma correta.
+//dbSelectArea("SF2")
+
+	cQuery := "SELECT * "
+	cQuery += "FROM "+RetSqlName("SB7")+" SB7 "
+	cQuery += "WHERE SB7.B7_DOC = '"+MV_PAR02+"' "
+    cQuery += "AND SB7.B7_DATA = '"+DToS(MV_PAR01)+"' "
+	cQuery += "AND SB7.D_E_L_E_T_ = '' "
+	cQuery += "ORDER BY SB7.B7_DATA, SB7.B7_DOC "
+
+	cQuery := ChangeQuery(cQuery)
+
+    cDoc  := MV_PAR02
+    dData := MV_PAR01
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSB7,.T.,.T.)
+    
+    Count To nTotal
+    ProcRegua(nTotal)
+
+    (cAliasSB7)->(dbGoTop())
+
+    aCabec  := {}
+    aAdd(aCabec,{'D3_DOC'       ,NextNumero("SD3",2,"D3_DOC",.T.),NIL})
+    aAdd(aCabec,{'D3_TM'        ,'002',NIL})
+    aAdd(aCabec,{'D3_EMISSAO'   ,dDatabase,NIL})
+
+    While (cAliasSB7)->(!EOF())
+
+            nAtual++
+            IncProc("Incluído registro " + cValToChar(nAtual) + " de " + cValToChar(nTotal) + "...")
+
+            aLinha  := {}
+            aItens  := {}
+            
+            aAdd(aItens,{'D3_COD'       ,(cAliasSB7)->B7_COD,NIL})
+            aAdd(aItens,{"D3_QUANT"     ,(cAliasSB7)->B7_QUANT,Nil})
+            aAdd(aItens,{"D3_UM"        ,Posicione("SB1",1,xFilial("SB1")+(cAliasSB7)->B7_COD,"B1_UM"),Nil})
+            aAdd(aItens,{"D3_LOCAL"     ,(cAliasSB7)->B7_LOCAL,Nil})
+            aAdd(aItens,{"D3_LOTECTL"   ,(cAliasSB7)->B7_LOTECTL,Nil})
+            aAdd(aItens,{"D3_DTVALID"   ,STOD((cAliasSB7)->B7_DTVALID),Nil})
+            
+            aAdd(aLinha,aItens)
+        
+            MSExecAuto({|x,y,z| MATA241(x,y,z)},aCabec,aLinha,nOpc)
+
+            If lMsErroAuto
+                mostraerro()
+            Else
+                //Alert("Inventário "+SD3->D3_COD+"/"+SF1->F1_SERIE+" inserida com sucesso!")
+            EndIf
+
+        DbSelectArea(cAliasSB7)
+        (cAliasSB7)->(DBSKIP())
+
+        lMsErroAuto := .F.
+
+    ENDDO
+
+(cAliasSB7)->(DbCloseArea())
+
+//UPDATE PARA ALTERAR O CAMPO B7_STATUS PARA '2'.
+cQuer1 := " UPDATE " + RetSQLName( "SB7" )
+cQuer1 += " SET B7_STATUS = '2' "
+cQuer1 += " WHERE B7_DOC = '"+cDoc+"' "
+cQuer1 += " AND B7_DATA = '"+DToS(dData)+"' "
+cQuer1 += " AND D_E_L_E_T_ = '' "
+nStatus    := TCSQLExec( cQuer1 )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SB7' )
+SB7->( dbCommit() )
+
+
+MsgInfo("Execauto MATA241 executado com sucesso!","EXECAUTO")
+
+RestArea(Area)
+RestArea(AreaSB7)
+RestArea(AreaSD3)
+
+Return

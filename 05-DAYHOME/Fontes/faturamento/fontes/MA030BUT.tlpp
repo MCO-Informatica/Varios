@@ -1,0 +1,127 @@
+#INCLUDE "rwmake.ch"
+#INCLUDE "PROTHEUS.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MA030BUT  ºAutor  ³Daniel Viana Moda   º Data ³  10/09/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Botao de Observacao no cadastro de Clientes.               º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DayHome                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MA030BUT
+
+Local aBotao   := {}
+Public cMemoObs:= ""
+
+AAdd( aBotao, { "EDIT", { || MAObser() }, "Observacao" } )                                                                                 
+
+Return(aBotao)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MAObser   ºAutor  ³Microsiga           º Data ³  12/13/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function MAObser()
+
+Local oDlg
+Local oPanel0
+Local oPanel1
+Local oPanel2
+Local oMemo
+Local oMemo2
+Local lSai		 := .F.
+Local cMemo		 := ""
+Local cMemo2 	 := ""
+Local bVldSai 	 := {|| VldSaida(oDlg,cMemo,cMemo2,@lSai) }
+Local aSize      := MsAdvSize()
+Local oObsFont       
+Local oFonte1
+
+If Type("M->A1_MEMOOBS") == "U"
+	M->A1_MEMOOBS:= MSMM(SA1->A1_CODOBS,80,)
+EndIf
+
+cMemo2 := IIf(Empty(M->A1_MEMOOBS),"",M->A1_MEMOOBS)
+
+DEFINE FONT oObsFont NAME "Tahoma" SIZE 0, -17 BOLD
+DEFINE FONT oFonte1  NAME "Tahoma" SIZE 0, -14 BOLD   
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO aSize[6],aSize[5] TITLE "Observacao: " Of oMainWnd PIXEL STYLE DS_MODALFRAME STATUS
+
+oDlg:lEscClose := .T.
+
+oPanel0:= TPanel():New(0, 0, "", oDlg, NIL, .T., .F., NIL, NIL, 0,35, .T., .F. )
+oPanel0:Align:=CONTROL_ALIGN_TOP
+oPanel0:NCLRPANE:=14803406
+
+@ 006,010 Say "OBSERVACAO: " PIXEL of oPanel0 FONT (TFont():New('Arial',, -16, .T., .T.) )
+
+@ 025,010 Say "Descreva Abaixo sua Observacao do Cliente:" PIXEL of oPanel0 FONT (TFont():New('Arial',, -12, .T., .T.) )
+
+oPanel1:= TPanel():New(0, 0		, "", oDlg, NIL, .T., .F., NIL, NIL, 0,50, .T., .F. )
+oPanel1:Align:=CONTROL_ALIGN_TOP
+
+@ 0,0 GET oMemo VAR cMemo MEMO Valid !Empty(cMemo) PIXEL OF oPanel1 FONT oFonte1 WHEN INCLUI .OR. ALTERA 
+oMemo:Align := CONTROL_ALIGN_ALLCLIENT
+
+oPanel2:= TPanel():New(0, 0, "", oDlg, NIL, .T., .F., NIL, NIL, 0,0, .T., .F. )
+oPanel2:Align:=CONTROL_ALIGN_ALLCLIENT
+
+@ 0,0 GET oMemo2 VAR cMemo2 MEMO PIXEL OF oPanel2 FONT oObsFont
+oMemo2:Align := CONTROL_ALIGN_ALLCLIENT
+//oMemo2:Disable()
+oMemo2:Enable()
+oMemo2:LREADONLY:=.T.
+
+ACTIVATE MSDIALOG oDlg CENTERED ON INIT ( EnchoiceBar(oDlg,{|| Eval(bVldSai) } , {|| oDlg:End() } ) )
+
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³ VldSaida ³ Autor ³    Alexandro Dias     ³ Data ³ 06/06/07  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Valida saida da tela.                                       ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function VldSaida(oDlg,cMemo,cMemo2,lSai)
+
+Local cDados := ""
+
+//If !Empty(cMemo)
+
+	cDados := Dtoc(dDataBase) + "|" + Left(Time(),5) +"|USUARIO: "+ "|"+ Upper(Alltrim(UsrRetName(RetCodUsr()))) + "|"
+	cDados := cDados + Upper(cMemo) +Chr(10)+Chr(13) + Upper(cMemo2)
+	M->A1_MEMOOBS:= cDados	
+	cMemoObs     := cDados
+	lSai := .T.
+	oDlg:End()
+	
+//EndIF
+
+Return(.T.)

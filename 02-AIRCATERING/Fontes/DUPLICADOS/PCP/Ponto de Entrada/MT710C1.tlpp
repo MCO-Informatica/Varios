@@ -1,0 +1,20 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+
+User Function MT710C1
+
+ALERT("GRAVANDO CENTRO DE CUSTO NA SOLICITACAO DE COMPRA "+SC1->C1_NUM)
+
+//----> PREVISAO DE VENDAS
+If MV_PAR01==1
+    RecLock("SC1",.f.)
+    SC1->C1_CC  :=  SC4->C4_X_CC
+    MsUnLock()
+Else
+    RecLock("SC1",.f.)
+    SC1->C1_CC  :=  SHC->HC_X_CC
+    MsUnLock()
+EndIf
+
+Return 

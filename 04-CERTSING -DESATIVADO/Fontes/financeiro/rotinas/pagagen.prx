@@ -1,0 +1,49 @@
+#include "rwmake.ch"
+
+/////  PROGRAMA PARA SEPARAR A AGENCIA DO CODIGO DE BARRA PARA O PROGRAMA DO
+/////  PAGFOR - POSICOES ( 99 - 104 )
+
+User Function pagagen()
+
+Local	_Agencia 	:= "000000"
+Local 	_Digito 	:= "0"
+Local 	_AgenciaFor := "00000"
+
+
+IF SUBSTR(SE2->E2_CODBAR,1,3) == "237"
+	_Agencia  :=  "0" + SUBSTR(SE2->E2_CODBAR,20,4)
+	
+	_RETDIG := " "
+	_DIG1   := SUBSTR(SE2->E2_CODBAR,20,1)
+	_DIG2   := SUBSTR(SE2->E2_CODBAR,21,1)
+	_DIG3   := SUBSTR(SE2->E2_CODBAR,22,1)
+	_DIG4   := SUBSTR(SE2->E2_CODBAR,23,1)
+	
+	_MULT   := (VAL(_DIG1)*5) +  (VAL(_DIG2)*4) +  (VAL(_DIG3)*3) +   (VAL(_DIG4)*2)
+	_RESUL  := INT(_MULT /11 )
+	_RESTO  := INT(_MULT % 11)
+	_DIGITO := 11 - _RESTO
+	
+	_RETDIG := IF( _RESTO == 0,"0",IF(_RESTO == 1,"0",ALLTRIM(STR(_DIGITO))))
+	
+	_Agencia:= _Agencia + _RETDIG
+Else
+	If SUBSTR(SE2->E2_CODBAR,1,3) == "   "
+		//_AgenciaFor := POSICIONE("SA2",1,XFILIAL("SA2")+SE2->E2_FORNECE+SE2->E2_LOJA,STRZERO(Val(SA2->A2_AGENCIA),5))
+		_AgenciaFor := POSICIONE("SA2",1,XFILIAL("SA2")+SE2->E2_FORNECE+SE2->E2_LOJA,SA2->A2_AGENCIA)
+		If SA2->A2_DVAGEN <> ' ' 
+			//_Digito := POSICIONE("SA2",1,XFILIAL("SA2")+SE2->E2_FORNECE+SE2->E2_LOJA, STRZERO(Val(SA2->A2_DVAGEN),1))
+			_Digito := POSICIONE("SA2",1,XFILIAL("SA2")+SE2->E2_FORNECE+SE2->E2_LOJA,SA2->A2_DVAGEN)
+		Else 
+			_Digito := "0"
+		EndIf
+			If Len(cValToChar(_AgenciaFor)) = 4
+				_Agencia :=  "0" + cValtoChar(_AgenciaFor) + cValToChar(_Digito)
+			Else 
+		  		_Agencia :=  "00" + cValtoChar(_AgenciaFor) + cValToChar(_Digito)
+		 	Endif
+	Else
+		_Agencia := "000000"
+	Endif
+EndIf
+Return(_Agencia)

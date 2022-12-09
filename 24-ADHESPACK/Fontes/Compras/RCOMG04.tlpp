@@ -1,0 +1,68 @@
+#include "Protheus.ch"
+#include "Totvs.ch"
+#Include "Tbiconn.ch"
+ 
+//---------------------------------------------------------------------------------
+// Rotina | RCOMG04          | Autor | Lucas Baia          | Data |    04/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Gatilho customizado para retornar o valor PTAX do dia pelo Pedido de 
+//        | Compras.
+//---------------------------------------------------------------------------------
+// OBS.   | Colocar no Gatilho de C7_X_MOEDA para C7_XPTAX  ---> SC7
+//        | Colocar no Gatilho de D1_X_MOEDA para D1_X_PTAX ---> SD1
+//        | Lembrando que ao colocar o nome do Fonte tem que ser U_RCOMG04("SC7") e U_RCOMG04("SD1")
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+User function RCOMG04(cTab)
+
+Local aHeader       := {}
+Local cDataPtx      := ''//MM-DD-AAAA
+Local oJsObj        := JsonObject():New()
+Local cJsonRt       := ''
+Local oRestClient   := FWRest():New("https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata")
+Local nValorPTAX    := 0
+Local cDesMoeda     := ""
+
+//Cabeçalho
+aadd(aHeader,'User-Agent: Mozilla/4.0 (compatible; Protheus '+GetBuild()+')')
+aAdd(aHeader,'Content-Type: application/json; charset=utf-8')
+//Ajusta Padrão da Data para MM-DD-AAAA
+cDataPtx := Dtos(dDataBase-1)
+cDataPtx := SubStr(cDataPtx,5,2)+'-'+SubStr(cDataPtx,7,2)+'-'+SubStr(cDataPtx,1,4)
+
+IF cTab == "SC7"
+    IF M->C7_X_MOEDA == "2" //aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_X_MOEDA" })] == "2"
+        cDesMoeda := "USD"
+    ELSEIF M->C7_X_MOEDA == "3" //aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_X_MOEDA" })] == "3"
+        cDesMoeda := "EUR"
+    ENDIF
+ELSEIF cTab == "SD1"
+    IF M->D1_X_MOEDA == "2"
+        cDesMoeda := "USD"
+    ELSEIF M->D1_X_MOEDA == "3"
+        cDesMoeda := "EUR"
+    ENDIF
+ENDIF
+
+IF cDesMoeda $ "USD/EUR"
+    //[GET] Consulta Dados na Api
+    //oRestClient:setPath("/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='"+cDataPtx+"'&$format=json")
+    oRestClient:setPath("/CotacaoMoedaPeriodoFechamento(codigoMoeda=@idMD,dataInicialCotacao=@dtIniCt,dataFinalCotacao=@dtFinCt)?@idMD='"+cDesMoeda+"'&@dtIniCt='"+cDataPtx+"'&@dtFinCt='"+cDataPtx+"'&$format=json&$select=cotacaoCompra,cotacaoVenda,dataHoraCotacao,tipoBoletim")
+
+    If oRestClient:Get(aHeader)
+        //Grava Retorno
+        cJsonRt := oJsObj:FromJson(oRestClient:CRESULT)
+        //Exibe Cotação
+        If ValType(cJsonRt) == 'U'
+            nValorPTAX  := oJsObj["value"][1]["cotacaoCompra"] //PTAX de Compra do Dia.
+        Endif
+        //Limpa Objeto
+        FreeObj(oJsObj)
+    Endif
+ELSE
+    nValorPTAX := 1 //PTAX REAL R$
+ENDIF
+     
+Return nValorPTAX

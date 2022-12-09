@@ -1,0 +1,1391 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ REXPORT  ³ Autor ³ Leandro de Nobrega      ³ Data ³ 01/12/2009 ³±±
+±±³          ³          ³       ³ Ricardo Correa de Souza ³      ³            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³ Exportacao de Dados Sistema Microsiga para Sistema Cordilheira ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Observacao³ Cadastro de Produtos   (SB1)                                   ³±±
+±±³          ³ Cadastro de Cliente    (SA1)                                   ³±±
+±±³          ³ Cadastro de Fornecedor (SA2)                                   ³±±
+±±³          ³ Nota Fiscal Saida      (SF2/SD2)                               ³±±
+±±³          ³ Nota Fiscal de Entrada (SF1/SD1)                               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Dayhome                                                        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³             ATUALIZACOES SOFRIDAS DESDE A CONSTRU€AO INICIAL              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador   ³  Data  ³              Motivo da Alteracao                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³              ³        ³                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function REXPORT2()
+
+Local	_aRegs					:=	{}
+Local _cPerg					:=	"EXPORT"
+
+Private cDirDocs := cGetFile(  "Selecione o Diretorio | "  , 'Selecione a Pasta', nil, 'C:\', .F., GETF_RETDIRECTORY+GETF_LOCALHARD )
+Private _cArqTexto1  	:= 	"ITEM.TXT"
+Private _cPath1 			:=	cDirDocs + _cArqTexto1
+//Private _cPath1 			:=	"C:\" + _cArqTexto1 //legado anterior
+
+
+Private _cArqTexto2  	:= 	"CLIFOR.TXT"
+Private _cPath2 			:=	cDirDocs + _cArqTexto2
+
+
+Private _cArqTexto4  	:= 	"NOTASAI.TXT"
+Private _cPath4 			:=	cDirDocs + _cArqTexto4
+
+
+Private _cArqTexto5  	:= 	"NOTAENT.TXT"
+Private _cPath5 			:=	cDirDocs + _cArqTexto5
+
+
+Private _cArqTexto6  	:= 	"HISTOR.TXT"
+Private _cPath6 		:=		cDirDocs + _cArqTexto6
+
+
+Private _cArqTexto7  	:= 	"PLANO.TXT"
+Private _cPath7 		:=		cDirDocs + _cArqTexto7
+
+
+Private _cArqTexto8  	:= 	"LOTDnnnn.TXT"
+Private _cPath8 		:=		cDirDocs + _cArqTexto8
+
+
+AAdd(_aRegs,{_cPerg,"01","Da Data     ?"   ,"Da Data     ?"   ,"Da Data     ?"   ,"mv_ch1","D",08,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","",""})
+AAdd(_aRegs,{_cPerg,"02","Ate a Data  ?"   ,"Ate a Data  ?"   ,"Ate a  Data ?"   ,"mv_ch1","D",08,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+ValidPerg(_aRegs,_cPerg)
+
+Pergunte(_cPerg,.T.)
+
+
+Processa({||EXPPRODUTO() },"Exportação Cadastro de Produto",,.T.)
+
+Processa({||EXPCLIFOR() },"Exportação Cadastro de Cliente e Fornecedor",,.T.)
+
+Processa({||EXPNOTASAI() },"Exportação Notas Fiscais Saída",,.T.)
+
+Processa({||EXPNOTAENT() },"Exportação Notas Fiscais Entrada",,.T.)
+
+Processa({||EXPHIST() },"Exportação Histórico Contábil",,.T.)
+
+Processa({||EXPPLANO() },"Exportação Plano de Contas",,.T.)
+
+Processa({||EXPLOTE() },"Exportação dos Lançamentos Contábeis",,.T.)
+
+MsgAlert("Arquivo '" + _cPath1 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath2 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath4 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath5 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath6 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath7 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10))+"Arquivo '" + _cPath8 + "' Gerado com Sucesso! "+(CHR(13)+CHR(10)),"Atencao")
+
+
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³EXPNOTASAI³ Autor ³ Leandro de Nobrega      ³ Data ³ 01/12/2009 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³Nota Fiscal de Saida                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function  EXPNOTASAI()
+
+Local _cVarTexto		:=  ""
+Local _nInc 			:= 	0
+Local _nValBrut			:= 	0
+Local _nBasIcms			:= 	0
+Local _nValIcms			:= 	0
+Local _nBasIpi			:= 	0
+Local _nValIpi			:= 	0
+Local _nBasSol			:= 	0
+Local _nValSol			:= 	0
+Local _nIsenIcms		:= 	0
+Local _nOutrIcms		:= 	0
+Local _nIsenIpi			:= 	0
+Local _nOutrIpi			:= 	0
+Local _tVALCONT	:= 0
+Local _tBASEICM	:= 0
+Local _tVALICM	:= 0
+Local _tBASEIPI	:= 0
+Local _tVALIPI	:= 0
+Local _tBASERET	:= 0
+Local _tICMSRET	:= 0
+Local _tISENICM	:= 0
+Local _tOUTRICM	:= 0
+Local _tISENIPI	:= 0
+Local _tOUTRIPI	:= 0
+Local _cPerg 				:= 	"EXPORT"
+Local _aRegs				:= 	{}
+Local _cReg0				:= 	''	//----> header do arquivo
+Local _cReg4  			:= 	''	//----> dados cliente
+Local _cReg1  			:= 	'' 	//----> cabecalho da nota
+Local _cReg2  			:= 	''	//----> registro do produto (itens da nota)
+Local _cReg5  			:= 	'' 	//----> dados complementares nota
+Local _cReg3				:= 	''	//----> trailer do arquivo
+
+Private _nHdl   		:= fCreate(_cPath4)
+
+//----> MONTA TABELA TEMPORARIA COM AS INFORMACOES NECESSARIAS PARA GERAR O NOTASAI.TXT (NOTAS FISCAIS DE SAIDA)
+_cQrySaida:= "SELECT DISTINCT SF2010.F2_DOC, SF2010.F2_SERIE, SF2010.F2_CLIENTE, SF2010.F2_LOJA, SA1010.A1_CGC,  SA1010.A1_PESSOA, SA1010.A1_NREDUZ, SA1010.A1_NOME ,SA1010.A1_EST,  SA1010.A1_INSCR, SA1010.A1_END,  SA1010.A1_CODMUN, SA1010.A1_BAIRRO, "
+_cQrySaida+= "SA1010.A1_MUN,  SA1010.A1_CEP,  SA1010.A1_DDD,  SA1010.A1_TEL, SA1010.A1_CONTA,  SA1010.A1_TIPO,  SA1010.A1_SUFRAMA,  SA1010.A1_CODPAIS,  SF2010.F2_EMISSAO, SF2010.F2_DESCONT, "
+_cQrySaida+= "SF2010.F2_VALBRUT,  SF2010.F2_BASEICM,  SF2010.F2_VALICM,  SF2010.F2_BASEIPI,  SF2010.F2_VALIPI, SF2010.F2_ICMSRET,  SF2010.F2_BASEISS,  SF2010.F2_VALISS, "
+_cQrySaida+= "SF2010.F2_VALIRRF,  SF2010.F2_ESPECI1, SF2010.F2_FRETE,  SF2010.F2_VALCOFI,  SF2010.F2_VALCSLL,  SF2010.F2_VALPIS,  SD2010.D2_COD,  SD2010.D2_QUANT, "
+_cQrySaida+= "SD2010.D2_TOTAL,  SD2010.D2_DESCON,  SD2010.D2_BASEICM,  SD2010.D2_VALICM, SD2010.D2_VALIPI,  SD2010.D2_ICMSRET, SD2010.D2_BASEIPI,  SA1010.A1_LOJA,  SA1010.A1_COD, "
+_cQrySaida+= "SF2010.F2_SERIE,  SF2010.F2_PBRUTO, SD2010.D2_CF, SD2010.D2_PICM, SD2010.D2_ALIQISS, SD2010.D2_BRICMS, SF2010.F2_VALMERC, SF2010.F2_BRICMS, SF2010.F2_CHVNFE "
+_cQrySaida+= "FROM SF2010 INNER JOIN "
+_cQrySaida+= "SD2010 ON  SF2010.F2_DOC =  SD2010.D2_DOC AND  SF2010.F2_SERIE =  SD2010.D2_SERIE INNER JOIN "
+_cQrySaida+= "SA1010 ON  SF2010.F2_LOJA =  SA1010.A1_LOJA AND  SF2010.F2_CLIENTE =  SA1010.A1_COD "
+_cQrySaida+= "WHERE     ( SA1010.D_E_L_E_T_ = '') AND ( SF2010.D_E_L_E_T_ = '') AND ( SD2010.D_E_L_E_T_ = '') AND ( SF2010.F2_EMISSAO >= '"+DTOS(MV_PAR01)+"' AND SF2010.F2_EMISSAO <= '"+DTOS(MV_PAR02)+"') AND SF2010.F2_FILIAL  = '" + xFilial("SF2") + "' AND SD2010.D2_FILIAL = '"+xFilial("SD2")+"' "
+_cQrySaida+= "ORDER BY SF2010.F2_DOC, SF2010.F2_SERIE, SF2010.F2_CLIENTE, SF2010.F2_LOJA, SD2010.D2_CF"
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQrySaida), 'Query', .F., .F.)
+DbSelectArea("Query")
+Query->(dbGoTop())
+ProcRegua(RecCount())
+
+_nInc		++
+
+//----> GRAVA O HEADER DO ARQUIVO
+_cReg0	:= '0'+subs(Dtos(dDataBase),7,2)+subs(Dtos(dDataBase),5,2)+subs(Dtos(dDataBase),1,4)+SUBS(SM0->M0_CGC,1,2)+"."+SUBS(SM0->M0_CGC,3,3)+"."+SUBS(SM0->M0_CGC,6,3)+"/"+SUBS(SM0->M0_CGC,9,4)+"-"+SUBS(SM0->M0_CGC,13,2)+Space(18-Len(SUBS(SM0->M0_CGC,1,2)+"."+SUBS(SM0->M0_CGC,3,3)+"."+SUBS(SM0->M0_CGC,6,3)+"/"+SUBS(SM0->M0_CGC,9,4)+"-"+SUBS(SM0->M0_CGC,13,2)))+'1'+Space(003)+Space(443)+Space(020)+StrZero((_nInc),06)+(CHR(13)+CHR(10))
+_cVarTexto := _cReg0
+
+Set Century OFF
+If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+	If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+		Quit
+	Endif
+Endif
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	cNota := QUERY->F2_DOC
+	
+	//----> GRAVA OS DADOS DO DESTINATARIO
+	If QUERY->A1_PESSOA$"J"
+		_cReg4	 := '4'+IIf(EMPTY(QUERY->A1_CGC),"00.000.000/0000-00",SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2)+Space(18-Len(SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2))))+SubStr(QUERY->A1_NOME,1,40)+Space(40-Len(SubStr(QUERY->A1_NOME,1,40)))+SubStr(QUERY->A1_NREDUZ,1,20)+Space(20-Len(SubStr(QUERY->A1_NREDUZ,1,20)))+QUERY->A1_EST+Space(02-Len(QUERY->A1_EST))+SubStr(QUERY->A1_INSCR,1,20)+Space(20-Len(SubStr(QUERY->A1_INSCR,1,20)))
+	Else
+		_cReg4	 := '4'+IIf(EMPTY(QUERY->A1_CGC),"000.000.000-00    ",SUBS(QUERY->A1_CGC,1,3)+"."+SUBS(QUERY->A1_CGC,4,3)+"."+SUBS(QUERY->A1_CGC,7,3)+"-"+SUBS(QUERY->A1_CGC,10,2)+Space(18-Len(SUBS(QUERY->A1_CGC,1,3)+"."+SUBS(QUERY->A1_CGC,4,3)+"."+SUBS(QUERY->A1_CGC,7,3)+"-"+SUBS(QUERY->A1_CGC,10,2))))+SubStr(QUERY->A1_NOME,1,40)+Space(40-Len(SubStr(QUERY->A1_NOME,1,40)))+SubStr(QUERY->A1_NREDUZ,1,20)+Space(20-Len(SubStr(QUERY->A1_NREDUZ,1,20)))+QUERY->A1_EST+Space(02-Len(QUERY->A1_EST))+SubStr(QUERY->A1_INSCR,1,20)+Space(20-Len(SubStr(QUERY->A1_INSCR,1,20)))
+	EndiF
+	_cReg4	 +=	SubStr(QUERY->A1_END,1,40)+Space(40-Len(SubStr(QUERY->A1_END,1,40)))+SubStr(QUERY->A1_BAIRRO,1,20)+Space(20-Len(SubStr(QUERY->A1_BAIRRO,1,20)))+SubStr(QUERY->A1_MUN,1,20)+Space(20-Len(SubStr(QUERY->A1_MUN,1,20)))+QUERY->A1_CEP+Space(08-Len(QUERY->A1_CEP))+Replicate("0",4)
+	_cReg4	 += Replicate("0",3)+Replicate("0",10)+Replicate("0",6)+Replicate("0",3)+Replicate("0",6)+Replicate("0",3)+'1'+Space(01-Len('1'))+Space(18)
+	_cReg4	 += Replicate("0",5)+Space(20)+Replicate("0",9)+Replicate("0",5)+'1'+Space(01-Len('1'))+Space(206)+Space(05)+StrZero((_nInc),06)
+	_cReg4	 +=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg4
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	
+	cCFOP:= ""
+	
+	While Eof() == .f. .And. QUERY->F2_DOC == cNota
+		
+		//If QUERY->D2_CF <> cCFOP
+			
+			_nInc++
+			
+			_cDoc		:=	QUERY->F2_DOC
+			_cSer		:=	QUERY->F2_SERIE
+			_cCliente	:= 	QUERY->F2_CLIENTE
+			_cLoja		:=	QUERY->F2_LOJA
+			_cCF		:=	QUERY->D2_CF
+			_cData		:=	QUERY->F2_EMISSAO
+			_cCHVNFE	:=	QUERY->F2_CHVNFE
+			
+			_cQryCFOP:= "SELECT SD2010.D2_CF, SD2010.D2_DOC, SD2010.D2_SERIE, SD2010.D2_CLIENTE, SD2010.D2_LOJA, SD2010.D2_PICM, SUM(SD2010.D2_TOTAL) D2_TOTAL, SUM(SD2010.D2_BRICMS) D2_BRICMS, SUM(SD2010.D2_BASEICM) D2_BASEICM, SUM(SD2010.D2_VALICM) D2_VALICM, SUM(SD2010.D2_VALIPI) D2_VALIPI, SUM(SD2010.D2_ICMSRET) D2_ICMSRET, SUM(SD2010.D2_BASEIPI) D2_BASEIPI, SUM(SD2010.D2_TOTAL+SD2010.D2_VALIPI+SD2010.D2_ICMSRET+SD2010.D2_DESPESA+SD2010.D2_SEGURO+SD2010.D2_VALFRE) D2_VALBRUT FROM SD2010 "
+			_cQryCFOP+= "WHERE ( SD2010.D_E_L_E_T_ = '') AND ( SD2010.D2_EMISSAO >= '"+DTOS(MV_PAR01)+"' AND SD2010.D2_EMISSAO <= '"+DTOS(MV_PAR02)+"') AND SD2010.D2_FILIAL  = '"+xFilial("SD2")+"'  "
+			_cQryCFOP+= "AND SD2010.D2_DOC = '"+_cDoc+"' AND SD2010.D2_SERIE = '"+_cSer+"' AND SD2010.D2_CLIENTE = '"+_cCliente+"' AND SD2010.D2_LOJA = '"+_cLoja+"' AND SD2010.D2_CF = '"+_cCF+"'"
+			_cQryCFOP+= "GROUP BY SD2010.D2_DOC, SD2010.D2_SERIE, SD2010.D2_CLIENTE, SD2010.D2_LOJA, SD2010.D2_CF, SD2010.D2_PICM "
+			_cQryCFOP+= "ORDER BY SD2010.D2_DOC, SD2010.D2_SERIE, SD2010.D2_CLIENTE, SD2010.D2_LOJA, SD2010.D2_CF "
+			
+			dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryCFOP), 'CFOP', .F., .F.)
+			DbSelectArea("CFOP")
+			
+			
+			dbSelectArea("SF3")
+			dbSetOrder(1)
+			//dbSeek(xFilial("SF3")+_cData+_cDoc+_cSer+_cCliente+_cLoja+_cCF,.f.)
+			dbSeek(xFilial("SF3")+_cData+_cDoc+_cSer+_cCliente+_cLoja,.f.)
+			
+			//While Eof() = .f. .And. (Dtos(SF3->F3_ENTRADA)+SF3->F3_NFISCAL+SF3->F3_SERIE+SF3->F3_CLIEFOR+SF3->F3_LOJA+SF3->F3_CFO) == _cData+_cDoc+_cSer+_cCliente+_cLoja+_cCF
+			While Eof() = .f. .And. (Dtos(SF3->F3_ENTRADA)+SF3->F3_NFISCAL+SF3->F3_SERIE+SF3->F3_CLIEFOR+SF3->F3_LOJA) == _cData+_cDoc+_cSer+_cCliente+_cLoja
+				
+				_tVALCONT	+= SF3->F3_VALCONT
+				_tBASEICM	+= SF3->F3_BASEICM
+				_tVALICM	+= SF3->F3_VALICM
+				_tBASEIPI	+= SF3->F3_BASEIPI
+				_tVALIPI	+= SF3->F3_VALIPI
+				_tBASERET	+= SF3->F3_BASERET
+				_tICMSRET	+= SF3->F3_ICMSRET
+				_tISENICM	+= SF3->F3_ISENICM
+				_tOUTRICM	+= SF3->F3_OUTRICM
+				_tISENIPI	+= SF3->F3_ISENIPI
+				_tOUTRIPI	+= SF3->F3_OUTRIPI 
+				_cCFOPSF3	:= SF3->F3_CFO    
+				_tALIQICM	:= SF3->F3_ALIQICM
+				
+				dbSelectArea("SF3")
+				dbSkip()
+			EndDo
+			
+			DbSelectArea("CFOP")
+			
+			//----> GRAVA O CABECALHO DA NOTA
+			//_cReg1	:= '1'+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))+SubStr(QUERY->F2_DOC,1,6)+Space(06-Len(SubStr(QUERY->F2_DOC,1,6)))+SubStr(QUERY->F2_DOC,1,6)+Space(06-Len(SubStr(QUERY->F2_DOC,1,6)))+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))+Space(03)+'01'+QUERY->F2_SERIE+Space(03-Len(QUERY->F2_SERIE))+Space(03)
+			//_cReg1	+= SubStr(QUERY->D2_CF,1,4)+Space(04-Len(SubStr(QUERY->D2_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(QUERY->A1_CGC),"00.000.000/0000-00",SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2)+Space(18-Len(SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2))))+StrZero((CFOP->D2_VALBRUT*100),12)+Space(12-Len(StrZero((CFOP->D2_VALBRUT*100),12)))
+			//_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(08)+StrZero((CFOP->D2_BASEICM*100),12)+Space(12-Len(StrZero((CFOP->D2_BASEICM*100),12)))+StrZero((CFOP->D2_PICM*100),4)+Space(04-Len(StrZero((CFOP->D2_PICM*100),4)))
+			//_cReg1  += StrZero((CFOP->D2_VALICM*100),12)+Space(12-Len(StrZero((CFOP->D2_VALICM*100),12)))+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+			//_cReg1	+= StrZero((CFOP->D2_BASEIPI*100),12)+Space(12-Len(StrZero((CFOP->D2_BASEIPI*100),12)))+StrZero((CFOP->D2_VALIPI*100),12)+Space(12-Len(StrZero((CFOP->D2_VALIPI*100),12)))+Replicate("0",12)
+			//_cReg1	+= Replicate("0",12)+Replicate("0",12)+StrZero((CFOP->D2_BRICMS*100),12)+Space(12-Len(StrZero((CFOP->D2_BRICMS*100),12)))+StrZero((CFOP->D2_ICMSRET*100),12)+Space(12-Len(StrZero((CFOP->D2_ICMSRET*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(50)
+			//_cReg1	+= SubStr("NFE  ",1,5)+Space(05-Len(SubStr(QUERY->F2_ESPECI1,1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+'2'+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))
+			//_cReg1	+= Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",06)+Replicate("0",18)+Replicate(" ",05)+StrZero((_nInc),06)
+			//_cReg1	+=(CHR(13)+CHR(10))
+			//_cVarTexto := _cReg1
+			
+			_cReg1	:= '1'+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))+SubStr(QUERY->F2_DOC,1,6)+Space(06-Len(SubStr(QUERY->F2_DOC,1,6)))+SubStr(QUERY->F2_DOC,1,6)+Space(06-Len(SubStr(QUERY->F2_DOC,1,6)))+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))+Space(03)+'55'+QUERY->F2_SERIE+Space(03-Len(QUERY->F2_SERIE))+Space(03)
+			
+			If QUERY->A1_PESSOA$"J"
+
+				_cReg1	+= SubStr(_cCFOPSF3,1,4)+Space(04-Len(SubStr(_cCFOPSF3,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(QUERY->A1_CGC),"00.000.000/0000-00",SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2)+Space(18-Len(SUBS(QUERY->A1_CGC,1,2)+"."+SUBS(QUERY->A1_CGC,3,3)+"."+SUBS(QUERY->A1_CGC,6,3)+"/"+SUBS(QUERY->A1_CGC,9,4)+"-"+SUBS(QUERY->A1_CGC,13,2))))+StrZero((_tVALCONT*100),12)+Space(12-Len(StrZero((_tVALCONT*100),12)))
+			Else
+				_cReg1	+= SubStr(_cCFOPSF3,1,4)+Space(04-Len(SubStr(_cCFOPSF3,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(QUERY->A1_CGC),"000.000.000-00    ",SUBS(QUERY->A1_CGC,1,3)+"."+SUBS(QUERY->A1_CGC,4,3)+"."+SUBS(QUERY->A1_CGC,7,3)+"-"+SUBS(QUERY->A1_CGC,10,2)+Space(18-Len(SUBS(QUERY->A1_CGC,1,3)+"."+SUBS(QUERY->A1_CGC,5,3)+"."+SUBS(QUERY->A1_CGC,7,3)+"-"+SUBS(QUERY->A1_CGC,10,2))))+StrZero((_tVALCONT*100),12)+Space(12-Len(StrZero((_tVALCONT*100),12)))
+			EndIf
+			_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(08)+StrZero((_tBaseIcm*100),12)+Space(12-Len(StrZero((_tBaseIcm*100),12)))+StrZero((_tALIQICM*100),4)+Space(04-Len(StrZero((_tALIQICM*100),4)))
+			_cReg1  += StrZero((_tValIcm*100),12)+Space(12-Len(StrZero((_tValIcm*100),12)))+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+StrZero((_TISENICM*100),12)+Space(12-Len(StrZero((_TISENICM*100),12)))+StrZero((_TOUTRICM*100),12)+Space(12-Len(StrZero((_TOUTRICM*100),12)))
+			_cReg1	+= StrZero((_tBASEIPI*100),12)+Space(12-Len(StrZero((_tBASEIPI*100),12)))+StrZero((_tVALIPI*100),12)+Space(12-Len(StrZero((_tVALIPI*100),12)))+StrZero((_tISENIPI*100),12)+Space(12-Len(StrZero((_tISENIPI*100),12)))
+			_cReg1	+= StrZero((_tOUTRIPI*100),12)+Space(12-Len(StrZero((_tOUTRIPI*100),12)))+Replicate("0",12)+StrZero((_tBASERET*100),12)+Space(12-Len(StrZero((_tBASERET*100),12)))+StrZero((_tICMSRET*100),12)+Space(12-Len(StrZero((_tICMSRET*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(50)
+			_cReg1	+= SubStr("NFE  ",1,5)+Space(05-Len(SubStr(QUERY->F2_ESPECI1,1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+'2'+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F2_EMISSAO,7,2)+SubStr(QUERY->F2_EMISSAO,5,2)+SubStr(QUERY->F2_EMISSAO,1,4)))
+			_cReg1	+= Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",06)+Replicate("0",18)+Replicate(" ",05)+StrZero((_nInc),06)+QUERY->F2_DOC
+			_cReg1	+=(CHR(13)+CHR(10))
+			_cVarTexto := _cReg1
+			
+			dbCloseArea("CFOP")
+			
+			Set Century OFF
+			If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+				If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+					Quit
+				Endif
+			Endif
+			
+		//EndIf
+		
+		_nInc++
+		
+		//----> GRAVA OS ITENS DA NOTA Replicate("0",(10-Len(Alltrim(SB1->B1_CORD)))+Alltrim(Posicione("SB1",1,xFilial("SB1")+QUERY->D2_COD,"B1_CORD")
+		_cReg2	:= '2'+StrZero(Posicione("SB1",1,xFilial("SB1")+QUERY->D2_COD,"B1_CORD"),10)+StrZero((QUERY->D2_QUANT*100),9)+Space(09-Len(StrZero((QUERY->D2_QUANT*100),9)))+StrZero((QUERY->D2_TOTAL*100),12)+Space(12-Len(StrZero((QUERY->D2_TOTAL*100),12)))+Replicate("0",13)
+		_cReg2	+= StrZero((QUERY->D2_DESCON*100),12)+Space(12-Len(StrZero((QUERY->D2_DESCON*100),12)))+StrZero((QUERY->D2_BASEICM*100),12)+Space(12-Len(StrZero((QUERY->D2_BASEICM*100),12)))+StrZero((QUERY->D2_PICM*100),5)+Space(05-Len(StrZero((QUERY->D2_PICM*100),5)))+StrZero((QUERY->D2_VALIPI*100),12)+Space(12-Len(StrZero((QUERY->D2_VALIPI*100),12)))+Replicate("0",12)+Replicate("0",5)+Replicate("0",5)
+		_cReg2	+= Replicate("0",03)+Space(15)+Replicate("0",03)+StrZero((QUERY->D2_BASEIPI*100),12)+Space(12-Len(StrZero((QUERY->D2_BASEIPI*100),12)))+Space(3)+Replicate("0",12)+Replicate("0",5)
+		_cReg2	+= Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+		_cReg2	+= Replicate("0",3)+Replicate("0",12)+Replicate("0",5)
+		_cReg2	+= Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+		_cReg2	+= Replicate("0",5)+Space(219)+Space(05)+StrZero((_nInc),06)
+		_cReg2	+=(CHR(13)+CHR(10))
+		_cVarTexto := _cReg2
+		
+		Set Century OFF
+		If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+			If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+				Quit
+			Endif
+		Endif
+		
+		
+		//----> SOMA OS TOTAIS PARA APRESENTAR NO REG3
+		_nValBrut	+= SF3->F3_VALCONT
+		_nBasIcms	+= SF3->F3_BASEICM
+		_nValIcms	+= SF3->F3_VALICM
+		_nBasIpi	+= SF3->F3_BASEIPI
+		_nValIpi	+= SF3->F3_VALIPI
+		_nBasSol	+= SF3->F3_BASERET
+		_nValSol	+= SF3->F3_ICMSRET
+		_nIsenIcms	+= SF3->F3_ISENICM
+		_nOutrIcms	+= SF3->F3_OUTRICM
+		_nIsenIpi	+= SF3->F3_ISENIPI
+		_nOutrIpi	+= SF3->F3_OUTRIPI
+		
+		cCFOP		:=	QUERY->D2_CF
+		
+		
+		_tVALCONT	:= 0
+		_tBASEICM	:= 0
+		_tVALICM	:= 0
+		_tBASEIPI	:= 0
+		_tVALIPI	:= 0
+		_tBASERET	:= 0
+		_tICMSRET	:= 0
+		_tISENICM	:= 0
+		_tOUTRICM	:= 0
+		_tISENIPI	:= 0
+		_tOUTRIPI	:= 0
+		
+		DbSelectArea("QUERY")
+		dbSkip()
+	EndDo
+	_nInc++
+	
+	//----> GRAVA OS TOTAIS DA NOTA
+	_cReg5  := '5'+StrZero((QUERY->F2_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F2_VALBRUT*100),12)))+StrZero((QUERY->F2_DESCONT*100),12)+Space(12-Len(StrZero((QUERY->F2_DESCONT*100),12)))+StrZero((QUERY->F2_FRETE*100),12)+Space(12-Len(StrZero((QUERY->F2_FRETE*100),12)))+Replicate("0",12)+Replicate("0",12)
+	_cReg5	+= StrZero((QUERY->F2_PBRUTO*100),8)+Space(08-Len(StrZero((QUERY->F2_PBRUTO*100),8)))+Replicate("0",08)+Replicate("0",18)+'5'+Space(15)
+	_cReg5	+= Replicate("0",06)+Replicate("0",10)+Replicate("0",12)+Replicate("0",11)+Replicate("0",06)+Replicate("0",06)+Replicate("0",8)+Replicate("0",12)+Space(18)
+	_cReg5  += Space(2)+Space(18)+Space(1)+Replicate("0",12)+Replicate("0",12)+_cCHVNFE
+	_cReg5  +=Space(200)+Space(05)+StrZero((_nInc),06)
+	_cReg5	+=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg5
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("QUERY")
+EndDo
+
+
+DbSelectArea("QUERY")
+dbCloseArea("QUERY")
+
+_nInc++
+
+//----> GRAVA AS NOTAS CANCELADAS DE ENTRADA E SAIDA
+_cQryCancel:= "SELECT F3_ENTRADA,F3_NFISCAL,F3_SERIE,F3_CLIEFOR,F3_LOJA,F3_DTCANC,F3_CFO,A1_NOME,A1_NREDUZ,A1_CGC,A1_PESSOA,A1_END,A1_BAIRRO,A1_MUN,A1_EST,A1_CEP,A1_INSCR "
+_cQryCancel+= "FROM SF3010 AS F3 "
+_cQryCancel+= "INNER JOIN SA1010 AS A1 ON A1_COD = F3_CLIEFOR AND A1_LOJA = F3_LOJA AND A1.D_E_L_E_T_ = '' "
+_cQryCancel+= "WHERE F3_DTCANC BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND F3_FILIAL = '"+xFilial("SF3")+"' AND F3_CFO > '5000' "
+_cQryCancel+= "ORDER BY F3_SERIE,F3_NFISCAL,F3_CFO "
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryCancel), 'CANCEL', .F., .F.)
+DbSelectArea("CANCEL")
+CANCEL->(dbGoTop())
+ProcRegua(RecCount())
+
+dbSelectArea("CANCEL")
+While Eof() == .f.
+	
+	//----> GRAVA OS DADOS DO DESTINATARIO
+	If CANCEL->A1_PESSOA$"J"
+		_cReg4	 := '4'+IIf(EMPTY(CANCEL->A1_CGC),"00.000.000/0000-00",SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2))))+SubStr(CANCEL->A1_NOME,1,40)+Space(40-Len(SubStr(CANCEL->A1_NOME,1,40)))+SubStr(CANCEL->A1_NREDUZ,1,20)+Space(20-Len(SubStr(CANCEL->A1_NREDUZ,1,20)))+CANCEL->A1_EST+Space(02-Len(CANCEL->A1_EST))+SubStr(CANCEL->A1_INSCR,1,20)+Space(20-Len(SubStr(CANCEL->A1_INSCR,1,20)))
+	Else
+		_cReg4	 := '4'+IIf(EMPTY(CANCEL->A1_CGC),"000.000.000-00    ",SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2))))+SubStr(CANCEL->A1_NOME,1,40)+Space(40-Len(SubStr(CANCEL->A1_NOME,1,40)))+SubStr(CANCEL->A1_NREDUZ,1,20)+Space(20-Len(SubStr(CANCEL->A1_NREDUZ,1,20)))+CANCEL->A1_EST+Space(02-Len(CANCEL->A1_EST))+SubStr(CANCEL->A1_INSCR,1,20)+Space(20-Len(SubStr(CANCEL->A1_INSCR,1,20)))
+	EndiF
+	_cReg4	 +=	SubStr(CANCEL->A1_END,1,40)+Space(40-Len(SubStr(CANCEL->A1_END,1,40)))+SubStr(CANCEL->A1_BAIRRO,1,20)+Space(20-Len(SubStr(CANCEL->A1_BAIRRO,1,20)))+SubStr(CANCEL->A1_MUN,1,20)+Space(20-Len(SubStr(CANCEL->A1_MUN,1,20)))+CANCEL->A1_CEP+Space(08-Len(CANCEL->A1_CEP))+Replicate("0",4)
+	_cReg4	 += Replicate("0",3)+Replicate("0",10)+Replicate("0",6)+Replicate("0",3)+Replicate("0",6)+Replicate("0",3)+'1'+Space(01-Len('1'))+Space(18)
+	_cReg4	 += Replicate("0",5)+Space(20)+Replicate("0",9)+Replicate("0",5)+'1'+Space(01-Len('1'))+Space(206)+Space(05)+StrZero((_nInc),06)
+	_cReg4	 +=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg4
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	_nInc++
+	
+	_cReg1	:= '1'+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))+SubStr(CANCEL->F3_NFISCAL,1,6)+Space(06-Len(SubStr(CANCEL->F3_NFISCAL,1,6)))+SubStr(CANCEL->F3_NFISCAL,1,6)+Space(06-Len(SubStr(CANCEL->F3_NFISCAL,1,6)))+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))+Space(03)+'55'+CANCEL->F3_SERIE+Space(03-Len(CANCEL->F3_SERIE))+Space(03)
+	If CANCEL->A1_PESSOA$"J"
+		_cReg1	+= SubStr(CANCEL->F3_CFO,1,4)+Space(04-Len(SubStr(CANCEL->F3_CFO,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(CANCEL->A1_CGC),"00.000.000/0000-00",SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2))))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	Else
+		_cReg1	+= SubStr(CANCEL->F3_CFO,1,4)+Space(04-Len(SubStr(CANCEL->F3_CFO,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(CANCEL->A1_CGC),"000.000.000-00    ",SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2))))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	EndIf
+	_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(08)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),4)+Space(04-Len(StrZero((0*100),4)))
+	_cReg1  += StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	_cReg1	+= StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	_cReg1	+= StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(50)
+	_cReg1	+= SubStr("NFE  ",1,5)+Space(05-Len(SubStr("NFE  ",1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+'2'+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))
+	_cReg1	+= Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",06)+Replicate("0",18)+Replicate(" ",05)+StrZero((_nInc),06)+CANCEL->F3_NFISCAL
+	_cReg1	+=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg1
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	dbSelectArea("CANCEL")
+	dbSkip()
+EndDo
+    
+
+
+dbSelectArea("CANCEL")
+dbCloseArea("CANCEL")
+
+_nInc++
+
+//----> GRAVA O TRAILER DO ARQUIVO
+_cReg3  := '3'+StrZero((_nValBrut*100),12)+Space(10-Len(StrZero((_nValBrut*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+_cReg3	+= StrZero((_nBasIcms*100),12)+Space(12-Len(StrZero((_nBasIcms*100),12)))+StrZero((_nValIcms*100),12)+Space(12-Len(StrZero((_nValIcms*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+_cReg3	+= Replicate("0",12)+Replicate("0",12)+StrZero((_nIsenIcms*100),12)+Space(12-Len(StrZero((_nIsenIcms*100),12)))+StrZero((_nOutrIcms*100),12)+Space(12-Len(StrZero((_nOutrIcms*100),12)))+StrZero((_nBasIpi*100),12)+Space(12-Len(StrZero((_nBasIpi*100),12)))+StrZero((_nValIpi*100),12)+Space(12-Len(StrZero((_nValIpi*100),12)))
+_cReg3	+= StrZero((_nIsenIpi*100),12)+Space(12-Len(StrZero((_nIsenIpi*100),12)))+StrZero((_nOutrIpi*100),12)+Space(12-Len(StrZero((_nOutrIpi*100),12)))+Replicate("0",12)+StrZero((_nBasSol*100),12)+Space(12-Len(StrZero((_nBasSol*100),12)))+StrZero((_nValSol*100),12)+Space(12-Len(StrZero((_nValSol*100),12)))
+_cReg3	+= Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(169)+StrZero((_nInc),06)
+_cReg3	+=(CHR(13)+CHR(10))
+_cVarTexto := _cReg3
+
+Set Century OFF
+If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+	If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+		Quit
+	Endif
+Endif
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+dbCloseArea("QUERY")
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³EXPPRODUTO³ Autor ³ Leandro de Nobrega      ³ Data ³ 01/12/2009 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³Cadastro de Produto                                             ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function  EXPPRODUTO()
+
+Local _cVarTexto		:= ""
+Local _nInc  				:= 0
+Private _nHdl    		:= fCreate(_cPath1)
+
+DbSelectArea("SB1")
+dbSetOrder(1)
+
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	cPos01	:= StrZero(SB1->B1_CORD,10)
+	
+	cPos02	:= Subs(SB1->B1_DESC,1,40)
+	cPos03	:= Subs(SB1->B1_POSIPI,1,08)
+	cPos04	:= Subs(SB1->B1_UM,1,04)
+	cPos05	:= StrZero((SB1->B1_PESBRU*100),09) 	//PESO BRUTO DO PRODUTO
+	cPos06	:= Subs(SB1->B1_COD,1,15)            	//CODIGO IDENTIFICAÇÃO DO PRODUTO
+	DO CASE
+		CASE SB1->B1_TIPO = 'PA'
+			cPos07	:= '05'
+		CASE SB1->B1_TIPO = 'ME'
+			cPos07	:= '01'
+		CASE SB1->B1_TIPO = 'MP'
+			cPos07	:= '02'
+		CASE SB1->B1_TIPO = 'PI'
+			cPos07	:= '03'
+		CASE SB1->B1_TIPO = 'PS'
+			cPos07	:= '04'
+		OTHERWISE
+			cPos07	:= '99'
+	ENDCASE
+	
+	cPos08	:= ""    			//GRAVAR BRANCOS
+	cPos09	:= StrZero((_nInc),06)
+	
+	cPos01	:= cPos01 + Space(10 - Len(cPos01))
+	cPos02	:= cPos02 + Space(40 - Len(cPos02))
+	cPos03	:= cPos03 + Space(08 - Len(cPos03))
+	cPos04	:= cPos04 + Space(04 - Len(cPos04))
+	cPos05	:= cPos05 + Space(09 - Len(cPos05))
+	cPos06	:= cPos06 + Space(15 - Len(cPos06))
+	cPos07	:= cPos07 + Space(02 - Len(cPos07))
+	cPos08	:= cPos08 + Space(06 - Len(cPos08))
+	cPos09	:= cPos09 + Space(06 - Len(cPos09))
+	
+	_cVarTexto := cPos01 + cPos02  + cPos03  + cPos04  + cPos05  + cPos06  + cPos07   + cPos08  + cPos09
+	_cVarTexto += (CHR(13)+CHR(10))
+	
+	Set Century OFF
+	
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("SB1")
+	dbSkip()
+EndDo
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³EXPCLIENTE³ Autor ³ Leandro de Nobrega      ³ Data ³ 01/12/2009 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³Cadastro de Cliente e Fornecedores                              ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function  EXPCLIFOR()
+
+Local _cVarTexto 		:= ""
+Local _nInc  				:= 0
+Local _cPosVir := 0
+Local _cNumero := ""
+Private _nHdl    		:= fCreate(_cPath2)
+
+DbSelectArea("SA1")
+dbSetOrder(1)
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	If Empty(SA1->A1_CGC)
+		IF SA1->A1_PESSOA = 'J'
+			cPos01	:= "00.000.000/0000-00"
+		ELSE
+			cPos01  := "000.000.000-00    "
+		ENDIF
+	Else
+		IF SA1->A1_PESSOA = 'J'
+			cPos01	:= SUBS(SA1->A1_CGC,1,2)+"."+SUBS(SA1->A1_CGC,3,3)+"."+SUBS(SA1->A1_CGC,6,3)+"/"+SUBS(SA1->A1_CGC,9,4)+"-"+SUBS(SA1->A1_CGC,13,2)
+		ELSE
+			cPos01  := SUBS(SA1->A1_CGC,1,3)+"."+SUBS(SA1->A1_CGC,4,3)+"."+SUBS(SA1->A1_CGC,7,3)+"-"+SUBS(SA1->A1_CGC,10,2)+"    "
+		ENDIF
+	EndIf
+	
+	cPos02	:= SUBS(SA1->A1_NOME,1,40)
+	cPos03	:= Subs(SA1->A1_NREDUZ,1,20)
+	cPos04	:= SA1->A1_EST
+	cPos05	:= SA1->A1_INSCRM
+	cPos06	:= Subs(SA1->A1_END,1,40)
+	cPos07	:= Subs(SA1->A1_BAIRRO,1,20)
+	cPos08	:= Subs(SA1->A1_MUN,1,20)
+	cPos09	:= SA1->A1_CEP
+	cPos10	:= Subs(SA1->A1_COD_MUN,1,4)
+	cPos11	:= "0"+Subs(SA1->A1_DDD,1,2)
+	
+	//cPos12	:= IIF(SA1->A1_TEL <> '',"00"+Subs(SA1->A1_TEL,1,8),REPLICATE("0",10))
+	cPos12	:= Replicate("0",10)
+	
+	cPos13	:= IIF (SA1->A1_CONTA <> '',Subs(SA1->A1_CONTA,1,6), Replicate("0",6))
+	cPos14	:= "000"      //HISTORICO CLIENTE
+	cPos15	:= "000000"      //CONTA FORNECEDOR
+	cPos16	:= "000"      //HISTORICO FORNECEDOR
+	cPos17	:= 'N'
+	cPos18	:= Subs(SA1->A1_MUN,1,18)
+	
+	_nPosVir := AT(",",SA1->A1_END)	// VERIFICA SE EXISTE VIRGULA
+	
+	If _nPosVir<>0
+		_cNumero  	:= Val(SUBSTR(SA1->A1_END,_nPosVir+1,5))
+		cPos19		:= StrZero(_cNumero,5)
+	Else
+		
+		cPos19  := "00000"
+		
+	Endif
+	
+	cPos20  := ""
+	cPos21	:= Subs(SA1->A1_SUFRAMA,1,09)
+	cPos22	:= SA1->A1_CODPAIS
+	cPos23	:= '1'  	//campo a ser criado no cadastro do cliente para informar a natureza juridica
+	cPos24	:= ""	//campo em branco
+	cPos25	:= ""	//campo em branco
+	cPos26	:= StrZero((_nInc),06)
+	
+	
+	cPos01	:= cPos01 + Space(18 - Len(cPos01))
+	cPos02	:= cPos02 + Space(40 - Len(cPos02))
+	cPos03	:= cPos03 + Space(20 - Len(cPos03))
+	cPos04	:= cPos04 + Space(02 - Len(cPos04))
+	cPos05	:= cPos05 + Space(20 - Len(cPos05))
+	cPos06	:= cPos06 + Space(40 - Len(cPos06))
+	cPos07	:= cPos07 + Space(20 - Len(cPos07))
+	cPos08	:= cPos08 + Space(20 - Len(cPos08))
+	cPos09	:= cPos09 + Space(08 - Len(cPos09))
+	cPos10	:= cPos10 + Space(04 - Len(cPos10))
+	cPos11	:= cPos11 + Space(03 - Len(cPos11))
+	cPos12	:= cPos12 + Space(10 - Len(cPos12))
+	cPos13	:= cPos13 + Space(06 - Len(cPos13))
+	cPos14	:= cPos14 + Space(03 - Len(cPos14))
+	cPos15	:= cPos15 + Space(06 - Len(cPos15))
+	cPos16	:= cPos16 + Space(03 - Len(cPos16))
+	cPos17	:= cPos17 + Space(01 - Len(cPos17))
+	cPos18	:= cPos18 + Space(18 - Len(cPos18))
+	cPos19	:= cPos19 + Space(05 - Len(cPos19))
+	cPos20	:= cPos20 + Space(20 - Len(cPos20))
+	cPos21	:= cPos21 + Space(09 - Len(cPos21))
+	cPos22	:= cPos22 + Space(05 - Len(cPos22))
+	cPos23	:= cPos23 + Space(01 - Len(cPos23))
+	cPos24	:= cPos24 + Space(07 - Len(cPos24))
+	cPos25	:= cPos25 + Space(05 - Len(cPos25))
+	cPos26	:= cPos26 + Space(06 - Len(cPos26))
+	
+	
+	_cVarTexto := cPos01 + cPos02  + cPos03  + cPos04  + cPos05  + cPos06  + cPos07   + cPos08  + cPos09 + cPos10 + cPos11  + cPos12  + cPos13  + cPos14  + cPos15  + cPos16   + cPos17  + cPos18
+	_cVarTexto += cPos19 + cPos20  + cPos21  + cPos22  + cPos23  + cPos24  + cPos25   + cPos26
+	_cVarTexto += (CHR(13)+CHR(10))
+	
+	
+	Set Century OFF
+	
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("SA1")
+	dbSkip()
+EndDo
+
+//-->> CARREGA DADOS DOS FORNECCEDORES
+
+DbSelectArea("SA2")
+dbSetOrder(1)
+
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	If Empty(SA2->A2_CGC)
+		IF SA2->A2_TIPO $ 'JX'
+			cPos01	:= "00.000.000/0000-00"
+		ELSE
+			cPos01  := "000.000.000-00    "
+		ENDIF
+	Else
+		IF SA2->A2_TIPO $ 'JX'
+			cPos01	:= SUBS(SA2->A2_CGC,1,2)+"."+SUBS(SA2->A2_CGC,3,3)+"."+SUBS(SA2->A2_CGC,6,3)+"/"+SUBS(SA2->A2_CGC,9,4)+"-"+SUBS(SA2->A2_CGC,13,2)
+		ELSE
+			cPos01  := SUBS(SA2->A2_CGC,1,3)+"."+SUBS(SA2->A2_CGC,4,3)+"."+SUBS(SA2->A2_CGC,7,3)+"-"+SUBS(SA2->A2_CGC,10,2)+"    "
+		ENDIF
+	EndIf
+	
+	cPos02	:= SUBS(SA2->A2_NOME,1,40)
+	cPos03	:= SUBS(SA2->A2_NREDUZ,1,20)
+	cPos04	:= SA2->A2_EST
+	cPos05	:= SA2->A2_INSCRM
+	cPos06	:= SUBS(SA2->A2_END,1,40)
+	cPos07	:= SUBS(SA2->A2_BAIRRO,1,20)
+	cPos08	:= SUBS(SA2->A2_MUN,1,20)
+	cPos09	:= SA2->A2_CEP
+	cPos10	:= SUBS(SA2->A2_COD_MUN,1,4)
+	cPos11	:= "0"+SUBS(SA2->A2_DDD,1,2)
+	cPos12	:= IIF(SA2->A2_TEL <> '',"00"+Subs(SA2->A2_TEL,1,8),REPLICATE("0",10))
+	cPos13	:= IIF (SA2->A2_CONTA <> '',Subs(SA2->A2_CONTA,1,6), Replicate("0",6))
+	cPos14	:= "000"      //HISTORICO FORNECEDOR
+	cPos15	:= "000000"      //CONTA FORNECEDOR
+	cPos16	:= "000"      //HISTORICO FORNECEDOR
+	cPos17	:= 'N'
+	cPos18	:= SUBS(SA2->A2_MUN,1,18)
+	
+	_nPosVir := AT(",",SA2->A2_END)	// VERIFICA SE EXISTE VIRGULA
+	
+	If _nPosVir<>0
+		_cNumero  := SUBSTR(SA2->A2_END,_nPosVir+1,5)
+		cPos19:= SUBSTR( _cNumero,1,5)
+	Else
+		
+		cPos19  := ""
+		
+	Endif
+	
+	cPos20  := ""
+	cPos21	:= ""
+	cPos22	:= SA2->A2_CODPAIS
+	cPos23	:= ""  	//campo a ser criado no cadastro do fornecedor para informar a natureza juridica
+	cPos24	:= ""	//campo em branco
+	cPos25	:= ""	//campo em branco
+	cPos26	:= StrZero((_nInc),06)
+	
+	
+	cPos01	:= cPos01 + Space(18 - Len(cPos01))
+	cPos02	:= cPos02 + Space(40 - Len(cPos02))
+	cPos03	:= cPos03 + Space(20 - Len(cPos03))
+	cPos04	:= cPos04 + Space(02 - Len(cPos04))
+	cPos05	:= cPos05 + Space(20 - Len(cPos05))
+	cPos06	:= cPos06 + Space(40 - Len(cPos06))
+	cPos07	:= cPos07 + Space(20 - Len(cPos07))
+	cPos08	:= cPos08 + Space(20 - Len(cPos08))
+	cPos09	:= cPos09 + Space(08 - Len(cPos09))
+	cPos10	:= cPos10 + Space(04 - Len(cPos10))
+	cPos11	:= cPos11 + Space(03 - Len(cPos11))
+	cPos12	:= cPos12 + Space(10 - Len(cPos12))
+	cPos13	:= cPos13 + Space(06 - Len(cPos13))
+	cPos14	:= cPos14 + Space(03 - Len(cPos14))
+	cPos15	:= cPos15 + Space(06 - Len(cPos15))
+	cPos16	:= cPos16 + Space(03 - Len(cPos16))
+	cPos17	:= cPos17 + Space(01 - Len(cPos17))
+	cPos18	:= cPos18 + Space(18 - Len(cPos18))
+	cPos19	:= cPos19 + Space(05 - Len(cPos19))
+	cPos20	:= cPos20 + Space(20 - Len(cPos20))
+	cPos21	:= cPos21 + Space(09 - Len(cPos21))
+	cPos22	:= cPos22 + Space(05 - Len(cPos22))
+	cPos23	:= cPos23 + Space(01 - Len(cPos23))
+	cPos24	:= cPos24 + Space(07 - Len(cPos24))
+	cPos25	:= cPos25 + Space(05 - Len(cPos25))
+	cPos26	:= cPos26 + Space(06 - Len(cPos26))
+	
+	
+	_cVarTexto := cPos01 + cPos02  + cPos03  + cPos04  + cPos05  + cPos06  + cPos07   + cPos08  + cPos09 + cPos10 + cPos11  + cPos12  + cPos13  + cPos14  + cPos15  + cPos16   + cPos17  + cPos18
+	_cVarTexto += cPos19 + cPos20  + cPos21  + cPos22  + cPos23  + cPos24  + cPos25   + cPos26
+	_cVarTexto += (CHR(13)+CHR(10))
+	
+	Set Century OFF
+	
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("SA2")
+	dbSkip()
+EndDo
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³EXPNOTAENT³ Autor ³ Leandro de Nobrega      ³ Data ³ 01/12/2009 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao ³Nota Fiscal de Entrada                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function EXPNOTAENT()
+
+Local _cVarTexto 			:=  ""
+Local _nInc 				:= 0
+Local _nValBrut				:= 0
+Local _nBasIcms				:= 0
+Local _nValIcms				:= 0
+Local _nBasIpi				:= 0
+Local _nValIpi				:= 0
+Local _nBasSol				:= 0
+Local _nValSol				:= 0
+Local _nIsenIcms		:= 	0
+Local _nOutrIcms		:= 	0
+Local _nIsenIpi			:= 	0
+Local _nOutrIpi			:= 	0
+Local _cPerg 				:= "EXPORT"
+Local _aRegs				:= {}
+Private _nHdl   			:= fCreate(_cPath5)
+
+
+_cQryEntra:= "SELECT DISTINCT SF1010.F1_TIPO, SF1010.F1_DOC, SF1010.F1_SERIE, SF1010.F1_FORNECE, SF1010.F1_LOJA,  SF1010.F1_DTDIGIT, SF1010.F1_EMISSAO, SF1010.F1_DESCONT, "
+_cQryEntra+= "SF1010.F1_VALBRUT,  SF1010.F1_BASEICM,  SF1010.F1_VALICM,  SF1010.F1_BASEIPI,  SF1010.F1_VALIPI, SF1010.F1_ICMSRET, SF1010.F1_ESPECIE, SD1010.D1_VALISS, SD1010.D1_VALIRR, "
+_cQryEntra+= "SF1010.F1_ESPECI1, SF1010.F1_FRETE,  SF1010.F1_VALCOFI,  SF1010.F1_VALCSLL,  SF1010.F1_VALPIS,  SD1010.D1_COD,  SD1010.D1_QUANT, SD1010.D1_ALIQISS, SD1010.D1_ALIQIRR, SD1010.D1_BASEIRR, SD1010.D1_BASEISS, "
+_cQryEntra+= "(SD1010.D1_TOTAL - SD1010.D1_VALDESC) D1_TOTAL,  SD1010.D1_BASEICM,  SD1010.D1_VALICM, SD1010.D1_VALIPI,  SD1010.D1_ICMSRET, SD1010.D1_BASEIPI, SD1010.D1_VALDESC, SD1010.D1_IPI, SD1010.D1_BRICMS, SD1010.D1_UM, "
+_cQryEntra+= "SF1010.F1_SERIE,  SF1010.F1_PBRUTO, SD1010.D1_CF, SD1010.D1_PICM, SD1010.D1_ALIQISS, SD1010.D1_BRICMS, SF1010.F1_VALMERC, SF1010.F1_BRICMS, FT_CLASFIS, FT_CTIPI, FT_CSTPIS, FT_CSTCOF, F1_CHVNFE "
+_cQryEntra+= "FROM SF1010 INNER JOIN "
+_cQryEntra+= "SD1010 ON  SF1010.F1_DOC =  SD1010.D1_DOC AND  SF1010.F1_SERIE =  SD1010.D1_SERIE AND SF1010.F1_FORNECE = SD1010.D1_FORNECE AND SF1010.F1_LOJA = SD1010.D1_LOJA AND SF1010.F1_TIPO = SD1010.D1_TIPO "
+_cQryEntra+= "INNER JOIN SFT010 ON " 
+_cQryEntra+= "SFT010.FT_NFISCAL = SD1010.D1_DOC AND SFT010.FT_SERIE = SD1010.D1_SERIE AND SFT010.FT_PRODUTO = SD1010.D1_COD AND SFT010.FT_ITEM = SD1010.D1_ITEM " 
+_cQryEntra+= "AND SFT010.D_E_L_E_T_ = '' AND SFT010.FT_DTCANC = '' "
+_cQryEntra+= "WHERE     (SF1010.D_E_L_E_T_ = '') AND ( SD1010.D_E_L_E_T_ = '') AND ( SF1010.F1_DTDIGIT >= '"+DTOS(MV_PAR01)+"' AND SF1010.F1_DTDIGIT <= '"+DTOS(MV_PAR02)+"') AND  SF1010.F1_FILIAL  = '" + xFilial("SF1") + "' AND SD1010.D1_FILIAL = '"+xFilial("SD1")+"' "
+_cQryEntra+= "ORDER BY SF1010.F1_DOC, SF1010.F1_SERIE, SF1010.F1_FORNECE, SF1010.F1_LOJA, SD1010.D1_CF "
+
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryEntra), 'Query', .F., .F.)
+DbSelectArea("Query")
+
+Query->(dbGoTop())
+ProcRegua(RecCount())
+
+
+_cReg0	:= ''	//----> header do arquivo
+_cReg4  := ''	//----> dados cliente
+_cReg1  := ''	//----> cabecalho da nota
+_cReg2  := ''	//----> registro do produto (itens da nota)
+_cReg5  := ''	//----> dados complementares nota
+_cReg3	:= ''	//----> trailer do arquivo
+_nInc		++
+
+
+//----> GRAVA O HEADER DO ARQUIVO
+_cReg0	:= '0'+subs(Dtos(dDataBase),7,2)+subs(Dtos(dDataBase),5,2)+subs(Dtos(dDataBase),1,4)+SUBS(SM0->M0_CGC,1,2)+"."+SUBS(SM0->M0_CGC,3,3)+"."+SUBS(SM0->M0_CGC,6,3)+"/"+SUBS(SM0->M0_CGC,9,4)+"-"+SUBS(SM0->M0_CGC,13,2)+Space(18-Len(SUBS(SM0->M0_CGC,1,2)+"."+SUBS(SM0->M0_CGC,3,3)+"."+SUBS(SM0->M0_CGC,6,3)+"/"+SUBS(SM0->M0_CGC,9,4)+"-"+SUBS(SM0->M0_CGC,13,2)))+'1'+Space(003)+Space(443)+Space(020)+StrZero((_nInc),06)+(CHR(13)+CHR(10))
+_cVarTexto := _cReg0
+
+Set Century OFF
+If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+	If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+		Quit
+	Endif
+Endif
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	cNota 	:= QUERY->F1_DOC + QUERY->F1_SERIE + QUERY->F1_FORNECE + QUERY->F1_LOJA
+	cFornec := QUERY->F1_FORNECE
+	cLoja	:= QUERY->F1_LOJA
+	cTipo	:= QUERY->F1_TIPO
+	
+	If cTipo$"BD"
+		_cQryFor :="SELECT SA1010.A1_CGC AS A2_CGC,  SA1010.A1_NREDUZ AS A2_NREDUZ, SA1010.A1_NOME AS A2_NOME, SA1010.A1_EST AS A2_EST,  SA1010.A1_INSCR AS A2_INSCR, SA1010.A1_END AS A2_END,  SA1010.A1_CODMUN AS A2_CODMUN, SA1010.A1_BAIRRO AS A2_BAIRRO, "
+		_cQryFor +="SA1010.A1_MUN AS A2_MUN,  SA1010.A1_CEP AS A2_CEP,  SA1010.A1_DDD AS A2_DDD,  SA1010.A1_TEL AS A2_TEL, SA1010.A1_CONTA AS A2_CONTA,  SA1010.A1_TIPO AS A2_TIPO,  SA1010.A1_CODPAIS AS A2_CODPAIS "
+		_cQryFor +="FROM SA1010 "
+		_cQryFor +="WHERE SA1010.D_E_L_E_T_ = '' AND SA1010.A1_COD = '"+cFornec+"' AND SA1010.A1_LOJA = '"+cLoja+"'"
+	Else
+		_cQryFor :="SELECT SA2010.A2_CGC,  SA2010.A2_NREDUZ, SA2010.A2_NOME ,SA2010.A2_EST,  SA2010.A2_INSCR, SA2010.A2_END,  SA2010.A2_CODMUN, SA2010.A2_BAIRRO, "
+		_cQryFor +="SA2010.A2_MUN,  SA2010.A2_CEP,  SA2010.A2_DDD,  SA2010.A2_TEL, SA2010.A2_CONTA,  SA2010.A2_TIPO,  SA2010.A2_CODPAIS "
+		_cQryFor +="FROM SA2010 "
+		_cQryFor +="WHERE SA2010.D_E_L_E_T_ = '' AND SA2010.A2_COD = '"+cFornec+"' AND SA2010.A2_LOJA = '"+cLoja+"'"
+	EndIf
+	
+	dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryFor), 'FORNEC', .F., .F.)
+	DbSelectArea("FORNEC")
+	
+	//----> GRAVA OS DADOS DO DESTINATARIO
+	
+	//If FORNEC->A2_TIPO$"JX"
+	If LEN(ALLTRIM(FORNEC->A2_CGC)) > 11
+		_cReg4	 := '4'+IIf(EMPTY(FORNEC->A2_CGC),"00.000.000/0000-00",SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2))))+SubStr(FORNEC->A2_NOME,1,40)+Space(40-Len(SubStr(FORNEC->A2_NOME,1,40)))+SubStr(FORNEC->A2_NREDUZ,1,20)+Space(20-Len(SubStr(FORNEC->A2_NREDUZ,1,20)))+FORNEC->A2_EST+Space(02-Len(FORNEC->A2_EST))+SubStr(FORNEC->A2_INSCR,1,20)+Space(20-Len(SubStr(FORNEC->A2_INSCR,1,20)))
+	Else
+		_cReg4	 := '4'+IIf(EMPTY(FORNEC->A2_CGC),"000.000.000-00    ",SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2))))+SubStr(FORNEC->A2_NOME,1,40)+Space(40-Len(SubStr(FORNEC->A2_NOME,1,40)))+SubStr(FORNEC->A2_NREDUZ,1,20)+Space(20-Len(SubStr(FORNEC->A2_NREDUZ,1,20)))+FORNEC->A2_EST+Space(02-Len(FORNEC->A2_EST))+SubStr(FORNEC->A2_INSCR,1,20)+Space(20-Len(SubStr(FORNEC->A2_INSCR,1,20)))
+	EndiF
+	
+	//_cReg4	 := '4'+IIf(EMPTY(FORNEC->A2_CGC),"00.000.000/0000-00",SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2))))+SubStr(FORNEC->A2_NOME,1,40)+Space(40-Len(SubStr(FORNEC->A2_NOME,1,40)))+SubStr(FORNEC->A2_NREDUZ,1,20)+Space(20-Len(SubStr(FORNEC->A2_NREDUZ,1,20)))+FORNEC->A2_EST+Space(02-Len(FORNEC->A2_EST))+SubStr(FORNEC->A2_INSCR,1,20)+Space(20-Len(SubStr(FORNEC->A2_INSCR,1,20)))
+	_cReg4	 +=	SubStr(FORNEC->A2_END,1,40)+Space(40-Len(SubStr(FORNEC->A2_END,1,40)))+SubStr(FORNEC->A2_BAIRRO,1,20)+Space(20-Len(SubStr(FORNEC->A2_BAIRRO,1,20)))
+	_cReg4	 += Replicate("0",20)//IIF(FORNEC->A2_MUN <> '',SubStr(FORNEC->A2_MUN,1,20)+Space(20-Len(SubStr(FORNEC->A2_MUN,1,20))),Replicate("0",20))
+	_cReg4	 += IIF(FORNEC->A2_CEP <> '',FORNEC->A2_CEP+Space(08-Len(FORNEC->A2_CEP)),Replicate("0",8))
+	_cReg4	 +=	Replicate("0",4)//IIF(FORNEC->A2_CODMUN <> '',SubStr(FORNEC->A2_CODMUN,1,4)+Space(04-Len(SubStr(FORNEC->A2_CODMUN,1,4))),Replicate("0",4))
+	_cReg4	 += Replicate("0",3)//IIF(FORNEC->A2_DDD <> '',FORNEC->A2_DDD+Space(03-Len(FORNEC->A2_DDD)),Replicate("0",3))
+	_cReg4	 +=	Replicate("0",10)+Replicate("0",6)+Replicate("0",3)+Replicate("0",6)+Replicate("0",3)+'1'+Space(01-Len('1'))+Space(18)
+	_cReg4	 += Replicate("0",5)+Space(20)+Replicate("0",9)+Replicate("0",5)+'1'+Space(01-Len('1'))+Space(206)+Space(05)+StrZero((_nInc),06)
+	_cReg4	 +=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg4
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	cCFOP := ""
+	_nInc ++
+	
+			DbSelectArea("QUERY")
+			
+			//----> GRAVA O CABECALHO DA NOTA
+			_cReg1	:= '1'+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+SubStr(QUERY->F1_DOC,1,6)+Space(06-Len(SubStr(QUERY->F1_DOC,1,6)))+SubStr(QUERY->F1_EMISSAO,7,2)+SubStr(QUERY->F1_EMISSAO,5,2)+SubStr(QUERY->F1_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F1_EMISSAO,7,2)+SubStr(QUERY->F1_EMISSAO,5,2)+SubStr(QUERY->F1_EMISSAO,1,4)))+'55'+substr(QUERY->F1_SERIE,1,3)+Space(03-Len(substr(QUERY->F1_SERIE,1,3)))+Space(03)
+			//If FORNEC->A2_TIPO$"JX"
+			If LEN(ALLTRIM(FORNEC->A2_CGC)) > 11
+				_cReg1	+= SubStr(QUERY->D1_CF,1,4)+Space(04-Len(SubStr(QUERY->D1_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(FORNEC->A2_CGC),"00.000.000/0000-00",SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2))))+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))
+			Else
+				_cReg1	+= SubStr(QUERY->D1_CF,1,4)+Space(04-Len(SubStr(QUERY->D1_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(FORNEC->A2_CGC),"000.000.000-00    ",SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2))))+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))
+			EndIf                                                                                                                                                                                                                                                              
+			_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+StrZero((QUERY->F1_BASEICM*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEICM*100),12)))+StrZero((QUERY->D1_PICM*100),04)+Space(04-Len(StrZero((QUERY->D1_PICM*100),04)))
+			_cReg1  += StrZero((QUERY->F1_VALICM*100),12)+Space(12-Len(StrZero((QUERY->F1_VALICM*100),12)))+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+StrZero((SF3->F3_ISENICM*100),12)+Space(12-Len(StrZero((SF3->F3_ISENICM*100),12)))+StrZero((SF3->F3_OUTRICM*100),12)+Space(12-Len(StrZero((SF3->F3_OUTRICM*100),12)))
+			_cReg1	+= StrZero((QUERY->F1_BASEIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEIPI*100),12)))+StrZero((QUERY->F1_VALIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_VALIPI*100),12)))+StrZero((SF3->F3_ISENIPI*100),12)+Space(12-Len(StrZero((SF3->F3_ISENIPI*100),12)))
+			_cReg1	+= StrZero((SF3->F3_OUTRIPI*100),12)+Space(12-Len(StrZero((SF3->F3_OUTRIPI*100),12)))+Replicate("0",12)+StrZero((QUERY->F1_BRICMS*100),12)+Space(12-Len(StrZero((QUERY->F1_BRICMS*100),12)))+StrZero((QUERY->F1_ICMSRET*100),12)+Space(12-Len(StrZero((QUERY->F1_ICMSRET*100),12)))+Replicate("0",12)+Space(50)
+			_cReg1	+= SubStr(IIF(QUERY->F1_ESPECIE$"SPED ","NFE  ",QUERY->F1_ESPECIE),1,5)+Space(05-Len(SubStr(QUERY->F1_ESPECIE,1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+Replicate("0",12)+Replicate("0",04)+StrZero((QUERY->D1_VALISS*100),12)+Space(12-Len(StrZero((QUERY->D1_VALISS*100),12)))+Replicate("0",12)+StrZero((QUERY->D1_VALIRR*100),12)+Space(12-Len(StrZero((QUERY->D1_VALIRR*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+Space(08-Len(SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)))
+			_cReg1	+= Replicate("0",04)+Replicate(" ",06)+Replicate(" ",18)+Replicate(" ",12)+Replicate(" ",12)+Replicate(" ",04)+Replicate(" ",18)+Replicate(" ",05)+StrZero((_nInc),06)+QUERY->F1_DOC
+			_cReg1	+=(CHR(13)+CHR(10))
+			_cVarTexto := _cReg1
+			
+			Set Century OFF
+			If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+				If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+					Quit
+				Endif
+			Endif
+
+	While Eof() == .f. .And. QUERY->F1_DOC + QUERY->F1_SERIE + QUERY->F1_FORNECE + QUERY->F1_LOJA == cNota
+		
+		_nInc++
+		
+		If QUERY->D1_CF <> cCFOP
+			
+			
+			_cDoc		:=	QUERY->F1_DOC
+			_cSer		:=	QUERY->F1_SERIE
+			_cCliente	:= 	QUERY->F1_FORNECE
+			_cLoja		:=	QUERY->F1_LOJA
+			_cCF		:=	QUERY->D1_CF
+			_cData		:=	QUERY->F1_DTDIGIT
+			_cCHVNFE	:=	QUERY->F1_CHVNFE
+			
+			//----> GRAVA O CABECALHO DA NOTA
+			//_cReg1	:= '1'+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+SubStr(QUERY->F1_DOC,1,6)+Space(06-Len(SubStr(QUERY->F1_DOC,1,6)))+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+Space(08-Len(SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)))+'01'+substr(QUERY->F1_SERIE,1,3)+Space(03-Len(substr(QUERY->F1_SERIE,1,3)))+Space(03)
+			//_cReg1	+= SubStr(QUERY->D1_CF,1,4)+Space(04-Len(SubStr(QUERY->D1_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(FORNEC->A2_CGC),"00.000.000/0000-00",SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2))))+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))
+			//_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+StrZero((QUERY->F1_BASEICM*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEICM*100),12)))+StrZero((QUERY->D1_PICM*100),04)+Space(04-Len(StrZero((QUERY->D1_PICM*100),04)))
+			//_cReg1  += StrZero((QUERY->F1_VALICM*100),12)+Space(12-Len(StrZero((QUERY->F1_VALICM*100),12)))+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+			//_cReg1	+= StrZero((QUERY->F1_BASEIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEIPI*100),12)))+StrZero((QUERY->F1_VALIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_VALIPI*100),12)))+Replicate("0",12)
+			//_cReg1	+= Replicate("0",12)+Replicate("0",12)+StrZero((QUERY->F1_BRICMS*100),12)+Space(12-Len(StrZero((QUERY->F1_BRICMS*100),12)))+StrZero((QUERY->F1_ICMSRET*100),12)+Space(12-Len(StrZero((QUERY->F1_ICMSRET*100),12)))+Replicate("0",12)+Space(50)
+			//_cReg1	+= SubStr(IIF(QUERY->F1_ESPECIE$"SPED ","NFE  ",QUERY->F1_ESPECIE),1,5)+Space(05-Len(SubStr(QUERY->F1_ESPECIE,1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+Replicate("0",12)+Replicate("0",04)+StrZero((QUERY->D1_VALISS*100),12)+Space(12-Len(StrZero((QUERY->D1_VALISS*100),12)))+Replicate("0",12)+StrZero((QUERY->D1_VALIRR*100),12)+Space(12-Len(StrZero((QUERY->D1_VALIRR*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+Space(08-Len(SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)))
+			//_cReg1	+= Replicate("0",04)+Replicate(" ",06)+Replicate(" ",18)+Replicate(" ",12)+Replicate(" ",12)+Replicate(" ",04)+Replicate(" ",18)+Replicate(" ",05)+StrZero((_nInc),06)
+			//_cReg1	+=(CHR(13)+CHR(10))
+			//_cVarTexto := _cReg1
+			
+			
+			dbSelectArea("SF3")
+			dbSetOrder(1)
+			dbSeek(xFilial("SF3")+_cData+_cDoc+_cSer+_cCliente+_cLoja+_cCF,.f.)
+			
+			DbSelectArea("QUERY")
+			
+			/*
+			//----> GRAVA O CABECALHO DA NOTA
+			_cReg1	:= '1'+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+SubStr(QUERY->F1_DOC,1,6)+Space(06-Len(SubStr(QUERY->F1_DOC,1,6)))+SubStr(QUERY->F1_EMISSAO,7,2)+SubStr(QUERY->F1_EMISSAO,5,2)+SubStr(QUERY->F1_EMISSAO,1,4)+Space(08-Len(SubStr(QUERY->F1_EMISSAO,7,2)+SubStr(QUERY->F1_EMISSAO,5,2)+SubStr(QUERY->F1_EMISSAO,1,4)))+'55'+substr(QUERY->F1_SERIE,1,3)+Space(03-Len(substr(QUERY->F1_SERIE,1,3)))+Space(03)
+			//If FORNEC->A2_TIPO$"JX"
+			If LEN(ALLTRIM(FORNEC->A2_CGC)) > 11
+				_cReg1	+= SubStr(QUERY->D1_CF,1,4)+Space(04-Len(SubStr(QUERY->D1_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(FORNEC->A2_CGC),"00.000.000/0000-00",SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,2)+"."+SUBS(FORNEC->A2_CGC,3,3)+"."+SUBS(FORNEC->A2_CGC,6,3)+"/"+SUBS(FORNEC->A2_CGC,9,4)+"-"+SUBS(FORNEC->A2_CGC,13,2))))+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))
+			Else
+				_cReg1	+= SubStr(QUERY->D1_CF,1,4)+Space(04-Len(SubStr(QUERY->D1_CF,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(FORNEC->A2_CGC),"000.000.000-00    ",SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2)+Space(18-Len(SUBS(FORNEC->A2_CGC,1,3)+"."+SUBS(FORNEC->A2_CGC,4,3)+"."+SUBS(FORNEC->A2_CGC,7,3)+"-"+SUBS(FORNEC->A2_CGC,10,2))))+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))
+			EndIf                                                                                                                                                                                                                                                              
+			_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+StrZero((QUERY->F1_BASEICM*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEICM*100),12)))+StrZero((QUERY->D1_PICM*100),04)+Space(04-Len(StrZero((QUERY->D1_PICM*100),04)))
+			_cReg1  += StrZero((QUERY->F1_VALICM*100),12)+Space(12-Len(StrZero((QUERY->F1_VALICM*100),12)))+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",12)+StrZero((SF3->F3_ISENICM*100),12)+Space(12-Len(StrZero((SF3->F3_ISENICM*100),12)))+StrZero((SF3->F3_OUTRICM*100),12)+Space(12-Len(StrZero((SF3->F3_OUTRICM*100),12)))
+			_cReg1	+= StrZero((QUERY->F1_BASEIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_BASEIPI*100),12)))+StrZero((QUERY->F1_VALIPI*100),12)+Space(12-Len(StrZero((QUERY->F1_VALIPI*100),12)))+StrZero((SF3->F3_ISENIPI*100),12)+Space(12-Len(StrZero((SF3->F3_ISENIPI*100),12)))
+			_cReg1	+= StrZero((SF3->F3_OUTRIPI*100),12)+Space(12-Len(StrZero((SF3->F3_OUTRIPI*100),12)))+Replicate("0",12)+StrZero((QUERY->F1_BRICMS*100),12)+Space(12-Len(StrZero((QUERY->F1_BRICMS*100),12)))+StrZero((QUERY->F1_ICMSRET*100),12)+Space(12-Len(StrZero((QUERY->F1_ICMSRET*100),12)))+Replicate("0",12)+Space(50)
+			_cReg1	+= SubStr(IIF(QUERY->F1_ESPECIE$"SPED ","NFE  ",QUERY->F1_ESPECIE),1,5)+Space(05-Len(SubStr(QUERY->F1_ESPECIE,1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+Replicate("0",12)+Replicate("0",04)+StrZero((QUERY->D1_VALISS*100),12)+Space(12-Len(StrZero((QUERY->D1_VALISS*100),12)))+Replicate("0",12)+StrZero((QUERY->D1_VALIRR*100),12)+Space(12-Len(StrZero((QUERY->D1_VALIRR*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)+Space(08-Len(SubStr(QUERY->F1_DTDIGIT,7,2)+SubStr(QUERY->F1_DTDIGIT,5,2)+SubStr(QUERY->F1_DTDIGIT,1,4)))
+			_cReg1	+= Replicate("0",04)+Replicate(" ",06)+Replicate(" ",18)+Replicate(" ",12)+Replicate(" ",12)+Replicate(" ",04)+Replicate(" ",18)+Replicate(" ",05)+StrZero((_nInc),06)
+			_cReg1	+=(CHR(13)+CHR(10))
+			_cVarTexto := _cReg1
+			
+			Set Century OFF
+			If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+				If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+					Quit
+				Endif
+			Endif*/
+			
+		EndIf
+		
+		//----> GRAVA OS ITENS DA NOTA Replicate("0",(10-Len(Alltrim(SB1->B1_CORD)))+Alltrim(Posicione("SB1",1,xFilial("SB1")+QUERY->D2_COD,"B1_CORD")
+		
+		//	_cReg2	:= '2'+SubStr(Posicione("SB1",1,xFilial("SB1")+QUERY->D1_COD,"B1_CORD"),1,10)+Space(10-Len(SubStr(Posicione("SB1",1,xFilial("SB1")+QUERY->D1_COD,"B1_CORD"),1,10)))+StrZero((QUERY->D1_QUANT*100),9)+Space(09-Len(StrZero((QUERY->D1_QUANT*100),9)))+StrZero((QUERY->D1_TOTAL*100),12)+Space(12-Len(StrZero((QUERY->D1_TOTAL*100),12)))+Replicate("0",13)
+		_cReg2	:= '2'+StrZero(Posicione("SB1",1,xFilial("SB1")+QUERY->D1_COD,"B1_CORD"),10)+StrZero((QUERY->D1_QUANT*100),9)+Space(09-Len(StrZero((QUERY->D1_QUANT*100),9)))+StrZero((QUERY->D1_TOTAL*100),12)+Space(12-Len(StrZero((QUERY->D1_TOTAL*100),12)))+Replicate("0",13)
+		//_cReg2	:= '2'+StrZero(SubStr(Posicione("SB1",1,xFilial("SB1")+QUERY->D1_COD,"B1_CORD"),1,10))+Space(10-Len(SubStr(Posicione("SB1",1,xFilial("SB1")+QUERY->D1_COD,"B1_CORD"),1,10)))+StrZero((QUERY->D1_QUANT*100),9)+Space(09-Len(StrZero((QUERY->D1_QUANT*100),9)))+StrZero((QUERY->D1_TOTAL*100),12)+Space(12-Len(StrZero((QUERY->D1_TOTAL*100),12)))+Replicate("0",13)
+		_cReg2	+= StrZero((QUERY->D1_VALDESC*100),12)+Space(12-Len(StrZero((QUERY->D1_VALDESC*100),12)))+StrZero((QUERY->D1_BASEICM*100),12)+Space(12-Len(StrZero((QUERY->D1_BASEICM*100),12)))+StrZero((QUERY->D1_PICM*100),5)+Space(05-Len(StrZero((QUERY->D1_PICM*100),5)))+StrZero((QUERY->D1_VALIPI*100),12)+Space(12-Len(StrZero((QUERY->D1_VALIPI*100),12)))+StrZero((QUERY->D1_BRICMS*100),12)+Space(12-Len(StrZero((QUERY->D1_BRICMS,100),12)))+StrZero((QUERY->D1_IPI*100),5)+Space(5-Len(StrZero((QUERY->D1_IPI,100),5)))+Replicate("0",5)
+		_cReg2	+= QUERY->FT_CLASFIS+Space(15)+"0"+QUERY->FT_CTIPI+StrZero((QUERY->D1_BASEIPI*100),12)+Space(12-Len(StrZero((QUERY->D1_BASEIPI*100),12)))+QUERY->FT_CSTPIS+Replicate("0",12)+Replicate("0",7)
+		_cReg2	+= Replicate("0",13)+Replicate("0",14)+Replicate("0",12)
+		_cReg2	+= QUERY->FT_CSTCOF+Replicate("0",12)+Replicate("0",7)
+		_cReg2	+= Replicate("0",13)+Replicate("0",14)+Replicate("0",12)+Replicate("0",12)
+		_cReg2	+= Replicate("0",5)+Replicate("0",12)+ALLTRIM(QUERY->D1_CF)+QUERY->D1_UM+Space(004)+Space(189)+Space(005)+StrZero((_nInc),06)
+		_cReg2	+=(CHR(13)+CHR(10))
+		_cVarTexto := _cReg2
+		
+		Set Century OFF
+		If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+			If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+				Quit
+			Endif
+		Endif
+		
+		
+		//----> SOMA OS TOTAIS PARA APRESENTAR NO REG3
+		_nValBrut	+= SF3->F3_VALCONT
+		_nBasIcms	+= SF3->F3_BASEICM
+		_nValIcms	+= SF3->F3_VALICM
+		_nBasIpi	+= SF3->F3_BASEIPI
+		_nValIpi	+= SF3->F3_VALIPI
+		_nBasSol	+= SF3->F3_BASERET
+		_nValSol	+= SF3->F3_ICMSRET
+		_nIsenIcms	+= SF3->F3_ISENICM
+		_nOutrIcms	+= SF3->F3_OUTRICM
+		_nIsenIpi	+= SF3->F3_ISENIPI
+		_nOutrIpi	+= SF3->F3_OUTRIPI
+		
+		cCFOP		:= QUERY->D1_CF
+		
+		DbSelectArea("QUERY")
+		dbSkip()
+	EndDo
+	
+	DbSelectArea("FORNEC")
+	DbCloseArea("FORNEC")
+	
+	_nInc++
+	
+	//----> GRAVA OS TOTAIS DA NOTA
+	_cReg5  := '5'+StrZero((QUERY->F1_VALBRUT*100),12)+Space(12-Len(StrZero((QUERY->F1_VALBRUT*100),12)))+StrZero((QUERY->F1_DESCONT*100),12)+Space(12-Len(StrZero((QUERY->F1_DESCONT*100),12)))+StrZero((QUERY->F1_FRETE*100),12)+Space(12-Len(StrZero((QUERY->F1_FRETE*100),12)))+Replicate("0",12)+Replicate("0",12)
+	_cReg5	+= StrZero((QUERY->F1_PBRUTO*100),8)+Space(08-Len(StrZero((QUERY->F1_PBRUTO*100),8)))+Replicate("0",08)+Replicate("0",18)+'5'+Space(15)
+	_cReg5	+= Replicate("0",06)+Replicate("0",10)+_cCHVNFE+Space(001)+Space(020)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(201)
+	_cReg5 += Space(05)+StrZero((_nInc),06)
+	_cReg5	+=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg5
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+	If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+	Quit
+	Endif
+	Endif
+	
+	DbSelectArea("QUERY")
+EndDo
+
+DbSelectArea("QUERY")
+dbCloseArea("QUERY")
+
+_nInc++
+
+//----> GRAVA AS NOTAS CANCELADAS DE ENTRADA E SAIDA
+_cQryCancel:= "SELECT F3_ENTRADA,F3_NFISCAL,F3_SERIE,F3_CLIEFOR,F3_LOJA,F3_DTCANC,F3_CFO,A1_NOME,A1_NREDUZ,A1_CGC,A1_PESSOA,A1_END,A1_BAIRRO,A1_MUN,A1_EST,A1_CEP,A1_INSCR "
+_cQryCancel+= "FROM SF3010 AS F3 "
+_cQryCancel+= "INNER JOIN SA1010 AS A1 ON A1_COD = F3_CLIEFOR AND A1_LOJA = F3_LOJA AND A1.D_E_L_E_T_ = '' "
+_cQryCancel+= "WHERE F3_DTCANC BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND F3_FILIAL = '"+xFilial("SF3")+"' AND F3_CFO < '5000' "
+_cQryCancel+= "ORDER BY F3_SERIE,F3_NFISCAL,F3_CFO "
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryCancel), 'CANCEL', .F., .F.)
+DbSelectArea("CANCEL")
+CANCEL->(dbGoTop())
+ProcRegua(RecCount())
+
+dbSelectArea("CANCEL")
+While Eof() == .f.
+	
+	//----> GRAVA OS DADOS DO DESTINATARIO
+	If CANCEL->A1_PESSOA$"J"
+		_cReg4	 := '4'+IIf(EMPTY(CANCEL->A1_CGC),"00.000.000/0000-00",SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2))))+SubStr(CANCEL->A1_NOME,1,40)+Space(40-Len(SubStr(CANCEL->A1_NOME,1,40)))+SubStr(CANCEL->A1_NREDUZ,1,20)+Space(20-Len(SubStr(CANCEL->A1_NREDUZ,1,20)))+CANCEL->A1_EST+Space(02-Len(CANCEL->A1_EST))+SubStr(CANCEL->A1_INSCR,1,20)+Space(20-Len(SubStr(CANCEL->A1_INSCR,1,20)))
+	Else
+		_cReg4	 := '4'+IIf(EMPTY(CANCEL->A1_CGC),"000.000.000-00    ",SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2))))+SubStr(CANCEL->A1_NOME,1,40)+Space(40-Len(SubStr(CANCEL->A1_NOME,1,40)))+SubStr(CANCEL->A1_NREDUZ,1,20)+Space(20-Len(SubStr(CANCEL->A1_NREDUZ,1,20)))+CANCEL->A1_EST+Space(02-Len(CANCEL->A1_EST))+SubStr(CANCEL->A1_INSCR,1,20)+Space(20-Len(SubStr(CANCEL->A1_INSCR,1,20)))
+	EndiF
+	_cReg4	 +=	SubStr(CANCEL->A1_END,1,40)+Space(40-Len(SubStr(CANCEL->A1_END,1,40)))+SubStr(CANCEL->A1_BAIRRO,1,20)+Space(20-Len(SubStr(CANCEL->A1_BAIRRO,1,20)))+SubStr(CANCEL->A1_MUN,1,20)+Space(20-Len(SubStr(CANCEL->A1_MUN,1,20)))+CANCEL->A1_CEP+Space(08-Len(CANCEL->A1_CEP))+Replicate("0",4)
+	_cReg4	 += Replicate("0",3)+Replicate("0",10)+Replicate("0",6)+Replicate("0",3)+Replicate("0",6)+Replicate("0",3)+'1'+Space(01-Len('1'))+Space(18)
+	_cReg4	 += Replicate("0",5)+Space(20)+Replicate("0",9)+Replicate("0",5)+'1'+Space(01-Len('1'))+Space(206)+Space(05)+StrZero((_nInc),06)
+	_cReg4	 +=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg4
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	_nInc++
+	
+	_cReg1	:= '1'+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))+SubStr(CANCEL->F3_NFISCAL,1,6)+Space(06-Len(SubStr(CANCEL->F3_NFISCAL,1,6)))+SubStr(CANCEL->F3_NFISCAL,1,6)+Space(06-Len(SubStr(CANCEL->F3_NFISCAL,1,6)))+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))+Space(03)+'55'+CANCEL->F3_SERIE+Space(03-Len(CANCEL->F3_SERIE))+Space(03)
+	If CANCEL->A1_PESSOA$"J"
+		_cReg1	+= SubStr(CANCEL->F3_CFO,1,4)+Space(04-Len(SubStr(CANCEL->F3_CFO,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(CANCEL->A1_CGC),"00.000.000/0000-00",SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,2)+"."+SUBS(CANCEL->A1_CGC,3,3)+"."+SUBS(CANCEL->A1_CGC,6,3)+"/"+SUBS(CANCEL->A1_CGC,9,4)+"-"+SUBS(CANCEL->A1_CGC,13,2))))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+    Else
+		_cReg1	+= SubStr(CANCEL->F3_CFO,1,4)+Space(04-Len(SubStr(CANCEL->F3_CFO,1,4)))+'01'+Replicate("0",2)+Replicate("0",2)+IIf(EMPTY(CANCEL->A1_CGC),"000.000.000-00    ",SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2)+Space(18-Len(SUBS(CANCEL->A1_CGC,1,3)+"."+SUBS(CANCEL->A1_CGC,4,3)+"."+SUBS(CANCEL->A1_CGC,7,3)+"-"+SUBS(CANCEL->A1_CGC,10,2))))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+    EndIf
+	_cReg1  += Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(08)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),4)+Space(04-Len(StrZero((0*100),4)))
+	_cReg1  += StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	_cReg1	+= StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))
+	_cReg1	+= StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+StrZero((0*100),12)+Space(12-Len(StrZero((0*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",4)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Space(50)
+	_cReg1	+= SubStr("NFE  ",1,5)+Space(05-Len(SubStr("NFE  ",1,5)))+'N'+Replicate("0",04)+Replicate("0",08)+'2'+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)+Space(08-Len(SubStr(CANCEL->F3_ENTRADA,7,2)+SubStr(CANCEL->F3_ENTRADA,5,2)+SubStr(CANCEL->F3_ENTRADA,1,4)))
+	_cReg1	+= Replicate("0",04)+Replicate("0",12)+Replicate("0",12)+Replicate("0",04)+Replicate("0",06)+Replicate("0",18)+Replicate(" ",05)+StrZero((_nInc),06)+CANCEL->F3_NFISCAL
+	_cReg1	+=(CHR(13)+CHR(10))
+	_cVarTexto := _cReg1
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	dbSelectArea("CANCEL")
+	dbSkip()
+EndDo
+    
+
+
+dbSelectArea("CANCEL")
+dbCloseArea("CANCEL")
+
+_nInc++
+
+//----> GRAVA O TRAILER DO ARQUIVO
+_cReg3  := '3'+StrZero((_nValBrut*100),12)+Space(10-Len(StrZero((_nValBrut*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+_cReg3	+= StrZero((_nBasIcms*100),12)+Space(12-Len(StrZero((_nBasIcms*100),12)))+StrZero((_nValIcms*100),12)+Space(12-Len(StrZero((_nValIcms*100),12)))+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)
+_cReg3	+= Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+StrZero((_nBasIpi*100),12)+Space(12-Len(StrZero((_nBasIpi*100),12)))+StrZero((_nValIpi*100),12)+Space(12-Len(StrZero((_nValIpi*100),12)))
+_cReg3	+= Replicate("0",12)+Replicate("0",12)+Replicate("0",12)+StrZero((_nBasSol*100),12)+Space(12-Len(StrZero((_nBasSol*100),12)))+StrZero((_nValSol*100),12)+Space(12-Len(StrZero((_nValSol*100),12)))
+_cReg3	+= Replicate("0",12)+Replicate(" ",12)+Replicate(" ",12)+Replicate(" ",12)+Replicate(" ",12)+Space(169)+StrZero((_nInc),06)
+_cReg3	+=(CHR(13)+CHR(10))
+_cVarTexto := _cReg3
+
+Set Century OFF
+If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+	If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+		Quit
+	Endif
+Endif
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+dbCloseArea("QUERY")
+dbCloseArea("FORNEC")
+
+Return
+
+Static Function  EXPHIST() //-->> EXPORTA HISTORICO CONTABIL
+
+Local _cVarTexto		:= ""
+Local _nInc  				:= 0
+Private _nHdl    		:= fCreate(_cPath6)
+
+
+DbSelectArea("CT8")
+dbSetOrder(1)
+
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	cPos01	:= CT8->CT8_HIST
+	cPos02	:= SUBS(CT8->CT8_DESC,1,25)
+	cPos03	:= ""
+	
+	
+	cPos01	:= cPos01 + Space(03 - Len(cPos01))
+	cPos02	:= cPos02 + Space(25 - Len(cPos02))
+	cPos03	:= cPos03 + Space(72 - Len(cPos03))
+	
+	
+	_cVarTexto := cPos01 + cPos02  + cPos03
+	
+	_cVarTexto += (CHR(13)+CHR(10))
+	
+	Set Century OFF
+	
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("CT8")
+	dbSkip()
+EndDo
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+Return
+
+
+
+
+Static Function  EXPPLANO() //-->> EXPORTA HISTORICO CONTABIL
+
+Local _cVarTexto		:= ""
+Local _nInc  				:= 0
+Private _nHdl    		:= fCreate(_cPath7)
+
+
+DbSelectArea("CT1")
+dbSetOrder(1)
+
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	cPos01	:= SUBS(CT1->CT1_CONTA,1,20)
+	cPos02	:= SUBS(CT1->CT1_RES,1,7)
+	cPos03	:= SUBS(CT1->CT1_DESC01,1,30)
+	cPos04	:= CT1->CT1_CLASSE
+	cPos05	:= ""
+	cPos06	:= ""
+	cPos07	:= ""
+	cPos08	:= ""
+	cPos09	:= ""
+	
+	
+	cPos01	:= cPos01 + Space(20 - Len(cPos01))
+	cPos02	:= cPos02 + Space(07 - Len(cPos02))
+	cPos03	:= cPos03 + Space(30 - Len(cPos03))
+	cPos04	:= cPos04 + Space(01 - Len(cPos04))
+	cPos05	:= cPos05 + Space(05 - Len(cPos05))
+	cPos06	:= cPos06 + Space(01 - Len(cPos06))
+	cPos07	:= cPos07 + Space(12 - Len(cPos07))
+	cPos08	:= cPos08 + Space(01 - Len(cPos08))
+	cPos09	:= cPos09 + Space(23 - Len(cPos09))
+	
+	
+	_cVarTexto := cPos01 + cPos02  + cPos03  +cPos04 + cPos05  + cPos06  +cPos07 + cPos08  + cPos09
+	
+	_cVarTexto += (CHR(13)+CHR(10))
+	
+	Set Century OFF
+	
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("CT1")
+	dbSkip()
+EndDo
+
+//MsgAlert("Arquivo  '" + _cPath + "'  Gerado com Sucesso! ","Atenção")
+fClose(_nHdl)
+
+Return
+
+//-->> EXPORTACAO DOS LANCAMENTOS CONTABEIS
+
+Static Function  EXPLOTE()
+
+Local _cVarTexto		:=  ""
+Local _cLote			:=  ""
+Local _nInc 			:= 	0
+Local _nValote			:= 	0
+
+Local _cReg0			:= 	''	//----> header do arquivo
+Local _cReg1  			:= 	''	//----> dados lancamento
+Local _cReg2  			:= 	'' 	//----> historico
+
+Private _nHdl   		:= fCreate(_cPath8)
+
+
+_cQryLote:= "SELECT CT2_LOTE, CT2_DATA, SUM(CT2_VALOR) AS CT2_VALOR  FROM CT2010 "
+_cQryLote+= "WHERE CT2_DATA BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND D_E_L_E_T_ = '' "
+_cQryLote+= "GROUP BY CT2_LOTE, CT2_DATA "
+_cQryLote+= "ORDER BY CT2_LOTE, CT2_DATA"
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryLote), 'SOMA', .F., .F.)
+DbSelectArea("SOMA")
+SOMA->(dbGoTop())
+
+_cQryLote:= "SELECT CT2_LOTE, CT2_DATA, CT2_VALOR, CT2_DEBITO, CT2_CREDIT, CT2_HIST, CT2_CLVLDB, CT2_CLVLCR, CT2_ORIGEM  FROM CT2010 "
+_cQryLote+= "WHERE CT2_DATA BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND D_E_L_E_T_ = '' ORDER BY CT2_LOTE, CT2_DATA "
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,_cQryLote), 'Query', .F., .F.)
+DbSelectArea("Query")
+Query->(dbGoTop())
+
+ProcRegua(RecCount())
+
+
+dbSelectArea("SOMA")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Registro "+StrZero(Recno(),10))
+	
+	_nInc++
+	
+	dbSelectArea("QUERY")
+	If SOMA->CT2_LOTE+SOMA->CT2_DATA == QUERY->CT2_LOTE+QUERY->CT2_DATA
+		
+		///----> GRAVA O HEADER DO ARQUIVO
+		_cReg0	:= 'C'+'D'+Dtos(dDataBase)+Space(12-Len(StrZero((SOMA->CT2_VALOR*100),12)))+Space(020)+Space(03)+Space(10)+Space(037)+StrZero((_nInc),05)+(CHR(13)+CHR(10))
+		_cVarTexto := _cReg0
+		
+		Set Century OFF
+		If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+			If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+				Quit
+			Endif
+		Endif
+		
+		
+		While Eof() == .f. .And. SOMA->CT2_LOTE+SOMA->CT2_DATA == QUERY->CT2_LOTE+QUERY->CT2_DATA
+			
+			_nInc++
+			
+			//----> GRAVA OS ITENS DO LOTE
+			_cReg1	:= 'L'+SubStr(QUERY->CT2_DATA,7,2)+SubStr(QUERY->CT2_DATA,5,2)+SubStr(QUERY->CT2_DATA,1,4)+SubStr(QUERY->CT2_DEBITO,14,6)+Space(006-Len(QUERY->CT2_DEBITO))+SubStr(QUERY->CT2_CREDITO,14,6)+Space(006-Len(QUERY->CT2_CREDITO))
+			_cReg1	+= Space(03)+SubStr(QUERY->CT2_HIST,1,25)+Space(03)+Space(14)+Space(14)+StrZero((_nInc),05)+(CHR(13)+CHR(10))
+			_cVarTexto := _cReg1
+			
+			Set Century OFF
+			If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+				If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+					Quit
+				Endif
+			Endif
+			
+			
+			DbSelectArea("QUERY")
+			dbSkip()
+		EndDo
+	EndIf
+	
+	_nInc++
+	
+	//----> GRAVA OS HISTORICOS
+	_cReg2  := 'H'+Space(050)+Space(044)+StrZero((_nInc),05)+(CHR(13)+CHR(10))
+	_cVarTexto := _cReg2
+	
+	Set Century OFF
+	If fWrite(_nHdl,_cVarTexto,Len(_cVarTexto)) != Len(_cVarTexto) //Gravacao do arquivo
+		If !MsgAlert("Ocorreu um erro na gravacao do arquivo !!","Atencao!")
+			Quit
+		Endif
+	Endif
+	
+	DbSelectArea("SOMA")
+	dbSkip()
+EndDo
+
+dbCloseArea("QUERY")
+dbCloseArea("SOMA")
+
+Return
+
+

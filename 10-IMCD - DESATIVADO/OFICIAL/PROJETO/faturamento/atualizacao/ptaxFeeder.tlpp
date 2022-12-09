@@ -1,0 +1,183 @@
+#include 'protheus.ch'
+
+/*/{Protheus.doc} ptaxFeeder
+Função de atualização do ptax na tabela SM2.
+Esta função faz consulta ao webservice do BC.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@return return_type, return_description
+/*/
+user function ptaxFeeder()
+
+    local aMoedas as array
+    local oBcbPTax as object
+    local nCotacao as numeric
+    local nInd     as numeric
+    local lOk      as logical
+    local cMsgError as character
+
+
+    lOk := .T.
+    cMsgError := ""
+
+   
+    dbSelectArea("SM2")
+    SM2->(dbSetOrder(1))
+    if !SM2->(dbSeek(dtos(date())))
+
+        aMoedas := getMoedasParams()
+        oBcbPTax := wsBcPtax():new()
+
+        /*------------------------
+        ESTRUTURA DO ARRAY aMoedas
+        [1] numero da moeda
+        [2] simbolo da moeda
+        [3] cotacao da moeda
+        --------------------------*/
+
+        for nInd := 1 to len(aMoedas)
+
+            nCotacao := 0
+
+            if !(aMoedas[nInd][2] $ 'R$/UFIR')
+                //Realiza a consulta ao webservice do BC
+                nCotacao := oBcbPTax:getCotacaoDiaAnterior(date(), aMoedas[nInd][2], .F., @lOk, @cMsgError)
+            else
+                if alltrim(aMoedas[nInd][2]) == 'UFIR'
+                    nCotacao := 1
+                endif
+            endif   
+
+            aMoedas[nInd][3] := nCotacao
+        next nInd
+
+        freeObj(oBcbPTax)
+
+        //------------------------------
+        //Grava na tabela SM2 - Moedas
+        //a cotação resgatada
+        //-------------------------------
+        if lOk
+            reclock("SM2", .T.)
+            SM2->M2_DATA := date()
+            aEval(aMoedas, {|aMoeda| SM2->&("M2_MOEDA"+aMoeda[1]) := aMoeda[3]})
+            SM2->M2_INFORM := "S"
+            SM2->(MsUnlock())
+        else
+            aviso("Atualização PTAX", "Erro na atualização PTAX : "+CRLF+cMsgError, {"CANCELAR"}, 2)
+        endif
+    endif
+
+return
+
+/*/{Protheus.doc} ptaxCompra
+ptax de compra do dia útil anterior.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@param cNumMoe, character, código da moeda
+@return numeric, cotação
+/*/
+user function ptaxCompra(cNumMoe)
+
+    local cPrefix as character
+    local aMoedas as array
+    local lOk     as logical
+    local cMsgError as character
+    local nCotacao as numeric
+
+    //readVar() == "C5_XTAXA"
+    cMsgError := ""
+    lOk     := .T.
+    aMoedas := {}
+    cPrefix := "MV_SIMB"
+    cParam  := "MV_SIMB"+cNumMoe
+    nCotacao := 0
+
+    if  FWSX6Util():ExistsParam( cParam )
+
+        cMoeda := getMv(cParam)
+
+    	oBcbPTax := wsBcPtax():new()
+
+        nCotacao := 0
+        if !(cMoeda $ 'R$/UFIR')
+            //Realiza a consulta ao webservice do BC
+            nCotacao := oBcbPTax:getCotacaoDiaAnterior(dDataBase, cMoeda, .T., @lOk, @cMsgError)
+            if !lOk
+                aviso("Atualização PTAX", "Erro na atualização PTAX : "+CRLF+cMsgError+CRLF+CRLF+"Informe a taxa ptax manualmente na tela a seguir.", {"CANCELAR"}, 2)
+                MsgGet2("Ptax manual", "Taxa Ptax compra da moeda "+cMoeda+":", @nCotacao,, {||.T.},X3Picture("M2_MOEDA1"))
+            endif
+        endif   
+
+
+    	freeObj(oBcbPTax)
+	endif
+
+return nCotacao
+
+/*/{Protheus.doc} ptaxCleaner
+Função utilizada para limpar ou manter campos da tabela SC5
+referente ao frete e seguro e sua ptax.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 14/08/2020
+@return numeric, moeda
+/*/
+user function ptaxCleaner()
+    local nRet as numeric
+
+    nRet := 0
+
+    if M->C5_XINCO $ GETMV("ES_C5XINCO")
+        nRet := M->C5_XMOEDA
+        M->C5_TPFRETE := "R" 
+        if M->C5_XINCO $ "CFR/CPT"       
+            M->C5_XSEGURO := 0
+            
+        endif
+    else
+        M->C5_TPFRETE := ""
+        M->C5_XSEGURO := 0
+        M->C5_XFRETE  := 0
+    endif  
+
+    RunTrigger(1,nil,nil,,'C5_XMOEDA')
+    RunTrigger(1,nil,nil,,'C5_XFRETE')
+    RunTrigger(1,nil,nil,,'C5_XSEGURO')
+
+return nRet
+
+/*/{Protheus.doc} getMoedasParams
+Função para resgatar as moedas do ERP
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@return array, [1] numero da moeda
+               [2] simbolo da moeda
+               [3] cotacao da moeda (sempre zero)
+/*/
+static function getMoedasParams()
+
+    local cPrefix as character
+    local cSufix  as character
+    local aMoedas as array
+
+    aMoedas := {}
+    cPrefix := "MV_SIMB"
+    cSufix  := "1"
+    cParam  := "cPrefix+cSufix"
+
+    while FWSX6Util():ExistsParam( &(cParam) )
+
+        cMoeda := getMv(&(cParam))
+        aadd(aMoedas, {cSufix, cMoeda, 0})
+        cSufix := soma1(cSufix)
+    enddo
+    
+return aMoedas

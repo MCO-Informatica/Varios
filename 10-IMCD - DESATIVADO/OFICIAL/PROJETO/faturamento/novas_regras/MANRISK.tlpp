@@ -1,0 +1,116 @@
+#INCLUDE "TOTVS.CH"
+
+ /*/{Protheus.doc} 
+Manage fraud risk
+
+@type  User Function
+@author Junior Carvalho
+@since 09/12/2020
+@version 1.0
+@param param_name, param_type, param_descr
+@return lVldVendas
+@example
+(examples)
+@see (links_or_references)
+    /*/
+USER Function MANRISK(cCliente, Cloja, nTotalEUR)
+	Local lVldVendas := .F.
+	Local cAliasTrb := GetNextAlias()
+	Local aUser :={}
+	Local cEmail := ""
+	Local nX := 0
+	Local aAttach := {}
+	Local lBlq := .F.
+
+	Private nQtdVend := 0
+
+	BEGINSQL ALIAS cAliasTrb
+        SELECT  COUNT(*) QTD_VENDAS
+            FROM %Table:SE1%
+            WHERE E1_CLIENTE = %Exp:cCliente%
+                AND  E1_LOJA = %Exp:Cloja% 
+				AND  TRIM(E1_BAIXA) IS NOT NULL
+                AND %NotDel%
+	ENDSQL
+
+	WHILE (cAliasTrb)->(!eof())
+		nQtdVend += (cAliasTrb)->QTD_VENDAS
+		lVldVendas := IIF( nQtdVend < 3,.F.,.T.)
+		(cAliasTrb)->(dbSkip())
+	ENDDO
+
+	IF !lVldVendas
+
+		aUser := StrTokArr2(SUPERGETMV("ES_USERMFR", .T., "000390"),"/", .T.)
+		FOR nX := 1 To Len (aUser)
+			cEmail  += alltrim(UsrRetMail(aUser[nX]))+";"
+		NEXT nX
+
+		IF INCLUI
+
+			M->C5_CONTRA := 'MFR'
+			M->C5_USUAPR1 := ' '
+			M->C5_USUAPR2 := ' '
+			lBlq := .T.
+		
+		ELSE
+			//	nVlrPv := SOMAPV()
+			//	nVlrPv := round(( nVlrPv  /  nEuro ) ,2)
+			IF !EMPTY(M->C5_USUAPR1) .AND. ;
+					(M->C5_TRANSP <> SC5->C5_TRANSP .OR. M->C5_CONDPAG <> SC5->C5_CONDPAG )
+				//.OR. nTotalEUR <> nVlrPv .OR. M->C5_CONDPAG <> SC5->C5_CONDPAG )
+
+				M->C5_CONTRA := 'MFR'
+				M->C5_USUAPR1 := ' '
+				M->C5_USUAPR2 := ' '
+				lBlq := .T.
+
+			ENDIF
+		ENDIF
+
+		if lBlq
+			cAssunto := "Bloqueio por Risco de Fraude - Pedido "+ ALLTRIM(M->C5_NUM)
+			cCC := ' '
+			cTextoEmail := CORPOEMAIL(nTotalEUR)
+
+			cLog := "Enviado email para "+CRLF+cEmail+CRLF+DTOS(DATE())+TIME()
+
+			lEmail := U_ENVMAILIMCD(cEmail," "," ",cAssunto,cTextoEmail,aAttach)
+
+			U_GrvLogPd(M->C5_NUM,M->C5_CLIENTE,M->C5_LOJACLI,"Bloqueio",cAssunto, ' ' ,cLog)
+
+		ENDIF
+	ENDIF
+
+RETURN lVldVendas
+
+Static Function CORPOEMAIL(nTotalEUR)
+	//Local nX := 0
+	Local cMensagem := ' '
+	Local cLogo_Imcd := 'https://www.imcdgroup.com/-/media/imcd/to-be-ordered/imcd-logo-2015_color_cmyk_300dpi_10cm/imcd-logo-2015_color_rgb_72dpi_250px.jpg'
+	Local cEmpresa := SM0->M0_CODIGO+"/"+SM0->M0_CODFIL+" - "+ALLTRIM(SM0->M0_NOME)+" - "+ALLTRIM(SM0->M0_FILIAL )
+
+	cMensagem := '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+	cMensagem += '<html xmlns="http://www.w3.org/1999/xhtml">'
+	cMensagem += '<head>'
+	cMensagem += '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'
+	cMensagem += '<title>PEDIDO DE VENDA '+M->C5_NUM+'</title>'
+	cMensagem += '</head>'
+	cMensagem += '<body>'
+	cMensagem += '<img src="'+cLogo_Imcd+'"/></br>'
+
+	//cMensagem += '<h2><span style="color: #ff0000;"><strong>'+'.</strong></span></h2>'
+	cMensagem += '<h2>Favor efetuar a liberação do pedido.</h2>'
+
+	cMensagem += '<p>Pedido: <strong>'+ ALLTRIM(M->C5_NUM) + '</strong></p>'
+	cMensagem += '<p>Cliente: <strong>'+ ALLTRIM(SA1->A1_NOME) + '</strong></p></br>'
+	cMensagem += '<p>Nome Fantasia: <strong>'+ ALLTRIM(SA1->A1_NREDUZ) + '</strong></p></br>'
+
+	cMensagem += '<p>Vendas Realizadas:<strong>'+ Transform( nQtdVend,"@E 99") + '</strong></p></br>'
+	cMensagem += '<p>Valor do Pedido: <strong> € '+ Transform( nTotalEUR, "@E 99,999,999.99")  + '</strong></p></br>'
+
+	cMensagem += '</BR><p>EMPRESA :<strong>'+ cEmpresa + '</strong></p>'
+	cMensagem += '</body> '
+	cMensagem += '</html>'
+
+Return(cMensagem)

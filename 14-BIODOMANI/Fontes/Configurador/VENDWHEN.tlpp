@@ -1,0 +1,30 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | VENDWHEN         | Autor | Lucas Baia          | Data |    16/11/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para bloquear edição do Campo A1_VEND e A1_VEND1.																		
+//        | O motivo é que somente a Gabrielly e Fernanda Nogueira poderão editar
+//        | os campos de vendedores pelo Cadastro de Clientes.
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda
+//---------------------------------------------------------------------------------
+
+User Function VENDWHEN()
+
+Local lRet      := .T.
+Local nUsrLiber := RetCodUsr()
+Local ncUser    := SUPERGETMV("MV_BLQVEND")
+
+IF ALTERA
+    
+    IF !(nUsrLiber$ncUser)
+    
+        lRet := .F.
+    
+    ENDIF
+
+ENDIF
+
+
+Return lRet

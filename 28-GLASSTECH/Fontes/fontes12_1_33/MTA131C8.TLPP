@@ -1,0 +1,11 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function MTA131C8()
+
+Local oModFor := PARAMIXB[1]
+
+oModFor:LoadValue("C8_XPRECO",POSICIONE("SBZ",1,XFILIAL("SBZ")+SC1->C1_PRODUTO,"BZ_UPRC"))
+Return()
+
+
+

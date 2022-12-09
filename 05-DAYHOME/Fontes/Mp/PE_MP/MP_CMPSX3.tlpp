@@ -1,0 +1,72 @@
+#INCLUDE "Protheus.ch"
+#DEFINE X3_USADO_EMUSO "€€€€€€€€€€€€€€ "
+#DEFINE X3_USADO_NAOUSADO "€€€€€€€€€€€€€€€"   
+#DEFINE X3_OBRIGAT "ม€" 
+#DEFINE X3_NAOOBRIGAT "ภ" 
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  11/04/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ ponto de entrada meus pedidos ARRAY CABECALHO PEDIDOS      บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function MP_CMPSX3
+local aSX3 	:= PARAMIXB[1]	// ARRAY COM CAMPOS A SER CRIADO
+
+//*****************************************************************************************************************************************************************
+//Criacao de novos campos na tabela SZV
+//*****************************************************************************************************************************************************************
+
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ 	ZV_XMPTRAN      ณ   
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+Aadd(aSX3,{"SZV",;				//Arquivo
+	"",;						//Ordem
+	"ZV_XMPTRAN",;				//Campo
+	"C",;						//Tipo
+	1,;					  		//Tamanho
+	0,;							//Decimal
+	"Tran.MP",;		 			//Titulo
+	"Tran.MP",;		  			//Titulo SPA
+	"Tran.MP",;		 			//Titulo ENG
+	"Control.Tran.MP",;	  		//Descricao
+	"Control.Tran.MP",;	  		//Descricao SPA
+	"Control.Tran.MP",;			//Descricao ENG
+	"",;						//Picture
+	"",;		   				//VALID
+	X3_USADO_NAOUSADO,;			//USADO
+	"",;						//RELACAO
+	"",;						//F3
+	1,;							//NIVEL
+	X3_NAOOBRIGAT,;				//RESERV
+	"",;						//CHECK
+	"S",;						//TRIGGER
+	"S",;						//PROPRI
+	"S",;						//BROWSE
+	"A",;						//VISUAL
+	"R",;						//CONTEXT
+	"",;						//OBRIGAT
+	"",;						//VLDUSER
+	"",;						//CBOX
+	"",;						//CBOX SPA
+	"",;						//CBOX ENG
+	"",;						//PICTVAR
+	"",;						//WHEN
+	"",;						//INIBRW
+	"",;						//SXG
+	"",;						//FOLDER
+	"S"})						//PYME  
+
+
+Return(aSX3)

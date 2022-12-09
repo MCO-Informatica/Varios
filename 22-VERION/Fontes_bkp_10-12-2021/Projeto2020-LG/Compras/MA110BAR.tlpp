@@ -1,0 +1,17 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MA110BAR          | Autor | Lucas Baia          | Data |    15/09/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para adicionar botões de usuário no Toolbar.																		
+//---------------------------------------------------------------------------------
+// Uso    | VERION																		
+//---------------------------------------------------------------------------------
+
+User Function MA110BAR()
+
+Local aButtons  := {}
+
+aAdd(aButtons,{'BUDGETY',{||U_SCCSV()}, "Import. Excell"})
+
+Return aButtons

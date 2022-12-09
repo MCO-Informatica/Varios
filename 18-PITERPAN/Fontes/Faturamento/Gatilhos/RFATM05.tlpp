@@ -1,0 +1,57 @@
+#include "protheus.ch"
+
+#DEFINE cFONT   '<b><font size="5" color="red"><b><u>'
+#DEFINE cFONTOK '<font size="5" color="black">'
+#DEFINE cFONTGR '<font size="5" color="Green">'
+#DEFINE cNOFONT '</b></font></u></b> '
+#DEFINE ENTER Chr(13)+Chr(10)
+//---------------------------------------------------------------------------------
+// Rotina | RFATM05           | Autor | Lucas Baia          | Data | 15/06/2022
+//---------------------------------------------------------------------------------
+// Descr. | Fonte customizado com objetivo de exibir Alerta quando o Cliente não 
+//        | efetua compra à 6 meses.
+//---------------------------------------------------------------------------------
+// Uso    | PITERPAN
+//--------------------------------------------------------------------------------- 
+// OBS    | Colocar esse fonte através do Gatilho de C5_CLIENTE para C5_LOJACLI.
+//--------------------------------------------------------------------------------- 
+User Function RFATM05()
+
+	Local _aArea        := GetArea()
+	Local _cCliente		:=	M->C5_CLIENTE
+	Local _cLoja		:=	Iif(!Empty(M->C5_LOJACLI),M->C5_LOJACLI,'01')
+	Local _cTipo        :=  M->C5_TIPO
+	//Local dUltData      := Year(SA1->A1_ULTCOM)
+	Local nDiasCompr    := dDataBase - IIF(Alltrim(DTOS(SA1->A1_ULTCOM)) == "",dDataBase,SA1->A1_ULTCOM)
+	//Local nDiasCadast   := dDataBase - IIF(Alltrim(DTOS(SA1->A1_YDTALT)) == "",dDataBase,SA1->A1_YDTALT)
+    Local cEmailTo      := "sandra@piterpan.com.br"
+    Local cAssunto      := "Análise de Crédito - Mais de 6 meses."
+    Local cMensagem
+
+
+	//----> SÓ EXECUTAR SE A ROTINA FOR CHAMADA NA MATA410
+	If Alltrim(FunName()) $"MATA410"
+
+		//----> VERIFICA O TIPO DO PEDIDO
+		If _cTipo$"NICP"
+			DbSelectArea("SA1")
+			SA1->(DbSetOrder(1))
+			If SA1->(DbSeek(xFilial("SA1")+_cCliente+_cLoja))
+
+				//----> VERIFICA SE TEM BLOQUEIO FINANCEIRO
+				If nDiasCompr > 180
+					Alert( cFONT+"ATENÇÃO" + cNOFONT + cFONTOK + "<br>Cliente realizou a última compra a mais de 6 meses!"+chr(13)+;
+						"<br>Data da Última Compra: "+ cNOFONT + cFONTGR+DToC(SA1->A1_ULTCOM)+cNOFONT+chr(13)+;
+						cFONTOK+"Será enviado o email para Departamento Financeiro para Análise."+cNOFONT)
+                        cMensagem   := "Cliente "+_cCliente+" Loja "+_cLoja+", "+SA1->A1_NOME+" CNPJ/CPF "+SA1->A1_CGC+" realizou a última compra a mais de 6 meses!"+ENTER+;
+										""+ENTER+;
+						  				"Data da Última Compra: "+cFONTOK+DToC(SA1->A1_ULTCOM)+cNOFONT
+                        U_envmail(cEmailTo,,cAssunto,cMensagem,,,,)
+				ENDIF
+			EndIf
+		EndIf
+	EndIf
+
+	RestArea(_aArea)
+
+Return(_cLoja)

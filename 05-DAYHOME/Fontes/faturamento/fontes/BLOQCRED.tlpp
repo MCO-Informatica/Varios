@@ -1,0 +1,86 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³BLOQCRED    º Autor ³ Rene ethosx      º Data ³  15/08/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Codigo gerado pelo AP6 IDE.                                º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function BLOQCRED()
+Local lRet			:= .F.
+Local _TITABERTO 	:= 0
+Local _TITNCC	 	:= 0
+Local _PEDLIB		:= 0
+Local _LIMITE2		:= POSICIONE("SA1",1,XFILIAL("SA1")+SC5->C5_CLIENT+SC5->C5_LOJACLI,"A1_X_LIM2N")    
+
+// SOMA TITULOS EM ABERTO DISPRESANDO NCCs
+cQuery := " Select isnull(SUM(E1_SALDO),0) AS TITABERTO"
+cQuery += " From "+RetSqlName("SE1")+" SE1 "
+cQuery += " WHERE SE1.D_E_L_E_T_ = ' ' "
+cQuery += " AND E1_CLIENTE = '"+SC5->C5_CLIENTE+"'
+cQuery += " AND E1_LOJA  = '"+SC5->C5_LOJACLI+"'
+cQuery += " AND E1_TIPO <> 'NCC'
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMP',.F.,.T.)}, "Selecionando Registros ...")
+
+TMP->(dbGoTop())
+If TMP->(Eof())
+	_TITABERTO := 0
+Else
+	_TITABERTO := TMP->TITABERTO
+END	
+TMP->(DbCloseArea())
+
+// SOMA NCCs
+cQuery := " Select isnull(SUM(E1_SALDO),0) AS TITNCC"
+cQuery += " From "+RetSqlName("SE1")+" SE1 "
+cQuery += " WHERE SE1.D_E_L_E_T_ = ' ' "
+cQuery += " AND E1_CLIENTE = '"+SC5->C5_CLIENTE+"'
+cQuery += " AND E1_LOJA  = '"+SC5->C5_LOJACLI+"'
+cQuery += " AND E1_TIPO = 'NCC'
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMP2',.F.,.T.)}, "Selecionando Registros ...")
+
+TMP2->(dbGoTop())
+If TMP2->(Eof())
+	_TITNCC := 0
+Else
+	_TITNCC := TMP2->TITNCC
+END	
+TMP2->(DbCloseArea())
+                             
+
+cQuery := " Select ISNULL(SUM(C6_VALOR),0) as PEDABER"
+cQuery += " From "+RetSqlName("SC6")+" SC6 "  
+cQuery += " WHERE SC6.D_E_L_E_T_ = '' "
+cQuery += " AND C6_CLI ='"+SC5->C5_CLIENTE+"' "
+cQuery += " AND C6_LOJA ='"+SC5->C5_LOJACLI+"' "
+cQuery += " AND C6_QTDENT < C6_QTDVEN "
+
+cQuery := ChangeQuery(cQuery)
+MsAguarde({|| dbUseArea(.T.,'TOPCONN', TCGenQry(,,cQuery), 'TMP3',.F.,.T.)}, "Selecionando Registros ...")
+
+TMP3->(dbGoTop())
+If TMP3->(Eof())
+	_PEDLIB := 0
+Else
+	_PEDLIB := TMP3->PEDABER
+END	
+TMP3->(DbCloseArea())
+                             
+IF (_TITABERTO + _PEDLIB) > (_TITNCC + _LIMITE2)   
+	lRet:= .T.
+	alert("Pedido bloqueado em 2o nivel")
+END
+
+Return(lRet) 

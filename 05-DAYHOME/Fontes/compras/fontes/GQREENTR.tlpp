@@ -1,0 +1,298 @@
+#Include "Protheus.ch"
+#Include "Rwmake.ch"
+#Include "Colors.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ GQREENTR ³ Autor ³                       ³ Data ³ 00/00/00 ³±±     
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Complemento de Informações adicionais para NF de Importação³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe   ³ GQREENTR(void)                                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ DayHome                                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Manutenção³ Autor    ³ Ricardo Tavares               ³ Data ³ 19/02/15 ³±±     
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function GQREENTR()
+
+Local _aArea := GetArea()
+
+// Ricardo Tavares
+// 19/02/2015
+// Preenchimento automâtico de informações complementares para o Módulo Livros Fiscais
+
+// Vias de Transporte para a DI  
+// 1=Maritima;2=Fluvial;3=Lacustre;4=Aerea;5=Postal;6=Ferroviaria;7=Rodoviaria;8=Conduto;9=Meios proprios;10=Entrada/Saida ficta   
+Private aViaTransp := {"1-Maritima","2-Fluvial","3-Lacustre","4-Aerea","5-Postal","6-Ferroviaria","7-Rodoviaria","8-Conduto","9-Meios proprios","10-Entrada/Saida ficta"}
+Private cViaTransp := ""
+Private oViaTransp := ""  
+Private _cViaTrans := ""
+// Forma de Importação quanto a Intermediação
+// 1=Importacao por conta propria;2=Importacao por conta e ordem;3=Importacao por encomenda                                                                             
+Private aFormImpor := {"1-Importacao por conta propria","2-Importacao por conta e ordem","3-Importacao por encomenda"} 
+Private cFormImpor := ""
+Private oFormImpor := ""
+Private _cFormImpo := ""
+// Valor da AFRMM           
+Private nValAFRMM  := 0
+//
+
+Private _nPeso		:= 0
+Private _cNDI 		:= Space(10)
+Private _dDTDI		:= CTOD("  /  /    ")
+Private _cUFDI		:= Space(02)
+Private _cLocDese	:= Space(03)
+Private _dDTDesem	:= CTOD("  /  /    ")
+Private _cEXPORT	:= Space(07)
+Private _cADICAO	:= Space(03)
+Private _cSEQADI	:= Space(03)
+Private _cFABRICA	:= Space(07)   
+Private _cMsg1		:= Space(70)
+Private _cMsg2		:= Space(70)
+Private _cMsg3		:= Space(70)
+Private _cMsg4		:= Space(70)
+Private _cMsg5		:= Space(70)
+//
+
+Private oBold,oTohoma,oToho14
+
+Define Font oTohoma  Name "Tahoma" 	Size 08,0
+Define Font oToho14  Name "Tahoma" 	Size 08,0 
+Define Font oBold    Name "Tahoma"	Size 06,0 
+Define Font oArial   Name "Arial" 	Size 07,0  
+
+_lSair      :=  .F.
+
+//----> VERIFICA SE O FORNECEDOR É ESTRANGEIRO
+If ( SF1->F1_EST $ "EX" ) 
+
+	While ( .T. )
+		
+		@ 025,005 To 600,705 Dialog janela1 Title OemToAnsi("Nota Fiscal de Importação")
+		
+		@ 010,010 Say OemToAnsi("Nota Fiscal")
+		@ 010,045 Get SF1->F1_DOC Picture "@!" When .F.
+		@ 010,090 Say OemToAnsi("Serie")
+		@ 010,119 Get SF1->F1_SERIE Picture "@!" When .F.
+		@ 010,150 Say OemToAnsi("Emissao")
+		@ 010,180 Get SF1->F1_EMISSAO Picture "99/99/9999" When .F. Size 50,10
+		@ 025,010 Say OemToAnsi("Fornecedor")
+		@ 025,045 Get SF1->F1_FORNECE When .F.
+		@ 025,090 Say OemToAnsi("Loja")
+		@ 025,125 Get SF1->F1_LOJA When .F.
+		@ 035,045 Get SA2->A2_NOME When .F.
+		@ 050,010 Say OemToAnsi("Numero DI :") Size 50,10
+		@ 050,070 Get _cNDI Picture "@!"  When .T. Size 50,10
+		
+		@ 065,010 Say OemToAnsi("DT DI :") Size 50,10
+		@ 065,070 Get _dDTDI Picture "D"  When .T. Size 50,10
+		
+		@ 080,010 Say OemToAnsi("Estado DI :") Size 50,10
+		@ 080,070 Get _cUFDI Picture "@!"  When .T.
+		
+		@ 095,010 Say OemToAnsi("Local Desembarque :") Size 50,10
+		@ 095,070 Get _cLocDese Picture "@!"  When .T.
+		
+		@ 110,010 Say OemToAnsi("DT Desembarque :") Size 50,10
+		@ 110,070 Get _dDTDesem Picture "D"  When .T. Size 50,10
+		
+		@ 125,010 Say OemToAnsi("Cod. Exportacao :") Size 50,10
+		@ 125,070 Get _cEXPORT Picture "@!"  When .T.
+		
+		@ 140,010 Say OemToAnsi("Adição :") Size 50,10
+		@ 140,070 Get _cADICAO Picture "@!"  When .T.
+		
+		@ 155,010 Say OemToAnsi("Seq. Adição :") Size 50,10
+		@ 155,070 Get _cSEQADI Picture "@!"  When .T.
+		
+		@ 170,010 Say OemToAnsi("Fabricante :") Size 50,10
+		@ 170,070 Get _cFABRICA Picture "@!"  When .T. 
+ 
+		// Ricardo Tavares
+		// 19/02/2015
+		// Preenchimento automâtico de informações complementares para o Módulo Livros Fiscais
+				
+		// Vias de Transporte para a DI  
+		@ 185,010 Say OemToAnsi("Via Transp :") SIZE 050,010 
+		@ 185,070 MSCOMBOBOX oViaTransp VAR cViaTransp ITEMS aViaTransp SIZE 060,010 OF janela1 PIXEL FONT oTohoma COLOR CLR_GRAY
+		
+		// Forma de Importação
+		@ 185,135 Say OemToAnsi("Forma Import :") SIZE 050,010 
+		@ 185,174 MSCOMBOBOX oFormImpor VAR cFormImpor ITEMS aFormImpor SIZE 085,010 OF janela1 PIXEL FONT oTohoma COLOR CLR_GRAY
+
+		// Valor da AFRRM
+		@ 185,265 Say OemToAnsi("Val. AFRMM :") Size 50,10
+		@ 185,300 Get nValAFRMM Picture "@E 999,999,999,999.99"  When .T. Size 40,10		
+		//				                              
+		
+		@ 200,010 Say OemToAnsi("Observacoes :") Size 150,10
+		@ 200,070 Get _cMsg1 Picture "@!"  When .T. Size 150,10
+		@ 215,070 Get _cMsg2 Picture "@!"  When .T. Size 150,10
+		@ 230,070 Get _cMsg3 Picture "@!"  When .T. Size 150,10
+		@ 245,070 Get _cMsg4 Picture "@!"  When .T. Size 150,10
+		@ 260,070 Get _cMsg5 Picture "@!"  When .T. Size 150,10
+
+		@ 270,270 BmpButton Type 1 Action GravaObs()
+		
+		Activate Dialog janela1
+		
+		If ( _lSair )
+			Exit
+		EndIf
+		
+	End
+	
+EndIf
+
+RestArea(_aArea)
+
+SysRefresh()
+
+Return(.T.)
+
+
+Static Function CloseJan()
+
+	_lSair := .T.
+
+	Close(janela1)
+
+Return(.T.)
+
+Static Function GravaObs()
+
+RecLock("SF1",.F.)
+SF1->F1_NDI			:= _cNDI
+SF1->F1_DTDI		:= _dDTDI
+SF1->F1_UFDI		:= _cUFDI
+SF1->F1_LOCDESE		:= _cLocDese
+SF1->F1_DTDESEM		:= _dDTDesem
+SF1->F1_EXPORT		:= _cEXPORT
+SF1->F1_X_OBS1		:= _cMsg1
+SF1->F1_X_OBS2		:= _cMsg2
+SF1->F1_X_OBS3		:= _cMsg3
+SF1->F1_X_OBS4		:= _cMsg4
+SF1->F1_X_OBS5		:= _cMsg5
+SF1->(MsUnLock())
+
+DbSelectArea("SD1")
+_aAreaSD1 := GetArea()
+SD1->(DbSetOrder(1))
+If ( SD1->(dbSeek(SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA),.F.)) ) 
+
+	While ( ( !SD1->(Eof()) ) .And. ( SD1->(D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) ) )
+		
+		RecLock("SD1",.F.)
+		SD1->D1_ADICAO	:= _cADICAO
+		SD1->D1_SEQADI	:= _cSEQADI
+		SD1->D1_FABRICA	:= _cFABRICA
+		SD1->(MsUnLock())
+						
+		SD1->(DbSkip())
+		
+	End  
+
+	//
+	// Ricardo Tavares
+	// 19/02/2015
+	// Preenchimento automâtico de informações complementares para o Módulo Livros Fiscais  
+	
+    // Retorna o Códido do Item Selecionado das Vias de Transporte
+	_cViaTrans := SubStr(cViaTransp,1,At("-", cViaTransp)-1)
+    // Retorna o Códido do Item Selecionado das Formas de Importação
+	_cFormImpo := SubStr(cFormImpor,1,At("-", cFormImpor)-1)
+	
+	// Tabela para Complemento de Importação
+	DbSelectArea("CD5")
+	CD5->(DbSetOrder(4)) // CD5_FILIAL+CD5_DOC+CD5_SERIE+CD5_FORNEC+CD5_LOJA+CD5_ITEM
+	If ( CD5->(DbSeek(SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA),.F.)) )
+		
+		While ( !CD5->(Eof()) .And. ( CD5->(CD5_FILIAL+CD5_DOC+CD5_SERIE+CD5_FORNEC+CD5_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) ) )
+			
+			// Preenche os Campos com informações para Complemento de Importação
+			RecLock("CD5",.F.)
+			CD5->CD5_VTRANS := _cViaTrans
+			CD5->CD5_INTERM := _cFormImpo
+			CD5->CD5_VAFRMM := nValAFRMM
+			CD5->(MsUnLock())
+			
+			CD5->(DbSkip())
+			
+		End
+				
+	Else
+		
+		DbSelectArea("SD1")
+		_aAreaSD1 := GetArea()
+		SD1->(DbSetOrder(1))
+		If ( SD1->(dbSeek(SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA),.F.)) )
+
+			While ( ( !SD1->(Eof()) ) .And. ( SD1->(D1_FILIAL+D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) == SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) ) )
+
+				// Preenche os Campos com informações para Complemento de Importação
+				RecLock("CD5",.T.)
+				CD5->CD5_FILIAL := SF1->F1_FILIAL 
+				CD5->CD5_DOC 	:= SF1->F1_DOC
+				CD5->CD5_SERIE 	:= SF1->F1_SERIE 
+				CD5->CD5_ESPEC 	:= SF1->F1_ESPECIE 
+				CD5->CD5_FORNEC	:= SF1->F1_FORNECE 
+				CD5->CD5_LOJA  	:= SF1->F1_LOJA 
+				CD5->CD5_TPIMP 	:= SF1->F1_TIPO_NF 
+				CD5->CD5_DOCIMP := SD1->D1_CONHEC  
+				CD5->CD5_BSPIS 	:= SD1->D1_BASEPIS
+				CD5->CD5_ALPIS 	:= SD1->D1_ALQPIS 
+				CD5->CD5_VLPIS 	:= SD1->D1_VALPIS 
+				CD5->CD5_BSCOF 	:= SD1->D1_BASECOF
+				CD5->CD5_ALCOF 	:= SD1->D1_ALQCOF  
+				CD5->CD5_VLCOF 	:= SD1->D1_VALCOF 
+				//CD5->CD5_ACDRAW := 
+				//CD5->CD5_DTPPIS := 
+				//CD5->CD5_DTPCOF := 
+				CD5->CD5_LOCAL 	:= SD1->D1_LOCAL  
+				CD5->CD5_NDI   	:= _cNDI 
+				CD5->CD5_DTDI  	:= _dDTDI 
+				CD5->CD5_LOCDES := _cLocDese 
+				CD5->CD5_UFDES  := _cUFDI
+				CD5->CD5_DTDES 	:= _dDTDesem
+				CD5->CD5_CODEXP := _cEXPORT
+				CD5->CD5_NADIC  := _cADICAO
+				CD5->CD5_SQADIC := _cSEQADI 
+				CD5->CD5_CODFAB := _cFABRICA
+				CD5->CD5_VDESDI := SD1->D1_VALDESC 
+				CD5->CD5_BCIMP  := SD1->D1_BASIMP1
+				CD5->CD5_DSPAD  := SD1->D1_DESPESA
+				CD5->CD5_VLRII  := SD1->D1_II      
+				//CD5->CD5_VLRIOF := 
+				CD5->CD5_LOJEXP := SD1->D1_LOJA
+				CD5->CD5_LOJFAB := SD1->D1_LOJA  
+				CD5->CD5_ITEM  	:= SD1->D1_ITEM    
+				CD5->CD5_VTRANS := _cViaTrans
+				CD5->CD5_INTERM := _cFormImpo
+				CD5->CD5_VAFRMM := nValAFRMM
+				CD5->(MsUnLock())
+	
+				SD1->(DbSkip())
+		
+			End
+			  
+		EndIf
+	
+	EndIf
+	//	
+EndIf
+
+RestArea(_aAreaSD1)
+
+_lSair := .T.
+
+Close(janela1)
+
+Return(.T.)

@@ -1,0 +1,613 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+
+/*/{Protheus.doc} User Function MTA650I     
+    Ponto de Entrada responsÐ±vel pela GeraÐ·Ð³o de Ordens de ProduÐ·Ð³o.
+    
+    No caso abaixo, foi desenvolvido para gravar as mesmas informaÃ§Ãµes das OPs Pai para OPs Filhas.
+    @type  Function
+    @author Lucas Baia / Cairê Vieira - UPDUO
+    @since 19/05/2021
+    @version version
+    @param 
+    @return 
+    @example
+    (examples)
+    @see https://tdn.totvs.com.br/pages/releaseview.action?pageId=6089303
+    /*/
+User Function MTA650I()
+
+	Local nProdTot := 0
+	Local _cProduto
+	Local _cMatPrim
+	Local _cCor
+	Local _cGravTin
+	Local _dEntreg1
+	Local _nQtdPv1
+	Local _cCliPv1
+	Local _dEntreg2
+	Local _nQtdPv2
+	Local _cUsuario
+	Local _cPedido
+	Local _cReceita
+	Local _dEmissao
+	Local _cStatus
+	Local _nPrior
+	Local _cAcabam
+	Local _cProdHor
+	Local _cProdTot
+	Local _cConsMPH
+	Local _cConsMPT
+	Local _cCiclo
+	Local _cCavidade
+	Local _nPesoLiq
+	Local _nPesoBrut
+	Local _nCliPV2
+	Local _dDATRF
+	Local _dEntreg3
+	Local _nQtdPV3
+	Local _nCliPV3
+	Local _dEntreg4
+	Local _nCliPV4
+	Local _nQtdPV4
+	Local _cInfTry
+	Local _cObs
+	Local _cXObs
+	Local _cNomeVend
+	Local _cChave1  := SC2->(C2_FILIAL+C2_NUM+C2_ITEM+"001")
+	Local _cChave2  := SC2->(C2_FILIAL+C2_NUM+C2_ITEM)
+	Local _aArea    := GetArea()
+	Local lHermes := .F.
+
+	Local _Acab   := ""
+	Local _Ton	  := ""
+	Local _CodCor := ""
+	Local _TabCor := ""
+	Local _Obs    := ""
+	Local cSql    := ""
+
+	DBSELECTAREA("SC2")
+	dbSetOrder(1)
+	dbSeek(_cChave1)
+	If SC2->C2_SEQUEN == "001"
+
+	cSql := "UPDATE "+RetSqlName("SB2")+" SET B2_QEMP = 0, B2_QEMP2 = 0, B2_SALPED2 = 0, B2_SALPEDI = 0 WHERE B2_COD IN (SELECT G1_COMP FROM SG1010 WHERE SUBSTRING(G1_COD,1,8) LIKE '"+SubStr(SC2->C2_PRODUTO,1,8)+"%') "
+	TcSqlExec(cSql)
+	
+		If MsgYesNo("Deseja limpar os saldos das ordens intermediárias?","Atenção")
+			//cSql := "UPDATE "+RetSqlName("SB2")+" SET B2_QEMP = 0, B2_QEMP2 = 0, B2_SALPED2 = 0, B2_SALPEDI = 0 WHERE B2_COD IN (SELECT G1_COMP FROM SG1010 WHERE SUBSTRING(G1_COD,1,8) LIKE '"+SubStr(SC2->C2_PRODUTO,1,8)+"%') "
+			cSql := "UPDATE SB2010 SET B2_QATU = 0, B2_SALPEDI = 0, B2_QPEDVEN = 0, B2_QEMP = 0 " + Chr(13)+Chr(10)
+			cSql += "WHERE B2_COD IN( " + Chr(13)+Chr(10)
+			cSql += "SELECT A.G1_COMP FROM SG1010 A  " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "UNION  " + Chr(13)+Chr(10)
+			cSql += "SELECT B.G1_COMP FROM SG1010 B  " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 A ON A.G1_COMP = B.G1_COD AND B.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "UNION  " + Chr(13)+Chr(10)
+			cSql += "SELECT C.G1_COMP FROM SG1010 C  " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 B ON B.G1_COMP = C.G1_COD AND B.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 A ON A.G1_COMP = B.G1_COD AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "UNION  " + Chr(13)+Chr(10)
+			cSql += "SELECT D.G1_COMP FROM SG1010 D  " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 C ON C.G1_COMP = D.G1_COD AND C.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 B ON B.G1_COMP = C.G1_COD AND B.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 A ON A.G1_COMP = B.G1_COD AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "UNION  " + Chr(13)+Chr(10)
+			cSql += "SELECT E.G1_COMP FROM SG1010 E  " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 D ON D.G1_COMP = E.G1_COD AND D.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 C ON C.G1_COMP = D.G1_COD AND C.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 B ON B.G1_COMP = C.G1_COD AND B.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 A ON A.G1_COMP = B.G1_COD AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "UNION  " + Chr(13)+Chr(10)
+			cSql += "SELECT F.G1_COMP FROM SG1010 F  " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 E ON E.G1_COMP = F.G1_COD AND E.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 D ON D.G1_COMP = E.G1_COD AND D.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 C ON C.G1_COMP = D.G1_COD AND C.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 B ON B.G1_COMP = C.G1_COD AND B.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "LEFT JOIN SG1010 A ON A.G1_COMP = B.G1_COD AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += "WHERE A.G1_COD = '"+SC2->C2_PRODUTO+"' AND A.D_E_L_E_T_ =' ' " + Chr(13)+Chr(10)
+			cSql += ")"
+			TcSqlExec(cSql)
+		EndIf
+
+		RecLock("SC2",.F.)
+
+		SC2->C2_MATPRIM := Substr(SC2->C2_PRODUTO,7,2)
+		SC2->C2_COR     := GetCor(Substr(SC2->C2_PRODUTO,9,1))
+		SC2->C2_GRAVTIN := RetGrvTin(SC2->C2_PRODUTO)
+		SC2->C2_INFTRYO := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_INFTRYO")
+
+		SC2->C2_PESOBRU := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PESBRU")
+		SC2->C2_PESOLIQ := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PESO")
+		SC2->C2_CAVIDAD := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CAVIDAD")
+		SC2->C2_CICLO   := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CICLOPC")
+		SC2->C2_PRODHOR := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PRODUCH")
+
+		nProdTot 		:= Round(SC2->C2_QUANT / SC2->C2_PRODHOR,2)
+		SC2->C2_PRODTOT := nProdTot
+
+		If Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_XHRTING") > 0
+			nProdTot += Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_XHRTING")
+		EndIf
+
+		If SC2->C2_QTDPV1<>0 .AND. !Empty(SC2->C2_XNOMEV) .AND. !Empty(SC2->C2_CLIPV1)
+			lHermes := .T.
+		EndIf
+
+		SC2->C2_XNOMEV := IIf(Empty(SC2->C2_XNOMEV),Posicione("SC5",1,xFilial("SC5")+SC2->C2_PEDIDO,"C5_USUARIO"),SC2->C2_XNOMEV)
+		SC2->C2_CLIPV1 := IIf(Empty(SC2->C2_CLIPV1),Posicione("SC5",1,xFilial("SC5")+SC2->C2_PEDIDO,"C5_RAZSOCI"),SC2->C2_CLIPV1)
+		SC2->C2_QTDPV1 := IIf(SC2->C2_QTDPV1==0,QtdPdv1(SC2->C2_PEDIDO,SC2->C2_PRODUTO,SC2->C2_ITEMPV),SC2->C2_QTDPV1)
+
+		If !lHermes
+			CpoPdv1(SC2->C2_PEDIDO,SC2->C2_PRODUTO,SC2->C2_ITEMPV)
+			//SC2->C2_LOCAL   := "90"
+			SC2->C2_LOCAL   := "01"
+		EndIf
+
+		SC2->C2_PRODTOT := noRound(nProdTot,0)+Val(Right(Str(nProdTot*100),2))*0.006
+
+		//SC2->C2_PRODTOT := noRound(M->C2_QUANT / M->C2_PRODHOR,0)+Val(Right(Str(Round(M->C2_QUANT / M->C2_PRODHOR,2)*100),2))*0.006
+
+		SC2->(MSUNLOCK())
+
+		cItem	  := SC2->C2_ITEMPV
+		_cProduto := SC2->C2_PRODUTO
+		_cMatPrim := SC2->C2_MATPRIM
+		_cCor     := SC2->C2_COR
+		_cGravTin := SC2->C2_GRAVTIN
+		_dEntreg1 := SC2->C2_ENTREG1
+		_nQtdPv1  := SC2->C2_QTDPV1
+		_cCliPv1  := SC2->C2_CLIPV1
+		_dEntreg2 := SC2->C2_ENTREG2
+		_nQtdPv2  := SC2->C2_QTDPV2
+		_cUsuario := SC2->C2_USUARIO
+		_cPedido  := SC2->C2_PEDIDO
+		_cReceita := SC2->C2_RECEITA
+		_dEmissao := SC2->C2_EMISSAO
+		_cStatus  := SC2->C2_STATUS
+		_nPrior   := SC2->C2_PRIOR
+		_cAcabam  := SC2->C2_ACABAME
+		_cProdHor := SC2->C2_PRODHOR
+		_cProdTot := SC2->C2_PRODTOT
+		_cConsMPH := SC2->C2_CONSMPH
+		_cConsMPT := SC2->C2_CONSMPT
+		_cCiclo   := SC2->C2_CICLO
+		_cCavidade:= SC2->C2_CAVIDAD
+		_nPesoLiq := SC2->C2_PESOLIQ
+		_nPesoBrut:= SC2->C2_PESOBRU
+		_nCliPV2  := SC2->C2_CLIPV2
+		_dDATRF   := SC2->C2_DATRF
+		_dEntreg3 := SC2->C2_ENTREG3
+		_nQtdPV3  := SC2->C2_QTDPV3
+		_nCliPV3  := SC2->C2_CLIPV3
+		_dEntreg4 := SC2->C2_ENTREG4
+		_nCliPV4  := SC2->C2_CLIPV4
+		_nQtdPV4  := SC2->C2_QTDPV4
+		_cInfTry  := SC2->C2_INFTRYO
+		_cObs     := SC2->C2_OBS
+		_cXObs     := SC2->C2_XOBS
+		_cNomeVend:= SC2->C2_XNOMEV
+		_cChave2  := SC2->(C2_FILIAL+C2_NUM+C2_ITEM)
+
+		_Acab     := SC2->C2_XACAB
+		_Ton	  := SC2->C2_XTON
+		_CodCor   := SC2->C2_XCODCOR
+		_TabCor   := SC2->C2_XTABCOR
+		_Obs      := SC2->C2_OBS
+		
+		_Local    := SC2->C2_LOCAL
+
+	EndIf
+
+
+
+	DBSELECTAREA("SC2")
+	dbSetOrder(1) //C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD
+	If dbSeek(_cChave2+"002")
+		while !SC2->(Eof()) .And. SC2->(C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN) <= _cChave2+"999"
+
+			reclock("SC2",.F.)
+
+			SC2->C2_MATPRIM := Substr(SC2->C2_PRODUTO,7,2)
+			SC2->C2_COR     := GetCor(Substr(SC2->C2_PRODUTO,9,1))
+			SC2->C2_GRAVTIN := RetGrvTin(SC2->C2_PRODUTO)
+			SC2->C2_INFTRYO := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_INFTRYO")
+
+			SC2->C2_PESOBRU := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PESBRU")
+			SC2->C2_PESOLIQ := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PESO")
+			SC2->C2_CAVIDAD := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CAVIDAD")
+			SC2->C2_CICLO   := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CICLOPC")
+			SC2->C2_PRODHOR := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_PRODUCH")
+
+			nProdTot 		:= Round(SC2->C2_QUANT / SC2->C2_PRODHOR,2)
+
+			SC2->C2_PRODTOT := nProdTot
+
+			If Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_XHRTING") > 0
+				nProdTot += Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_XHRTING")
+			EndIf
+
+			SC2->C2_XNOMEV := _cNomeVend //Posicione("SC5",1,xFilial("SC5")+_cPedido,"C5_USUARIO")
+			SC2->C2_CLIPV1 := _cCliPv1 //Posicione("SC5",1,xFilial("SC5")+_cPedido,"C5_RAZSOCI")
+			//SC2->C2_QTDPV1 := QtdPdv1(_cPedido,_cProduto)
+
+			SC2->C2_XACAB   := _Acab
+			SC2->C2_XTON    := _Ton
+			SC2->C2_XCODCOR := _CodCor
+			SC2->C2_XTABCOR := _TabCor
+			SC2->C2_OBS     := _Obs
+			SC2->C2_XOBS    := _cXObs
+
+			//CpoPdv1(_cPedido,_cProduto,cItem)
+
+			SC2->C2_PRODTOT := noRound(nProdTot,0)+Val(Right(Str(nProdTot*100),2))*0.006
+
+			//comentado por mudança nas formulas acima
+        /*
+        SC2->C2_MATPRIM := _cMatPrim 
+        SC2->C2_COR     := _cCor
+        SC2->C2_GRAVTIN := _cGravTin
+        */
+			SC2->C2_ITEMPV  := cItem
+			SC2->C2_LOCAL   := _Local
+			SC2->C2_ENTREG1 := _dEntreg1
+			SC2->C2_QTDPV1  := _nQtdPv1
+			//SC2->C2_CLIPV1  := _cCliPv1
+			SC2->C2_ENTREG2 := _dEntreg2
+			SC2->C2_QTDPV2  := _nQtdPv2
+			SC2->C2_USUARIO := _cUsuario
+			SC2->C2_PEDIDO  := _cPedido
+			SC2->C2_RECEITA := _cReceita
+			SC2->C2_EMISSAO := _dEmissao
+			SC2->C2_STATUS  := _cStatus
+			SC2->C2_PRIOR   := _nPrior
+			SC2->C2_ACABAME := _cAcabam
+			//SC2->C2_PRODHOR := _cProdHor
+			//SC2->C2_PRODTOT := _cProdTot
+			SC2->C2_CONSMPH := _cConsMPH
+			SC2->C2_CONSMPT := _cConsMPT
+			//SC2->C2_CICLO   := _cCiclo
+			//SC2->C2_CAVIDAD := _cCavidade
+			//SC2->C2_PESOLIQ := _nPesoLiq
+			//SC2->C2_PESOBRU := _nPesoBrut
+			SC2->C2_CLIPV2  := _nCliPV2
+			SC2->C2_DATRF   := _dDATRF
+			SC2->C2_ENTREG3 := _dEntreg3
+			SC2->C2_QTDPV3  := _nQtdPV3
+			SC2->C2_CLIPV3  := _nCliPV3
+			SC2->C2_ENTREG4 := _dEntreg4
+			SC2->C2_CLIPV4  := _nCliPV4
+			SC2->C2_QTDPV4  := _nQtdPV4
+			//SC2->C2_INFTRYO := _cInfTry
+			//SC2->C2_OBS     := _cObs
+			//SC2->C2_XNOMEV  := _cNomeVend
+			SC2->(MSUNLOCK())
+
+			SC2->(dbSkip())
+		endDo
+
+	Endif
+
+	RestArea(_aArea)
+
+Return
+
+
+
+Static Function CpoPdv1(cNum,cProd,cItem)
+	Local nVal := 0
+	Local cSql := ""
+
+	Default cNum  := ""
+	Default cProd := ""
+	Default cItem := ""
+
+	cSql := "SELECT * FROM "+RetSqlName("SC6")+ " SC6 WHERE SC6.C6_FILIAL = '"+xFilial("SC6")+"' AND SC6.C6_NUM = '"+cNum+"' AND SC6.D_E_L_E_T_<>'*' AND SC6.C6_PRODUTO = '"+cProd+"' "+IIf(!Empty(cItem),"AND C6_ITEM = '"+cItem+"' ","")
+
+	If Select("QC6") > 0
+		QC6->(DbCloseArea())
+	EndIf
+
+	TcQuery ChangeQuery(cSql) New Alias "QC6"
+
+	SC2->C2_XACAB   := QC6->C6_ACAB
+	SC2->C2_XTON    := QC6->C6_TON
+	SC2->C2_XCODCOR := QC6->C6_CODCOR
+	SC2->C2_XTABCOR := QC6->C6_TABCOR
+	SC2->C2_XOBS    := QC6->C6_OBS
+	SC2->C2_OBS     := QC6->C6_OBS
+
+
+	If Select("QC6") > 0
+		QC6->(DbCloseArea())
+	EndIf
+
+Return Nil
+
+
+Static Function QtdPdv1(cNum,cProd,cItem)
+	Local nVal := 0
+	Local cSql := ""
+
+	Default cNum  := ""
+	Default cProd := ""
+	Default cItem := ""
+
+	cSql := "SELECT SUM(SC6.C6_QTDVEN) QTDE FROM "+RetSqlName("SC6")+ " SC6 WHERE SC6.C6_FILIAL = '"+xFilial("SC6")+"' AND SC6.C6_NUM = '"+cNum+"' AND SC6.D_E_L_E_T_<>'*'  AND SC6.C6_PRODUTO = '"+cProd+"' "+IIf(!Empty(cItem),"AND C6_ITEM = '"+cItem+"' ","")
+
+	If Select("QC6") > 0
+		QC6->(DbCloseArea())
+	EndIf
+
+	TcQuery ChangeQuery(cSql) New Alias "QC6"
+
+	nVal := QC6->QTDE
+
+	If Select("QC6") > 0
+		QC6->(DbCloseArea())
+	EndIf
+
+Return nVal
+
+
+Static Function GetCor(cCod)
+	Local cCor   := ""
+
+	Default cCod := "0"
+
+	If cCod == "0"
+		cCor := "Natural"
+	EndIf
+
+	If cCod == "1"
+		cCor := "Branco"
+	EndIf
+
+	If cCod == "2"
+		cCor := "Pintado"
+	EndIf
+
+	If cCod == "3"
+		cCor := "Injetado na cor"
+	EndIf
+
+	If cCod == "4"
+		cCor := "Estonado"
+	EndIf
+
+	If cCod == "5"
+		cCor := "Pintado e estonado"
+	EndIf
+
+	If cCod == "6"
+		cCor := "Perolado"
+	EndIf
+
+	If cCod == "7"
+		cCor := "Preto"
+	EndIf
+
+	If cCod == "8"
+		cCor := "Impresso"
+	EndIf
+
+	If cCod == "9"
+		cCor := "Metalado"
+	EndIf
+
+	If cCod == "A"
+		cCor := "Aluminado"
+	EndIf
+
+	If cCod == "B"
+		cCor := "Banhado"
+	EndIf
+
+	If cCod == "C"
+		cCor := "Cromado"
+	EndIf
+
+	If cCod == "D"
+		cCor := "Madeira"
+	EndIf
+
+	If cCod == "E"
+		cCor := "Especial, Escovado"
+	EndIf
+
+	If cCod == "F"
+		cCor := "Fosco, Opaco"
+	EndIf
+
+	If cCod == "G"
+		cCor := "Golden, Ouro"
+	EndIf
+
+	If cCod == "H"
+		cCor := "Niquel Fosco, Holografia"
+	EndIf
+
+	If cCod == "I"
+		cCor := "Impressão digital"
+	EndIf
+
+	If cCod == "J"
+		cCor := "Esmaltado, Resinado"
+	EndIf
+
+	If cCod == "K"
+		cCor := "Cromo"
+	EndIf
+
+	If cCod == "L"
+		cCor := "Latao"
+	EndIf
+
+	If cCod == "M"
+		cCor := "Militar"
+	EndIf
+
+	If cCod == "N"
+		cCor := "Niquel"
+	EndIf
+
+	If cCod == "O"
+		cCor := "Natural"
+	EndIf
+
+	If cCod == "P"
+		cCor := "Polido"
+	EndIf
+
+	If cCod == "Q"
+		cCor := "Chifre, Osso"
+	EndIf
+
+	If cCod == "R"
+		cCor := "Estanho, Niquel Free"
+	EndIf
+
+	If cCod == "S"
+		cCor := "Niquel Batido ou Escovado"
+	EndIf
+
+	If cCod == "T"
+		cCor := "Transparente"
+	EndIf
+
+	If cCod == "U"
+		cCor := "Fume, Grafite"
+	EndIf
+
+	If cCod == "V"
+		cCor := "Ouro Velho"
+	EndIf
+
+	If cCod == "W"
+		cCor := "Prata Velha"
+	EndIf
+
+	If cCod == "X"
+		cCor := "Tartaruga"
+	EndIf
+
+	If cCod == "Y"
+		cCor := "Tingido"
+	EndIf
+
+	If cCod == "Z"
+		cCor := "Bronze"
+	EndIf
+
+Return Upper(cCor)
+
+
+Static Function RetGrvTin(cProd)
+	Local cAux1 := ""
+	Local cAux2 := ""
+	Local cSql  := ""
+	Local cRet  := ""
+
+	Default cProd := ""
+
+	cAux1 := Substr(cProd,11,1)
+	cAux2 := Substr(cProd,9,1)
+	cAux3 := Right(AllTrim(cProd),4)
+
+
+	If (cAux1 $ "1,3,6,7,9,0,D,F,Q,T,X" .OR. cAux2 $ "1,3,6,7,9,0,D,F,Q,T,X" .OR. Right(AllTrim(cProd),3) == "INJ" .OR. Right(AllTrim(cProd),1) $ "F,M,A,B,C,D,E")
+		cRet := "01"
+	EndIf
+
+	If cAux1 == "Y" .OR. cAux2 == "Y" .OR. Right(AllTrim(cProd),4) $ "FERV,TING"
+		cRet := "02"
+	EndIf
+
+	If cAux1 == "8" .OR. cAux2 == "8" .OR. Right(AllTrim(cProd),4) == 'TAMP'
+		cRet := "03"
+	EndIf
+
+	If cAux1 == "2" .OR. cAux2 == "2"
+		cRet := "04"
+	EndIf
+
+	If cAux1 == "4" .OR. cAux2 == "4"
+		cRet := "05"
+	EndIf
+
+	If cAux1 $ "8" .OR. cAux2 $ "8" .OR. Right(AllTrim(cProd),3) == 'HOT'
+		cRet := "08"
+	EndIf
+
+	If cAux1 $ "A,B,C,E,G,H,K,M,N,P,R,S,U,V,W,Z" .OR. cAux2 $ "A,B,C,E,G,H,K,M,N,P,R,S,U,V,W,Z"
+		cRet := "09"
+	EndIf
+
+	If cAux1 $ "L" .OR. cAux2 $ "L"
+		cRet := "10"
+	EndIf
+
+	If cAux1 $ "O" .OR. cAux2 $ "O"
+		cRet := "11"
+	EndIf
+
+	If cAux1 $ "I" .OR. cAux2 $ "I" .OR. Right(AllTrim(cProd),3) == 'IMP'
+		cRet := "12"
+	EndIf
+
+	If SC2->C2_SEQUEN == '001'
+
+		cSql := "SELECT * FROM "+RetSqlName("SG1")+ " SG1 "
+		cSql += "JOIN "+RetSqlName("SB1")+ " SB1 ON (SB1.B1_COD = SG1.G1_COD OR SB1.B1_COD = SG1.G1_COMP) AND SB1.D_E_L_E_T_<>'*' AND SB1.B1_FILIAL = '"+xFilial("SB1")+"' AND SB1.B1_TIPO = 'PP' "
+		cSql += "WHERE (SG1.G1_COD = '"+cProd+"' OR SG1.G1_COMP LIKE '%"+cProd+"%') AND SG1.G1_FILIAL = '"+xFilial("SG1")+"' "
+
+		If Select("QRY") > 0
+			QRY->(DbCloseArea())
+		EndIf
+		TcQuery ChangeQuery(cSql) New Alias "QRY"
+
+		If !Empty(QRY->B1_TIPO) .OR. Right(AllTrim(cProd),4) == 'MONT'
+			cRet := "06"
+		EndIf
+
+		If Select("QRY") > 0
+			QRY->(DbCloseArea())
+		EndIf
+
+	EndIf
+
+	If At("DESG",AllTrim(cProd)) > 0
+		cRet := "07"
+	EndIf
+
+	If SC2->C2_SEQUEN == '001' //At("INJ",AllTrim(cProd)) > 0
+		//cRet := "13"
+
+		cSql := "SELECT * FROM "+RetSqlName("SB1")+ " SB1 "
+		cSql += "WHERE SB1.D_E_L_E_T_<>'*' AND SB1.B1_FILIAL = '"+xFilial("SB1")+"' AND SB1.B1_TIPO = 'PA' "
+		cSql += "AND SB1.B1_COD = '"+cProd+"' "
+
+		If Select("QRY") > 0
+			QRY->(DbCloseArea())
+		EndIf
+		TcQuery ChangeQuery(cSql) New Alias "QRY"
+
+		If !Empty(QRY->B1_COD)
+			cRet := "13"
+		EndIf
+
+		If Select("QRY") > 0
+			QRY->(DbCloseArea())
+		EndIf
+
+
+	EndIf
+
+
+Return cRet
+
+

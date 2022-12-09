@@ -1,0 +1,296 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#include "rwmake.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ DHIMP02  บAutor  ณDaniel Viana Moda   บ Data ณ  21/10/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importar os dados do Sistema Linx (conexao direta do BD)   บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Especifico DayHome - Clientes                              บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function DHImp02
+
+Local cQuery     := ""
+Local nCount     := 0
+Local cAliasSQL  := "MSSQL/DayHome"
+Local cIpBanco   := "192.168.0.2"
+Local aCliente   := {}
+Local aMta010    := {}
+Local nCodCli    := 010000 // De acordo com o cliente deverแ comecar com 10000 os codigos dos clientes
+//Local nCodCli    := 016001 // De acordo com o cliente deverแ comecar com 10000 os codigos dos clientes
+Local nNumLjC    := 01
+Local cCGCAnt    := ""
+Private nAmbSiga := AdvConnection()
+
+If MsgYesNo("Importar o Cadastro de Clientes ? ")
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณSe conecta ao BD do sistema Linx.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	TcConType("TCPIP")
+	nAmbPol := TcLink(cAliasSQL, cIpBanco)
+	
+	If nAmbPol < 0
+		
+		Conout("--- ["+DTos(Date())+"] Nao foi possivel se conectar ao banco de dados Linx!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+	Else
+		
+		TCSETCONN(nAmbPol)
+		Conout("--- ["+DTos(Date())+"] Conectado ao cadastro de produtos Linx... ["+SubStr(Time(),1,5)+"] ---")
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณMonta Query.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤู
+		
+		cQuery := " SELECT COD_CLIENTE A1_COD, '01' A1_LOJA, CLI.RAZAO_SOCIAL A1_NOME, 'J' A1_PESSOA, NOME_CLIFOR A1_NREDUZ, "
+		cQuery += " CLI.ENDERECO A1_END, 'S' A1_TIPO, CLI.UF A1_EST, CLI.CIDADE A1_MUN, CLI.BAIRRO A1_BAIRRO, CLI.CEP A1_CEP, "
+		cQuery += " CLI.DDI A1_DDI, CLI.DDD1 A1_DDD, CLI.TELEFONE1 A1_TEL, CLI.FAX A1_FAX, CLI.COBRANCA_ENDERECO A1_ENDCOB, "
+		cQuery += " '105' A1_PAIS, 'BRASIL' A1_PAISDES, CLI.ENTREGA_ENDERECO A1_ENDENT, CLI.CONTATO A1_CONTATO, CLI.CGC_CPF A1_CGC, "
+		cQuery += " CLI.RG_IE A1_INSCR, CLI.IM A1_INSCRM, CAD.COD_REPRESENTANTE A1_VEND, '11020101' A1_CONTA, 'F' A1_TPFRET, "
+		cQuery += " CLI.COBRANCA_BAIRRO A1_BAIRROC, CLI.COBRANCA_CEP A1_CEPC, CLI.COBRANCA_CIDADE A1_MUNC, CLI.COBRANCA_UF A1_ESTC, "
+		cQuery += " CLI.ENTREGA_BAIRRO A1_BAIRROE, CLI.ENTREGA_CEP A1_CEPE, CLI.ENTREGA_CIDADE A1_MUNE, CLI.ENTREGA_UF A1_ESTE, "
+		cQuery += " COD.TIPO A1_SATIV1, CLI.EMAIL A1_EMAIL, CLI.DDD1 A1_DDDC, CLI.COBRANCA_TELEFONE A1_TELC, CLI.DDD1 A1_DDDE, "
+		cQuery += " CLI.ENTREGA_TELEFONE A1_TELE, CLI.CLIFOR A1_LINX, COD.FILIAL A1_GRPVEN, CLI.TELEFONE2 A1_FONE2 "
+		cQuery += " , CAST(ISNULL(CLI.OBS_DE_FATURAMENTO,' ') AS VARCHAR(80)) AS A1_DHFATOB , CAST(ISNULL(OBS,' ') AS VARCHAR(80)) AS A1_MEMOOBS "
+		
+		cQuery += " FROM CLIENTES_ATACADO COD "
+		cQuery += " INNER JOIN CADASTRO_CLI_FOR CLI ON CLI.CLIFOR = COD.COD_CLIENTE "
+		cQuery += " INNER JOIN CLIENTE_REPRE REP ON COD.CLIENTE_ATACADO = REP.CLIENTE_ATACADO "
+		cQuery += " INNER JOIN REPRESENTANTES CAD ON CAD.REPRESENTANTE = REP.REPRESENTANTE "
+		cQuery += " WHERE CLI.CGC_CPF BETWEEN '        ' AND '07031870000177' "
+//		cQuery += " WHERE CLI.CGC_CPF > '07031870000177' "
+		
+		cQuery += " ORDER BY A1_CGC"
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณVerifica se a area esta aberta.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		If Select("TEMP") > 0
+			
+			TEMP->(DbCloseArea())
+			
+		EndIf
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณCria arquivo de trabalho.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TcQuery cQuery New Alias "TEMP"
+		
+		DbSelectArea("TEMP")
+		TEMP->(DbGotop())
+		
+		DbGoTop()
+		Count To nCount
+		DbGoTop()
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณSe conecta ao BD do sistema protheus.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TCSETCONN(nAmbSiga)
+		
+		Conout("--- ["+DTos(Date())+"] Finalizando conexao!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+		Conout("--- ["+DTos(Date())+"] Obtendo conexao com PROTHEUS... ["+SubStr(Time(),1,5)+"] ---")
+		TcSetConn(nAmbSiga)
+		
+		While TEMP->(!Eof())
+			
+			ProcRegua()
+			
+			DbSelectArea("SA1")
+			RecLock("SA1",.T.)
+			
+			SA1->A1_FILIAL   := XFilial("SA1")
+			
+			If SubStr(cCGCAnt,1,8) == SubStr(TEMP->A1_CGC,1,8) .And. !Empty(TEMP->A1_CGC);
+				.And. SubStr(TEMP->A1_CGC,1,8) <> ' 0000000' .And. SubStr(TEMP->A1_CGC,1,8) <> '0       ';
+				.And. SubStr(TEMP->A1_CGC,1,8) <> '00000000'// Garantir que usara o mesmo codigo de cliente para as filiais
+				
+				nCodCli--
+				nNumLjC++
+				SA1->A1_LOJA := StrZero(nNumLjC,2)
+				
+			Else
+				
+				SA1->A1_LOJA := TEMP->A1_LOJA
+				nNumLjC := 01
+				
+			EndIf
+			
+			SA1->A1_COD     := StrZero(nCodCli,6)
+			SA1->A1_NOME    := TEMP->A1_NOME
+			SA1->A1_PESSOA  := TEMP->A1_PESSOA
+			SA1->A1_NREDUZ  := TEMP->A1_NREDUZ
+			SA1->A1_END     := TEMP->A1_END
+			SA1->A1_TIPO    := TEMP->A1_TIPO
+			SA1->A1_EST     := TEMP->A1_EST
+			SA1->A1_MUN     := TEMP->A1_MUN
+			SA1->A1_BAIRRO  := TEMP->A1_BAIRRO
+			SA1->A1_CEP     := TEMP->A1_CEP
+			SA1->A1_DDI     := StrTran(TEMP->A1_DDI,"0","")
+			SA1->A1_DDD     := StrTran(TEMP->A1_DDD,"0","")
+			SA1->A1_TEL     := TransText(TEMP->A1_TEL)
+			SA1->A1_FAX     := TransText(TEMP->A1_FAX)
+			SA1->A1_ENDCOB  := TEMP->A1_ENDCOB
+			SA1->A1_PAIS    := TEMP->A1_PAIS
+			SA1->A1_ENDENT  := TEMP->A1_ENDENT
+			SA1->A1_CONTATO := TEMP->A1_CONTATO
+			SA1->A1_CGC     := TEMP->A1_CGC
+			SA1->A1_INSCR   := TEMP->A1_INSCR
+			SA1->A1_INSCRM  := TEMP->A1_INSCRM
+			SA1->A1_VEND    := TEMP->A1_VEND
+			SA1->A1_CONTA   := TEMP->A1_CONTA
+			SA1->A1_TPFRET  := TEMP->A1_TPFRET
+			SA1->A1_BAIRROC := TEMP->A1_BAIRROC
+			SA1->A1_CEPC    := TEMP->A1_CEPC
+			SA1->A1_MUNC    := TEMP->A1_MUNC
+			SA1->A1_ESTC    := TEMP->A1_ESTC
+			SA1->A1_BAIRROE := TEMP->A1_BAIRROE
+			SA1->A1_CEPE    := TEMP->A1_CEPE
+			SA1->A1_MUNE    := TEMP->A1_MUNE
+			SA1->A1_ESTE    := TEMP->A1_ESTE
+			SA1->A1_BAIRROE := TEMP->A1_BAIRROE
+			SA1->A1_EMAIL   := TEMP->A1_EMAIL
+			SA1->A1_DDDC    := StrTran(TEMP->A1_DDDC,"0","")
+			SA1->A1_TELC    := TransText(TEMP->A1_TELC)
+			SA1->A1_DDDE    := StrTran(TEMP->A1_DDDE,"0","")
+			SA1->A1_TELE    := TransText(TEMP->A1_TELE)
+			SA1->A1_LINX    := TEMP->A1_LINX
+			SA1->A1_COMIS   := IIF(AllTrim(A1_VEND) == "106", 0, 7)
+			SA1->A1_GRPVEN  := IIF(AllTrim(TEMP->A1_GRPVEN) == "DAYHOME","000001", "000002")
+			SA1->A1_COND    := "000"
+			SA1->A1_TELE2   := TransText(TEMP->A1_FONE2)
+			SA1->A1_COD_MUN := Posicione("CC2",2,xFilial("CC2")+TEMP->A1_MUN,"CC2->CC2_CODMUN")
+			
+			Do Case
+				
+				Case TEMP->A1_EST == "SP"
+					
+					If TEMP->A1_MUN $ GetMv("MV_GRDSP")
+						
+						cRegiao := "008"
+						
+					Else
+						
+						cRegiao := "007"
+						
+					EndIf
+					
+				Case TEMP->A1_EST $ "MG,RJ,ES"
+					
+					cRegiao := "009"
+					
+				Case TEMP->A1_EST $ "PR,SC,RS"
+					
+					cRegiao := "002"
+					
+				Case TEMP->A1_EST $ "MT,MS,GO,DF"
+					
+					cRegiao := "006"
+					
+				Case TEMP->A1_EST $ "TO,PA,AP,RR,AM,AC,RO"
+					
+					cRegiao := "001"
+					
+				Case TEMP->A1_EST $ "MA,PI,BA,CE,RN,PB,PE,AL,SE"
+					
+					cRegiao := "010"
+					
+			EndCase
+			
+			SA1->A1_REGIAO := cRegiao
+			
+			SA1->A1_XSATIV1:= TEMP->A1_SATIV1
+			
+			cCGCAnt := TEMP->A1_CGC
+			
+			SA1->(MsUnLock())
+			
+			If !Empty(TEMP->A1_DHFATOB)
+			    
+				RecLock("SA1",.F.)
+				MSMM(,80,,TEMP->A1_DHFATOB,1,.T.,,"SA1","A1_DHFATOB")
+				MsUnLock()
+			
+			EndIf			
+			
+			If !Empty(TEMP->A1_MEMOOBS)
+	            
+				RecLock("SA1",.F.)
+				MSMM(,80,,TEMP->A1_MEMOOBS,1,.T.,,"SA1","A1_MEMOOBS")
+				MsUnLock()
+			
+			EndIf
+			
+			DbSelectArea("TEMP")
+			TEMP->(DbSkip())
+			nCodCli++
+
+		EndDo
+		
+		Conout("--- ["+DTos(Date())+"] Finalizando conexao!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+	EndIf
+	
+	cQuery := " UPDATE SA1010 SET A1_SATIV1 = X5_CHAVE "
+	cQuery += " FROM SX5010 SX5 "
+	cQuery += " INNER JOIN SA1010 SA1 ON A1_XSATIV1 = X5_DESCRI AND SA1.D_E_L_E_T_ <> '*' "
+	cQuery += " WHERE SX5.D_E_L_E_T_ <> '*' "
+	
+	TCSQLExec(cQuery)
+	
+	DbSelectArea("TEMP")
+	DbCloseArea()
+	
+EndIf
+
+Return()
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHIMP02   บAutor  ณMicrosiga           บ Data ณ  10/21/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ                                                            บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                        บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function TransText(cTexto)
+
+Local cAux     := ""
+Local nI       := 0
+Local cOutros  := "?!:,./\|@#$%&- "
+
+For nI := 1 To Len(cTexto)
+	
+	If !SubStr(cTexto, nI, 1) $ cOutros
+		cAux += SubStr(cTexto, nI, 1)
+	Else
+		cAux += ""
+	EndIf
+	
+	
+Next nI
+
+Return cAux
+
+
+// Criacao do parametro MV_GRDSP - com as cidades q entram na grande sao paulo menos sp.

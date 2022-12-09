@@ -1,0 +1,107 @@
+<ApMenu>
+		<Menu Status="Enable">
+		<Title lang="pt">&Miscelanea</Title>
+		<Title lang="es">&Miscelanea</Title>
+		<Title lang="en">&Miscellaneous</Title>
+		<Menu Status="Enable">
+			<Title lang="pt">Especificos</Title>
+			<Title lang="es">Especificos</Title>
+			<Title lang="en">Especificos</Title>
+			<MenuItem Status="Enable">
+				<Title lang="pt">Portal XML</Title>
+				<Title lang="es">Portal XML</Title>
+				<Title lang="en">Portal XML</Title>
+				<Function>COMMI020</Function>
+				<Type>03</Type>
+				<Tables>Z01</Tables>
+				<Tables>Z02</Tables>
+				<Tables>Z04</Tables>
+				<Tables>Z05</Tables>
+				<Access>xxxxxxxxxx</Access>
+				<Module>02</Module>
+				<Owner>0</Owner>
+				<KeyWord>
+					<KeyWord lang="pt">                         </KeyWord>
+					<KeyWord lang="es">                         </KeyWord>
+					<KeyWord lang="en">                         </KeyWord>
+				</KeyWord>
+			</MenuItem>
+			<MenuItem Status="Enable">										
+				<Title lang="pt">Portal do Manifesto</Title>
+				<Title lang="es">Portal do Manifesto</Title>
+				<Title lang="en">Portal do Manifesto</Title>
+				<Function>COMMI030</Function>
+				<Type>03</Type>
+				<Tables>Z01</Tables>
+				<Tables>Z02</Tables>
+				<Tables>Z04</Tables>
+				<Tables>Z05</Tables>
+				<Access>xxxxxxxxxx</Access>
+				<Module>02</Module>
+				<Owner>0</Owner>
+				<KeyWord>
+					<KeyWord lang="pt">                         </KeyWord>
+					<KeyWord lang="es">                         </KeyWord>
+					<KeyWord lang="en">                         </KeyWord>
+				</KeyWord>
+			</MenuItem>
+			<MenuItem Status="Enable">										
+				<Title lang="pt">Ciencia/Manif Lote</Title>
+				<Title lang="es">Ciencia/Manif Lote</Title>
+				<Title lang="en">Ciencia/Manif Lote</Title>
+				<Function>MCOMR02</Function>
+				<Type>03</Type>
+				<Tables>Z01</Tables>
+				<Tables>Z02</Tables>
+				<Tables>Z04</Tables>
+				<Tables>Z05</Tables>
+				<Access>xxxxxxxxxx</Access>
+				<Module>02</Module>
+				<Owner>0</Owner>
+				<KeyWord>
+					<KeyWord lang="pt">                         </KeyWord>
+					<KeyWord lang="es">                         </KeyWord>
+					<KeyWord lang="en">                         </KeyWord>
+				</KeyWord>
+			</MenuItem>
+			<MenuItem Status="Enable">										
+				<Title lang="pt">Cadastro Entidades</Title>
+				<Title lang="es">Cadastro Entidades</Title>
+				<Title lang="en">Cadastro Entidades</Title>
+				<Function>ACOMC01</Function>
+				<Type>03</Type>
+				<Tables>Z01</Tables>
+				<Tables>Z02</Tables>
+				<Tables>Z04</Tables>
+				<Tables>Z05</Tables>
+				<Access>xxxxxxxxxx</Access>
+				<Module>02</Module>
+				<Owner>0</Owner>
+				<KeyWord>
+					<KeyWord lang="pt">                         </KeyWord>
+					<KeyWord lang="es">                         </KeyWord>
+					<KeyWord lang="en">                         </KeyWord>
+				</KeyWord>
+			</MenuItem>
+			<MenuItem Status="Enable">										
+				<Title lang="pt">Altera Ultimo NSU</Title>
+				<Title lang="es">Altera Ultimo NSU</Title>
+				<Title lang="en">Altera Ultimo NSU</Title>
+				<Function>ACOMA06</Function>
+				<Type>03</Type>
+				<Tables>Z01</Tables>
+				<Tables>Z02</Tables>
+				<Tables>Z04</Tables>
+				<Tables>Z05</Tables>
+				<Access>xxxxxxxxxx</Access>
+				<Module>02</Module>
+				<Owner>0</Owner>
+				<KeyWord>
+					<KeyWord lang="pt">                         </KeyWord>
+					<KeyWord lang="es">                         </KeyWord>
+					<KeyWord lang="en">                         </KeyWord>
+				</KeyWord>
+			</MenuItem>
+		</Menu>
+	</Menu>
+</ApMenu>

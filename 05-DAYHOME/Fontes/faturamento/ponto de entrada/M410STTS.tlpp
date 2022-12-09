@@ -1,0 +1,37 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | M410STTS        | Autor | Lucas Baia          | Data |    25/11/2021			
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+User Function M410STTS()
+
+Local _nOper    := PARAMIXB[1]
+Local _aArea	:=	GetArea()
+
+IF _nOper == 3 //---> Inclusão
+
+    IF Empty(SC5->C5_ESPECI1)
+        RecLock("SC5", .F.)
+            SC5->C5_ESPECI1 := "CAIXA(S)"
+        MsUnlock()
+    ENDIF
+
+ELSEIF _nOper == 4 //---> Alteração
+
+    IF Empty(SC5->C5_ESPECI1)
+        RecLock("SC5", .F.)
+            SC5->C5_ESPECI1 := "CAIXA(S)"
+        MsUnlock()
+    ENDIF
+
+ENDIF
+
+RestArea(_aArea)
+
+Return Nil

@@ -1,0 +1,127 @@
+//Bibliotecas
+#Include "Protheus.ch"
+#Include "TBIConn.ch" 
+#Include "Colors.ch"
+#Include "RPTDef.ch"
+#Include "FWPrintSetup.ch"
+ 
+/*/{Protheus.doc} zGerDanfe
+Função que gera a danfe e o xml de uma nota em uma pasta passada por parâmetro
+@author Thiago Leal
+@since 09/12/2020
+/*/
+User Function zGerDanfe(cNota, cSerie, cPasta)
+    Local aArea     := GetArea()
+    Local cIdent    := ""
+    Local cArquivo  := ""
+    Local oDanfe    := Nil
+    Local lEnd      := .F.
+    Local nTamNota  := TamSX3('F2_DOC')[1]
+    Local nTamSerie := TamSX3('F2_SERIE')[1]
+    Local cCriaPasta:= MakeDir("C:\danfes\")
+    Private PixelX
+    Private PixelY
+    Private nConsNeg
+    Private nConsTex
+    Private oRetNF
+    Private nColAux
+    Default cNota   := ""
+    Default cSerie  := ""
+    Default cchave  := ""
+    Default cretorno  := ""
+    Default ccodret  := ""
+    //Default cPasta  := GetTempPath()
+    Default cPasta  := "C:\danfes\"
+
+    DbSelectArea("SF3")
+    DbSetOrder(6) // Filial + Nota Fiscal + Serie N.F.                                              
+    IF DbSeek(xFilial() + cNota + cSerie)
+       cchave := SF3->F3_CHVNFE 
+       cretorno := SF3->F3_DESCRET
+       ccodret  := SF3->F3_CODRSEF
+        
+        IF Empty(ccodret)
+        
+        msgalert("Falha no schema do XML. Verificar o problema na tela de monitoramento da nota.")	
+        
+        ENDIF
+        
+        IF ! Empty(ccodret) .and. ccodret <> "100"
+        
+        msgalert("Nota não autorizada" +CHR(13)+"Cod Ret Nfe = " + ccodret + CHR(13) + "Msg Retorno NF-e = " + cretorno  )	
+        
+        ENDIF    
+  
+    ELSE 
+        
+        IF Empty(cNota)
+
+        msgalert("Pedido sem nota fiscal, Favor preparar documento de saída. ")
+
+        ELSE
+    
+        msgalert("Nota fiscal ainda não autorizada, Favor aguardar SEFAZ Responder!! ")
+
+        ENDIF
+    
+    END IF
+
+    //Se existir nota
+    If ! Empty(cchave)
+        //Pega o IDENT da empresa
+        cIdent := RetIdEnti()
+         
+        //Se o último caracter da pasta não for barra, será barra para integridade
+        If SubStr(cPasta, Len(cPasta), 1) != "\"
+           cPasta += "\"
+       EndIf
+
+       if cCriaPasta != 0
+  	   endif
+         
+        //Gera o XML da Nota
+        cArquivo := "NF_" + cNota + "_" + SUBSTR(cSerie,1,1) + "_" + dToS(Date()) + "_" + StrTran(Time(), ":", "-")
+        //u_zSpedXML(cNota, cSerie, cPasta + UPPER(cArquivo)  + ".xml", .F.)
+        U_xExportXML(cIdent,cSerie,cNota,cNota,"C:\danfes\",lEnd,SF3->F3_EMISSAO,SF3->F3_EMISSAO,"","",1,,cSerie)
+         
+        //Define as perguntas da DANFE
+        Pergunte("NFSIGW",.F.)
+        MV_PAR01 := PadR(cNota,  nTamNota)     //Nota Inicial
+        MV_PAR02 := PadR(cNota,  nTamNota)     //Nota Final
+        MV_PAR03 := PadR(cSerie, nTamSerie)    //Série da Nota
+        MV_PAR04 := 2                          //NF de Saida
+        MV_PAR05 := 2                          //Frente e Verso = nao
+        MV_PAR06 := 2                          //DANFE simplificado = Nao
+         
+        //Cria a Danfe
+        oDanfe := FWMSPrinter():New(UPPER(cArquivo), IMP_PDF, .F., , .T.)
+         
+        //Propriedades da DANFE
+        oDanfe:SetResolution(78)
+        oDanfe:SetPortrait()
+        oDanfe:SetPaperSize(DMPAPER_A4)
+        oDanfe:SetMargin(60, 60, 60, 60)
+         
+        //Força a impressão em PDF
+        oDanfe:nDevice  := 6
+        oDanfe:cPathPDF := cPasta                
+        oDanfe:lServer  := .F.
+        oDanfe:lViewPDF := .T.
+         
+        //Variáveis obrigatórias da DANFE (pode colocar outras abaixo)
+        PixelX    := oDanfe:nLogPixelX()
+        PixelY    := oDanfe:nLogPixelY()
+        nConsNeg  := 0.4
+        nConsTex  := 0.5
+        oRetNF    := Nil
+        nColAux   := 0
+         
+        //Chamando a impressão da danfe no RDMAKE
+        //RptStatus({|lEnd| StaticCall(DANFEII, DanfeProc, @oDanfe, @lEnd, cIdent, , , .F.)}, "Imprimindo Danfe...")
+        RPTStatus({|lEnd| U_DANFEProc(@oDanfe, @lEnd, cIDEnt, Nil, Nil, .F., .F.,,.F. )}, "Imprimindo Danfe...")
+        oDanfe:Print()
+
+    EndIf
+     
+    RestArea(aArea)
+Return

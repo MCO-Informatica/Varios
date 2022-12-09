@@ -1,0 +1,67 @@
+#INCLUDE "Protheus.ch"
+#DEFINE X3_USADO_EMUSO "€€€€€€€€€€€€€€ "
+#DEFINE X3_USADO_NAOUSADO "€€€€€€€€€€€€€€€"   
+#DEFINE X3_OBRIGAT "Á€" 
+#DEFINE X3_NAOOBRIGAT "šÀ" 
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO4     º Autor ³ Lucas Pereira      º Data ³  11/04/17   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ ponto de entrada meus pedidos ARRAY CABECALHO PEDIDOS      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function MP_CMPTRG
+local cTexto := ""
+
+//*********************************** TABELA SZV ***********************************//
+cNonTrg :=  'MPSZV'+SM0->M0_CODIGO
+beginsql alias "TMP"
+	%noparser%
+	SELECT  name, OBJECT_NAME(parent_obj) AS tabela
+	FROM sysobjects WHERE (xtype = 'TR') AND name =%exp:cNonTrg%
+endsql
+
+if TMP->(EOF())
+	cSql := " CREATE TRIGGER [dbo].["+cNonTrg+"] "
+else
+	cSql := " ALTER TRIGGER [dbo].["+cNonTrg+"] "
+endif
+
+cSql += " ON [dbo].[SZV"+SM0->M0_CODIGO+"0] "
+cSql += " AFTER UPDATE AS "
+cSql += " 	BEGIN "
+cSql += " 		DECLARE @RECNO INT "
+cSql += " 			DECLARE @UPD VARCHAR(1) "
+cSql += " 		IF  (SELECT TOP(1) ZV_XMPTRAN FROM INSERTED) = 'X' "
+cSql += " 			BEGIN  "
+cSql += " 				SET @UPD = 'I'	 "
+cSql += " 			END "
+cSql += " 		ELSE "
+cSql += " 			BEGIN "
+cSql += " 				SET @UPD = 'A' "
+cSql += " 			END "
+cSql += " 		SELECT @RECNO = R_E_C_N_O_ FROM INSERTED  "
+cSql += " 		UPDATE SZV"+SM0->M0_CODIGO+"0 SET ZV_XMPTRAN = @UPD WHERE R_E_C_N_O_ = @RECNO  "
+cSql += " 	END "
+
+nStatus := TCSqlExec(cSql)
+if (nStatus < 0)
+	conout("TCSQLError() " + TCSQLError())
+else
+	cTexto += "MPSZV/"
+endif
+TMP->(DBCLOSEAREA())
+
+
+
+
+Return(cTexto)

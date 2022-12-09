@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Renomear recurso &quot;LP-2018 ERP&quot; a &quot;LISONDA&quot;" description="Renomear recurso &quot;LP-2018 ERP&quot;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/LP-2018 ERP" name="LISONDA" stamp="1538145438520" updateReferences="true"/>
+</session>

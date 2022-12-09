@@ -1,0 +1,150 @@
+#include "totvs.ch"
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+#define CTRF Chr(13) + Chr(10) 
+
+User Function RFATA96()
+
+Local oDlg1
+Local oSay1
+Local oSay2
+Local oButton1
+Local oButton2
+
+//Começamos aqui á criar o Tget
+Local cGet1 := Space(9) //variável que irá capturar o que for digitado
+Local oGet1  //variável responsável por receber a Classe/construtor Tget
+Local cGet2 := Space(3) //variável que irá capturar o que for digitado
+Local oGet2  //variável responsável por receber a Classe/construtor Tget
+
+
+oDlg1     := TDialog():New(0,0,200,500,"Entrada de Nota Fiscal de Saída",,,,,CLR_BLACK,CLR_WHITE,,,.T.)
+oSay1     := TSay():New(10,10,{||'Nota Fiscal: '},oDlg1,,,,,,.T.,CLR_BLUE,CLR_WHITE,300,20)
+oGet1     := TGet():New(25,10,{|u| IIF( Pcount()>0,cGet1:=u,cGet1)},oDlg1,40,10,"@!",,0,,,.F.,,.T.,,.F.,,.F.,.F.,,.F.,.F.,,cGet1,,,, )
+oGet1:cF3 := "SF2"
+
+oSay1     := TSay():New(10,60,{||'Série: '},oDlg1,,,,,,.T.,CLR_BLUE,CLR_WHITE,300,20)
+oGet1     := TGet():New(25,60,{|u| IIF( Pcount()>0,cGet2:=u,cGet2)},oDlg1,40,10,"@!",,0,,,.F.,,.T.,,.F.,,.F.,.F.,,.F.,.F.,,cGet2,,,, )
+
+oButton1 := TButton():New(60,10, "Confirmar",oDlg1, {||RunProc(cGet1,cGet2)}, 60,15,,,.F.,.T.,.F.,,.F.,,,.F.) //Chama tela de Clientes
+
+oButton2 := TButton():New(60,110, "Cancelar",oDlg1, {||oDlg1:End()}, 60,15,,,.F.,.T.,.F.,,.F.,,,.F.) //Chama tela de Clientes
+
+oDlg1:Activate(,,,.T.)
+
+return
+
+Static Function RunProc(NumNF,NumSerie)
+
+//Local cSequen   := "00"
+Local nOpc        := 3
+Local cQuery      := ""
+Local Area        := GetArea()
+Private aCab      := {}
+Private aItem     := {}
+Private aItens    := {}
+Private lMsErroAuto := .F.
+
+DbSelectArea("SD2")
+DbSetOrder(3) //D2_FILIAL + D2_DOC + D2_SERIE + D2_CLIENTE + D2_LOJA + D2_COD + D2_ITEM
+
+DbSelectArea("SC6")
+DbSetOrder(1) //C6_FILIAL + C6_NUM + C6_ITEM + C6_PRODUTO
+
+cQuery := " SELECT "                                        + CTRF
+cQuery += " * "                                             + CTRF
+cQuery += " FROM "     + RetSQLName("SF2") + " SF2"         + CTRF
+cQuery += " WHERE "                                         + CTRF
+cQuery += " SF2.F2_DOC = '" + NumNF + "' AND"               + CTRF
+cQuery += " SF2.F2_SERIE = '" + NumSerie + "' AND"          + CTRF
+cQuery += " SF2.D_E_L_E_T_ = '' "                           + CTRF  
+cQuery := ChangeQuery(cQuery)
+
+// Executando consulta.
+TCQuery cQuery New Alias "SQL_SF2"
+
+DbSelectArea("SQL_SF2")
+SQL_SF2->(DbGoTop())
+
+// Percorrendo os registros.
+While !SQL_SF2->(EOF())
+
+    IF SD2->(dbSeek(xFilial("SD2")+SQL_SF2->F2_DOC+SQL_SF2->F2_SERIE))
+
+        aCab    := {}
+
+        //Cabeçalho
+        aadd(aCab,{"F1_TIPO"    ,"N" ,NIL})
+        aadd(aCab,{"F1_FORMUL"  ,"N" ,NIL})
+        aadd(aCab,{"F1_DOC"     ,SQL_SF2->F2_DOC ,NIL})
+        aadd(aCab,{"F1_SERIE"   ,SQL_SF2->F2_SERIE ,NIL})
+        aadd(aCab,{"F1_EMISSAO" ,STOD(SQL_SF2->F2_EMISSAO) ,NIL})
+        aadd(aCab,{"F1_DTDIGIT" ,DDATABASE ,NIL})
+        aadd(aCab,{"F1_FORNECE" ,"04000 " ,NIL})
+        aadd(aCab,{"F1_LOJA"    ,"01" ,NIL})
+        aadd(aCab,{"F1_ESPECIE" ,"SPED" ,NIL})
+        aadd(aCab,{"F1_COND"    ,SQL_SF2->F2_COND ,NIL})
+        aadd(aCab,{"F1_CHVNFE"  ,SQL_SF2->F2_CHVNFE ,NIL})
+        aadd(aCab,{"F1_STATUS"  , "A" ,Nil})
+
+        aItem   := {}
+
+        WHILE SD2->(!EOF()) .AND. SD2->D2_DOC == SQL_SF2->F2_DOC .AND. SD2->D2_SERIE == SQL_SF2->F2_SERIE
+
+        aItens  := {}
+                
+        //aAdd(aItens,{'D1_ITEM'      ,"00"+SC6->C6_ITEM,NIL})
+        aAdd(aItens,{'D1_COD'       ,Alltrim(SD2->D2_COD),NIL})
+        aAdd(aItens,{"D1_QUANT"     ,SD2->D2_QUANT,Nil})
+        aAdd(aItens,{"D1_VUNIT"     ,SD2->D2_PRCVEN,Nil})
+        aAdd(aItens,{"D1_TOTAL"     ,SD2->D2_TOTAL,Nil})
+        IF SC6->(dbSeek(xFilial("SD2")+SD2->D2_PEDIDO+SD2->D2_ITEMPV+SD2->D2_COD))
+            IF !EMPTY(SC6->C6_LOTECTL)
+                aAdd(aItens,{"D1_LOTECTL"   ,SC6->C6_LOTECTL,Nil})
+                aAdd(aItens,{"D1_DTVALID"   ,SC6->C6_DTVALID,Nil})
+            ELSEIF !EMPTY(SC6->C6_X_LOTE)
+                aAdd(aItens,{"D1_X_LOTE"    ,SC6->C6_X_LOTE,Nil})
+                aAdd(aItens,{"D1_X_DTLOT"   ,SC6->C6_X_DTLOT,Nil})
+            ELSE
+                aAdd(aItens,{"D1_LOTECTL"   ," ",Nil})
+                aAdd(aItens,{"D1_DTVALID"   ," ",Nil})
+                aAdd(aItens,{"D1_X_LOTE"    ," ",Nil})
+                aAdd(aItens,{"D1_X_DTLOT"   ," ",Nil})
+            ENDIF
+        ENDIF
+        aAdd(aItens,{"D1_LOCAL"     ,SD2->D2_LOCAL,Nil})        
+        aAdd(aItens,{"D1_TES"       ,"038",NIL})
+        aAdd(aItens,{"D1_CF"        ,"1905 ",NIL})
+                
+        aAdd(aItem,aItens)
+        SD2->(dbSkip())          
+        ENDDO
+
+        MSExecAuto({|x,y,z| MATA103(x,y,z)}, aCab, aItem, nOpc)
+
+        If lMsErroAuto
+            mostraerro()
+        Else
+            Alert("Nota fiscal "+SF1->F1_DOC+"/"+SF1->F1_SERIE+" inserida com sucesso!")
+        EndIf
+    ENDIF
+     
+     DbSelectArea("SQL_SF2")
+     SQL_SF2->(DBSKIP())
+
+    lMsErroAuto := .F.
+
+ENDDO
+
+
+SQL_SF2->(DbCloseArea())
+     
+MsgInfo("Execauto MATA103 executado com sucesso!","EXECAUTO")
+
+RestArea(Area)
+
+Return

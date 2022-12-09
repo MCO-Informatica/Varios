@@ -1,0 +1,19 @@
+#include "rwmake.ch"
+#include "totvs.ch"
+#include "TopConn.ch"
+#INCLUDE "TBICONN.CH"        
+/*
++------------------+---------------------------------------------------------+
+!Autor             ! PEDRO MOLINA                                            !
++------------------+---------------------------------------------------------+
+!Data de Criacao   ! 20/02/2018                                              !
++------------------+---------------------------------------------------------+
+*/
+
+User Function PE01NFESEFAZ()
+	aRet := ParamIXB
+
+	If ExistBlock("M050202")
+		cAutXml := AllTrim(cAutXml) + AllTrim( U_M050202(SF2->F2_DOC,SF2->F2_SERIE) )
+	EndIf
+return aRet

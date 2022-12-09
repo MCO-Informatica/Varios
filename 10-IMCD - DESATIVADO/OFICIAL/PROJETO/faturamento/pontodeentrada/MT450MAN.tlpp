@@ -1,0 +1,22 @@
+#include 'protheus.ch'
+#include 'tryexception.ch'
+//-------------------------------------------------------------------
+/*/{Protheus.doc} MT450MAN
+Função devalidar o a1_poscli
+
+@author junior Carvalho 
+@since   27/03/2020
+@version 1.0
+
+/*/
+//-------------------------------------------------------------------
+user function MT450MAN ()
+Local lRet := .T.
+
+IF SC5->C5_TIPO == "N"
+    If SA1->A1_POSCLI == "M"
+        MSGINFO(OemToAnsi("O Status do cliente é : MONITORADO"),"MT450MAN")
+    endif
+endif
+
+Return(lRet)

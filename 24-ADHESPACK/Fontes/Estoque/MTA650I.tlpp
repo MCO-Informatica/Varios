@@ -1,0 +1,56 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA650I          | Autor | Lucas Baia          | Data |    08/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado após inclusão das OP's (A650Inclui). Após
+//        | gravar registro no SC2 (Ordens de Produção). (A650C2)
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MTA650I()
+
+Local cDescProd := Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_DESC")
+Local aArea     := GetArea()
+Local cQuery    := ""
+Local nStatus   := ""
+
+RecLock("SC2", .F.)
+    SC2->C2_XDESPRO := cDescProd
+SC2->(MsUnlock())
+
+//---> Gravação do campo D4_DESCCOD
+cQuery := " UPDATE " + RetSQLName( "SD4" )
+cQuery += " SET D4_DESCCOD = SB1.B1_DESC "
+cQuery += " FROM " + RetSQLName( "SD4" ) + " SD4"
+cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SD4.D4_COD = SB1.B1_COD "
+cQuery += " WHERE D4_DESCCOD = ' ' "
+cQuery += " AND SD4.D_E_L_E_T_ = ' ' "
+cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+nStatus    := TCSQLExec( cQuery )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SD4' )
+SD4->( dbCommit() )
+
+//---> Gravação do campo D4_DESPROD
+cQuery := " UPDATE " + RetSQLName( "SD4" )
+cQuery += " SET D4_DESPROD = SB1.B1_DESC "
+cQuery += " FROM " + RetSQLName( "SD4" ) + " SD4"
+cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SD4.D4_PRODUTO = SB1.B1_COD "
+cQuery += " WHERE D4_DESPROD = ' ' "
+cQuery += " AND SD4.D_E_L_E_T_ = ' ' "
+cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+nStatus    := TCSQLExec( cQuery )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SD4' )
+SD4->( dbCommit() )
+
+RestArea(aArea)
+
+Return

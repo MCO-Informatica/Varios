@@ -1,0 +1,603 @@
+#Include "RwMake.Ch"
+#Include "Protheus.Ch"
+#Include "TopConn.Ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHFATR08  บAutor  ณCaio Pereira        บ Data ณ  01/23/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณRelatorio que lista consulta de Pa Faturado por itens da no-บฑฑ
+ฑฑบ          ณta fiscal.                                                  บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/            
+User Function DHFATR09()
+	
+	Local cPerg			:= Padr("DHFATR09",12)
+	Local cTitulo		:= "Consulta de Pa Faturado - Itens Por NF"
+	Local cDesc			:= "Consulta de Pa Faturado - Itens Por NF"
+	Private oReport		:= Nil
+	Private oSection	:= Nil
+	Private oPen1		:= Nil
+	Private oFont1  	:= TFont():New("Arial",,-10,,.T.) 
+	Private oFont2  	:= TFont():New("Arial",,-13,,.T.) 
+	Private oFont3 		:= TFont():New("Courier New",,-10,,.T.,,,15,.T.,,,,,,,)
+	Private nLin		:= 3200 
+	Private lRet		:= .T. 
+	Private oSection1	
+	Private nTotICM     := 0                                      
+	Private nTotST 		:= 0
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณCria Perguntas no Arquivo SX1.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	DHAjustaSx1(cPerg)
+	Pergunte(cPerg,.F.) 
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณConstrucao do objeto TReport.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	oReport := TReport():New("DHFATR09",cTitulo,"DHFATR09",{|oReport| PrintReport(oReport, oSection1)},cDesc)
+	oReport:SetLandscape()
+	oReport:lfooterVisible:=.F. 
+	
+	//-- Cria sess๕es		
+	oSection1 := TRSection():New(oReport,"Cabe็alho",{"SB1","SD2","SF1","SA2"})
+	
+	TRCell():New(oSection1,"B1_DESC", "SB1") 
+	TRCell():New(oSection1,"nQtd","   ","Quantidade",PesqPict("SD2","D2_QUANT"),TamSX3("D2_QUANT")[1],/*lPixel*/,{||  })
+	TRCell():New(oSection1,"nUprc","   ","ฺlt. Pre็o",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })       
+	TRCell():New(oSection1,"nPIpi","   ","% IPI",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })       
+	TRCell():New(oSection1,"nPrCIpi","   ","Prc. C/ Ipi",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })
+	TRCell():New(oSection1,"B1_POSIPI","SB1")   
+	TRCell():New(oSection1,"nIva","   ","IVA",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })  	
+	TRCell():New(oSection1,"A2_EST","SA2")      
+	TRCell():New(oSection1,"nST","   ","ST",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })
+	TRCell():New(oSection1,"nVIcm","   ","ICM",PesqPict("SF1","F1_VALBRUT"),TamSX3("F1_VALBRUT")[1],/*lPixel*/,{||  })
+	
+	oReport:PrintDialog() 
+		
+Return()                 
+      
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHMntQry  บAutor  ณCaio Pereira        บ Data ณ  01/21/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que monta query com base nos parametros informados   บฑฑ
+ฑฑบ          ณpelo usuario.                                               บฑฑ
+ฑฑบ          ณArquivos usados : SF2 - SD2 - SB1.                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/                                                                           
+Static Function DHMntQry()
+	
+	Local cQry		:= ""
+	
+	If MV_PAR09 == 1
+		cQry:="	SELECT"+CRLF  
+		cQry+="		D2_COD"+CRLF  
+		cQry+="		,SUM(D2_QUANT) AS D2_QUANT"+CRLF  
+		cQry+="	FROM "+RetSqlName("SF2")+" SF2 "+CRLF  
+		
+		cQry+="		INNER JOIN "+RetSqlName("SD2")+" SD2 "+CRLF  
+		cQry+="		ON D2_FILIAL = F2_FILIAL AND D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA  AND SD2.D_E_L_E_T_ = ' '"+CRLF  
+		
+		cQry+="		INNER JOIN "+RetSqlName("SB1")+" SB1 "+CRLF  
+		cQry+="		ON B1_FILIAL = '"+xFilial("SB1")+"' AND B1_COD = D2_COD "+CRLF  
+		cQry+="		AND B1_GRUPO BETWEEN '"+MV_PAR05+"' AND '"+MV_PAR06+"' "+CRLF    
+		cQry+="		AND B1_GRTRIB BETWEEN '"+MV_PAR07+"' AND '"+MV_PAR08+"' AND SB1.D_E_L_E_T_ = ' ' "+CRLF  
+		
+		cQry+="		INNER JOIN "+RetSqlName("SF4")+" SF4 "+CRLF
+		cQry+="		ON F4_FILIAL =  '"+xFilial("SF4")+"' AND F4_CODIGO = D2_TES AND SF4.D_E_L_E_T_ = ' ' "+CRLF
+		
+		If MV_PAR10 == 1
+			cQry+="		AND F4_DUPLIC = 'S' "+CRLF
+		ElseIf MV_PAR10 == 2
+			cQry+="		AND F4_DUPLIC = 'N' "+CRLF
+		EndIf		
+		
+		cQry+="	WHERE F2_FILIAL BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' AND F2_EMISSAO BETWEEN '"+Dtos(MV_PAR01)+"' AND '"+Dtos(MV_PAR02)+"' AND F2_EST <> 'SP' AND SF2.D_E_L_E_T_ = ' '"+CRLF
+		cQry+="	GROUP BY D2_COD "+CRLF  
+		cQry+="	ORDER BY D2_COD "
+	Else
+		cQry:="	SELECT"+CRLF  
+		cQry+="		F2_FILIAL"+CRLF  
+		cQry+="		,F2_DOC"+CRLF  
+		cQry+="		,F2_SERIE"+CRLF  
+		cQry+="		,F2_EMISSAO"+CRLF  
+		cQry+="		,F2_CLIENTE"+CRLF  
+		cQry+="		,F2_LOJA"+CRLF  
+		cQry+="		,D2_COD"+CRLF  
+		cQry+="		,SUBSTRING(B1_DESC,1,30) AS B1_DESC "+CRLF  
+		cQry+="		,D2_PEDIDO"+CRLF  
+		cQry+="		,F2_DTENTR"+CRLF  
+		cQry+="		,D2_TOTAL"+CRLF  
+		cQry+="		,D2_QUANT"+CRLF  
+		
+		//-- Adicionando novos campos - Robson
+		cQry+="		,B1_UPRC"+CRLF  
+		cQry+="		,B1_POSIPI"+CRLF
+		cQry+="		,YD_PER_IPI"+CRLF  		  
+		cQry+="	FROM "+RetSqlName("SF2")+" SF2 "+CRLF  
+		cQry+="		INNER JOIN "+RetSqlName("SD2")+" SD2 "+CRLF  
+		cQry+="		ON D2_FILIAL = F2_FILIAL AND D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA  AND SD2.D_E_L_E_T_ = ' '"+CRLF  
+		cQry+="		INNER JOIN "+RetSqlName("SB1")+" SB1 "+CRLF  
+		cQry+="		ON B1_FILIAL = '"+xFilial("SB1")+"' AND B1_COD = D2_COD "+CRLF  
+		cQry+="		AND B1_GRUPO BETWEEN '"+MV_PAR05+"' AND '"+MV_PAR06+"' "+CRLF    
+		cQry+="		AND B1_GRTRIB BETWEEN '"+MV_PAR07+"' AND '"+MV_PAR08+"' AND SB1.D_E_L_E_T_ = ' ' "+CRLF  
+		cQry+="		INNER JOIN "+RetSqlName("SF4")+" SF4 "+CRLF
+		cQry+="		ON F4_FILIAL =  '"+xFilial("SF4")+"' AND F4_CODIGO = D2_TES AND SF4.D_E_L_E_T_ = ' ' "+CRLF
+		//-- Robson
+		cQry+="		INNER JOIN "+RetSqlName("SYD")+" SYD "+CRLF
+		cQry+="		ON YD_FILIAL =  '"+xFilial("SYD")+"' AND SB1.B1_POSIPI = SYD.YD_TEC AND SYD.D_E_L_E_T_ = ' ' "+CRLF
+		
+		If MV_PAR10 == 1
+			cQry+="		AND F4_DUPLIC = 'S'
+		ElseIf MV_PAR10 == 2
+			cQry+="		AND F4_DUPLIC = 'N'	
+		EndIf		
+		cQry+="	WHERE F2_FILIAL BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' AND F2_EMISSAO BETWEEN '"+Dtos(MV_PAR01)+"' AND '"+Dtos(MV_PAR02)+"' AND F2_EST <> 'SP' AND SF2.D_E_L_E_T_ = ' '"+CRLF
+		cQry+="	ORDER BY F2_DOC,F2_EMISSAO "+CRLF  
+	EndIf	
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณVerifica se area esta em uso.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	If Select("TRB1") > 0
+		TRB1->(DbCloseArea())
+	EndIf
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณCria instancia de trabalho.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	TcQuery cQry New Alias "TRB1" 
+	
+	If MV_PAR09 == 2
+		TcSetField("TRB1","F2_EMISSAO" 	,"D",08,0)
+		TcSetField("TRB1","F2_DTENTR" 	,"D",08,0)
+		TcSetField("TRB1","D2_TOTAL" 	,"N",17,2)   		
+	EndIf
+	
+	TcSetField("TRB1","D2_QUANT" 		,"N",17,2)     
+	
+Return()
+	                                
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHPReport บAutor  ณCaio Pereira        บ Data ณ  01/11/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que imprime o relatorio com base nos parametros in-  บฑฑ
+ฑฑบ          ณ-formados pelo usuario.                                     บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Dayhome                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function PrintReport()
+	
+	Local cNumDoc:= ""
+	Local nTotFat:= 0
+	Local nQtdFat:= 0
+	Local nTotGer:= 0
+	Local nQtdGer:= 0
+	
+	DHMntQry()
+	
+	oReport:SetMeter(0)      
+	DbSelectArea("TRB1")
+	TRB1->(DbGoTop())     
+    
+    If oReport:nDevice == 4
+		oSection1:Init()
+	EndIf
+	
+	While TRB1->(!Eof()) 
+		
+		oReport:IncMeter()
+		
+		If MV_PAR09 == 1
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณFuncao que verifica limite de linhas.ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			DHVerPag("")
+			If oReport:Cancel()
+				Exit
+			EndIf  
+			oReport:Say(nLin,0010,AllTrim(TRB1->D2_COD)+" - "+Posicione("SB1",1,xFilial("SB1")+TRB1->D2_COD,"B1_DESC")	,oFont3,,,) 
+			
+			dbSelectArea("SB1")                     
+			SB1->(dbSetOrder(1))
+			SB1->(dbSeek(XFilial("SB1")+TRB1->D2_COD))			                     
+			
+			//-- Inserir novos campos aqui - Robson
+			
+			//-- Total de vendas do produto
+			oReport:Say(nLin,0910,Transform(TRB1->D2_QUANT,"@E 999,999,999.99")		,oFont3,,,)
+			oSection1:Cell("nQtd"):SetValue(TRB1->D2_QUANT)
+			
+			//-- ๚ltimo pre็o      
+			nUprc := RetUltPrc(TRB1->D2_COD)//SB1->B1_UPRC
+			oReport:Say(nLin,1110, Transform(nUprc,PesqPict("SF1", "F1_VALBRUT")) ,oFont3,,,)
+			If oReport:nDevice == 4
+				oSection1:Cell("nUprc"):SetValue(nUprc)
+			EndIf
+			
+			//-- % de IPI               
+			nPIpi := Posicione("SYD", 1, XFilial("SYD")+SB1->B1_POSIPI, "YD_PER_IPI")
+			oReport:Say(nLin,1400, AllTrim(Transform(nPIpi,PesqPict("SYD", "YD_PER_IPI"))) ,oFont3,,,)
+			If oReport:nDevice == 4
+		   		oSection1:Cell("nPIpi"):SetValue(nPIpi)
+			EndIf
+			
+			//-- Pre็o com IPI     
+			nPrCIpi := (nUprc * (1+(nPIpi/100))) 
+			oReport:Say(nLin,1490, 	Transform(nPrCIpi,PesqPict("SF1", "F1_VALBRUT"))	,oFont3,,,)
+			If oReport:nDevice == 4
+				oSection1:Cell("nPrCIpi"):SetValue(nPrCIpi)
+			EndIf
+			
+			//-- NCM
+			oReport:Say(nLin,1800, AllTrim(SB1->B1_POSIPI) ,oFont3,,,)
+			
+			//-- IVA               
+			nIva := RetIva(SB1->B1_GRTRIB)
+			oReport:Say(nLin,1910, Transform(nIva, PesqPict("SF1", "F1_VALBRUT"))		,oFont3,,,)
+			If oReport:nDevice == 4
+				oSection1:Cell("nIva"):SetValue(nIva) 
+			EndIf
+			
+			//-- Estado do fabricante
+			cEstFab := Posicione("SA2", 1, XFilial("SA2")+SB1->B1_DHFABRI+SB1->B1_DHLJFAB, "A2_EST")
+			
+			cEstIcm := "AC18AL18AM18AP18BA18CE18DF18ES18GO18MA18MG18MS18MT18PA18PB18PE18PI18PR12RJ18RN18RO18RR18RS18SC18SE18SP18TO18" //GetMv("MV_ESTICM")
+			
+			nPIcm := Val(SubStr(cEstIcm, At(cEstFab, cEstIcm)+2, 2)) 
+			
+			nPIcm := (nPIcm/100)
+			
+			//-- ST 
+			nST := (((TRB1->D2_QUANT*nPrCIpi)*(1+(nIva/100)))*nPIcm)-((TRB1->D2_QUANT*nUprc)*nPIcm)
+			oReport:Say(nLin,2110,Transform(nST,"@E 999,999,999.99")		,oFont3,,,)  
+			nTotST += nST         
+			If oReport:nDevice == 4
+				oSection1:Cell("nST"):SetValue(nST)
+			EndIf
+			
+			//-- ICM   
+			nVIcm := nPIcm*(nUprc*TRB1->D2_QUANT)
+			nTotICM += nVIcm  
+			oReport:Say(nLin,2310,Transform(nVIcm,"@E 999,999,999.99")		,oFont3,,,)
+			If oReport:nDevice == 4
+				oSection1:Cell("nVIcm"):SetValue(nVIcm)
+			EndIf
+			
+			nLin+=50			
+			nQtdGer+= TRB1->D2_QUANT			
+			TRB1->(DbSkip())  
+			
+			If oReport:nDevice == 4
+				oSection1:PrintLine()
+			EndIf
+			
+		Else
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณFuncao que verifica limite de linhas.ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			DHVerPag(cNumDoc)
+			If oReport:Cancel()
+				Exit
+			EndIf  
+			oReport:Say(nLin,0010,TRB1->D2_COD+" - "+Alltrim(TRB1->B1_DESC)	,oFont3,,,)
+			oReport:Say(nLin,0810,Alltrim(TRB1->D2_PEDIDO)								,oFont3,,,)                              
+			oReport:Say(nLin,1510,Dtoc(TRB1->F2_DTENTR)								,oFont3,,,)
+			oReport:Say(nLin,2245,Transform(TRB1->D2_TOTAL,"@E 999,999,999.99")		,oFont3,,,)	
+			oReport:Say(nLin,3140,Transform(TRB1->D2_QUANT,"@E 999,999,999.99")		,oFont3,,,)
+			nLin+=50
+			cNumDoc:= TRB1->F2_DOC
+			nTotFat+= TRB1->D2_TOTAL
+			nQtdFat+= TRB1->D2_QUANT
+			nTotGer+= TRB1->D2_TOTAL
+			nQtdGer+= TRB1->D2_QUANT
+			TRB1->(DbSkip())
+			If cNumDoc <> TRB1->F2_DOC .And. TRB1->(!Eof())  
+				cNumDoc:= TRB1->F2_DOC
+				DhImpRod(@nTotFat,@nQtdFat)			
+				DHSubCbc()
+			ElseIf TRB1->(Eof())  
+				DhImpRod(@nTotFat,@nQtdFat)
+				DhImpTot(nTotGer,nQtdGer)						
+			EndIf
+		EndIf	
+	EndDo  
+	If oReport:nDevice == 4
+		oSection1:Finish()
+	EndIF	                                
+	If MV_PAR09 == 1                    
+		nLin+=050
+		DhImpTot(0,nQtdGer)
+	EndIf	
+	
+Return()    
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHVerPag  บAutor  ณCaio Pereira        บ Data ณ  01/11/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que verifica o limite de linhas impressas.           บฑฑ
+ฑฑบ          ณCaso ultrapasse pula de pagina.                             บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHVerPag(cNumDoc) 
+
+	If nLin > 2400
+		oReport:EndPage()
+		oReport:StartPage()		
+		DHMntCab()
+		If MV_PAR09 == 2
+			If TRB1->F2_DOC <> cNumDoc
+				DHSubCbc()
+			EndIf
+		EndIf	
+	EndIf				
+	  	
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHMntCab  บAutor  ณCaio Pereira        บ Data ณ  01/11/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que imprime cabecalho padrao para o relatorio.       บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/                    
+Static Function DHMntCab()
+	
+	nLin:= 320
+	
+	oPen1 := TBrush():New("",10223615)
+	oReport:FillRect({0230,0000,0290,4500},oPen1)
+	
+	If MV_PAR09 == 1                                       
+	
+		oReport:Say(0255,0010,"Produto"		,oFont1,,,)
+		oReport:Say(0255,1010,"Vendas"		,oFont1,,,)                              
+		oReport:Say(0255,1210,"ฺlt. Pre็o"	,oFont1,,,)
+		oReport:Say(0255,1450,"IPI"			,oFont1,,,)	
+		oReport:Say(0255,1590,"Prc. C/ IPI"	,oFont1,,,)
+		oReport:Say(0255,1850,"NCM"			,oFont1,,,)
+		oReport:Say(0255,2040,"IVA"			,oFont1,,,)	
+		oReport:Say(0255,2240,"S.T"			,oFont1,,,)
+		oReport:Say(0255,2440,"ICM"			,oFont1,,,)
+		oReport:Say(0257,0000,Replicate("_",500),oFont1,,,)
+	                
+	Else
+		oReport:Say(0255,0010,"Produto"	,oFont1,,,)
+		oReport:Say(0255,0810,"Pedido"		,oFont1,,,)                              
+		oReport:Say(0255,1510,"Entrega"	,oFont1,,,)
+		oReport:Say(0255,2410,"Valor"		,oFont1,,,)	
+		oReport:Say(0255,3310,"Qtde"		,oFont1,,,)
+		oReport:Say(0257,0000,Replicate("_",500),oFont1,,,)
+	EndIf		
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHSubCbc  บAutor  ณCaio Pereira        บ Data ณ  01/24/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que monta sub-cabecalho com informacoes da nota fis- บฑฑ
+ฑฑบ          ณcal de saida.                                               บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHSubCbc()
+	
+	oPen1 := TBrush():New("",13619151)
+	oReport:FillRect({nLin-024,0000,nLin+039,4500},oPen1)
+	
+	oReport:Say(nLin,0010,"NF : "+TRB1->F2_DOC,oFont1,,,)
+	oReport:Say(nLin,0310,"SERIE : "+TRB1->F2_SERIE,oFont1,,,)                              
+	oReport:Say(nLin,0700,"FILIAL : "+TRB1->F2_FILIAL+" - "+Posicione("SM0",1,cEmpAnt+TRB1->F2_FILIAL,"M0_FILIAL") 		,oFont1,,,)
+	oReport:Say(nLin,1350,"EMISSAO : "+Dtoc(TRB1->F2_EMISSAO)	,oFont1,,,)	
+	oReport:Say(nLin,1810,"CLIENTE : "+Posicione("SA1",1,xFilial("SA1")+TRB1->F2_CLIENTE+TRB1->F2_LOJA,"A1_NOME"),oFont1,,,)
+	oReport:Say(nLin+003,0000,Replicate("_",500),oFont1,,,)	
+	   
+	If lRet
+		nLin:= 400
+		lRet:= .F.
+	Else
+		nLin+= 060	
+	EndIf	
+	
+Return()              
+        
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDhImpRod  บAutor  ณCaio Pereira        บ Data ณ  01/25/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que imprime rodape para listar totais da nota fiscal บฑฑ
+ฑฑบ          ณde saida.                                                   บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DhImpRod(nTotFat,nQtdFat)			
+			
+	oReport:Say(nLin,0010,"TOTAL NF :"	   								,oFont1,,CLR_HRED,) 
+	oReport:Say(nLin,2245,Transform(nTotFat,"@E 999,999,999.99")		,oFont3,,CLR_HRED,)	
+	oReport:Say(nLin,3140,Transform(nQtdFat,"@E 999,999,999.99")		,oFont3,,CLR_HRED,)
+	nLin+=80                               
+	oReport:Say(nLin-65,0000,Replicate("_",500)							,oFont1,,,)
+	nTotFat:= 0                                     
+	nQtdFat:= 0
+
+Return()                                       
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDhImpTot  บAutor  ณCaio Pereira        บ Data ณ  01/25/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que imprime rodape com total geral de todas as notas บฑฑ
+ฑฑบ          ณfiscais de saida.                                           บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DhImpTot(nTotGer,nQtdGer)
+
+	oPen1 := TBrush():New("",13619151)
+	oReport:FillRect({nLin-30,0000,nLin+035,4500},oPen1)	
+	
+	oReport:Say(nLin-20,0010,"TOTAL GERAL :"   									,oFont1,,CLR_HRED,) 
+	If MV_PAR09 == 2
+		oReport:Say(nLin-20,2245,Transform(nTotGer,"@E 999,999,999.99")			,oFont3,,CLR_HRED,)	
+	EndIf	
+
+nTotSTICM = nTotICM + nTotST
+
+	oReport:Say(nLin-20,3140,AllTrim(Transform(nTotSTICM,"@E 999,999,999.99"))	,oFont3,,CLR_HRED,)
+
+	oReport:Say(nLin-20,2410,AllTrim(Transform(nTotICM,"@E 999,999,999.99"))	,oFont3,,CLR_HRED,)
+	oReport:Say(nLin-20,2240,AllTrim(Transform(nTotST,"@E 999,999,999.99"))		,oFont3,,CLR_HRED,)	
+	oReport:Say(nLin-65,0000,Replicate("_",500)									,oFont1,,,)			
+	oReport:Say(nLin,0000,Replicate("_",500)									,oFont1,,,)			
+	
+Return()
+
+/*                                                
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณAjustaSx1 บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que cria perguntas no arquivo Sx1.                   บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Dayhome.                                                   บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHAjustaSx1(cPerg)
+	
+	PutSx1( cPerg, "01", "Digita็ใo D๊ ?" 				,"","","mv_ch1","D",08,0,0,"G","","","","","mv_par01",,,,,,,,,,,,,,,,,{"Emissใo Inicial"	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "02", "Digita็ใo At้ ?" 				,"","","mv_ch2","D",08,0,0,"G","","","","","mv_par02",,,,,,,,,,,,,,,,,{"Emissใo Final"  	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "03", "Filial D๊ ?"				,"","","mv_ch3","C",02,0,0,"G","","SM0","","","mv_par03",,,,,,,,,,,,,,,,,{"Filial De"      	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "04", "Filial At้ ?"				,"","","mv_ch4","C",02,0,0,"G","","SM0","","","mv_par04",,,,,,,,,,,,,,,,,{"Filial Ate"     	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "05", "Grupo D๊ ?"					,"","","mv_ch5","C",04,0,0,"G","","SBM","","","mv_par05",,,,,,,,,,,,,,,,,{"Grupo De"      	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "06", "Grupo At้ ?"				,"","","mv_ch6","C",04,0,0,"G","","SBM","","","mv_par06",,,,,,,,,,,,,,,,,{"Grupo Ate"     	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "07", "Grupo Trib. D๊ ?"			,"","","mv_ch7","C",06,0,0,"G","","21","","","mv_par07",,,,,,,,,,,,,,,,,{"Grupo Trib. De"  	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "08", "Grupo Trib. At้ ?"			,"","","mv_ch8","C",06,0,0,"G","","21","","","mv_par08",,,,,,,,,,,,,,,,,{"Grupo Trib. Ate" 	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "09", "Agrupa\Produto ?"			,"","","mv_ch9","N",01,0,1,"C","","","","","mv_par09","Sim","","","","Nao","","","","","","",,,,,,{"Agrupa\Produto","para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "10", "Considera Duplicata(s)"	,"","","mv_chA","N",01,0,1,"C","","","","","mv_par10","Sim","","","","Nใo","","","Ambas","","","",,,,,,{"Considera Duplicata(s)","para considerar na","gera็ใo do relat๓rio."},{},{})
+
+Return(.T.)
+           
+
+//-- Retorna o IVA (margem de lucro) - Robson 01/03/2011
+Static Function RetIva(cGrp)
+
+Local aArea := GetArea()
+Local nRet  := 0
+	          
+dbSelectArea("SF7") 
+SF7->(dbSetOrder(1))
+	      
+If SF7->(dbSeek(XFilial("SF7")+cGrp))
+
+	While SF7->(!Eof()) .AND. SF7->F7_GRTRIB == cGrp
+        
+        If SF7->F7_EST == 'SP' .AND. SF7->F7_GRPCLI == 'NAC'
+        	nRet := SF7->F7_MARGEM
+        EndIf
+		
+			
+		SF7->(dbSkip())
+	EndDo     
+
+EndIf	      
+RestArea(aArea)
+Return nRet
+
+Static Function RetUltPrc(cCod)
+              
+Local aArea := GetArea()             
+Local nRet  := 0
+
+dbSelectArea("SD1")  
+SD1->(dbSetOrder(5))
+
+If SD1->(dbSeek(XFilial("SD1")+cCod))
+
+     While SD1->(!Eof()) .AND. AllTrim(SD1->D1_COD) == AllTrim(cCod) .AND. SD1->D1_DTDIGIT <= MV_PAR02
+        
+        If SD1->D1_TIPO == 'N'
+        	nRet := (SD1->D1_VUNIT-SD1->D1_DESC)
+        EndIf
+          
+     	SD1->(dbSkip())
+     EndDo
+                
+EndIf 
+              
+//-- se vazio verifica a filial 02
+If Empty(nRet)
+	
+	If SD1->(dbSeek("02"+cCod))
+	
+	     While SD1->(!Eof()) .AND. AllTrim(SD1->D1_COD) == AllTrim(cCod) .AND. SD1->D1_DTDIGIT <= MV_PAR02 
+	        
+	        If SD1->D1_TIPO == 'N'
+	        	nRet := (SD1->D1_VUNIT-SD1->D1_DESC)
+	        EndIf
+	          
+	     	SD1->(dbSkip())
+	     EndDo
+	                
+	EndIf                     
+
+EndIf 
+             
+//-- Pega o ๚ltimo pre็o - 09/03/2010
+If Empty(nRet)
+	nRet := Posicione("SB1", 1, XFilial("SB1")+cCod, "B1_UPRC")
+EndIf
+      
+RestArea(aArea)
+Return nRet

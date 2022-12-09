@@ -1,0 +1,48 @@
+#Include "Protheus.ch"  
+#Include "rwmake.ch"
+
+User Function OPERACAO()
+
+Local oDlg
+Local nPosPrd	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_COD"})
+Local nPosOpe	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_OPER"})
+Local nPosTes	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_TES"})
+Local nPosAII	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_ALIQII"})
+Local nPosTot	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_TOTAL"})
+Local nPosVII	:= aScan(aHeader,{|x| AllTrim(x[2])=="D1_II"})
+Local nAliqII	:= 0
+Local nValII	:= 0
+Local cTes		:= ""
+Private cOper 	:= CriaVar("D1_OPER",.F.)
+
+DEFINE MSDIALOG oDlg FROM 0, 0 TO 165, 250 TITLE "Código de Operação" PIXEL
+	@  20, 10 SAY   'Código de Operação...: '  	 										OF oDlg PIXEL
+	@  20, 80 MSGET cOper F3 'DJ' 		PICTURE "@!"	Valid ExistCpo("SX5","DJ"+cOper)				OF oDlg PIXEL
+	
+	@ 045,50  BMPBUTTON TYPE 1 Action (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+For nH := 1 to Len(aCols)
+	n := nH
+	
+	U_SyEnterCpo("D1_OPER", cOper, n)	
+	aCols[nH][nPosOpe]	:= cOper
+
+	cTes				:= MaTesInt(1,cOper,cA100For,cLoja,If(cTipo$"DB","C","F"),aCols[nH][nPosPrd],"D1_TES")
+	aCols[nH][nPosTes]	:= cTes
+	U_SyEnterCpo("D1_TES", cTes, n)	
+
+	
+	nAliqII 			:= Posicione("SB1",1,xFilial("SB1")+aCols[nH][nPosPrd],"B1_ALIQII")
+	nValII				:= ((aCols[nH][nPosTot] / ((nAliqII / 100)+1)/100)*nAliqII)
+	U_SyEnterCpo("D1_II" 		, nValII, n)
+	U_SyEnterCpo("D1_ALIQII"	, nAliqII, n)
+	aCols[nH][nPosAii]	:= nAliqII
+	aCols[nH][nPosVii]	:= nVAlII 
+	
+	RunTrigger(2,nH,nil,,'D1_II')
+	 
+Next
+n:= 1
+Return(Nil)

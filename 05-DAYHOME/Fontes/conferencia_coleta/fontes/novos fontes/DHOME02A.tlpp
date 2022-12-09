@@ -1,0 +1,208 @@
+#Include 'Protheus.ch'
+#Include 'FWMVCDef.ch'
+
+/*/{Protheus.doc} DHOME02A
+//TODO Descrição auto-gerada.
+@author Bia Ferreira
+@since 02/12/2019
+@version 1.0
+@return ${return}, ${return_description}
+
+@type function
+/*/
+
+User Function DHOME02A()
+
+	Local aArea     := GetArea()
+	Local oBrowse
+	Local aColumns  := {}
+	Local aCampos   := {}
+	Local nQ	    := 0
+	Local cQuery    := ""
+	Local cAliasZZ1 := GetNextAlias()
+	
+	dbSelectArea("ZZ0")
+	dbSelectArea("ZZ1")
+	
+	SetFunName("DHOME02A")
+	oBrowse := FWMBrowse():New()
+	oBrowse:SetAlias("ZZ0")
+	
+	oBrowse:SetDescription('Finaliza Separação')
+	oBrowse:SetFilterDefault("ZZ0_FILIAL == cFilAnt")
+	
+	oBrowse:AddLegend( "ZZ0_STATUS =='1'", "GREEN", "Em separação"  ) 
+	oBrowse:AddLegend( "ZZ0_STATUS =='2'", "RED", "Encerrado"  )
+	
+	aCampos:={{"ZZ0_FILIAL" ,"Filial" },;
+			  {"ZZ0_PEDIDO" ,"Pedido" }};
+			 
+	For nQ := 1 To Len(aCampos)
+		AAdd(aColumns, FWBrwColumn():New())
+		aColumns[Len(aColumns)]:SetData(&("{||" + aCampos[nQ][1] + "}"))
+		aColumns[Len(aColumns)]:SetTitle(aCampos[nQ][2])
+	Next
+		
+	oBrowse:SetColumns(aColumns)
+	oBrowse:Activate()
+		
+	RestArea(aArea)
+		
+Return
+
+/*---------------------------------------------------------------------*
+ | Func:  MenuDef                                                      |
+ | Autor: Bia Ferreira                                                 |
+ | Data:  02/12/2019                                                   |
+ | Desc:  Criação do menu MVC                                          |
+ *---------------------------------------------------------------------*/
+
+Static Function MenuDef()
+
+	Local aRotina := {}
+
+	ADD OPTION aRotina TITLE 'Visualizar'  ACTION 'VIEWDEF.DHOME02A' OPERATION MODEL_OPERATION_VIEW   ACCESS 0
+	ADD OPTION aRotina TITLE 'Alterar'     ACTION 'VIEWDEF.DHOME02A' OPERATION MODEL_OPERATION_UPDATE ACCESS 0
+
+Return aRotina
+
+/*---------------------------------------------------------------------*
+ | Func:  ModelDef                                                     |
+ | Autor: Bia Ferreira                                                 |
+ | Data:  02/12/2019                                                   |
+ | Desc:  Criação do modelo de dados MVC                               |
+ *---------------------------------------------------------------------*/
+
+Static Function ModelDef()
+
+	Local oModel   	:= Nil
+	Local oStrZZ0 	:= FWFormStruct(1, 'ZZ0')
+	Local oStrZZ1 	:= FWFormStruct(1, 'ZZ1')
+	Local aAux		:= {}
+	 
+	//Criando Cabeçalho
+	oModel := MPFormModel():New( 'INC_GRADE', {|oModel| VldFechado(oModel)},{|oModel| VldStatus(oModel)}, /*bCommit*/, /*bCancel*/ )
+		
+	oModel:addFields('ZZ0MASTER',,oStrZZ0 )
+	
+	//Criando a Grid
+	oModel:AddGrid( 'ZZ1CLI', 'ZZ0MASTER', oStrZZ1 ) 
+	
+	// Faz relacionamento entre os componentes do model 
+	oModel:SetRelation( 'ZZ1CLI', { { 'ZZ1_FILIAL','ZZ0_FILIAL' }, { 'ZZ1_PEDIDO','ZZ0_PEDIDO' }  }, ZZ1->( IndexKey( 1 ) ) ) 
+		
+	//Setando outras informações do Modelo de Dados
+	oModel:SetDescription("Login de Acesso")
+	oModel:SetPrimaryKey({"ZZ0_FILIAL","ZZ0_PEDIDO"})
+	oModel:GetModel("ZZ0MASTER"):SetDescription("Formulário")
+	oModel:GetModel('ZZ1CLI'):SetOptional(.T.) 
+	oModel:GetModel('ZZ1CLI'):SetNoDeleteLine(.T.)
+	
+	//Validações - Somente campo quantidade separada pode ser alterado
+	oStrZZ1:SetProperty( 'ZZ1_PEDIDO' , MODEL_FIELD_WHEN,{|| Iif(ALTERA, .F., .F. ) })
+	oStrZZ1:SetProperty( 'ZZ1_CODPRO' , MODEL_FIELD_WHEN,{|| Iif(ALTERA, .F., .F. ) })
+	oStrZZ1:SetProperty( 'ZZ1_DESC'   , MODEL_FIELD_WHEN,{|| Iif(ALTERA, .F., .F. ) })
+	oStrZZ1:SetProperty( 'ZZ1_QTDATU' , MODEL_FIELD_WHEN,{|| Iif(ALTERA, .F., .F. ) })
+		
+Return oModel
+
+Static Function ViewDef()
+	Local oModel    := FWLoadModel("DHOME02A")
+	Local oStrZZ0   := FWFormStruct(2, 'ZZ0')
+	Local oStrZZ1   := FWFormStruct(2, 'ZZ1')
+	Local oView     := Nil
+		
+	//Criando a view que será o retorno da função e setando o modelo da rotina
+	oView := FWFormView():New()
+	oView:SetModel(oModel)
+			
+	oView:AddField("VIEW_ZZ0", oStrZZ0, "ZZ0MASTER")
+	oView:AddGrid( 'VIEW_ZZ1', oStrZZ1, 'ZZ1CLI' ) 
+		
+	//Setando o dimensionamento de tamanho
+	oView:CreateHorizontalBox('CABEC',30)
+	oView:CreateHorizontalBox('DETALHES',70)
+		
+	//Amarrando a view com as box
+	oView:SetOwnerView('VIEW_ZZ0','CABEC')
+	oView:SetOwnerView('VIEW_ZZ1','DETALHES')	 
+	
+	//Campos desnecessários para o processo
+	//oStrZZ0:RemoveField('ZZ0_STATUS')
+	//oStrZZ0:RemoveField('ZZ0_HORA')
+	//oStrZZ0:RemoveField('ZZ0_DATA')
+	//oStrZZ1:RemoveField('ZZ1_STATUS')
+	//oStrZZ1:RemoveField('ZZ1_USUARI')
+	
+Return oView
+
+// -- Funções de validações -- //
+
+Static Function VldStatus(oModel)
+	
+	Local cFilCli  := oModel:GetModel("ZZ0MASTER"):GetValue("ZZ0_FILIAL")
+	Local cPedido  := oModel:GetModel("ZZ0MASTER"):GetValue("ZZ0_PEDIDO")
+	Local cUsuario := oModel:GetModel("ZZ0MASTER"):GetValue("ZZ0_SEPAR")
+	Local dData    := dDataBase
+	Local cHora    := Substr(Time(),1,5)
+	
+	//Atualiza status da finalização da separação
+	DbSelectArea("ZZ0")
+	ZZ0->(DbSetOrder(1))
+	ZZ0->(DbGoTop())	
+	ZZ0->(dbseek(cFilCli + cPedido))
+	
+	If (oModel:GetOperation() == 4) .AND. ZZ0->ZZ0_STATUS == '1'
+	
+		//Atualiza status da finalização do separação no pedido (SC5)
+		DbSelectArea("SC5")
+		SC5->(DbSetOrder(1))
+		SC5->(DbGoTop())	
+		If SC5->(dbseek(xFilial("SC5") + cPedido))
+		
+			If Alltrim(cUsuario) == Alltrim(SC5->C5_XSUSER)
+				
+				RecLock("SC5",.F.)
+				SC5->C5_XSTATUS := "CON"
+				SC5->C5_XSDTFIN := dData
+				SC5->C5_XSHRFIN := cHora
+				SC5->(MsUnlock())
+					
+				While ZZ0->(!EOF()) .AND. ZZ0->ZZ0_PEDIDO == cPedido
+					RecLock("ZZ0",.F.)
+					ZZ0->ZZ0_STATUS := "2"
+					ZZ0->(MsUnlock())
+					ZZ0->(DbSkip())
+				EndDo	
+				
+				//Chama Função que imprime o número do pedido para separação
+				U_DAYHOME11(SC5->C5_NUM)
+			Else
+				Alert("Erro, Separador que esta finalizando não e o mesmo que iniciou a Separação !")
+				Return .F.
+			EndIf
+		EndIf
+	Else
+		Alert("Erro, separação ja encerrada, não pode ser alterada!")
+		Return .F.
+	EndIf	
+
+Return .T.
+
+
+Static Function VldFechado(oModel)
+
+	Local cPedido  := oModel:GetModel("ZZ0MASTER"):GetValue("ZZ0_PEDIDO")
+	
+	//Atualiza status da finalização da separação
+	DbSelectArea("ZZ0")
+	ZZ0->(DbSetOrder(1))
+	ZZ0->(DbGoTop())	
+	If ZZ0->(dbseek(xFilial("ZZ0") + cPedido))	
+		If (oModel:GetOperation() == 4) .AND. ZZ0->ZZ0_STATUS == '2'
+			Alert("Erro, Separação encerrada, não pode ser alterada!")
+			Return .F.
+		EndIf	
+	EndIf
+
+Return .T.

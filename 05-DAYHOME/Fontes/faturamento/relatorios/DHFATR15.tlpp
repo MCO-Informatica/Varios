@@ -1,0 +1,514 @@
+#include "rwmake.ch"
+
+User Function DHFATR15()
+
+nTamanho    := "M"
+nLimite     := 132
+cTitulo     := "Relatorio de Comissoes Consolidado"
+cDesc1      := "Este Programa Emitira o Relatorio de Comissoes"
+cDesc2      := ""
+cDesc3      := ""
+cbCont      := 0
+cbTxt       := ""
+aReturn     := { "Especial", 1, "Administracao", 1, 1, 1, "", 1 }
+nomeprog    := "DHFATR15"
+cPerg       := "DHFATR15"
+lContinua   := .t.
+li          := 80
+wnrel       := "DHFATR15"
+cString     := "SE3"
+nLastKey    := 0
+m_Pag       := 1
+lAbortPrint := .f.
+
+// Ricardo Tavares
+// 19/02/2015
+// Verifica se o Representante é optante pelo Simples
+cOptSimples := ""
+
+//ValidPerg()
+
+Pergunte( cPerg, .f. )
+
+wnrel := "DHFATR15"
+wnrel := SetPrint( cString,wnrel,cPerg,cTitulo,cDesc1,cDesc2,cDesc3, .F. )
+
+If nLastKey == 27
+	Set Filter To
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Set Filter To
+	Return
+Endif
+
+RptStatus({|| Imprime()})
+Return
+
+Static Function Imprime()
+
+cabec1  := "PRF NUMERO   EMISSAO  HISTORICO                                      FATURAMENTO       PERC.          COMISSÃO       COMISSÃO  "
+cabec2  := "    TITULO                                                                             COMISSÃO       CREDITO        DEBITO    "
+nTipo   := Iif(aReturn[4]==1,15,18)
+
+_nBase       :=  0
+_nComIS      :=  0
+
+nSubAc1        :=  0
+nSubAc2        :=  0
+nSubAc3        :=  0
+nSubAc4        :=  0
+
+nAc1        :=  0
+nAc2        :=  0
+nAc3        :=  0
+nAc4        :=  0
+nAc5        :=  0
+nAc6        :=  0
+nAg1        :=  0
+nAg2        :=  0
+nAg3        :=  0
+nAg4        :=  0
+nAg5        :=  0
+nAg6        :=  0
+
+cQuery	:=	""
+cQuery	+= 	"SELECT E3_FILIAL, E3_VEND, E3_PREFIXO, E3_NUM, E3_PARCELA, E3_EMISSAO, E3_VENCTO, E3_SEQ, E3_BASE, E3_COMIS, E3_DATA, E3_CODCLI, E3_LOJA "
+cQuery	+= 	"FROM SE3010 "
+cQuery	+= 	"WHERE "
+cQuery	+= 	"E3_VEND BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"' AND "
+cQuery	+= 	"E3_EMISSAO BETWEEN '"+DTOS(MV_PAR03)+"' AND '"+DTOS(MV_PAR04)+"' AND "
+cQuery	+= 	"D_E_L_E_T_ = '' "
+cQuery	+= 	"ORDER BY E3_VEND, E3_FILIAL, E3_PREFIXO, E3_NUM, E3_PARCELA, E3_SEQ, E3_COMIS DESC "
+
+
+dbUseArea(.T., 'TOPCONN', TCGenQry(,,cQuery), 'QUERY', .F., .F.)
+
+dbSelectArea("QUERY")
+SetRegua(RecCount())
+DbGoTop()
+
+
+@ 000, 000           PSAY Chr(15)
+
+While Eof() == .f.
+	
+	cQuebra := QUERY->E3_VEND
+	
+	While Eof() == .f. .And. QUERY->E3_VEND == cQuebra
+		
+		If lEnd
+			@ Prow()+1,001 PSAY "CANCELADO PELO OPERADOR"
+			lContinua   :=  .f.
+			Exit
+		EndIf
+		
+		IncRegua()
+		
+		//-- Executa a validacao do filtro do usuario
+		If !Empty(aReturn[7]) .And. !&(aReturn[7])
+			dbSkip()
+			Loop
+		EndIf
+		
+		lFirstV :=  .t.
+		cVend   :=  QUERY->E3_FILIAL+QUERY->E3_VEND
+
+		DbSelectArea("SA3")
+		DbSetOrder(1)
+		DbSeek(xFilial("SA3")+QUERY->E3_VEND)
+
+		cOptSimples := SA3->A3_OPTSIMP
+		cNomeVend   := SA3->A3_NOME
+
+		cCabecDIV:= "DIVISÃO: "+ALLTRIM(QUERY->E3_FILIAL)+"/"+ALLTRIM(FWFilialName(cEmpAnt,QUERY->E3_FILIAL,1))
+		cCabecVEN:= "VENDEDOR: "+ALLTRIM(QUERY->E3_VEND)+" - "+ALLTRIM(cNomeVend)
+		
+		
+		While Eof() == .f. .And. QUERY->E3_FILIAL+QUERY->E3_VEND == cVend
+			
+			IncRegua()
+			
+			If Li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+			
+			If lFirstV
+				
+				@ li, 000           PSAY cCabecDIV
+				li := li + 1
+				@ li, 000           PSAY cCabecVEN
+				li := li + 2
+				If li > 75
+					Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+				EndIf
+				
+				DbSelectArea("QUERY")
+				lFirstV := .f.
+			EndIf
+
+			cChaveImp   := QUERY->(E3_PREFIXO+" "+E3_NUM)
+			
+			cChave 		:= QUERY->(E3_PREFIXO+E3_NUM)
+			dEmissao 	:= STOD(QUERY->E3_EMISSAO)
+			dVencto		:= STOD(QUERY->E3_VENCTO)
+			dPagto		:= STOD(QUERY->E3_DATA)
+			cCliente	:= Posicione("SA1",1,xFilial("SA1")+QUERY->E3_CODCLI+QUERY->E3_LOJA,"A1_NOME")
+			
+			While Eof() == .f. .And. QUERY->E3_FILIAL+QUERY->E3_VEND == cVend .And. QUERY->E3_PREFIXO+QUERY->E3_NUM == cChave
+				
+				_nBase	+= QUERY->E3_BASE
+				_nComis	+= QUERY->E3_COMIS
+				
+				DbSelectArea("QUERY")
+				dbSkip()
+			EndDo
+			
+			@ li, 000           PSAY cChaveImp
+			@ li, Pcol() + 001  PSAY Dtoc(dEmissao)
+			@ li, Pcol() + 001  PSAY cCliente
+			@ li, Pcol() + 001  PSAY _nBase					Picture "@E 999,999,999.99"
+			@ li, Pcol() + 001  PSAY (_nComis/_nBase)*100	Picture "@E 999,999,999.99"
+			
+			If _nComis > 0
+				@ li, Pcol() + 001  PSAY _nComis			Picture "@E 999,999,999.99"
+				@ li, Pcol() + 001  PSAY 0					Picture "@E 999,999,999.99"
+			EndIf
+			
+			If _nComis < 0
+				@ li, Pcol() + 001  PSAY 0					Picture "@E 999,999,999.99"
+				@ li, Pcol() + 001  PSAY _nComis			Picture "@E 999,999,999.99"
+			EndIf
+
+			//----> BASE COMISSAO
+			nSubAc1    :=  nSubAc1 + Iif(_nBase>0,_nBase,0)
+			nSubAc2    :=  nSubAc2 + Iif(_nBase<0,_nBase,0)
+			
+			//----> VALOR COMISSAO
+			nSubAc3    :=  nSubAc3 + Iif(_nComis>0,_nComis,0)
+			nSubAc4    :=  nSubAc4 + Iif(_nComis<0,_nComis,0)
+			
+			//----> BASE COMISSAO
+			nAc1    :=  nAc1 + Iif(_nBase>0,_nBase,0)
+			nAc2    :=  nAc2 + Iif(_nBase<0,_nBase,0)
+			
+			//----> VALOR COMISSAO
+			nAc3    :=  nAc3 + Iif(_nComis>0,_nComis,0)
+			nAc4    :=  nAc4 + Iif(_nComis<0,_nComis,0)
+			
+			li := li + 1
+			
+			If li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+			
+			_nBase := 0
+			_nComis:= 0
+			
+		EndDo
+
+		If mv_par06 == 1
+		
+			li := li +1
+			
+			If li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+
+			@ li, 000       PSAY SUBSTR(("Total "+cCabecDIV),1,55)
+			li := li +1
+
+			@ li, 000       PSAY "Total CREDITO"
+			@ li, 066       PSAY nSubAc1   Picture "@E 999,999,999.99"
+			
+			If mv_par07 == 1
+				If nSubAc1 != 0
+					@ li, 081   PSAY (nSubAc3/nSubAc1)*100   Picture "@E 999,999,999.99"
+				EndIf
+			endif
+			
+			@ li, 096  PSAY nSubAc3   Picture "@E 999,999,999.99"
+			@ li, 111  PSAY 0   	Picture "@E 999,999,999.99"
+			
+		
+			li := li +1
+			
+			If li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+
+			@ li, 000   PSAY "Total DEBITO"
+			@ li, 066	PSAY nSubAc2   Picture "@E 999,999,999.99"
+
+			If mv_par07 == 1
+				If nSubAc2 != 0
+					@ li, 081	PSAY (nSubAc4/nSubAc2)*100   Picture "@E 999,999,999.99"
+				EndIf
+			endif
+			
+			@ li, 096  PSAY 0	   		Picture "@E 999,999,999.99"
+			@ li, 111  PSAY nSubAc4  	Picture "@E 999,999,999.99"
+		
+		else
+		
+			li := li +1
+			
+			@ li, 000      PSAY SUBSTR(("Total "+cCabecDIV),1,55)
+			@ li, 066      PSAY nSubAc1-nSubAc2   Picture "@E 999,999,999.99"
+			
+			If mv_par07 == 1
+				If nSubAc1 != 0
+					@ li, 081  PSAY (((nSubAc3-(nSubAc4*-1))/(nSubAc1-nSubAc2))*100) Picture "@E 999,999,999.99"
+				EndIf
+			endif
+			
+			@ li, 096  PSAY nSubAc3   Picture "@E 999,999,999.99"
+			@ li, 111  PSAY nSubAc4   Picture "@E 999,999,999.99"
+		
+		
+			
+		EndIf
+		
+		li := li + 1
+		If li > 75
+			Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+		EndIf
+		
+		@ li, 000   PSAY Replicate("-",nLimite)
+		
+
+		li := li + 2
+		
+		
+		nSubAc1 := 0
+		nSubAc2 := 0
+		nSubAc3 := 0
+		nSubAc4 := 0
+
+		_nBase       :=  0
+		_nComIS      :=  0
+
+
+	ENDDO
+	
+	li := li + 1
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+	@ li, 000   PSAY SUBSTR(("Geral "+cCabecVEN),1,55)
+	@ li, 066   PSAY nAc1+nAc2   					Picture "@E 999,999,999.99"
+	//If mv_par07 == 1
+	//	@ li, 081   PSAY ((nAc3+nAc4)/(nAc1+nAc2))*100  Picture "@E 999,999,999.99"
+	//endif
+	@ li, 096   PSAY nAc3+nAc4     					Picture "@E 999,999,999.99"
+	
+	If mv_par05 == 1
+		
+		li := li + 1
+		If li > 75
+			Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+		EndIf
+		
+		If (((nAc3+nAc4) * 1.5) / 100) < 10.00
+			// Ricardo Tavares
+			// 19/02/2015
+			// Verifica se o Representante é optante pelo Simples
+			If ( cOptSimples <> "S")
+				@ li, 000  PSAY "Total IRRF"
+				nAc5 := (((nAc3+nAc4) * 0.0) / 100)
+				nAc6 := ((nAc3+nAc4)-(((nAc3+nAc4) * 0.0) / 100))
+				@ li, 096  PSAY nAc5	Picture "@E 999,999,999.99"
+			Else
+				@ li, 000  PSAY "Total IRRF"
+				@ li, 066  PSAY "SIMPLES"
+				@ li, 081  PSAY "SIMPLES"
+				@ li, 096  PSAY 0	Picture "@E 999,999,999.99"
+				nAc6 := (nAc3+nAc4)
+			EndIf
+			li := li + 1
+			If li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+			
+			@ li, 000  PSAY "Total LIQUIDO"
+			@ li, 096  PSAY nAc6	Picture "@E 999,999,999.99"
+		Else
+			// Ricardo Tavares
+			// 19/02/2015
+			// Verifica se o Representantes é optante pelo Simples
+			If ( cOptSimples <> "S")
+				@ li, 000  PSAY "Total IRRF"
+				nAc5 := (((nAc3+nAc4) * 1.5) / 100)
+				nAc6 := ((nAc3+nAc4)-(((nAc3+nAc4) * 1.5) / 100))
+				@ li, 096  PSAY nAc5	Picture "@E 999,999,999.99"
+			Else
+				@ li, 000  PSAY "Total IRRF"
+				@ li, 066  PSAY "SIMPLES"
+				@ li, 081  PSAY "SIMPLES"
+				@ li, 096  PSAY 0	Picture "@E 999,999,999.99"
+				nAc6 := (nAc3+nAc4)
+			EndIf
+			li := li + 1
+			If li > 75
+				Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+			EndIf
+			
+			@ li, 000  PSAY "Total LIQUIDO"
+			@ li, 096  PSAY nAc6	Picture "@E 999,999,999.99"
+		EndIf
+		
+		
+	EndIf
+	
+	
+	/*{Inicio}----------------------------------------------------------------------------
+	Autor  : Thiago Santos Joaquim
+	Empresa: EthosX
+	Contato: thiago.santos@ethosx.com
+	Data   : 30/12/2013
+	
+	Realiza a impressao da mensagem para o representante.
+	{Fim}-------------------------------------------------------------------------------*/
+	If li >= 60
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+	li += 8
+	@ li, 010		PSAY	"MENSAGEM PARA O REPRESENTANTE"
+	li += 3
+	@ li, 010		PSAY	"O REPRESENTANTE ACEITA E CONCORDA COM OS PERCENTUAIS DE COMISSÃO"
+	li++
+	@ li, 010		PSAY	"ACIMA INDICADOS. FIXADOS DE COMUM ACORDO COM A REPRESENTADA."
+	li+= 2
+	@ li, 010		PSAY	"A EMISSÃO DA NOTA FISCAL NO VALOR ACIMA INDICADO DEMONSTRA A"
+	li++
+	@ li, 010		PSAY	"CONCORDÂNCIA DO REPRESENTANTE."
+	//	li += 8
+	//	@ li, 015		PSAY	"-----------------------------------"
+	//	li++
+	//	@ li, 015		PSAY	"          REPRESENTANTE"
+	
+	//	----> quebra da pagina
+	//	----> li := li + 4
+	li := 76
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+	DbSelectArea("QUERY")
+	
+	nAg1 := nAg1 + nAc1
+	nAg2 := nAg2 + nAc2
+	nAg3 := nAg3 + nAc3
+	nAg4 := nAg4 + nAc4
+	nAg5 := nAg5 + nAc5
+	nAg6 := nAg6 + nAc6
+	
+	nAc1 := 0
+	nAc2 := 0
+	nAc3 := 0
+	nAc4 := 0
+	nAc5 := 0
+	nAc6 := 0
+	
+EndDo
+
+
+li := li + 4
+If li > 75
+	Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+EndIf
+
+If (nAg1) != 0
+	@ li, 000  PSAY "Total CREDITO"
+	@ li, 066  PSAY nAg1   			Picture "@E 999,999,999.99"
+	@ li, 081  PSAY (nAg3/nAg1)*100   	Picture "@E 999,999,999.99"
+	@ li, 096  PSAY nAg3   			Picture "@E 999,999,999.99"
+	@ li, 111  PSAY 0		   			Picture "@E 999,999,999.99"
+	
+	li := li + 1
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+EndIf
+
+If (nAg2) != 0
+	@ li, 000  PSAY "Total DEBITO"
+	@ li, 066  PSAY nAg2   			Picture "@E 999,999,999.99"
+	@ li, 081  PSAY (nAg4/nAg2)*100   	Picture "@E 999,999,999.99"
+	@ li, 096  PSAY 0		   			Picture "@E 999,999,999.99"
+	@ li, 111  PSAY nAg4	   			Picture "@E 999,999,999.99"
+	
+	li := li + 1
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+EndIf
+
+@ li, 000   PSAY Replicate("-",nLimite)
+
+li := li + 1
+If li > 75
+	Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+EndIf
+
+@ li, 000  PSAY "Total GERAL"
+@ li, 066  PSAY nAg1+nAg2   					Picture "@E 999,999,999.99"
+@ li, 081  PSAY ((nAg3+nAg4)/(nAg1+nAg2))*100  Picture "@E 999,999,999.99"
+@ li, 096  PSAY nAg3+nAg4     					Picture "@E 999,999,999.99"
+
+If mv_par05 == 1
+	
+	li := li + 1
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+	// Ricardo Tavares
+	// 19/02/2015
+	// Verifica se o Representante é optante pelo Simples
+	If ( cOptSimples <> "S")
+		@ li, 000  PSAY "Total IRRF"
+		@ li, 096  PSAY nAg5  Picture "@E 999,999,999.99"
+	Else
+		@ li, 000  PSAY "Total IRRF"
+		@ li, 066  PSAY "SIMPLES"
+		@ li, 081  PSAY "SIMPLES"
+		@ li, 096  PSAY 0	Picture "@E 999,999,999.99"
+	EndIf
+	li := li + 1
+	If li > 75
+		Cabec(cTitulo,cabec1,cabec2,nomeprog,nTamanho,nTipo)
+	EndIf
+	
+	@ li, 000  PSAY "Total LIQUIDO"
+	@ li, 066  PSAY ""
+	@ li, 081  PSAY ""
+	@ li, 096  PSAY nAg6	Picture "@E 999,999,999.99"
+	
+EndIf
+
+Roda(cbCont,cbTxt,nTamanho)
+
+
+dbSelectArea("QUERY")
+dbCloseArea("QUERY")
+
+Set Device To Screen
+
+If aReturn[5] == 1
+	Set Printer To
+	DbCommitAll()
+	OurSpool(wnrel)
+EndIf
+
+Ms_Flush()
+
+Return
+

@@ -1,0 +1,10 @@
+#Include "Protheus.ch"
+
+User Function MA140BUT()
+
+Local aButtons := {}
+If Inclui
+	aButtons := {{"HISTORIC",{ || U_OPERACAO() }, "Replicar Operação","TES Inteligente" }}
+EndIf
+
+Return(aButtons)

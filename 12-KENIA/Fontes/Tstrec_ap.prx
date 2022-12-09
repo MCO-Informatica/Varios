@@ -1,0 +1,370 @@
+#include "rwmake.ch"        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+#IFNDEF WINDOWS
+        #DEFINE   PSAY SAY
+#ENDIF
+
+User Function Tstrec()        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de variaveis utilizadas no programa atraves da funcao    ³
+//³ SetPrvt, que criara somente as variaveis definidas pelo usuario,    ³
+//³ identificando as variaveis publicas do sistema utilizadas no codigo ³
+//³ Incluido pelo assistente de conversao do AP6 IDE                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+SetPrvt("TITULO,CDESC1,CDESC2,CDESC3,ARETURN,ALINHA")
+SetPrvt("NOMEPROG,NLASTKEY,CPERG,CSAVSCR1,CSAVCUR1,CSAVROW1")
+SetPrvt("CSAVCOL1,CSAVCOR1,CBTXT,CBCONT,CABEC1,CABEC2")
+SetPrvt("CSTRING,LINHA,M_PAG,WNREL,CARACTER,TAMANHO")
+SetPrvt("COND1,COND2,COND3,COND4,COND5,COND6")
+SetPrvt("COND7,COND8,COND9,CONDA,CCHAVE,CFILTRO")
+SetPrvt("CARQNTX,CVENDEDOR,NTOT_DIAQ,NTOT_DIAV,NTOT_PERQ,NTOT_PERV")
+SetPrvt("NTOT_VENQ,NTOT_VEND,_APERGUNTAS,_NLACO,")
+
+#IFNDEF WINDOWS
+// Movido para o inicio do arquivo pelo assistente de conversao do AP5 IDE em 12/02/05 ==>         #DEFINE   PSAY SAY
+#ENDIF
+/*/
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o    ³ RFINREC  ³ Autor ³ Marcos Gomes          ³ Data ³ 14.02.00 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Relatorio de Titulos a receber por Data de Vencimento      ³±±
+±±³          ³ simplificado.                                              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Cliente Microsiga                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+/*/
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas pelo Sistema                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Titulo := 'RELATORIO DE TITULO A RECEBER POR VENCTO/VENDEDOR'
+cDesc1 := 'Emissao da rela€ao de titulos a receber simplificado'
+cDesc2 := ''
+cDesc3 := 'Especifico - SIGLA'
+aReturn := { "zebrado",1,"administra€ao",2,2,1,"",1}
+aLinha := { }
+NomeProg := "RFINREC"
+nLastKey := 0
+cPerg    := "RFINR1    "
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Parametros                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01             // Do vencimento  real                  ³
+//³ mv_par02             // Ate o vencimento real                ³
+//³ mv_par03             // Da dt de emissao                     ³
+//³ mv_par04             // Ate dt de emissao                    ³
+//³ mv_par05             // Do fornecedor                        ³
+//³ mv_par06             // Ate o fornecedor                     ³
+//³ mv_par07             // Da loja                              ³
+//³ mv_par08             // Ate a loja                           ³
+//³ mv_par09             // Do prefixo                           ³
+//³ mv_par10             // Ate o prefixo                        ³
+//³ mv_par11             // Do titulo                            ³
+//³ mv_par12             // Ate o titulo                         ³
+//³ mv_par13             // Da parcela                           ³
+//³ mv_par14             // Ate a parcela                        ³
+//³ mv_par15             // Da natureza                          ³
+//³ mv_par16             // Ate a natureza                       ³
+//³ mv_par17             // Da natureza                          ³
+//³ mv_par18             // Ate a natureza                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Salva integra‡ao dos dados de Entrada                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+cSavscr1 := SaveScreen(3,0,24,79)
+cSavcur1 := SetCursor(0)
+cSavrow1 := Row()
+cSavcol1 := Col()
+cSavcor1 := SetColor("bg+/b,,,")
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Ativa Perguntas                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+    Pergunta()
+    Pergunte(cPerg,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para impressao de cabe‡alhos                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Cbtxt    := space(10)
+Cbcont   := 0
+           //         10        20        30        40        50        60        70        80        90
+           //0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+Cabec1   := "PREF NUM      P  Tp CODIGO Lj CLIENTE                 DT.EMIS.  VENCTO     VALOR          SALDO "
+Cabec2   := ""
+cString  := "SE1"
+linha    := 80
+m_pag    := 1
+Wnrel    := "RFINREC"
+Caracter := 15
+Tamanho  := "M"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Ajuste dos paramentros da impressao                                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+wnrel := SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.f.,,.f.,tamanho)
+
+If LastKey() == 27 .or. nLastkey == 27
+**   RestScreen(3,0,24,79,cSavscr1)
+   Return()
+Endif
+
+SetDefault(aReturn,cString)
+
+If LastKey() == 27 .or. nLastKey == 27
+**   RestScreen(3,0,24,79,cSavscr1)
+   Return()
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Cria Indice de trabalho do arquivo de OF SZA                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  Cond1   := 'DTOS( E1_VENCREA ) >= "' + DTOS( mv_par01 ) + '" .and. DTOS( E1_VENCREA ) <= "' + DTOS( mv_par02 ) + '" '
+  Cond2   := '.and. DTOS( E1_EMISSAO ) >= "' + DTOS( mv_par03 ) + '" .and. DTOS( E1_EMISSAO ) <= "' + DTOS( mv_par04 ) + '" '
+  Cond3   := '.and. E1_CLIENTE >= "' + mv_par05 + '" .and. E1_CLIENTE <= "' + mv_par06 + '" '
+  Cond4   := '.and. E1_LOJA >= "' + mv_par07 + '" .and. E1_LOJA <= "' + mv_par08 + '" '
+  Cond5   := '.and. E1_PREFIXO >= "' + mv_par09 + '" .and. E1_PREFIXO  <= "' + mv_par10 + '" '
+  Cond6   := '.and. E1_NUM >= "' + mv_par11 + '" .and. E1_NUM <= "' + mv_par12 + '" '
+  Cond7   := '.and. E1_PARCELA >= "' + mv_par13 + '" .and. E1_PARCELA <= "' + mv_par14 + '" '
+  Cond8   := '.and. E1_NATUREZ >= "' + mv_par15 + '" .and. E1_NATUREZ <= "' + mv_par16 + '"  '
+  Cond9   := '.and. E1_VEND1 >= "' + mv_par17 + '" .and. E1_VEND1 <= "' + mv_par18 + '"  '
+  
+  If mv_par17 == 1
+     CondA   := '.and. !Empty( E1_SALDO )  '
+     Titulo := Titulo + ' - Titulos Abertos '
+
+     ElseIf mv_par17 == 2
+            CondA := ' .and. Empty( E1_SALDO ) '
+            Titulo := Titulo + ' - Titulos Pagos '
+
+     ElseIf mv_par17 == 3
+            CondA := ' '
+  EndIf                   
+
+  cChave   := "DTOS(E1_VENCREA) + E1_PREFIXO + E1_NUM + E1_PARCELA + E1_CLIENTE + E1_NATUREZ"
+  cFiltro  := Cond1 + Cond2 + Cond3 + Cond4 + Cond5 + Cond6 + Cond7 + Cond8 + Cond9 + CondA
+  cArqNTX  := CriaTrab( ,.F. )
+
+  DbSelectArea("SE1")
+  DbGoTop()
+  IndRegua( "SE1", cArqNTX, cChave, , cFiltro, "Selecionando titulos ... " )
+  DbGoTop()
+
+  cVendedor := SE1->E1_VEND1     // Codigo do vendedor                     
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas nos totais parciais e total geral                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+   nTot_Diaq := 0     // quant de titulos por vencto
+   nTot_Diav := 0     // valor a pagar no dia
+   nTot_Perq := 0     // quant de titulos no periodo
+   nTot_Perv := 0     // valor a pagar no periodo
+
+While !Eof()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Quebra de pagina                                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+       If Linha >= 55
+          Linha := Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,Caracter)
+          Linha := Linha + 1
+          
+          DbSelectArea("SA3")
+          DbSetOrder(1)
+          DbSeek( xFilial("SA3") + SE1->E1_VEND1 )
+          
+          @ Linha, 015 PSAY SE1->E1_VEND1 + " :  " + SA3->A3_NOME 
+
+          Linha := Linha + 2
+       Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Impressao dos dados do Titulo                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+     @ Linha, 001 PSAY SE1->E1_PREFIXO
+     @ Linha, 005 PSAY SE1->E1_NUM 
+     @ Linha, 014 PSAY SE1->E1_PARCELA
+     @ Linha, 017 PSAY SE1->E1_TIPO
+     @ Linha, 020 PSAY SE1->E1_CLIENTE
+     @ Linha, 027 PSAY SE1->E1_LOJA
+     @ Linha, 030 PSAY Substr(SE1->E1_NOMCLI,1, 20)
+     @ Linha, 053 PSAY SE1->E1_EMISSAO
+     @ Linha, 063 PSAY SE1->E1_VENCREA
+     @ Linha, 073 PSAY SE1->E1_VALOR  PICTURE "@ZE 999,999,999.99"
+
+       If SE1->E1_SALDO <> SE1->E1_VALOR
+          @ Linha, 090 PSAY SE1->E1_SALDO  PICTURE "@ZE 999,999,999.99"
+       EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Alimenta variaveis de totais                                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+       nTot_Venq := nTot_Diaq + 1                 // quant de titulos por vendedor
+       nTot_Vend := nTot_Diav + SE1->E1_VALOR     // valor total do vendedor
+       
+       Linha := Linha+1
+       DbSkip()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Quebra por vendedor                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+       If cVendedor <> SE1->E1_VEND1    
+            Linha := Linha+1
+          @ Linha, 000 PSAY REPL("-", 132)
+            Linha := Linha + 1
+          @ Linha, 000 PSAY "Total do vendedor ..: "
+          @ Linha, 030 PSAY Str( nTot_Venq, 2 ) + IIF(nTot_Diaq > 1," titulos"," titulo")
+          @ Linha, 073 PSAY nTot_Vend PICTURE "@ZE 999,999,999.99"
+            Linha := Linha + 1
+          @ Linha, 000 PSAY REPL("-", 132)
+            Linha := 80
+
+            nTot_Venq := 0     // quant de titulos por vendedor
+            nTot_Vend := 0     // valor total do vendedor
+            cVendedor := SE1->E1_VEND1  
+       EndIf
+
+EndDo
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Imprime rodape'                                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ     
+
+ If Linha < 55
+    Roda( cbcont, cbtxt, tamanho )
+ Endif 
+
+DbSelectArea("SE1")
+RetIndex("SE1")
+
+Set SoftSeek Off
+
+If aReturn[5] == 1
+  Set Printer To
+  DbCommit()
+  ourSpool(wnrel)
+EndIf
+
+MS_FLUSH()
+Return()
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ Pergunta ³ Autor ³ Marcos Gomes          ³ Data ³ 01/12/99 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Cria grupo de Perguntas caso nao exista no SX1             ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ PCP - especifico SIGLA                                     ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+// Substituido pelo assistente de conversao do AP6 IDE em 12/02/05 ==> Function Pergunta
+Static Function Pergunta()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01             // Do vencimento  real                  ³
+//³ mv_par02             // Ate o vencimento real                ³
+//³ mv_par03             // Da dt de emissao                     ³
+//³ mv_par04             // Ate dt de emissao                    ³
+//³ mv_par05             // Do CLIENTE                           ³
+//³ mv_par06             // Ate o CLIENTE                        ³
+//³ mv_par07             // Da loja                              ³
+//³ mv_par08             // Ate a loja                           ³
+//³ mv_par09             // Do prefixo                           ³
+//³ mv_par10             // Ate o prefixo                        ³
+//³ mv_par11             // Do titulo                            ³
+//³ mv_par12             // Ate o titulo                         ³
+//³ mv_par13             // Da parcela                           ³
+//³ mv_par14             // Ate a parcela                        ³
+//³ mv_par15             // Da natureza                          ³
+//³ mv_par16             // Ate a natureza                       ³
+//³ mv_par17             // A-Em aberto, P-Pagos , T-Todos       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPerg    := "RFINR1"
+
+_aPerguntas := {}             
+                  // 01     02       03                  04     05  06 7 8  9      10                               11           12        13 14        15        16 17    18            19 20     21        22 23 24 25  26 
+AADD(_aPerguntas,{"RFINR1","01","Do Vecto ( real )  ?","mv_ch1","D",08,0,0,"G","                               ","mv_par01","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","02","Ate o Vencto (real)?","mv_ch2","D",08,0,0,"G","                               ","mv_par02","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","03","Da Dt de emissao   ?","mv_ch3","D",08,0,0,"G","                               ","mv_par03","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","04","Ate a Dt emissao   ?","mv_ch4","D",08,0,0,"G","                               ","mv_par04","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","05","Do Cliente         ?","mv_ch5","C",06,0,0,"G","                               ","mv_par05","            ","","","              ","","","              ","","","           ","","","","","SA2",})
+AADD(_aPerguntas,{"RFINR1","06","Ate o Cliente      ?","mv_ch6","C",06,0,0,"G","                               ","mv_par06","            ","","","              ","","","              ","","","           ","","","","","SA2",})
+AADD(_aPerguntas,{"RFINR1","07","Da Loja            ?","mv_ch7","C",02,0,0,"G","                               ","mv_par07","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","08","Ate a Loja         ?","mv_ch8","C",02,0,0,"G","                               ","mv_par08","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","09","Do Prefixo         ?","mv_ch9","C",03,0,0,"G","                               ","mv_par09","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","10","Ate o Prefixo      ?","mv_cha","C",03,0,0,"G","                               ","mv_par10","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","11","Do titulo          ?","mv_chb","C",06,0,0,"G","                               ","mv_par11","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","12","Ate o titulo       ?","mv_chc","C",06,0,0,"G","                               ","mv_par12","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","13","Da Parcela         ?","mv_chd","C",01,0,0,"G","                               ","mv_par13","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","14","Ate a Parcela      ?","mv_che","C",01,0,0,"G","                               ","mv_par14","            ","","","              ","","","              ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","15","Da Natureza        ?","mv_chf","C",10,0,0,"G","                               ","mv_par15","            ","","","              ","","","              ","","","           ","","","","","SED",})
+AADD(_aPerguntas,{"RFINR1","16","Ate a Natureza     ?","mv_chg","C",10,0,0,"G","                               ","mv_par16","            ","","","              ","","","              ","","","           ","","","","","SED",})
+AADD(_aPerguntas,{"RFINR1","17","Lista Titulos      ?","mv_chh","C",01,0,0,"C","                               ","mv_par17","A-Abertos   ","","","P-Pagas       ","","","T-Todos       ","","","           ","","","","","   ",})
+AADD(_aPerguntas,{"RFINR1","18","Do Vendedor        ?","mv_chi","C",06,0,0,"G","                               ","mv_par18","            ","","","              ","","","              ","","","           ","","","","","SA3",})
+AADD(_aPerguntas,{"RFINR1","19","Ate o vendedor     ?","mv_chj","C",06,0,0,"G","                               ","mv_par19","            ","","","              ","","","              ","","","           ","","","","","SA3",})
+
+DbSelectArea("SX1")
+FOR _nLaco:=1 to LEN(_aPerguntas)
+   If !dbSeek(_aPerguntas[_nLaco,1]+_aPerguntas[_nLaco,2])
+     RecLock("SX1",.T.)
+     SX1->X1_Grupo     := _aPerguntas[_nLaco,01]
+     SX1->X1_Ordem     := _aPerguntas[_nLaco,02]
+     SX1->X1_Pergunt   := _aPerguntas[_nLaco,03]
+     SX1->X1_Variavl   := _aPerguntas[_nLaco,04]
+     SX1->X1_Tipo      := _aPerguntas[_nLaco,05]
+     SX1->X1_Tamanho   := _aPerguntas[_nLaco,06]
+     SX1->X1_Decimal   := _aPerguntas[_nLaco,07]
+     SX1->X1_Presel    := _aPerguntas[_nLaco,08]
+     SX1->X1_Gsc       := _aPerguntas[_nLaco,09]
+     SX1->X1_Valid     := _aPerguntas[_nLaco,10]
+     SX1->X1_Var01     := _aPerguntas[_nLaco,11]
+     SX1->X1_Def01     := _aPerguntas[_nLaco,12]
+     SX1->X1_Cnt01     := _aPerguntas[_nLaco,13]
+     SX1->X1_Var02     := _aPerguntas[_nLaco,14]
+     SX1->X1_Def02     := _aPerguntas[_nLaco,15]
+     SX1->X1_Cnt02     := _aPerguntas[_nLaco,16]
+     SX1->X1_Var03     := _aPerguntas[_nLaco,17]
+     SX1->X1_Def03     := _aPerguntas[_nLaco,18]
+     SX1->X1_Cnt03     := _aPerguntas[_nLaco,19]
+     SX1->X1_Var04     := _aPerguntas[_nLaco,20]
+     SX1->X1_Def04     := _aPerguntas[_nLaco,21]
+     SX1->X1_Cnt04     := _aPerguntas[_nLaco,22]
+     SX1->X1_Var05     := _aPerguntas[_nLaco,23]
+     SX1->X1_Def05     := _aPerguntas[_nLaco,24]
+     SX1->X1_Cnt05     := _aPerguntas[_nLaco,25]
+     SX1->X1_F3        := _aPerguntas[_nLaco,26]
+     MsUnLock()
+   EndIf
+Next
+Return()
+
+
+
+
+Return(nil)        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+

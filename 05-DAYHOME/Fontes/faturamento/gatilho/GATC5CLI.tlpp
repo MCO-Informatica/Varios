@@ -1,0 +1,82 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ GATC5CLI  ºAutor  ³FONTANELLI          º Data ³  10/05/16  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ GATILHO CAMPO C5_CLIENTE                                   º±±
+±±º          ³ 				                                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function GATC5CLI()
+Local lret := .T.
+
+	_aArea:= GetArea()
+
+	if !empty(M->C5_CLIENTE) .AND. GetMv("MV_SC5CLIE") .AND. !(M->C5_TIPO $ "B,D")
+
+		cQuery := "SELECT * FROM "+RetSqlName("SA1")+""
+		cQuery += " WHERE A1_FILIAL = '"+xFilial("SA1")+"'"
+		CQuery += "  AND A1_COD = '"+M->C5_CLIENTE+"'"
+		cQuery += "   AND D_E_L_E_T_ = ' '"
+		cQuery := ChangeQuery(cQuery)
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QrySA1",.T.,.T.)
+		dbSelectArea("QrySA1")
+		dbGoTop()
+
+		if QrySA1->A1_EST <> 'SP' .AND. ( EMPTY(QrySA1->A1_INSCR) .OR. ALLTRIM(QrySA1->A1_INSCR) == "ISENTO")
+
+			if QrySA1->A1_GRPTRIB $ 'CF3,ZF1,ZF2,ZF3,ZF4' .AND. QrySA1->A1_CONTRIB == '2' .AND. QrySA1->A1_IENCONT == '2'
+				lret:= .T.
+			else
+				alert("Para continuar a utilizar este cliente e necessario preencher os campos de tributação!")
+				lret:= .F.
+			endif
+
+		else
+			lret:= .T.
+		endif
+
+		QrySA1->(dbCloseArea())
+
+	else
+		lret:= .T.
+	endif
+
+	//IF ExistBlock("DHSA1Mail") .AND. lret
+	lret := DHSA1Mail()
+	//EndIf
+
+	RestArea(_aArea)
+
+Return(lret)
+
+
+
+
+
+Static Function DHSA1Mail()
+	Local lRet := .T.
+
+	If !(M->C5_TIPO $ "B,D")
+
+		lRet := !Empty(Posicione("SA1",1,xFilial("SA1")+M->C5_CLIENTE+IIf(Empty(M->C5_LOJACLI),"01",M->C5_LOJACLI),"A1_EMAIL"))
+
+		If !lRet
+			MsgAlert("Cliente sem e-mail cadastrado, é obrigatório preencher!","Atenção")
+			MATA030()
+		EndIf
+	Else
+
+		lRet := .T.
+
+	EndIf
+
+Return lRet

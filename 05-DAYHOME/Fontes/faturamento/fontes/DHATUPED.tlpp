@@ -1,0 +1,187 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"  
+#Include "TbiConn.Ch"
+#INCLUDE "RPTDEF.CH"
+#include "rwmake.ch"
+
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//
+	//| FONTE ATUALIZA OS ITENS DO PEDIDO DE VENDA(REFRESH)         |
+	//| QUE NAO FORAM FATURADOS.                                    |
+    //
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+
+
+
+User Function DHATUPED()
+	AjustaSX1()    //Cria Perguntas e exibe em tela
+	Pergunte("DHATUPED",.T.) 
+
+	My410Alter()   //ExecAuto para alteracao do pedido de venda
+Return         
+
+Static Function AjustaSX1()
+
+	Local aArea   := GetArea() 
+	Local aHelpPor:= {}
+	Local aHelpEng:= {}
+	Local aHelpSpa:= {}
+
+	/*Aadd( aHelpPor, "De Filial" )
+	PutSx1( "DHATUPED", "01","De Filial","","","mv_ch1","C",02,0,1,"G","","","","",;
+   			"mv_par01","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+ 	
+	aHelpPor:= {}
+	aHelpEng:= {}
+	aHelpSpa:= {}
+	Aadd( aHelpPor, "Ate Filial" )
+	PutSx1( "DHATUPED", "02","Ate Filial","","","mv_ch2","C",02,0,1,"G","","","","",;
+   			"mv_par02","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)  
+   */
+	aHelpPor:= {}
+	aHelpEng:= {}
+	aHelpSpa:= {}
+	Aadd( aHelpPor, "De Pedido" )
+	PutSx1( "DHATUPED", "01","De Pedido","","","mv_ch1","C",09,0,1,"G","","","","",;
+   			"mv_par01","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)    
+   
+	aHelpPor:= {}
+	aHelpEng:= {}
+	aHelpSpa:= {}
+	Aadd( aHelpPor, "Ate Pedido" )	
+	PutSx1( "DHATUPED", "02","Ate Pedido","","","mv_ch2","C",09,0,1,"G","","","","",;
+   			"mv_par02","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+ 
+	RestArea(aArea)
+
+
+Return Nil    
+
+Static Function My410Altera()
+
+	
+ConOut("Inicio: "+Time())
+
+	
+	Private lMsErroAuto := .F.
+	
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	
+	//| BUSCA OS ITENS DO PEDIDO QUE AINDA NÃO FORAM FATURADOS      |
+	
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+
+	DbSelectArea("SC5")
+	DbSetOrder(1)
+
+
+		If Select("TMPSC5") > 0
+			TMPSC5->(DbCloseArea())
+		EndIf
+
+ConOut("Carregando os itens do pedido")
+	
+	BeginSql Alias "TMPSC5"
+		SELECT 	SC5.C5_FILIAL		,SC5.C5_NUM		,SC5.C5_OPER	,SC5.C5_CLIENT	,SC5.C5_LOJAENT, SC5.C5_XSTATUS
+				,SC5.C5_TIPO		
+				,SC6.C6_FILIAL		,SC6.C6_PRODUTO	,SC6.C6_ITEM	,SC6.C6_UM		,SC6.C6_QTDVEN
+				,SC6.C6_VALOR		,SC6.C6_QTDLIB	,SC6.C6_TES		,SC6.C6_CF		,SC6.C6_CLI
+				,SC6.C6_DESCONT		,SC6.C6_ENTREG	,SC6.C6_VALDESC ,SC6.C6_PESBRU  ,SC6.C6_NOTA
+				,SC6.C6_TES			,SC6.C6_ENTREG	,SC6.C6_LOCAL	,SC6.C6_CLASFIS, SC6.C6_COMIS1, SC6.C6_COMIS2
+		FROM  %table:SC5% SC5
+			INNER JOIN %table:SC6% SC6
+			ON SC6.C6_FILIAL		= SC5.C5_FILIAL	
+				AND SC6.C6_NUM		= SC5.C5_NUM
+				AND SC6.D_E_L_E_T_	= ''
+		WHERE SC5.C5_FILIAL 	>= %Exp:cfilant% //NÃO PODE SER POR PARAMETRO, POIS A MATA410 SEMPRE TRATA A FILIAL LOGADA PELO XFILIAL()
+			AND SC5.C5_FILIAL 	<= %Exp:cfilant% // e a xfilial() retorna sempre ""
+			AND SC5.C5_NUM 		>= %Exp:MV_PAR01%
+			AND SC5.C5_NUM 		<= %Exp:MV_PAR02%
+			AND SC5.C5_NOTA 	 = ''
+			AND SC5.D_E_L_E_T_ 	 = ''
+		ORDER BY  C5_FILIAL, C5_NUM
+	EndSql
+	TMPSC5->(dbGoTop())
+    aCabec := {}
+	
+	IF ALLTRIM(TMPSC5->C5_NUM) == ""
+	   Alert("Não foram encontrados pedidos, verifique os parametros")
+	Else   	 		
+		
+		WHILE TMPSC5->(!EOF())
+		
+			IF LEN(aCabec)==0 .or. TMPSC5->C5_NUM <> aCabec[1][2]
+			    aCabec := {}
+			    aItens := {}
+				
+				_cStatus	:=	TMPSC5->C5_XSTATUS
+				
+				aadd(aCabec,{"C5_NUM"	,TMPSC5->C5_NUM					,NIL})
+				aadd(aCabec,{"C5_XSTATUS"	,_cStatus					,NIL})
+				
+            EndIF
+	        	aLinha 	:= {}
+	        	aFil   	:= {}
+	        	cTes	:= MaTesInt(2,TMPSC5->C5_OPER,TMPSC5->C5_CLIENT,TMPSC5->C5_LOJAENT,"C",TMPSC5->C6_PRODUTO) 
+	        	cTes	:= IIF(Empty(cTes),TMPSC5->C6_TES,cTes)
+	        	_dDtEnt	:= TMPSC5->C6_ENTREG
+	        	_nComis1:= TMPSC5->C6_COMIS1
+	        	_nComis2:= TMPSC5->C6_COMIS2
+	        	
+	        	aadd(aFil,	{"Filial"		,TMPSC5->C6_FILIAL			,NIL})	
+				aadd(aLinha,{"LINPOS"		,"C6_ITEM"					,TMPSC5->C6_ITEM})
+				aadd(aLinha,{"AUTDELETA"	,"N"						,Nil})
+				aadd(aLinha,{"C6_PRODUTO"	,TMPSC5->C6_PRODUTO			,Nil})
+				aadd(aLinha,{"C6_QTDVEN"	,TMPSC5->C6_QTDVEN			,Nil})							
+				aadd(aLinha,{"C6_DESCONT"	,TMPSC5->C6_DESCONT			,Nil})
+				aadd(aLinha,{"C6_COMIS1"	,_nComis1					,Nil})
+				aadd(aLinha,{"C6_PESBRU"	,TMPSC5->C6_PESBRU			,Nil})
+				aadd(aLinha,{"C6_TES"		,cTes						,Nil})
+				aadd(aLinha,{"C6_ENTREG"	,CTOD(_dDtEnt)				,Nil})
+				aadd(aLinha,{"C6_COMIS2"	,_nComis2					,Nil})
+				aadd(aLinha,{"C6_LOCAL"		,TMPSC5->C6_LOCAL			,Nil})
+				aadd(aLinha,{"C6_CLASFIS"	,TMPSC5->C6_CLASFIS			,Nil})
+				aadd(aItens,aLinha)
+				TMPSC5->(DbSkip())
+			IF TMPSC5->C5_NUM == aCabec[1][2]  
+				LOOP
+            EndIF
+			ConOut(PadC("Atualizaçao do Pedido",80))
+	
+			ConOut("Inicio: "+Time())
+			
+			MATA410(aCabec,aItens,4)
+    
+			If !lMsErroAuto
+	                                                 
+				ConOut("Atualizado com sucesso! " ) 
+				ConfirmSX8() 
+			Else
+	   			ConOut("Erro na Altualizaçao!" )     
+				
+				IF MSGYESNO("Erro no pedido "+aCabec[1][2]+" ,Deseja Continuar ?","ERRO")
+					MostraErro()
+					lMsErroAuto := .F.
+				Else
+					MostraErro()
+					Return  
+				EndIF
+			EndIf 
+			
+			ConOut("Fim  : "+Time()) 
+
+        ENDDO
+          
+    
+		IF ALLTRIM(TMPSC5->C5_NUM) == ""
+       		MSGALERT("FIM    DAS    ATUALIZAÇOES","ATUALIZAÇOES")
+    	EndIf 
+    EndIF              
+    
+Return
+
+  

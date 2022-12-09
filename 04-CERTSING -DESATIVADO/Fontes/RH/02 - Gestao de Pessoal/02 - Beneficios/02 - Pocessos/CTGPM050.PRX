@@ -1,0 +1,1871 @@
+#INCLUDE "CTGPM050.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+
+#DEFINE          cSep         ";"
+#DEFINE          cEol         CHR(13)+CHR(10)
+
+Static lGp210Sal := ExistBlock("GP210SAL",.F.,.T.)
+
+/*
++-------------------+------------------------------------------+-------------------+
+| Funcao.: CTGPM050 | Autor.: Alexandre Alves da Silva - OPVS. | Data.: 01/06/2016 |
++-------------------+------------------------------------------+-------------------+
+| Descricao.: Calculo de Vales Transportes                                         |
++---------------------+------------------------------------------------------------+
+| Objetvivo da Rotina | Executar o calculo dos vales transportes com a apuracao de |
++---------------------+ Faltas Integrais diretamente no acumulado do Ponto Eletro- |
+| nico, verificando abonos que efetivamente destituem as Faltas Integrais do des-  |
+| conto nos beneficios.                                                            |
++----------------------------------------------------------------------------------+
+| Observacoes.: Essa rotina foi desenvolvida com base na rotina padrao de calculo  |
+|               de Vale Transporte (GPEM050).                                      |
++----------------------------------------------------------------------------------+
+|                                     MANUTENCOES                                  |
++------------+-----------------------------+---------------------------------------+
+| Data       | Autor                       | Objetivo                              |
++------------+-----------------------------+---------------------------------------+
+*/
+
+User Function CTGPM050()
+
+Local aSays		:= { }, aButtons:= { }	//<== arrays locais de preferencia
+Local aRegs		:= {}
+
+Private cCadastro := OemToAnsi("Calculo Vale Transporte - CERTISIGN")
+Private nSavRec
+Private lVersao101 := (GetRpoRelease("R1.1"))
+Private lVer118	   := GetRpoRelease() >= "R7"
+
+Private aProceed    := {} //-> Matriz para Planilha de Conferencia.
+
+nOpca := 0
+
+AjCVTPROP()
+
+If lVer118 .And. !fValSX1()
+	Aviso( "Atenção", "Execute a opção do compatibilizador referente ao Ajuste do Grupo de Perguntas VT. Para maiores informações, verifique respectivo Boletim Técnico.", { "OK" } )
+	Return
+EndIf
+
+
+/*
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            Grupo      Ordem  Pergunta Portugues          Pergunta Espanhol                Pergunta Ingles              Variavel   Tipo  Tamanho Decimal Presel  GSC  Valid         Var01     	Def01              DefSPA1            DefEng1          Cnt01     Var02    Def02    	         DefSpa2            DefEng2	          Cnt02   Var03  Def03  DefSpa3  DefEng3  Cnt03  Var04  Def04   DefSpa4  DefEng4  Cnt04    Var05  Def05   DefSpa5  DefEng5   Cnt05   XF3  GrgSxg   cPyme   aHelpPor  aHelpEng  aHelpSpa  cHelp
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+*/
+aAdd(aRegs,{"CTGPM050", "01", "Calcular em Ordem ?    ", "¿Calcular en Orden ?         ", "Calculate Sorted by ?       ", "mv_ch1", "N",  1,        0,      1,   "C", "          ", "mv_par01", "Matricula      ", "Matricula      ", "Registration ", "",       "",      "Centro Custo   ", "Centro de Costo", "Cost Center    ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "02", "Calcular para  ?       ", "¿Calcular para ?             ", "Calculate for ?             ", "mv_ch2", "N",  1,        0,      1,   "C", "          ", "mv_par02", "Vale Transporte", "Ticket Transpor", "Transp.Ticket", "",       "",      "Dif. V. Transp.", "Dif. Tk. Transp", "Trans.Ticket Di", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "03", "Filial De ?            ", "¿De Sucursal ?               ", "From Branch ?               ", "mv_ch3", "C",  2,        0,      0,   "G", "          ", "mv_par03", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "SM0",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "04", "Filial Até ?           ", "¿A Sucursal ?                ", "To Branch ?                 ", "mv_ch4", "C",  2,        0,      0,   "G", "Naovazio  ", "mv_par04", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "SM0",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "05", "Centro de Custo De ?   ", "¿De Centro de Costo ?        ", "From Cost Center ?          ", "mv_ch5", "C",  9,        0,      0,   "G", "          ", "mv_par05", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "CTT",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "06", "Centro de Custo Até ?  ", "¿A Centro de Costo ?         ", "To Cost Center ?            ", "mv_ch6", "C",  9,        0,      0,   "G", "Naovazio  ", "mv_par06", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "CTT",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "07", "Matricula De ?         ", "¿De Matricula ?              ", "From Registration ?         ", "mv_ch7", "C",  6,        0,      0,   "G", "          ", "mv_par07", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "SRA",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "08", "Matricula Até ?        ", "¿A Matricula ?               ", "To Registration ?           ", "mv_ch8", "C",  6,        0,      0,   "G", "Naovazio  ", "mv_par08", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "SRA",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "09", "Situações ?            ", "¿Situaciones ?               ", "Status ?                    ", "mv_ch9", "C",  5,        0,      0,   "G", "fSituacao ", "mv_par09", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "10", "Categorias ?           ", "¿Categorias ?                ", "Classes ?                   ", "mv_cha", "C", 15,        0,      0,   "G", "fCategoria", "mv_par10", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "11", "Data de Referencia ?   ", "¿Fecha de Referencia ?       ", "Reference Date ?            ", "mv_chb", "D",  8,        0,      0,   "G", "Naovazio  ", "mv_par11", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "12", "Proporc. a Admissao ?  ", "¿Proporcional a Admision ?   ", "Propor. to Admission ?      ", "mv_chc", "N",  1,        0,      1,   "C", "          ", "mv_par12", "Sim            ", "Si             ", "Yes          ", "",       "",      "Nao            ", "No             ", "No             ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "13", "Descontar Faltas ?     ", "¿Descontar Faltas ?          ", "Discount Absences ?         ", "mv_chd", "N",  1,        0,      2,   "C", "          ", "mv_par13", "Sim            ", "Si             ", "Yes          ", "",       "",      "Nao            ", "No             ", "No             ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "14", "Prop. Ferias/Afast. ?  ", "¿Proporcional Vacac/Liq Final", "Vacat/Absen Propor. ?       ", "mv_che", "N",  1,        0,      1,   "C", "          ", "mv_par14", "Sim            ", "Si             ", "Yes          ", "",       "",      "Nao            ", "No             ", "No             ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "15", "Criterio de Arred. ?   ", "¿Criterio de Redondeo ?      ", "Round up Criterion ?        ", "mv_chf", "N",  1,        0,      2,   "C", "Naovazio  ", "mv_par15", "Abaixo         ", "Defecto        ", "Below        ", "",       "",      "Acima          ", "Exceso         ", "Above          ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "16", "Prop. Ferias Progr. ?  ", "¿Proporcional Vac Programadas", "Scheduled Vacation ?        ", "mv_chg", "N",  1,        0,      2,   "C", "          ", "mv_par16", "Sim            ", "Si             ", "Yes          ", "",       "",      "Nao            ", "No             ", "No             ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+aAdd(aRegs,{"CTGPM050", "17", "Qtde. Vales a Deduzir ?", "¿Ctd. Vales por Deducir ?    ", "Nbr. of vouchers to deduct ?", "MV_CHH", "N",  2,        0,      0,   "G", "          ", "mv_par17", "               ", "               ", "             ", "",       "",      "               ", "               ", "               ", "",    "",    "",    "",      "",      "",    "",    "",     "",      "",      "",      "",    "",     "",      "",       "",     "",  "",      "",     {},       {},       {}             })
+
+ValidPerg(aRegs,"CTGPM050",.T.)
+
+Pergunte("CTGPM050",.F.) 
+                                                
+cCadastro :=  "Calculo de Vale Transporte - CERTISIGN." //STR0004                                             
+cDescricao:=  "Este programa calcula o Vale Transporte - CERTISIGN."+"Sera calculado de acordo com os parametros selecionados pelo usuario."   
+bProcesso :=   {|oSelf| CTGP05Processa(oSelf)}
+
+If lVersao101
+	tNewProcess():New( "CTGPM050" , cCadastro , bProcesso , cDescricao , "CTGPM050",,,,,.T.,.T.  ) 
+Else
+	AADD(aSays,OemToAnsi("Este programa calcula o Vale Transporte - CERTISIGN.") )  //
+	AADD(aSays,OemToAnsi("Sera calculado de acordo com os parametros selecionados pelo usuario.") )  //
+	
+	AADD(aButtons, { 5,.T.,{|| Pergunte("CTGPM050",.T. ) } } ) 
+	AADD(aButtons, { 1,.T.,{|o| nOpca := 1,IF(gpconfOK(),FechaBatch(),nOpca:=0) }} ) 
+	AADD(aButtons, { 2,.T.,{|o| FechaBatch() }} )
+		
+	FormBatch( cCadastro, aSays, aButtons )
+	
+	//-> Variaveis utilizadas para parametros
+	IF nOpca == 1 
+	    Processa({|lEnd| CTGP05Processa(),"Calculo do Vale Transporte " }) 
+	Endif
+	
+EndIf
+
+//-> Gera planilha para conferencia.
+If !Empty(aProceed)
+   fPlanLOG(aProceed)
+EndIf
+	
+  
+Return 
+
+/*
++-------------------------+--------------------------+------------------------+
+| Funcao.: CTGP05Processa | Autor.:                  | Data.:                 |
++-------------------------+--------------------------+------------------------+
+| Objetivo.: Calculo Central.                                                 |
++-----------------------------------------------------------------------------+
+*/
+Static Function CTGP05Processa(oSelf ) 
+
+//-- Vale Proporcional do mes de Vale
+Local   nDiasProp	:= 0 				//-- Qtde Prop Dias de Vale ( dia Util ) 
+Local   nDiaNUtProp	:= 0 				//-- Qtde Prop Dias de Vale ( dia nao util)
+Local   nDiasFePro  := 0 
+Local   nDiasAbono  := 0 
+Local 	dDtIniProg  := CTOD("") 
+Local   lTemCpoProg  					//-- Se tem  cpos de programacao de ferias em  3 periodos 
+Local 	lTemProgFer	:= .F.				//-- Se Tem  ferias Programadas 
+Local   cTurnoAnt	:= Space(3)
+Local	nX			:= 0
+Local   nY			:= 0
+Local   nCustEmp	:= 0
+Local   nCustFun 	:= 0
+Local   nDescFun 	:= 0
+Local   nDifEmp	:= 0
+Local   nDifFun	:= 0
+Local   nLctoDif	:= 0
+Local   nLctoEmp	:= 0
+Local   nLctoFunc	:= 0
+Local   nSalario  := 0
+Local   nSalDia 	:= 0
+Local   nSalHora 	:= 0
+Local   nTotCust	:= 0
+Local   nTotDif	:= 0
+Local   nTVerbas	:= 0
+Local   nValDif	:= 0
+Local   nValTot	:= 0
+Local   lDiasProp := .F.
+Local   nDiasFix  := If(GetRpoRelease() >= "R7",SRN->RN_DIASFIX,0)
+
+Local 	aLog		:= {}				//-- Log de Ocorrencias 	
+Local 	aLogTitle 	:= {}
+Local 	bMakeLog	:= { || NIL }
+Local	cMensagem	:= ""
+Local	cMsgLog		:= ""
+Local	lMotivo		:= .F.
+
+//-> Variaveis para verificacao Historico do Ponto Eletronico.
+Local   cEveFlt     := ""
+Local   cQuery      := ""
+Local   aAreaAt     := {}
+Local   cQryFal     := GetNextAlias()
+Local   cCodAbo     := fAboBen() //-> Resgata os abonos para Faltas Integrais.
+
+//-> Variaveis para verificacao Historico do Ponto Eletronico.
+Private dPerIni     := ""
+Private dPerFim     := ""
+
+Private aCodFol 	:= {}		// Matriz com Codigo da folha
+Private aTabFer     := {}		// Tabela para calculo dos dias de ferias
+Private lProp     	:=.F.
+Private cCalVTPro 	:= Getmv("MV_CVTPROP")
+Private cDiasMes	:= Getmv("MV_DIASMES")
+Private nUlt_Dia  	:= F_ULTDIA(If(Empty(mv_par11), dDataBase, mv_par11))
+Private dDtFimRef	:= CtoD("  /  /  ")
+Private ULT_DATA	:= CtoD("  /  /  ")
+Private PRI_DATA  	:= CtoD("  /  /  ")
+Private DiasTrab  	:= 0
+Private nDiasAfas 	:= 0
+Private nDVtAfas 	:= 0
+Private lDiasAfas 	:= .F.
+Private lMesAdm 	:= .F.  //--Variavel usuada para verifica se funcionario e Admitido no mes de referencia
+Private nDiasFal  	:= 0
+Private nDiasFer	:= 0
+Private nDiasVt	    := 0  	//-- Variavel para ser usada no ponto de Entrada
+Private nDiasTrb	:= 0    //-- Variavel para ser usada no ponto de entrada
+Private nDiasDom	:= 0	//-- Variavel para ser usada no ponto retorna numero de Domingos
+Private nDiasSab	:= 0	//-- Variavel para ser usada no ponto retorna numero de sabados
+Private	nDiasVtNUT	:= 0  	//-- Variavel para ser usada no ponto de Entrada
+Private	nDiasVtDf	:= 0  	//-- Variavel para ser usada no ponto de Entrada
+Private	nDiasVtDfN	:= 0  	//-- Variavel para ser usada no ponto de Entrada
+Private nDiaVales 	:= 0 	//-- Qtde Total de dias de Vales  Dia Util
+Private nDiaNUtil	:= 0 	//-- Qtde Total de Dias de Vales  Dia Nao Util 
+Private nDiaDifer 	:= 0	//-- QTde de dias de Vales de Diferenca 
+Private	nDiaDifN	:= 0 
+Private cSemana		:= cSem := Space(2)
+Private aPeriodo	:= {}
+Private aDiasMes	:= {}
+Private lUseCadTurno:= .F.	//-- Determina se calculo tera como base Cadastro de Turnos 
+Private cDias		:= ""
+
+Private aRoteiro 	:= {}
+Private nComis		:= 0
+Private nDAfast   	:= 0
+Private nDiasUteis 	:= 0
+Private nDiasNTrab	:= 0  
+Private nDProp   	:= 0
+Private nSalMes		:= 0
+Private lUsaCPer    := .F.
+Private aTabCalend  := {}
+
+Default lGp210Sal	 := ExistBlock("GP210SAL",.F.,.T.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ mv_par01  - Calcular por 1-Matricula  2-C.Custo              ³
+//³ mv_par02  - Calculo  1-Vale Transporte 2-Dif. Calculo        ³
+//³ mv_par03  - Filial De                                        ³
+//³ mv_par04  - Filial Ate                                       ³
+//³ mv_par05  - Centro de Custo De                               ³
+//³ mv_par06  - Centro de Custo Ate                              ³  
+//³ mv_par07  - Matricula De                                     ³
+//³ mv_par08  - Matricula Ate                                    ³
+//³ mv_par09  - Situacao Funcionario                             ³
+//³ mv_par10  - Categoria do Funcionario                         ³
+//³ mv_par11  - Data de Referencia                               ³
+//³ mv_par12  - Proporcional a Admissao                          ³
+//³ mv_par13  - Descontar Faltas                                 ³
+//³ mv_par14  - Proporcional a Afastados                         ³
+//³ mv_par15  - Arred. no calculo Abaixo / Acima                 ³
+//³ mv_par16  - Ferias Programadas                               ³
+//³ mv_par17  - Numero de Vales a Deduzir                        ³
+//³ mv_par18  - Sobre Salario ?				                     ³
+//³ mv_par19  - Verbas Somar Salar. ?		                     ³
+//³ mv_par20  - Verbas Somar Salar.(CONT.)?                      ³
+//³ mv_par21  - Verbas Somar Salar.(CONT.)?                      ³
+//³ mv_par22  - Verbas Somar Salar.(CONT.)?                      ³
+//³ mv_par23  - Dias p/Base Calculo ?                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//-> Carregando as Perguntas.
+nOrdem      :=  mv_par01
+nTipCal     :=  mv_par02
+cFilDe      :=  mv_par03
+cFilAte     :=  mv_par04
+cCcDe       :=  mv_par05
+cCcAte      :=  mv_par06
+cMatDe      :=  mv_par07
+cMatAte     :=  mv_par08
+cSituacao   :=  mv_par09
+cCategoria  :=  mv_par10
+dDataRef    :=  If(Empty(mv_par11), dDataBase, mv_par11)
+cAnoMes		:=	Substr(dToS( dDataRef ), 1, 6)
+nPropAdm    :=  mv_par12  // 1-Sim; 2-Nao
+nDFaltas    :=  mv_par13
+nDFerias    :=  mv_par14  // 1-Sim; 2-Nao
+nCriterio	:=  mv_par15
+nFerProg    :=  mv_par16
+nQtdDed		:=  mv_par17
+nSalIncor	:=  mv_par18   
+cCodigos    :=  AllTrim(mv_par19)+AllTrim(mv_par20)+AllTrim(mv_par21)+AllTrim(mv_par22)
+nDiaUtPar	:=  mv_par23 	
+
+ULT_DATA  := CtoD(StrZero(NUlt_Dia,2)+"/"+StrZero(Month(dDataRef),2)+"/"+STRZERO(YEAR(dDataRef),4))
+PRI_DATA  := CtoD("01"+"/"+StrZero(Month(dDataRef),2)+"/"+STRZERO(YEAR(dDataRef),4))
+dDtFimRef := ULT_DATA
+SetMnemonicos(NIL,NIL,.T.)
+
+//-> Verifica a existencia dos campos de programacao ferias no SRF.
+lTemCpoProg := fTCpoProg()
+
+//-> No caso de apuracao de Faltas Integrais, verifica o ultimo Periodo de Apontamento do Ponto Eletronico.
+IF nDFaltas == 1 
+
+         SPO->( DbSetOrder(2) )
+         SPO->( DbGoTop() )
+   While SPO->( !EOF() )
+         dPerIni := DToS(SPO->PO_DATAINI)
+         dPerFim := DToS(SPO->PO_DATAFIM)
+             
+         SPO->( DbSkip() )
+   EndDo
+   
+   cEveFlt     := Posicione("SP9",2,xFilial("SP9")+"010A","P9_CODIGO")
+   
+   If Empty(dPerIni)
+      Aviso("ATENCAO!!","Nao ha registros de Periodos de Apontamentos FECHADOS no Ponto Eletronico.Verifique.",{"OK"})
+      Return() 
+   EndIf
+	   
+   If Empty(cEveFlt)
+      Aviso("ATENCAO!!","Nao foi localizado o evento de Falta Integral (ID.010A).Verifique.",{"OK"})
+      Return() 
+   EndIf
+EndIf
+
+//-> Carrega Matriz com Cabeçalho da Planilha de Conferencia.
+AaDd(aProceed,{ 'Filial',;
+                'Matricula',;
+                'Nome',;
+                'Centro de Custo',;
+                'Periodo Compra',;
+                'Qtde. Beneficios',;
+                'Qtde. Faltas',;
+                'Per.Inicio Ponto',; 
+                'Per.Final Ponto',;
+                'Dias Afastado',;
+                'Dias Ferias',;
+                'Valor Unitario',;
+                'Valor Total',;
+                'Codigo Beneficio',;
+                'Descricao Beneficio';
+                 })
+
+
+//-> Procura primeiro funcionario                                 
+dbSelectArea( "SRA" )
+nSavRec  := RecNO()
+dbGotop( )
+
+//-> Carrega Regua Processamento.
+If lVersao101
+	oSelf:SaveLog( "Calculo Vale Transporte"+" - "+"Inicio do processamento")
+
+	oSelf:SetRegua1(SRA->(RecCount()))
+Else
+	ProcRegua(SRA->(RecCount()))
+EndIf	
+	
+If nOrdem = 1
+	dbSetOrder( 1 )
+	dbSeek( cFilDe + cMatDe , .T. )
+Elseif nOrdem = 2
+	dbSetOrder( 2 )
+	dbSeek( cFilDe + cCcDe + cMatDe , .T. )
+Endif
+cFilAnte := Space(FWGETTAMFILIAL)
+
+While !Eof( )	
+
+	//-> Move Regua Processamento	                                  
+	If lVersao101
+		oSelf:IncRegua1("Calculando Vale Transporte"+SRA->RA_FILIAL+" - "+SRA->RA_MAT+" - "+SRA->RA_NOME)
+	Else
+	   IncProc("Calculando Vale Transporte")
+	EndIf
+
+	//-> Consiste o De / Ate  nOrdem = 1-Matricula / 2-Centro Custo   
+	IF nOrdem = 1
+		If Eof() .Or. (SRA->RA_FILIAL + SRA->RA_MAT > cFilAte + cMatAte )
+			Exit
+		Endif
+	ElseIf nOrdem = 2
+		If Eof() .Or. (SRA->RA_FILIAL + SRA->RA_CC + SRA->RA_MAT > cFilAte + cCcAte + cMatAte)
+			Exit
+		Endif
+	Endif
+	
+	//-> Testa Categoria e Situacao do Funcionario                   
+	If !(SRA->RA_SITFOLH $ cSituacao) .Or. !(SRA->RA_CATFUNC $ cCategoria)
+		dbSkip( )
+		Loop
+	Endif
+	
+	//-> Testa se Funcionario demitido no mes/ano de referencia      
+	If  (SRA->RA_SITFOLH $"D") .and.  MesAno(SRA->RA_DEMISSA)< MesAno(dDataRef) .or. ;   //se demitido fora do mes corrente
+		MesAno(SRA->RA_ADMISSA) > MesAno(dDataRef)										 //se admitido apos mes de referencia
+		dbSkip()	
+		Loop
+	endif 
+	
+	//-> Consiste Parametrizacao do Intervalo de Impressao            
+	If 	( SRA->RA_MAT     < cMatDe )   .Or. ( SRA->RA_MAT     > cMatAte )   .Or. ;
+		( SRA->RA_CC      < cCcDe )    .Or. ( SRA->RA_CC      > cCCAte )    
+		dbSkip()
+		Loop
+	EndIf
+
+	If SRA->RA_FILIAL # cFilAnte
+		cFilAnte := SRA->RA_FILIAL
+		aPeriodo := {}
+
+		//-> Carrega Variaveis Codigos da Folha					  	     
+		If !FP_CODFOL(@aCodFol,SRA->RA_FILIAL)
+			Exit
+		Endif
+	Endif
+
+	//-> Verifica se func. tem  V.T.                                  
+	If !( SR0->( dbSeek( SRA->RA_FILIAL + SRA->RA_MAT )  ) ) 
+		dbSkip()
+		Loop
+	Endif 
+	dbSelectArea( "SRA" )
+
+	/*+--------------------------------------------------------------+
+	  | Carrega tabela para apuracao dos dias de ferias - aTabFer    |
+	  | 1-Meses Periodo    2-Nro Periodos   3-Dias do Mes    4-Fator |
+	  +--------------------------------------------------------------+
+	*/
+	fTab_Fer(@aTabFer)
+	
+	//-> Busca no Calendario  os Dias de Vale                         
+	If SRA->RA_TNOTRAB # cTurnoAnt
+		nDiaDifer	:= 0 
+		nDiaDifN	:= 0 
+		nDiaVales	:= 0
+		nDiaNUtil	:= 0
+
+		//-> Verifica se utiliza Cad. de Turnos ou Cadastro de Periodos   
+		lUseCadTurno := fUseCadTurno()
+		
+		If lUseCadTurno
+	
+			//-> Busca Dias de Vale Transporte no Arquivo Turno Trabalho (SR6)
+			dbSelectArea( "SR6" )
+			If dbSeek( xFilial("SR6", SRA->RA_FILIAL ) + SRA->RA_TNOTRAB )
+				If SR6->R6_DIAVTRA > 0
+					nDiaVales := SR6->R6_DIAVTRA
+				Else
+					nDiaVales := 0.00
+				Endif
+				If SR6->R6_DDIFVTR > 0
+					nDiaDifer := SR6->R6_DDIFVTR
+				Else
+					nDiaDifer := 0.00
+				Endif
+			Endif	
+		Endif 		
+				
+		dbSelectArea( "SRA" )
+		cTurnoAnt	:= SRA->RA_TNOTRAB 
+		
+	Endif 
+	
+	If (!lUseCadTurno )
+	
+		nDiaVales	:=	0
+		nDiaNUtil	:=	0
+		nDiaDifer	:=	0
+		nDiaDifN	:=	0		
+		
+		ValeTrans(@nDiaVales,@nDiaNUtil,@nDiaDifer,@nDiaDifN,@lMotivo)
+		
+		If ( lMotivo )
+			cMensagem := "Funcionário não tem direito a VT no periodo." 
+		Else
+			cMensagem := "  Não existem valores no calendário de folha de pagamento referente aos dias de Vale Transporte."
+		EndIf
+	Else
+		cMensagem := "  Não existem valores no calendário de folha de pagamento referente aos dias de Vale Transporte."
+	EndIf 		
+
+	If nTipCal == 1 .and. nDiaVales == 0
+	
+		//-- Fil Matric Mes  Ano Turno Semana Descricao 
+		//--  99 999999  99 9999   999     99 xxxxxx... 
+		IF Empty( aLog ) 
+			cMsgLog := SubStr( STR0017, 1, 3 ) + Space(FwGetTamFilial - 2) + SubStr( STR0017, 4, Len(STR0017) ) 
+			aAdd( aLog , OemtoAnsi( cMsgLog ) ) 
+		EndIF
+		aAdd( aLog , SRA->( RA_FILIAL+ "  " + RA_MAT ) + " "+ Substr(MesAno( dDataRef ),5,2)+ " "+ Substr(MesAno( dDataRef ),1,4) + "   "+ SRA->RA_TNOTRAB + "     " + cSemana + " " + cMensagem )    
+		//--Help(" ",1,"GPM050NTVT") 
+	Endif 
+    
+	//-- Calcular Dias Trabalhados do Mes de Referencia
+	DiasTrab  	:= 0 
+	DiasDsr   	:= 0 
+	nDiasAfas 	:= 0
+	nDiasFer	:= 0	  
+	nDiasFal  	:= 0 
+	ndTrab	  	:= 0
+	ndDSR	  	:= 0  
+	ndNTrab	  	:= 0
+	nDiasProp  	:= 0 
+	nNoDProp	:= 0
+	nDiaNUtProp	:= 0           
+	nDiferProp	:= 0 
+	nDifNProp	:= 0
+	nCustEmp	:= 0
+	nCustFun	:= 0
+	nDifEmp		:= 0
+	nDifFun		:= 0
+	nTotCust	:= 0
+	nTotDif		:= 0
+	nLctoDif	:= 0
+	nLctoEmp	:= 0
+	nLctoFunc	:= 0
+	aDiasMes	:= {} 
+	aAfast		:= {} 
+	lPropFerias	:= (nDFerias == 1)
+	
+	If !lUseCadTurno
+		u_fCarDiasMes(0, @aDiasMes, (nPropAdm == 1))
+	Else
+		aDiasMes := {}
+	Endif
+	
+	If nPropAdm == 1 .Or. nDFerias == 1 
+	
+		If lUseCadTurno
+			FDiasTrab(@DiasTrab,cDiasMes,,dDataRef,.F.)
+			If nDFerias == 1
+				FDiasAfast(@nDiasAfas,@DiasTrab,dDataRef,.F.)
+			Endif
+			/*
+			+-----------------------------------------------------------------------+
+			| Se Funcionario estiver o mes de Fevereiro afastado,  verifica se      |	
+			| deve pagar os dias de VT                                              |
+			+-----------------------------------------------------------------------+
+            */
+			If Month(dDataRef) = 02 .and.  nDiasAfas > 0
+				If nDiasAfas >= nUlt_Dia
+					DiasTrab	:= 0  
+				Endif 	
+			Endif 
+		Else
+			//-- Proporcinal a Afastados  e admissao
+			FTrabCalen(dDataref,;		//-- data de Referencia
+                    @ndTrab,;		//-- Dias Trabalhados
+                    @ndNTrab,;		//-- Dias Nao Trabalhados
+                    @ndDSR,; 		//-- Dias de DSR
+                    @nDiaNUtProp,;	//-- Dias Nao Uteis de Vale Transporte 
+                    @nDiasProp,;	//-- Dias uteis de Vale Transporte
+                    @nDiferProp,; 	//-- Dias de Diferenca de Vale Transporte
+                    ,;				//-- Qtde de Horas de DSR
+                    ,;				//-- Qtde de HoraS Trabalhadas 
+                    ,;				//-- Dias de Vale Refeicao 
+                    ,;
+                    ,;
+                    cSemana, ;
+                    If(nDFerias == 1 , .T.,.F.), ;			//-- Se Verifica Afastamentos 
+                    If(nPropAdm == 1 , .T.,.F.), ;			//-- Proporcional a Admissao 
+					@nDifNProp,; 							//-- Dias de Diferença de VT ( dias Nao uteis) 
+					,;
+					,;
+					dDtFimRef )                     		//-- Data Fim do periodo
+			DiasTrab	:= ( ndTrab + ndDSR + ndNTrab ) 
+		Endif	
+		
+	    If lPropFerias //Verifica se é proporcional a ferias e afastamentos
+	        fRetAfas( PRI_DATA, ULT_DATA,  , , , @aAfast, .F., .F., .T. )
+	        Aeval(aAfast,{|x| If(Empty(x[4]),x[4]:=dDataBase+120,x[4]:=x[4])})
+			For nX := 1 To Len( aAfast )
+	             For nY := aAfast[nX,3] To aAfast[nX,4]
+	                 If ( nPos := Ascan(aDiasMes,{|x| x[1]==nY}) ) > 0
+						If !aDiasMes[nPos,4]
+		                    aDiasMes[nPos,5] := "VT"
+		    			Else
+		    				aDiasMes[nPos,5] := "AFA"
+		    			EndIf		    			
+                    	aDiasMes[nPos,4] := .T.
+	                 EndIf
+	             Next nY
+	         Next nX
+	         Aeval(aDiasMes,{|x| nDVtAfas   += If(x[4] .And. x[5]=="VT",1,0)})	//Dias afastados em que ha pagamento de VT
+	         Aeval(aDiasMes,{|x| nDiasAfas  += If(x[4] .And. x[5]=="AFA",1,0)})	//Demais dias de afastamento
+	         
+	         nDiasAfas += nDVtAfas //Dias de afastamento geral (com e sem pagamento de VT)	         
+	    Endif		
+	Endif
+	
+	lDiasAfas := IIf(nDiasAfas > 0,.T.,.F.)
+	lMesAdm   := IIf(MesAno(SRA->RA_ADMISSA) == MesAno(dDataRef), .T.,.F.)
+	
+	//--Verifica as Faltas no Arquivo de Movimento
+	IF nDFaltas == 1 
+       nDiasFal := fCkFtBen(SRA->RA_FILIAL, SRA->RA_MAT, dPerIni, dPerFim, cEveFlt, cCodAbo )
+	Endif
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica Dias de Vale Transporte caso considere   Ferias programadas³	
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	nDferven := nDferave := 0 
+
+	If nFerProg == 1 
+
+		nSaldo     := 0
+		nSaldo_i   := 0
+		nSaldo_f   := 0                 
+		nFaltas    := 0
+		nDiasFer   := 0	
+		nDAntPer   := 0
+		nDiasFePro := 0
+		nDiasAbono := 0
+		lTemProgFer= .F.
+
+		dbSelectArea( "SRF" )		// Arquivo de provisoes de Ferias 
+		IF dbSeek( SRA->RA_FILIAL+SRA->RA_MAT)
+			dDtIniProg := SRF->RF_DATAINI
+			If lTemCpoProg
+				nDiasFePro := SRF->RF_DFEPRO1
+				nDiasAbono := SRF->RF_DABPRO1
+				If MesAno(SRF->RF_DATINI2) == MesAno(DdataRef)
+					dDtIniProg := SRF->RF_DATINI2
+					nDiasFePro := SRF->RF_DFEPRO2
+					nDiasAbono := SRF->RF_DABPRO2
+				ElseIf MesAno(SRF->RF_DATINI3) == MesAno(DdataRef)
+					dDtIniProg := SRF->RF_DATINI3
+					nDiasFePro := SRF->RF_DFEPRO3
+					nDiasAbono := SRF->RF_DABPRO3
+				EndIf	
+			EndIf
+			If MesAno(dDtIniProg) = MesAno(DdataRef) .Or.;
+			   MesAno(dDtIniProg+nDiasFePro) = MesAno(DdataRef)
+
+				dDtBasFe := SRF->RF_DATABAS
+
+				//Se nao houver dias de programadas calcula dias de vencidas 
+				If nDiasFePro > 0 
+					nDferven := nDiasFePro 
+				Else
+					nDAntPer := SRF->RF_DFERANT 
+					//Calcula dias de Ferias Vencidas e proporcionais 
+					Calc_Fer(dDtBasFe,dDataRef,@nDferVen,@nDferAve) 
+					nDferven := If (nDferVen <= 0,nDferave,nDferven) 
+					nDferven := If (nDferVen > aTabFer[3],aTabFer[3],nDferven) 
+				EndIf 
+
+               	//Verifica dias de faltas de acordo com tabela p/ ferias 
+               	nFaltas  := nDiasFal 
+    	        TabFaltas(@nFaltas)
+    	        	   	           	        	
+    	        //Desconto ferias antecipadas
+				nDFerVen 	:= nDferVen - nFaltas - nDAntPer
+				
+				// Verifica se tem abono pecuniario 
+				nDiasAbono 	:= If( nDiasAbono > 0, nDiasAbono, (nDFerVen -(nDFerVen / 3)) ) 
+				ndFerVen   	:= If(SRF->RF_TEMABPE ="S" .And. !lTemCpoProg,nDiasAbono,ndFerVen)  // Total de dias que o func.term direito a ferias
+				dDataFim 	:= dDtIniProg + nDferVen - 1 	//Data	prevista para termino ferias
+				
+				If MesAno(dDtIniProg+nDiasFePro) > MesAno(DdataRef)
+					dDataFim := ULT_DATA
+				EndIf				
+				
+				If lUseCadTurno 
+					nSaldo_i := IF( dDtIniProg > PRI_DATA , dDtIniProg - PRI_DATA , 0 )
+					IF  MesAno( dDataFim )  == MesAno( dDataRef )
+						nSaldo_f = IF( ULT_DATA > dDataFim , ULT_DATA - dDataFim, 0 )
+					EndIF
+
+					IF DiasTrab > 0 .And. ( MesAno( dDtIniProg ) == MesAno( dDataRef) .or. MesAno( dDataFim ) == MesAno(dDataRef) )						
+						nSaldo := DiasTrab -( nSaldo_i + nSaldo_f )
+						DiasTrab -=  If( nSaldo > 0 .And. nSaldo > DiasTrab, nSaldo, 0 )	//Dias Trabalhados no mes ou dias de vale 
+					EndIF
+					
+		            For nY := dDtIniProg To ULT_DATA
+		                If ( nPos := Ascan(aDiasMes,{|x| x[1]==nY}) ) > 0
+		                   If !aDiasMes[nPos,4]
+		                      aDiasMes[nPos,4] := .T.
+		                      aDiasMes[nPos,5] := "FER"
+		                   EndIf
+		                EndIf
+	            	Next nY					
+					Aeval(aDiasMes,{|x| nDiasFer   += If(x[4] .And. x[5]=="FER",1,0)})						
+				Else
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica Dias de Vale Transporte Dias Uteis e Nao uteis dentro de um periodo|
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					If ( dDataFim - dDtIniProg ) > 0 
+						fDiasVales(dDtIniProg, dDataFim, @nDiasProp, @nDiaNUtProp,If( nTipCal==1,.F.,.T.)  )		//-- Dias de Vales dias Uteis e Nao Uteis
+						If nTipCal==2
+						   nDiferProp 	:= nDiasProp
+						   nDifNProp 	:= nDiaNUtProp
+						Endif 
+						
+			            For nY := dDtIniProg To ULT_DATA
+			                If ( nPos := Ascan(aDiasMes,{|x| x[1]==nY}) ) > 0
+			                   If !aDiasMes[nPos,4]
+			                      aDiasMes[nPos,4] := .T.
+			                      aDiasMes[nPos,5] := "FER"
+			                   EndIf
+			                EndIf
+		            	Next nY					
+						Aeval(aDiasMes,{|x| nDiasFer   += If(x[4] .And. x[5]=="FER",1,0)})						
+						
+					Endif
+				Endif
+				lTemProgFer	:= .T.
+			EndIf
+		Endif 
+		dbSelectArea( "SRA" ) 
+	Endif
+
+	//-- Ponto de entrada para Alteracao dos dias de vales e dias trabalhados no mes. 
+	/*
+	If ExistBlock("GPM050DIAS")
+		nDiasVt	    := nDiaVales	// Dias uteis de utilizacao de vale transporte
+		nDiasVtNUT	:= nDiaNUtil	// Dias nao uteis de utilizacao de vale transporte
+		nDiasVtDf	:= nDiaDifer	// Dias uteis de diferenca na utilizacao de vale transporte
+		nDiasVtDfN	:= nDiaDifN		// Dias nao uteis de diferenca na utilizacao de vale transporte
+		nDiasTrb	:= DiasTrab		// Dias trabalhados no mes de refencia
+		nDiasSab	:= 0
+		EXECBLOCK("GPM050DIAS",.F.,.F.)
+		nDiasProp	:= nDiaVales 	:= nDiasVt
+		nDiaNUtProp	:= nDiaNUtil	:= nDiasVtNUT
+		nDiferProp	:= nDiaDifer	:= nDiasVtDf
+		nDifNProp	:= nDiaDifN		:= nDiasVtDfN
+		DiasTrab	:= nDiasTrb 
+	Endif              
+	*/
+	
+ 	// Determina os Dias Utilizados no Calculo
+    cDias := ""
+    For nX := 1 To Len( aDiasMes )
+    	If aDiasMes[nX,4]		// Nao Calculado
+			cDias += "**"
+		Else
+			cDias += StrZero(Day(aDiasMes[nX,1]),2)
+		EndIf
+	Next nX		
+	
+	If nTipCal == 1
+		CalcVale(SRA->RA_FILIAL,;
+		         SRA->RA_MAT   ,;
+		         If( ( (nFerProg ==1 .and.	lTemProgFer ) .or. nPropAdm == 1 .Or. nDFerias == 1  ) .and. !lUseCadTurn  , nDiasProp  , nDiaVales),;
+	             If( ( (nFerProg ==1 .and.	lTemProgFer ) .or. nPropAdm == 1 .Or. nDFerias == 1  ) .and. !lUseCadTurn  , nDiaNUtProp, nDiaNUtil),; 
+	             SRA->RA_CC, ;
+	             SRA->RA_SALARIO, ;
+	             lTemProgFer) 
+	ElseIf nTipCal == 2
+		CalcDifi(SRA->RA_FILIAL,;
+		         SRA->RA_MAT   ,;
+		         If( ( (nFerProg ==1 .and.	lTemProgFer ) .or. nPropAdm == 1 .Or. nDFerias == 1 ) .and. !lUseCadTurn , nDiferProp , nDiaDifer) ,;
+	             If( ( (nFerProg ==1 .and.	lTemProgFer ) .or. nPropAdm == 1 .Or. nDFerias == 1 ) .and. !lUseCadTurn , nDifNProp  , nDiaDifN ) ,;
+				 SRA->RA_CC,;
+				 SRA->RA_SALARIO) 
+	Endif
+	
+	If lVer118
+		lUseCadTurno := fUseCadTurno()
+
+		fPercVT() 
+		If nSalIncor == 1		//Salario Base
+			fSalario(@nSalario,@nSalHora,@nSalDia,@nSalMes,"A")
+		ElseIf nSalIncor == 2	//Salario Composto
+			fSalInc(@nSalario,@nSalMes,@nSalHora,@nSalDia,.T.,@nComis)
+		Endif
+		
+		If !Empty(cCodigos) // Incorpora verbas do Movimento Mensal ao Salario
+			nTVerbas := 0
+			fSVerbas(cCodigos, @nTVerbas)
+			nSalMes += nTVerbas
+		EndIf
+		
+		DbSelectArea( "RG2" )
+		DbSetOrder ( RetOrder ("RG2", "RG2_FILIAL+RG2_MAT+RG2_ANOMES+RG2_TPVALE+RG2_CODIGO"))		
+		If DbSeek( SRA->RA_FILIAL + SRA->RA_MAT + cAnoMes + '0', .F.)
+			While !Eof() .and. RG2->(RG2_FILIAL+RG2_MAT+RG2_ANOMES+RG2_TPVALE) == SRA->RA_FILIAL + SRA->RA_MAT + cAnoMes + '0'
+			
+				nTotCust += RG2_VALCAL 
+				nQtde	 := RG2_DUTILM + RG2_DNUTIM
+				nTotDif	 += RG2_VALDIF
+				nQtdDif	 := RG2_DUTILM + RG2_DNUTIM
+				nNoDProp += If( Empty(RG2_DIAPRO), 1, 0 ) //Verifica se existe algum registro sem dia proporcional informado.
+				nDProp   := If( nNoDProp > 0, 0, Max( RG2_DIAPRO, nDProp ) ) //Considera o maior desde que todos registros possuam valores informados.
+				nDAfast	 := RG2->RG2_FERIAS + RG2->RG2_AFAST
+				DbSkip()
+			Enddo
+			
+			fCalcDTrab(@DiasTrab,cTurnoAnt)
+			
+			If nDiasUteis # 0
+				nSalMes := ( nSalMes * nDiasUteis ) / 30
+			Endif
+			
+			lDiasProp := ( nDProp > 0 .And. nDProp < 99 .and. nDProp != nQtde ) .Or. ( nDProp == 0 .And. nDFerias == 1 .And. nDAfast > 0 )
+			
+			//Quando se usa o cadastro de turnos e o parametro MV_CVTPROP = T nao deve fazer o calculo de VT proporcional, pois a base ja esta composta
+			IF lDiasProp .And. !( lUseCadTurno .And. cCalVTPro == "T" .And. SR6->R6_DIAUTEI > 0 )
+				fDiasVTPrp( If(nDProp > 0, nDProp, nQtde) )   //Calcula Salario De Acordo com parametro MV_CVTPROP
+			Endif
+			
+			//--Ponto de Entrada para Compor Novo Salario/alterar % Desc.func. 
+			/*
+			If lGp210Sal
+				ExecBlock("GP210SAL",.F.,.F.)
+			Endif
+			*/
+			nDescFun := ( nSalMes * nPercentual ) / 100
+			
+			//Necessário efetuar novamente a leitura dos VTs para a proporcionalização do valor de cada vale do funcionário,
+			//caso o valor do custo do funcionário for menor do que o custo total
+			DbSelectArea( "RG2" )
+			DbSeek( SRA->RA_FILIAL + SRA->RA_MAT + cAnoMes + '0', .F.)
+			While !Eof() .and. RG2->(RG2_FILIAL+RG2_MAT+RG2_ANOMES+RG2_TPVALE) == SRA->RA_FILIAL + SRA->RA_MAT + cAnoMes + '0'
+				nValTot := RG2_VALCAL 
+				nValDif	:= RG2_VALDIF
+			
+				If SRA->RA_CATFUNC $ 'EG' 
+					nCustEmp := nValTot
+					nDifEmp	 := nValDif
+					nCustFun := 0      
+					nDifFun	 := 0
+				Else
+			
+					nCustFun := Min( nTotCust,nCustFun )
+					nDifFun	 := Min( nTotDif,nDifFun )
+					
+					If nTotCust + nTotDif > nCustFun + nDifFun
+											
+						nCustFun := Min( ( nDescFun / nTotCust ) * nValTot, nValTot )			
+						nDifFun  := Min( ( nDescFun / nTotDif ) * nValDif, nValDif ) 
+						
+					Endif      
+					
+					If nTotCust + nTotDif > nCustFun + nDifFun
+					
+						nCustEmp := nValTot - nCustFun       
+						nDifEmp	 := nValDif  - nDifFun
+			
+					
+					ElseIf nTotCust + nTotDif <= nCustFun + nDifFun
+						
+				
+						nCustEmp := 0
+						nDifEmp	 := 0
+						nCustFun := nTotCust
+						nDifFun	 := nTotDif		
+						
+					Endif
+				Endif
+				
+				nLctoFunc += nCustFun 
+				nLctoEmp  += nCustEmp  
+				nLctoDif  += nValDif
+			
+				RG2->( RecLock( "RG2" , .F. ) )
+				RG2->RG2_PERC := nPercentual
+				RG2->RG2_CUSFUN := nCustFun
+				RG2->RG2_CUSEMP := nCustEmp
+				RG2->RG2_CFUNDF := nDifFun
+				RG2->RG2_CEMPDF := nDifEmp
+				MsUnLock()
+				
+				DbSkip()
+			EndDo
+		EndIf
+	EndIf
+	dbSelectArea( "SRA" )
+	dbSkip( )
+Enddo
+
+IF !Empty( aLog )
+	//"Ocorreram Inconsistências durante o processo de calculo do Vale Transporte "
+	//Atencao 
+	IF ( MsgNoYes( OemToAnsi( STR0015 )  , OemToAnsi( STR0016 ) ) ) 
+		//"Log de Ocorrencias"
+		//fMakeLog( { aLog } , aLogTitle , NIL , NIL , NIL , STR0014) //"Log de Ocorrencias - Vale Transporte "
+		bMakeLog := { || fMakeLog( { aLog } ,  aLogTitle  , NIL , .T. , FunName() , NIL , "G" , "L" , NIL , NIL ) }
+		MsAguarde( bMakeLog , OemToAnsi( "ND" ) )  //STR0014
+	EndIF
+EndIF
+
+If lVersao101
+	oSelf:SaveLog( "Calculo Vale Transporte. CERTISIGN."+" - "+"Termino do processamento")
+EndIf
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Recupera a Integridade dos dados                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea( "SRA" )
+dbGoTo( nSavRec )
+
+*---------------------------------------------*
+Static Function CalcVale(cFil,cMat,nDias,nDiaNUt,cCC,nSalario,lTemProgFer) 
+*---------------------------------------------* 
+Local nValUni  := 0 
+Local nValCal  := 0
+Local nDiaInf  := 0									//-- Qtde Vales utilizados por dia (dias Uteis ) 
+Local nDiaSab  := 0									//-- Qtde Vales utilizados por dia ( Sabado )
+Local nSR0NUtil:= 0									//-- Qtde Vales utilizados nos dias Nao Uteis 
+Local nDiaCal  := 0									//-- Qtde de Vales no periodo 
+Local nSalBase := 0
+
+Local nDSabCal := 0 								//-- Qtde de Vales no Periodo 
+Local nNUtilCal:= 0 								//-- Qtde de Vales no Periodo ( Nao Util ) 
+Local lExistSab:= .F.
+Local lUsaDProp:= .F.
+Local lDiasMes := .F.
+Local cCodigo  := ""
+
+Local lGPM5002:= ExistBlock("GPM5002")	 
+						
+DEFAULT lTemProgFer := .F.
+
+dbSelectArea( "SR0" ) 
+//--Verifica se existe o campo para controle dos sabados
+If Type("SR0->R0_QDIASAB") # "U" 
+	lExistSab := .T.
+Endif 
+
+If dbSeek( cFil + cMat )	
+	While ! Eof() .And. cFil + cMat = SR0->R0_FILIAL + SR0->R0_MAT
+		If ( lVer118 )	
+			cCodigo	:=	SR0->R0_CODIGO	
+		Else	
+			cCodigo	:=	SR0->R0_MEIO	
+		EndIf	 
+
+		lUsaDProp := .F.
+
+		IF !lVer118 .Or. (lVer118 .And. VAL(SR0->R0_TPVALE) == 0)
+		    /*
+			IF lGPM5002
+				IF ExecBlock("GPM5002",.F.,.F.)
+					dbSkip()
+					Loop
+				Endif	
+			Endif
+			*/
+			If lExistSab 
+				nDiaSab := SR0->R0_QDIASAB
+			Endif 
+			
+			nDiaInf 	:= SR0->R0_QDIAINF
+			nDiaTran 	:= nDias 
+			
+			nSR0NUtil	:= SR0->R0_QDNUTIL 						//-- Qtde de Vales Utilizados Por dia (Nao Util)
+			nDiaInf 	:= SR0->R0_QDIAINF						//-- Qtde de Vales Utilizados Por dia (Util)
+			nDiaTran 	:= nDias	 							//-- Qtde de Dias de Vale
+	 		nDiaNTran 	:= nDiaNUt								//-- Qtde de Dias Nao Uteis de Vale  
+			//--Verifica se Dias Proporcionais Informado no Arquivo de V.T.
+			If SR0->R0_DIASPRO > 0 .And. SR0->R0_DIASPRO < 99 //.And.(lMesAdm .Or. lFerias)
+				nDiaTran := SR0->R0_DIASPRO
+				nDiaNTran:= 0
+				lUsaDProp:= .T.
+			//-- Se Dias (( Nao deve Calcular Vale no Mes Para o Funcionarios
+			ElseIf SR0->R0_DIASPRO=99
+				nDiaTran := SR0->R0_DIASPRO
+				nDiaNTran:= 0
+				nDiaCal  := 0
+				nDSabCal := 0
+				nValCal  := 0
+				lUsaDProp:= .T.
+			//--Verifica se Calculo Proporcional e Nao Informado
+			ElseIf (nPropAdm == 1 .Or. nDFerias == 1 .or.  nFerProg ==1 ) .and. lUseCadTurno
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Calc. dias proporc.Dt Admissao ou Calc.Prop.p/ Afastados     ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If DiasTrab == 0 .And. nPropAdm == 1
+					nDiaTran := 0
+				Endif
+	                                                                            
+				//--Verifica se o calculo sera proporcional (considera afastamentos/ferias)
+	            If ( nFerProg ==1 .And. lTemProgFer ) .Or. (nPropAdm == 1 .and. lMesAdm) .or. (nDFerias == 1 .and. lDiasAfas)
+	            	If ( nUlt_Dia < 30 )
+	            		// Calculo Proporcional no mes de Fevereiro
+	            		nDiaTran :=	If( nUlt_Dia > nDiaTran, nDiaTran, nUlt_Dia )
+	            	EndIf	
+					lDiasMes := SRA->RA_CATFUNC = "D" .Or. (cDiasMes = "S" .And. SRA->RA_CATFUNC $ "H*T")
+					nDiaTran := (DiasTrab*nDiaTran)/If(lDiasMes,nUlt_Dia,30)
+	            EndIf     
+	            
+				If DiasTrab > 0 .and. DiasTrab < 30
+					If nCriterio == 1
+						nDiaTran := NoRound(nDiaTran,0)
+					ElseIf nDiaTran > NoRound(nDiaTran,0)
+						nDiaTran := NoRound(nDiaTran,0)+1
+					EndIf
+				Endif
+			Endif
+	
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Desconta faltas                                              ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If nDFaltas == 1 .And. !lUsaDProp
+				nDiaTran -= nDiasFal
+			EndIF
+			If nDiaTran < 0
+				nDiaTran := 0
+			Endif   
+			
+			dbSelectArea( "SRN" )
+			If dbSeek( xFilial("SRN", SR0->R0_FILIAL ) + cCodigo )
+				nValUni := SRN->RN_VUNIATU
+			Else
+				nValUni := 0.00
+			Endif                   
+			
+			If nDiaTran <> 99 
+				//-- Calculo dos Dias Uteis     ( Qtde dias * No vales no periodo ) 
+				nDiaCal  := ( nDiatran  * nDiaInf ) - nQtdDed 
+		
+				//-- Calculo dos Dias Nao Uteis 
+				nNUtilCal:= ( nDiaNTran * nSR0NUtil ) 
+			
+				//--Calculo dos Dias de Sabado 
+				nDSabCal := ( nDiaSab  * nDiasSab)
+				
+				//--Calculo do Valor Total 
+				nValCal  := ( (nDiaCal+nNUtilCal + nDSabCal)  * nValUni )
+				nSalBase := nSalario
+			Endif			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Gravar o calculo do Vale Transporte no Arquivo (SR0)         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ 
+			If lVer118
+				GravarSr0(SR0->R0_FILIAL , SR0->R0_MAT , SR0->R0_CODIGO, (nDiaCal+nDSabCal+nNUtilCal) , nValCal , cCC , nSalBase , (nDiaTran + If(nSR0NUtil>0,nDiaNTran,0) ),( nDias+ If(nSR0NUtil>0,nDiaNUt,0)),MesAno(dDataRef)  ) 
+			Else                                                                                               
+				GravarSr0(SR0->R0_FILIAL , SR0->R0_MAT , SR0->R0_MEIO , (nDiaCal+nDSabCal+nNUtilCal) , nValCal , cCC , nSalBase , (nDiaTran + If(nSR0NUtil>0,nDiaNTran,0) ),( nDias+ If(nSR0NUtil>0,nDiaNUt,0))  ) 
+			Endif
+		Endif
+		dbSelectArea( "SR0" )
+		dbSkip( )
+	Enddo
+Endif
+Return Nil
+
+*------------------------------------------------------------------* 
+Static Function CalcDifi(cFil,cMat, nDifUtil, nDifNUtil, cCC,nSalario)
+*------------------------------------------------------------------*
+Local nValAnt  := 0
+Local nValAtu  := 0
+Local nValCalv := 0
+Local nValCaln := 0
+Local nSalBase := 0
+Local nDiaInf  := 0									//-- Qtde Vales Utilizados por dia ( Util )
+Local nSR0NUtil:= 0									//-- Qtde Vales utilizados por dia ( Nao Util )
+Local nDiaCal  := 0									//-- Qtde de Vales no periodo 
+Local nDiaCalN := 0          
+Local nDiasDif := 0
+Local lDiasMes := .F.
+Local cCodigo  := ""
+
+Local lGPM5003:= ExistBlock("GPM5003") 
+
+dbSelectArea( "SR0" )
+If dbSeek( cFil + cMat )
+	While !Eof() .And. cFil + cMat = SR0->R0_FILIAL + SR0->R0_MAT 
+
+		cCodigo	:=	If (lVer118, SR0->R0_CODIGO, SR0->R0_MEIO)
+		IF !lVer118 .Or. (lVer118 .And. VAL(SR0->R0_TPVALE) == 0)
+		    /*
+			IF lGPM5003
+				IF ExecBlock("GPM5003",.F.,.F.)
+					dbSkip()
+					Loop
+				Endif	
+			Endif	
+			*/
+			nSR0NUtil	:= If( lUseCadTurno, 0 , SR0->R0_QDNUTIL)	//-- Qtde de Vales Utilizados Por dia (Nao Util)
+			nDiaInf 	:= SR0->R0_QDIAINF							//-- Qtde de Vales Utilizados Por dia (Util) 
+	
+			dbSelectArea( "SRN" )
+			If dbSeek( xFilial("SRN", SR0->R0_FILIAL ) + cCodigo ) 
+				nValAnt := SRN->RN_VUNIANT 
+				nValAtu := SRN->RN_VUNIATU 
+			Else
+				nValUni := nValAtu := nDiaDif := 0
+			Endif		
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Calc. dias proporc.Dt Admissao ou Calc.Prop.p/ Afastados     ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If (nPropAdm == 1 .Or. nDFerias == 1 .or.  nFerProg ==1 ) .and. lUseCadTurno
+				If DiasTrab == 0
+					nDiasDif := 0
+				Endif                                                             
+	
+				If DiasTrab > 0 .and. DiasTrab < 30
+					lDiasMes := SRA->RA_CATFUNC = "D" .Or. (cDiasMes = "S" .And. SRA->RA_CATFUNC $ "H*T")
+					nDiasDif := (DiasTrab*nDiasDif)/ If(lDiasMes,nUlt_Dia,30)
+					
+					If nDiasDif > INT(nDiasDif)
+						If nCriterio == 1
+							nDiasDif := NoRound(nDiasDif,0)
+						ElseIf nDiasDif > NoRound(nDiasDif,0) 
+							nDiasDif := NoRound(nDiasDif,0)+1
+						EndIf
+					Endif
+				Endif
+			Endif
+	
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Desconta faltas                                              ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			IF nDFaltas == 1 
+				nDifUtil -= nDiasFal
+			Endif
+	
+			If nDifUtil < 0 
+				nDifUtil := 0
+			Endif
+	
+			//-- Calculo dos Dias Uteis     ( Qtde dias * No vales no periodo ) 
+			nDiaCal   := ( nDifUtil  * nDiaInf )
+			//-- Calculo dos Dias Nao Uteis 
+			nDiaCalN  := ( nDifNUtil * nSR0NUtil ) 
+			
+			nValCalv  := ( nDiaCal + nDiaCalN ) * nValAnt
+			nValCaln  := ( nDiaCal + nDiaCalN ) * nValAtu 
+			nValDif   := ( nValCaln - nValCalv ) 
+			nSalBase  := nSalario 
+	
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Gravar o calculo da Difernca Vale Transporte no Arquivo (SR0)³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If lVer118                                                                                      
+				GravarSr0(SR0->R0_FILIAL , SR0->R0_MAT , SR0->R0_CODIGO , ( nDifUtil + nDifNUtil ) , nValDif , cCC , nSalBase ,,,MesAno(dDataRef) )
+			Else
+				GravarSr0(SR0->R0_FILIAL , SR0->R0_MAT , SR0->R0_MEIO , ( nDifUtil + nDifNUtil ) , nValDif , cCC , nSalBase )
+			Endif
+		Endif
+		dbSelectArea( "SR0" )
+		dbSkip( )
+	Enddo
+Endif
+Return Nil
+
+*-------------------------------------------------------------------------------------------* 
+Static Function GravarSr0( cFil, cMat, cMeio, nDia, nVal, cCC, nSal, nDiaPro, nDiaVal, cPerRef) 
+*-------------------------------------------------------------------------------------------* 
+Local nPos1     := 0     
+Local nPos2     := 0
+Local cFilAux   := cFilAnt
+Local cPerCalc	:= SuperGetMv("MV_FOLMES")
+Local lGPM5001	:= ExistBlock("GPM5001") 
+Local lGravaRG2	:= .T.
+Local nVlUnit   := 0
+
+Default cPerRef	:= ""
+Default nDiaPro	:= 0 
+Default nDiaVal	:= 0 
+
+If !Empty(cPerRef)
+	cPerCalc:= cPerRef
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Posiciona cFilAnt na filial corrente p/ garantir Integridade ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cFilAnt := cFil
+
+dbSelectArea ( "SR0" )
+ 
+Begin Transaction 
+
+	If (nVal < 0) 
+		nVal := 0	
+	EndIf	
+	
+	If (nDia < 0)		
+		nDia := 0	
+	EndIf
+	
+	RecLock("SR0",.F.)
+	SR0->R0_FILIAL  := cFil
+	SR0->R0_MAT     := cMat
+	If lVer118
+		SR0->R0_CODIGO  := cMeio
+		SR0->R0_TPVALE	:= "0"
+	Else
+		SR0->R0_MEIO	:= cMeio
+	Endif
+	SR0->R0_CC      := cCC
+	SR0->R0_SALBASE := nSal
+	If nDiaPro <> nDiaVal  .or. (nDiaPro <> ( nDiaVales + nDiaNUtil) .Or. (cCalVTPro $ "P" .And. nDFerias == 1 .And. lDiasAfas)  ) 
+		SR0->R0_DIASPRO := nDiaPro
+	EndIf
+	If nTipCal == 1
+		SR0->R0_QDIACAL := nDia
+		SR0->R0_VALCAL  := nVal
+		SR0->R0_QDIADIF := 0 
+		SR0->R0_VALDIF  := 0
+	ElseIf nTipCal == 2
+		SR0->R0_QDIADIF := nDia
+		SR0->R0_VALDIF  := nVal
+	Endif                      
+	                      
+	If lVer118
+		SR0->R0_VLRVALE	:= SRN->RN_VUNIATU 
+		SR0->R0_FALTAS	:= nDiasFal
+		SR0->R0_FERIAS	:= nDiasFer
+		SR0->R0_AFAST	:= nDiasAfas
+	Endif
+		
+	MsUnlock()
+	
+	nVlUnit := SRN->RN_VUNIATU
+
+    //-> Gerando informações de LOG para a planilha.	
+	nPos1 := AT(".", AllTrim(Str(nVlUnit)) )
+	nPos2 := AT(".", AllTrim(Str(nVal))    )
+	
+	
+
+	//-> Carrega dados para geração da planilha de conferencia.	
+    AaDd(aProceed,{cFil,;                                                                                            //-- Filial Colaborador
+                   cMat,;                                                                                            //-- Matricula Colaborador
+                   Posicione("SRA",1,cFil+cMat,"RA_NOME"),;                                                          //-- Nome Colaborador
+                   cCC,;                                                                                             //-- Centro de Custo Colaborador
+                   AnoMes(mv_par11),;                                                                                //-- Ano/Mes para Compra.
+                   Str(nDia),;                                                                                       //-- Quantidade Beneficios
+                   Str(nDiasFal),;                                                                                   //-- Dias de Faltas do Ponto
+                   If(!Empty(dPerIni), DToC( SToD(dPerIni) ),;
+                                       DToC( CToD("  /  /    "))),;                                                  //-- Dt. Inicial do Periodo do Ponto.
+                   If(!Empty(dPerFim), DToC( SToD(dPerFim) ),;
+                                       DToC( CToD("  /  /    "))),;                                                  //-- Dt. Final do Periodo do Ponto.
+                   Str(nDiasAfas),;                                                                                  //-- Dias Afastamento
+                   Str(nDiasFer),;                                                                                   //-- Dias Ferias
+                   Substr( AllTrim(Str(nVlUnit)), 1, nPos1 -1 ) + "," +;
+                   Substr( AllTrim(Str(nVlUnit)), nPos1 + 1, Len( AllTrim(Str(nVlUnit)) ) - nPos1 ),;                //-- Valor Unitario Beneficio.
+                   Substr( AllTrim(Str(nVal)), 1, nPos2 -1 ) + "," +;
+                   Substr( AllTrim(Str(nVal)), nPos2 + 1, Len( AllTrim(Str(nVal)) ) - nPos2 ),;                      //-- Valor Total Beneficio.
+                   cMeio,;                                                                                           //-- Codigo do Beneficio.
+                   SRN->RN_DESC;                                                                                     //-- Descricao do Beneficio.
+                   })
+	
+	//PE para gravar campos personalizados
+	/*
+	If lGPM5001
+		ExecBlock("GPM5001",.F.,.F.)
+	EndIf
+	*/
+	
+
+	If lVer118
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//  Atualizar arquivo de histórico de benefícios                                  
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		DbSelectArea("RG2")
+		DbSetOrder ( RetOrder ("RG2", "RG2_FILIAL+RG2_MAT+RG2_ANOMES+RG2_TPVALE+RG2_CODIGO"))
+
+		lGravaRG2 := dbSeek( cFil + cMat + cPerCalc + SR0->R0_TPVALE + cMeio )
+
+		If lGravaRG2 .Or. nVal > 0
+
+			If lGravaRG2
+				RecLock("RG2",.F.)
+			Else
+				RecLock("RG2",.T.)	
+		
+				RG2->RG2_FILIAL := cFil
+				RG2->RG2_MAT    := cMat          
+				RG2->RG2_PERIOD	:= cPerCalc
+				RG2->RG2_NROPGT	:= "   "
+				RG2->RG2_TPVALE	:= SR0->R0_TPVALE
+				RG2->RG2_CODIGO := cMeio
+				RG2->RG2_ANOMES	:= cPerCalc
+				RG2->RG2_ROTEIR	:= "   "
+			Endif
+			
+			If SRN->(!Eof())
+				RG2->RG2_TPBEN := SRN->RN_TPBEN
+			EndIf
+			
+			RG2->RG2_DIAPRO	:= SR0->R0_DIASPRO
+			RG2->RG2_DIACAL	:= SR0->R0_QDIACAL
+			RG2->RG2_VALCAL	:= SR0->R0_VALCAL
+			IF nTipCal == 1
+				RG2->RG2_CUSUNI	:= SR0->R0_VLRVALE
+			Endif
+			RG2->RG2_CUSFUN	:= 0
+			RG2->RG2_CUSEMP	:= 0
+			RG2->RG2_PERC	:= 0
+			RG2->RG2_SALBSE	:= SR0->R0_SALBASE
+			RG2->RG2_CC		:= SR0->R0_CC
+			RG2->RG2_DIADIF := SR0->R0_QDIADIF
+			RG2->RG2_VALDIF	:= SR0->R0_VALDIF
+			If nTipCal == 1
+				RG2->RG2_VTDUTE	:= SR0->R0_QDIAINF
+				RG2->RG2_VTDNUT	:= SR0->R0_QDNUTIL
+				RG2->RG2_DUTILM	:= nDiaVales
+				RG2->RG2_DNUTIM	:= nDiaNUtil			
+				RG2->RG2_FALTAS := SR0->R0_FALTAS
+				RG2->RG2_FERIAS	:= SR0->R0_FERIAS
+				RG2->RG2_AFAST	:= SR0->R0_AFAST
+			Else
+				RG2->RG2_CUNIDF	:= SRN->RN_VUNIATU - SRN->RN_VUNIANT
+			Endif
+			RG2->RG2_CFUNDF	:= 0
+			RG2->RG2_CEMPDF	:= 0
+			RG2->RG2_PEDIDO	:= 1
+			RG2->RG2_DIAS	:= cDias
+			
+			MsUnlock()
+
+		Endif
+
+	Endif	
+	
+End Transaction
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Retorna filial original para o cFilAnt                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cFilAnt := cFilAux
+
+Return Nil 
+
+*-------------------------------------------------------------------------------------------* 
+Static Function	fDiasVales(dDtIniProg, dDataFim, nUtil, nNaoUtil, lDiferenca  )		//-- Dias de Vales dias Uteis e Nao Uteis 
+*-------------------------------------------------------------------------------------------* 
+
+Local nPos 		:= 0 
+Local aDados	:= 0 
+
+DEFAULT nUtil 		:= 0 
+DEFAULT nNaoUtil	:= 0 
+DEFAULT lDiferenca 	:= .F.
+
+nUtil 	:= 0 
+nNaoUtil:= 0 
+
+fCarPeriodo( dDataRef , @aPeriodo )
+
+nPos 	:= Ascan( aPeriodo, { |X| X[1]+ X[2] == SRA->RA_TNOTRAB +  cSemana } ) 
+If nPos = 0 
+	nPos:= Ascan( aPeriodo, { |X| x[1]+ x[2] == "   "+ cSemana } ) 
+Endif 
+If nPos > 0 
+	aDados	:= aClone(aPeriodo[nPos,5] ) 
+	//-- Dias totais de V.T. Dias Uteis 
+	aEval(aDados,{ |x| nUtil	+= If(  If( lDiferenca, x[4] == "1",x[3] == "1")  .and. ; 
+											( x[1]< dDtIniProg .or.  x[1]> dDataFim  ) .and. ;
+											( Alltrim( Upper( Cdow( X[1] ))) != "SATURDAY" ) .and.  ;
+											( Alltrim( Upper( Cdow( X[1] ))) != "SUNDAY"	) ;
+											 ,1,0 );
+			 			})
+									 
+	//-- Dias totais de V.T. Dias Nao uteis 
+	aEval(aDados,{ |X| nNaoUtil	+= If(  If( lDiferenca, x[4] == "1",x[3] == "1")  .and. ; 
+											( x[1]< dDtIniProg .or.  x[1]> dDataFim  ) .and. ;
+											(( Alltrim( Upper( Cdow( X[1] ))) == "SATURDAY" ).or.  ; 
+											 ( Alltrim( Upper( Cdow( X[1] ))) == "SUNDAY"   ); 
+											)   ;
+										 ,1,0 ) ;
+					})
+Endif	
+
+//Dias uteis apos desconto das faltas do periodo
+nUtil := If( nUtil - nDVtAfas > 0, nUtil - nDVtAfas, 0 )
+
+Return(Nil)
+
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³GPEM050   ºAutor  ³Microsiga           º Data ³  04/26/05   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Verificar se sera utilizado o cadastro de Turnos ou        º±±
+±±º          ³ Cadastro de Periodos                                       º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function fUseCadTurno()
+
+Local aArea:= GetArea()
+Local lRet := .F. 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Busca Dias de Vale Transporte no Arquivo Turno Trabalho (SR6)³
+//³ R6_DIAVTRA-se estiver preenchido utiliza como padrão         |
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea( "SR6" )
+dbSeek( xFilial("SR6", SRA->RA_FILIAL ) + SRA->RA_TNOTRAB )
+
+lRet	:= (!Eof() .and. SR6->R6_DIAVTRA > 0) 
+
+dbSelectArea( "SRA" )
+
+RestArea(aArea)
+Return(lRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFunction³fValSX1        ºAutor  ³Allyson M        º Data ³  26/05/14   º±±
+±±ÌÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.   ³Valida a atualizacao das perguntas de VT na 11.8              º±±
+±±ÌÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso     ³ GPEM050                                                      º±±
+±±ÈÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function fValSX1()
+
+Local aArea 	:= GetArea()
+Local aAreaSX1 	:= SX1->( GetArea() )
+Local lRet		:= .F.
+
+If SX1->( dbSeek("GPM050    23") )
+	lRet := .T.
+EndIf
+
+RestArea( aArea )
+RestArea( aAreaSX1 )
+
+Return(lRet)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³fPercVT   º Autor ³Microsiga           º Data ³  04/26/05   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function fPercVT()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Retorna o Vlr Percentual descontado do Func. ref. VT         |
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If aCodFol[051,1] # Space(3)
+	nPercentual := PosSrv( aCodFol[051,1],SRA->RA_FILIAL,"RV_PERC")
+	If nPercentual = 0
+		nPercentual := 6.00	
+		//-- Se nao Tiver percentual Cadastrado considera percentual padrao (6%)
+	Endif
+Endif
+Return(nPercentual)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³fDiasVTPrpº Autor ³Microsiga           º Data ³  02/07/2013 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±³Descri‡„o ³ Calculo Sal.Base  p/ Vale Transporte de acordo com o para- ³±±
+±±³          ³ metro MV_CVTPROP (P:Prop do SR0;I:Sal.Integral;T:dias trab)³±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function fDiasVTPrp(nDiasVTMes)
+Local lComis	 := .F.
+Local nSalProp   := 0
+Local nMaxDTrab	 := 0
+Local nMaxDUteis := 0
+Local dDtAdmiss	 := SRA->RA_ADMISSAO
+Local dDtDemiss	 := SRA->RA_DEMISSAO
+Local nDiaTraPro := If(lMesAdm,(dDataRef-dDtAdmiss+1),Day(dDtDemiss))
+Local lDiasAfas	 := If(nDiasAfas > 0,.T.,.F.)
+Local nDiaTraAfa := 0
+Local lDemissa	 := If((SRA->RA_SITFOLH == "D") .and. MesAno(SRA->RA_DEMISSA) == MesAno(dDataRef),.T.,.F.)
+Local lFerias	 := If((SRA->RA_SITFOLH == "F") .and. nDiasAfas > 0,.T.,.F.)
+
+If nComis > 0 
+	nSalMes -= nComis
+	lComis  := .T.
+EndIf
+
+nMaxDTrab	:= Min( DiasTrab-nDiasNTrab, 30 ) 					//Maximo 30 -> Dias trabalhados
+nMaxDUteis	:= If( nDiasUteis > 0, Min(nDiasUteis, 30), 30 ) 	//Maximo 30 -> Dias uteis
+nDiaTraAfa  := nMaxDUteis - nDiasAfas
+
+IF Upper( AllTrim( cCalVTPro ) ) == "T"		//Calcula de Acordo com os Dias Trabalhados  
+	nSalProp := ( nSalMes * nMaxDTrab ) / nMaxDUteis
+ElseIF Upper( AllTrim( cCalVTPro ) ) == "P"	//Calcula de Acordo com os Dias de Vale Transporte no RG2
+	If nDProp > 0 
+		nSalProp := ( nSalMes * nDiasVTMes ) / nMaxDUteis
+	Else
+	   nSalProp := nSalMes
+	EndIf
+ElseIF Upper( AllTrim( cCalVTPro ) ) == "I"	//Considera o Salario Integral para o Calculo do Desconto
+    nSalProp := nSalMes
+ElseIf Upper( Alltrim( cCalVTPro) ) == "S" //Calcula de acordo com o saldo de salário
+	If lMesAdm .Or. lDemissa
+		nSalProp := (( nSalMes / nMaxDUteis ) * nDiaTraPro)
+	Elseif lDiasAfas .Or. lFerias
+		nSalProp := (( nSalMes / nMaxDUteis ) * nDiaTraAfa)
+	Else
+		nSalProp := nSalMes
+	EndIf
+EndIF
+
+If(lComis,nSalProp+= nComis,nSalProp)
+
+//Atribuo o valor da Variável nSalProp à variável nSalMes, para que o custo seja calculado na função fIntegraVT
+nSalMes := nSalProp
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³fCalcDTrabºAutor  ³Microsiga           º Data ³ 02/07/2013  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ GPEM015                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function fCalcDTrab(DTrab,cTurnoAnt)
+
+Local ndTrab 		:= 0
+Local ndDSR 		:= 0
+Local ndNTrab		:= 0 
+Local nDiasAfas		:= 0 
+Local nDiaNUtProp	:= 0 
+Local nDifNProp		:= 0
+Local nDiasProp		:= 0
+Local nDiasVT		:= 0
+Local nMaxDiasMes	:= 0
+Local lDiasMes 		:= ( SRA->RA_CATFUNC = "D" .Or. (cDiasMes = "S" .And. SRA->RA_CATFUNC $ "H*T") )
+Local lAchou
+Local lAdmMes		:= ( AnoMes(SRA->RA_ADMISSAO) == AnoMes(dDataref) .And. Day(SRA->RA_ADMISSAO) != 1 )
+
+Private nDiasFix := If(GetRpoRelease() >= "R7",SRN->RN_DIASFIX,0)
+
+If nDiasFix <> 0
+	nDiasUteis :=	nDiasFix
+ElseIf lUseCadTurno 
+	DbSelectArea ("SR6")
+	DbSetOrder( RetOrder( "SR6", "R6_FILIAL+R6_TURNO" ))
+	DbSeek( xFilial("SR6") + SRA->RA_TNOTRAB,.F.)	
+	
+	nDiasUteis  := If ( SR6->R6_DIAUTEI > 0, SR6->R6_DIAUTEI, nDiaUtPar )
+	nDiasVT		:= SR6->R6_DIAVTRA
+Else            
+	FTrabCalen(dDataref,;		//-- data de Referencia
+               @ndTrab,;		//-- Dias Trabalhados
+               @ndNTrab,;		//-- Dias Nao Trabalhados
+               @ndDSR,;			//-- Dias de DSR 
+               @nDiaNUtProp,;	//-- Dias Nao Uteis de Vale Transporte 
+               @nDiasProp,;		//-- Dias uteis de Vale Transporte 
+               		,;	 		//-- Dias de Diferenca de Vale Transporte
+                    ,;			//-- Qtde de Horas de DSR
+                    ,;			//-- Qtde de HoraS Trabalhadas 
+                    ,;			//-- Dias de Vale Refeicao 
+                    ,;
+                    ,;
+                cSemana,;
+                .T. ,;			//-- se Verifica Afastamentos
+                .T. ,;			//-- se Verifica Admissao 
+				@nDifNProp,;	//-- Dias de Diferença de VT ( dias Nao uteis) 
+				,;
+				,;
+				dDtFimRef )     //-- Data Fim do periodo
+	DTrab	:= ( ndTrab + ndDSR + ndNTrab )
+		
+	If !lAdmMes
+		nMaxDiasMes := If(lDiasMes, nUlt_Dia, 30) 
+		DTrab 	:= ( nMaxDiasMes - nDAfast )
+	ElseIf lAdmMes
+		nMaxDiasMes := ( f_UltDia(dDtFimRef) - Day(SRA->RA_ADMISSAO) + 1 )  
+		DTrab := ( nMaxDiasMes - nDAfast )
+	EndIf	
+	
+	nDiasNTrab := ndNTrab  
+	
+	DbSelectArea ("RCF")
+	DbSetOrder( RetOrder( "RCF", "RCF_FILIAL+RCF_ANO+RCF_MES+RCF_TNOTRA+RCF_SEMANA" ))
+
+	If dbSeek( xFilial("RCF") + cAnoMes + cTurnoAnt, .F. ) //Pesquisa primeiro considerando o turno
+		lAchou := .T.
+	ElseIf dbSeek( xFilial("RCF") + cAnoMes, .F. )
+		lAchou := .T.
+	EndIf
+	
+	nDiasUteis := RCF->RCF_DUTILT + RCF->RCF_DNUTIL
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Se NAO foi informado nDiaUtPar, considera os dias de V.T     ³
+	//³ que foram  informados no CADASTRO DE PERIODOS                ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If nDiaUtPar # 0
+		nDiasUteis := nDiaUtPar
+	Endif	
+Endif	
+
+Return
+
+/*
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡„o	 ³ fSVerbas ³ Autor ³ Kleber Dias Gomes     ³ Data ³ 20/04/99 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Soma as Verbas escolhidas do Movimento Mensal (SRC)        ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Sintaxe	 ³ fSVebas(cCodigos,nValor)                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parƒmetros³ cCodigos - Caracter - ? para as Verbas a serem pesquizadas ³±±
+±±³			 ³ nValor   - Num‚rico - ? para o retorno do Valor somado     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso		 ³ Gen‚rico 												  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+Static Function fSVerbas(cCodigos, nValor)
+
+Local nB := 0	//?-Variavel de For/Next
+Local cVerbas := ""
+Local nFor
+
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ Variaveis de Acesso do Usuario                               ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+Local cAcessaSRC	:= &( " { || " + ChkRH( "GPEM015" , "SRC" , "2" ) + " } " )
+
+nValor  := 0
+
+// Separa os Codigos das verbas solicitadas a listar
+For nFor := 1 To Len(ALLTRIM(cCodigos)) Step 3
+	cVerbas += Subs(cCodigos,nFor,3)
+	If Len(ALLTRIM(cCodigos)) > ( nFor+3 )
+		cVerbas += "/" 
+	Endif
+Next nFor
+
+dbSelectArea( "SRC" )
+dbSetOrder(1)
+If dbSeek( SRA->RA_FILIAL + SRA->RA_MAT )
+	While	!Eof() .And. (SRC->RC_FILIAL+SRC->RC_MAT == SRA->RA_FILIAL+SRA->RA_MAT) 
+		
+		/*
+		ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		³Consiste Filiais e Acessos                                             ³
+		ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+		IF !( SRC->RC_FILIAL $ fValidFil() ) .or. !Eval( cAcessaSRC )
+			dbSelectArea("SRC")
+      		SRC->( dbSkip()) 
+	       	Loop
+		EndIF
+		
+		IF SRC->RC_SEMANA # cSemana
+			SRC->( dbSkip()) 
+			Loop
+		Endif
+		If SRC->RC_PD $ cVerbas
+			If PosSrv( SRC->RC_PD , SRA->RA_FILIAL , "RV_TIPOCOD" ) == "1"		//Proventos
+				nValor += SRC->RC_VALOR
+			ElseIf PosSrv( SRC->RC_PD , SRA->RA_FILIAL , "RV_TIPOCOD" ) == "2"	//Descontos
+				nValor -= SRC->RC_VALOR
+			EndIf
+		EndIf
+		SRC->( dbSkip()) 
+	EndDo
+EndIf
+Return Nil
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³AjCVTPROP ºAutor  ³Gustavo M.			 º Data ³  17/07/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Inclui opcao de saldo de salario para o param. MV_CVTPROP  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ GPEM050/GPEM015                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function AjCVTPROP()
+
+Local aArea		:= GetArea()
+
+dbSelectArea("SX6")
+dbSetOrder(1)
+
+If ( dbSeek( Space(FWGETTAMFILIAL) + "MV_CVTPROP" ) )  .And.  SX6->X6_DESCRIC <> "Para o Desc.do VT considerar o Sal.Propor: aos "
+	RecLock("SX6",.F.)        
+
+	Replace X6_DESCRIC  With "Para o Desc.do VT considerar o Sal.Propor: aos "                    
+	Replace X6_DESC1    With 'Dias Trab. "T",aos Dias de Vale Transp.Propor."P",'
+	Replace X6_DESC2	With 'ao Sal. Integral "I" ou ao Saldo de Salário "S".'
+	
+	MsUnlock()
+EndIf
+
+RestArea( aArea )
+Return( NIL )
+
+/*
++-------------------+------------------------------------------+----------------------+
+| Funcao.: fAboBen  | Autor.: Alexandre Alves da Silva - OPVS. | Data.: 06/06/2016    |
++-------------------+------------------------------------------+----------------------+
+| Descricao.: Busca Codigos de Abonos para Abono de Faltas a Descontar nos Beneficios |
++---------------------+---------------------------------------------------------------+
+| Objetvivo da Rotina | Resgatar os codigos dos abonos que abonam de fato as faltas   |
++---------------------+ integrais, que abateriam os beneficios.                       |
+| Esses codigos de abonos devem estar informados na tabela da folhas (Manutenção      |
+| Tabelas). Detalhes na documentação do projeto.                                      |
++-------------------------------------------------------------------------------------+
+| Observacoes.: Essa rotina foi desenvolvida com base na rotina padrao de calculo de  |
+|               Vale Transporte (GPEM050).                                            |
++-------------------------------------------------------------------------------------+
+|                                     MANUTENCOES                                     |
++------------+-----------------------------+------------------------------------------+
+| Data       | Autor                       | Objetivo                                 |
++------------+-----------------------------+------------------------------------------+
+*/
+Static Function fAboBen()
+
+Local cCodAbo     := ""
+Local cMV_CTABBEN := GetMv("MV_CTABBEN")
+
+If !Empty(cMV_CTABBEN)
+
+          RCC->( DbSetOrder(1) )
+          RCC->( DbGoTop()      )
+          RCC->( DbSeek( xFilial("RCC") + cMV_CTABBEN ) )
+    While RCC->( !EOF() ) .And. RCC->(RCC_FILIAL+RCC_CODIGO) = ( xFilial("RCC") + cMV_CTABBEN )
+
+          cCodAbo  := cCodAbo +"'"+AllTrim(Substr(RCC->RCC_CONTEUDO,1,3))+"',"
+          RCC->( DbSkip() )      
+    EndDo
+    cCodAbo  := If( !Empty(cCodAbo), Substr(cCodAbo, 1, Len(cCodAbo) -1), cCodAbo )
+EndIf
+
+
+Return(cCodAbo)
+
+/*+--------------------------------------------------------------------+---------------------------------------------+-------------------+
+  | Funcao.: fCkFtBen(cFil, cMat, dPerIni, dPerFim, cEveFlt, cCodAbo ) | Resgata Faltas dos Acumulads do Ponto.      | Data.: 06.06.2016 |
+  +------------------------------------+-------------------------------+---------------------------------------------+-------------------+
+  | Autor.: Alexandre A. Silva - OPVS  | Objetivo.: Resgatar faltas ocorridas no ultimo periodo de ponto fechado, verificando os motivos |
+  |                                    | de abono, se existirem e processando os dias de beneficios, conforme o  numero de faltas.       |
+  +------------------------------------+-------------------------------------------------------------------------------------------------+
+  | Parametros.: cFil    -> Filial do Funcionario.                                                                                       |
+  |              cMat    -> Matricula do Funcionario.                                                                                    |
+  |              dPerIni -> Data Inicio do Periodo de Apontamento de Ponto.                                                              |
+  |              dPerFim -> Data Fim do Periodo de Apontamento de Ponto.                                                                 |
+  |              cEveFlt -> Evento referente a Falta Integra.                                                                            |
+  |              cCodAbo -> Abonos com efeito sobre as Faltas Integrais.                                                                 |
+  +--------------------------------------------------------------------------------------------------------------------------------------+
+*/
+Static Function fCkFtBen(cFil, cMat, dPerIni, dPerFim, cEveFlt, cCodAbo )
+
+Local nDiasFal := 0
+Local cQuery   := ""
+Local cQryFal  := GetNextAlias()
+
+cQuery := "SELECT PH_FILIAL, PH_MAT, COUNT(1) AS PH_FLT "
+cQuery += "FROM "+RetSqlName("SPH")+"         "
+cQuery += "WHERE D_E_L_E_T_ <> '*'            "
+cQuery += "AND PH_FILIAL = '"+cFil+"' "
+cQuery += "AND PH_MAT    = '"+cMat+"'    "
+cQuery += "AND PH_PD = '"+AllTrim(cEveFlt)+"' "
+cQuery += "AND PH_DATA BETWEEN '"+dPerIni+"'  AND '"+dPerFim+"' "
+       
+//-> Se houver abonos (especificos) para Faltas Integrais, considera-os.
+If !Empty( cCodAbo )
+   cQuery += "AND PH_ABONO NOT IN ("+cCodAbo+") "
+EndIf
+       
+cQuery += "GROUP BY PH_FILIAL, PH_MAT "
+cQuery += "ORDER BY PH_FILIAL, PH_MAT "
+       
+cQuery := ChangeQuery(cQuery)
+       
+TCQUERY cQuery NEW ALIAS (cQryFal)
+       
+nDiasFal := (cQryFal)->PH_FLT
+       
+(cQryFal)->( DbCloseArea() )
+
+Return(nDiasFal)
+
+/*
++--------------------+-----------------------------------+-----------------------+
+|Funcao.: fPlanLOG   | Autor.: Alexandre Alves           | Data.: 06/06/2016     |
++--------------------+-----------------------------------+-----------------------+
+|Descricao.: Funcao auxiliar para geracao de planilha de conferencia do calculo. |
++--------------------------------------------------------------------------------+
+*/
+Static Function fPlanLOG( aRegs )
+
+Local lSetCentury := __SetCentury( "on" )
+Local cPath       := AllTrim( GetTempPath() )
+Local nTotReg     := 0
+Local cNomeArq    := ""
+
+Local cLin
+Local nPos, nX, nY
+
+Local lErrInc   := .F.
+Local lErrExc   := .F.
+
+Private nHdl
+
+cNomeArq  := CriaTrab(,.F.) + ".CSV"
+
+// Cria Arquivo Texto
+cPath    := cPath + If(Right(cPath,1) <> "\","\","")
+cNomeArq := cPath + cNomeArq
+nHdl     := fCreate( cNomeArq )
+
+If nHdl == -1
+   MsgAlert("O arquivo de nome "+cNomeArq+" nao pode ser executado! Verifique os parametros.","Atencao!")
+   Return
+EndIf
+
+//-> Gravando Cabecalho.
+For nX := 1 To Len(aRegs[1])
+    If nX = 1
+       cLin := aRegs[1][nX] + cSep
+    Else
+       cLin += aRegs[1][nX] + cSep
+    EndIf
+Next 
+cLin += cEol
+
+If fWrite(nHdl,cLin,Len(cLin)) != Len(cLin)
+   If !MsgAlert("Ocorreu um erro na gravacao do arquivo. Continua?","Atencao!")
+      Return
+   Endif
+Endif
+
+
+//-> Gravando Dados.
+For nX := 2 To Len(aRegs)
+
+    For nY := 1 To Len(aRegs[nX])
+        If nY = 1
+           cLin := aRegs[nX][nY] + cSep //Filial
+        Else 
+           cLin += aRegs[nX][nY] + cSep
+        EndIf
+    Next nY
+    cLin += cEol
+    
+    If fWrite(nHdl,cLin,Len(cLin)) != Len(cLin)
+       If !MsgAlert("Ocorreu um erro na gravacao do arquivo. Continua?","Atencao!")
+          Return
+       Endif
+    Endif
+
+Next nX
+
+
+ 
+ If !lSetCentury
+    __SetCentury( "off" )
+ EndIf
+
+fClose( nHdl )
+
+// Integra Planilha ao Excel
+MsAguarde( {|| fStartExcel( cNomeArq )}, "Aguarde...", "Integrando Planilha ao Excel..." )
+
+Return
+
+
+/*
++---------------------+-----------------------------------+-------------------------+
+|Funcao.: fStartExcel | Autor.: Alexandre Alves           | Data.: 06/06/2016       |
++---------------------+-----------------------------------+-------------------------+
+|Descricao.: Realiza o merge entre as informações geradas pela rotina com o MsExcel |
++-----------------------------------------------------------------------------------+
+*/
+Static Function fStartExcel( cNomeArq )
+
+ If !ApOleClient( 'MsExcel' )
+    MsgAlert( 'MsExcel nao instalado' )
+ Else
+    oExcelApp := MsExcel():New()
+    oExcelApp:WorkBooks:Open( cNomeArq ) // Abre uma planilha
+    oExcelApp:SetVisible(.T.)
+    oExcelApp:Destroy()
+ EndIf
+
+Return

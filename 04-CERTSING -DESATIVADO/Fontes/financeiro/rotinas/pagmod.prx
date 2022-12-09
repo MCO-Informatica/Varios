@@ -1,0 +1,20 @@
+/////  PROGRAMA PARA INDICAR A MODALIDADE DO PAGAMENTO POS.264-265
+user function pagmod()
+
+//Local _amodelo := 
+IF SUBSTR(SEA->EA_MODELO,1,2) == "01"
+   If POSICIONE("SA2",1,XFILIAL("SA2")+SE2->E2_FORNECE+SE2->E2_LOJA,"SA2->A2_BANCO") =="237"
+      _aModel := "01"
+   Else
+      _aModel := "03"
+   Endif
+Else
+   _aModel := SUBSTR(SEA->EA_MODELO,1,2)  
+
+Endif
+   
+   If cValtoChar(_aModel) == "41"
+   		_aModel:= cValtoChar(_aModel) := "08"
+   EndIf
+
+Return(_aModel)

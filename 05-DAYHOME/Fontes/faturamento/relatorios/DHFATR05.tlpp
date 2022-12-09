@@ -1,0 +1,306 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR05  ºAutor  ³Microsiga           º Data ³  12/02/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+User Function DHFATR05()
+
+Local oReport
+Private cPerg := "DHFATR05"
+
+AjustaSX1(cPerg)
+
+Pergunte(cPerg,.F.)
+oReport := ReportDef()
+oReport:PrintDialog()
+
+Return
+
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR05  ºAutor  ³Microsiga           º Data ³  12/02/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+Static Function ReportDef()
+
+Local oReport
+Local oSection1
+Local oSection2
+
+oReport  := TReport():New("DHFATR05","Clientes - Listagem Reduzida","DHFATR05",{|oReport| PrintReport(oReport, oSection1)},"Listagem Reduzida de Clientes")
+oSection1 := TRSection():New(oReport,"Clientes",{"SA1"},{"Codigo+Descricao","Descricao+Codigo","Estado+Municipio+Descrição"})
+
+TRCell():New(oSection1,"A1_COD","SA1",,"@!",15,/*lPixel*/,/*CodeBlock*/)
+TRCell():New(oSection1,"A1_NOME","SA1") 
+TRCell():New(oSection1,"A1_NREDUZ","SA1") 
+TRCell():New(oSection1,"A1_CGC","SA1",,,35) 
+TRCell():New(oSection1,"A1_XSATIV1","SA1","Segmento 1",,25) 
+TRCell():New(oSection1,"A1_DSATIV2","SA1","Segmento 2",,25) 
+TRCell():New(oSection1,"A1_END","SA1",,"@!",40)    
+TRCell():New(oSection1,"A1_MUN","SA1",,"@!",30)    
+TRCell():New(oSection1,"A1_EST","SA1")
+TRCell():New(oSection1,"A1_DDD","SA1")                                    
+TRCell():New(oSection1,"A1_TEL","SA1",,,20)
+TRCell():New(oSection1,"A1_ULTCOM","SA1")
+
+Return oReport
+
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR05  ºAutor  ³Microsiga           º Data ³  12/02/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+Static Function PrintReport(oReport, oSection1)
+
+Local oSecao 
+Local aClientes := {}
+Local nX  
+Local nNivel2		:= cNivel
+Local cGrupos:=""
+Local aGrupos:=Separa(mv_par11,"/") 
+Local i:=0
+
+For i := 1 To Len(aGrupos)-1
+	
+	If i == Len(aGrupos)-1
+		cGrupos += "'"+aGrupos[i]+"'"
+	Else
+		cGrupos += "'"+aGrupos[i]+"',"
+	EndIf
+Next i
+
+
+
+If Select("TMPSA1") > 0
+	TMPSA1->( dbCloseArea() )
+EndIf
+
+cQuery := "	SELECT SA1.A1_COD, SA1.A1_LOJA, SA1.A1_NOME, SA1.A1_NREDUZ, SA1.A1_CGC, SA1.A1_END, SA1.A1_MUN, SA1.A1_EST, SA1.A1_DDD, SA1.A1_TEL, SA1.A1_ULTCOM,A1_XSATIV1,A1_SATIV2"+CRLF
+cQuery += "	FROM "+RETSQLNAME("SA1")+" SA1 "+CRLF
+cQuery += "	WHERE "+CRLF
+cQuery += "	(SA1.A1_FILIAL = '"+xFilial("SA1")+"') AND "+CRLF
+cQuery += "	(SA1.A1_COD BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"') AND "+CRLF
+cQuery += "	(SA1.A1_EST BETWEEN 		'"+MV_PAR03+		"' AND '"+MV_PAR04+"') AND "+CRLF
+cQuery += "	(SA1.A1_COD_MUN BETWEEN 	'"+MV_PAR05+		"' AND '"+MV_PAR06+"') AND "+CRLF
+cQuery += "	(SA1.A1_VEND BETWEEN 		'"+MV_PAR07+		"' AND '"+MV_PAR08+"') AND "+CRLF
+cQuery += "	(SA1.A1_ULTCOM BETWEEN 	'"+Dtos(MV_PAR09)+	"' AND '"+Dtos(MV_PAR10)+"') "+CRLF
+
+/*If MV_PAR11 == MV_PAR12
+	cQuery += "(SA1.A1_GRPVEN = '"+MV_PAR11+"' OR  SA1.A1_GRPVEN = '000003' ) "+CRLF
+Else
+	cQuery += "(SA1.A1_GRPVEN BETWEEN 	'"+MV_PAR11+"' AND '"+MV_PAR12+"') "
+Endif*/
+If !Empty(AllTrim(cGrupos))
+	cQuery += " AND (SA1.A1_GRPVENX IN (" + cGrupos + ")) " + CRLF // Alteracao do campo de grupo de clientes 30/10/2017 anterior A1_GRPVEN
+EndIf 
+
+cQuery += "AND (SA1.D_E_L_E_T_ = ' ') "+CRLF
+
+If oReport:Section(1):nOrder == 1
+	cQuery += "ORDER BY SA1.A1_COD, SA1.A1_LOJA,  SA1.A1_NOME "+CRLF
+ElseIf oReport:Section(1):nOrder == 2
+	cQuery += "ORDER BY SA1.A1_NOME, SA1.A1_COD, SA1.A1_LOJA "+CRLF
+Else
+	cQuery += "ORDER BY A1_EST, A1_MUN, A1_NOME "+CRLF
+EndIf
+
+oSecao := oSection1
+
+cQuery := ChangeQuery(cQuery)
+TcQuery cQuery NEW ALIAS "TMPSA1"
+
+cNivel := 9
+                                           
+dbSelectArea("TMPSA1")
+dbGoTop()	
+While !Eof()
+	AAdd(aClientes, {TMPSA1->A1_COD,;
+					TMPSA1->A1_NOME,;
+					TMPSA1->A1_NREDUZ,;
+					TMPSA1->A1_CGC,;
+					TMPSA1->A1_XSATIV1,;
+					POSICIONE("SX5",1,XFILIAL("SX5")+ "T3" + TMPSA1->A1_SATIV2,"X5DESCRI()"),;
+					SUBS(RTRIM(TMPSA1->A1_END),1,30),;
+					RTRIM(TMPSA1->A1_MUN),;
+					TMPSA1->A1_EST,;
+					RTRIM(TMPSA1->A1_DDD) ,;
+					TMPSA1->A1_TEL, TMPSA1->A1_ULTCOM})	
+	dbSkip()
+End
+TMPSA1->( dbCloseArea() )
+
+oReport:SetMeter(Len(aClientes))
+
+For nX := 1 To Len(aClientes)
+    
+	oReport:IncMeter(1)
+	
+	If oReport:Cancel()
+		Exit
+	EndIf
+    			
+	oSection1:Init()
+			
+	oSection1:Cell("A1_COD","SA1"):SetValue(aClientes[nX][01])
+	oSection1:Cell("A1_NOME","SA1"):SetValue(aClientes[nX][02]) 
+	oSection1:Cell("A1_NREDUZ","SA1"):SetValue(aClientes[nX][03]) 
+	oSection1:Cell("A1_CGC","SA1"):SetValue(aClientes[nX][04]) 
+	oSection1:Cell("A1_XSATIV1","SA1"):SetValue(aClientes[nX][05]) 
+	oSection1:Cell("A1_DSATIV2","SA1"):SetValue(aClientes[nX][06]) 
+	oSection1:Cell("A1_END","SA1"):SetValue(aClientes[nX][07])    
+	oSection1:Cell("A1_MUN","SA1"):SetValue(aClientes[nX][08])
+	oSection1:Cell("A1_EST","SA1"):SetValue(aClientes[nX][09])
+	oSection1:Cell("A1_DDD","SA1"):SetValue(aClientes[nX][10])
+	oSection1:Cell("A1_TEL","SA1"):SetValue(aClientes[nX][11],"@R 9999-9999")
+	oSection1:Cell("A1_ULTCOM","SA1"):SetValue(DtoC(StoD(aClientes[nX][12])))
+			    
+	oSection1:Cell("A1_COD","SA1"):show()
+	oSection1:Cell("A1_NOME","SA1"):show() 
+	oSection1:Cell("A1_NREDUZ","SA1"):show() 
+	oSection1:Cell("A1_CGC","SA1"):show() 
+	oSection1:Cell("A1_XSATIV1","SA1"):show() 
+	oSection1:Cell("A1_DSATIV2","SA1"):show() 
+	oSection1:Cell("A1_END","SA1"):show()    
+	oSection1:Cell("A1_MUN","SA1"):show()
+	oSection1:Cell("A1_EST","SA1"):show()
+	oSection1:Cell("A1_DDD","SA1"):show()
+	oSection1:Cell("A1_TEL","SA1"):show()
+	oSection1:Cell("A1_ULTCOM","SA1"):show()
+						 
+	oSection1:PrintLine() 
+
+Next nX	
+			 
+oReport:SkipLine()
+
+cNivel := nNivel2
+Return  
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR05  ºAutor  ³Microsiga           º Data ³  12/02/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+Static Function AjustaSX1(cPerg)
+
+	PutSx1( cPerg, "01", "Cliente Dê ?"			,"","", "mv_ch1",  "C", 06, 0, 0, "G", "", "SA1"		, "", "", "mv_par01",,,,,,,,,,,,,,,,,{"Cliente De",  "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "02", "Cliente Até ?"		,"","", "mv_ch2",  "C", 06, 0, 0, "G", "", "SA1"		, "", "", "mv_par02",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "03", "Estado Dê ?"			,"","", "mv_ch3",  "C", 02, 0, 0, "G", "", "12"		, "", "", "mv_par03",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "04", "Estado Até ?"			,"","", "mv_ch4",  "C", 02, 0, 0, "G", "", "12"		, "", "", "mv_par04",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "05", "Município Dê ?"		,"","", "mv_ch5",  "C", 15, 0, 0, "G", "", "CODMUN"	, "", "", "mv_par05",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "06", "Município Até ?"		,"","", "mv_ch6",  "C", 15, 0, 0, "G", "", "CODMUN"	, "", "", "mv_par06",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "07", "Vendedor Dê ?"		,"","", "mv_ch7",  "C", 06, 0, 0, "G", "", "SA3"		, "", "", "mv_par07",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "08", "Vendedor Até ?"		,"","", "mv_ch8",  "C", 06, 0, 0, "G", "", "SA3"		, "", "", "mv_par08",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "09", "Ult. Compra Dê ?"		,"","", "mv_ch9",  "D", 08, 0, 0, "G", "", "   "		, "", "", "mv_par09",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "10", "Ult. Compra Até ?"	,"","", "mv_ch10", "D", 08, 0, 0, "G", "", "   "		, "", "", "mv_par10",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	//PutSx1( cPerg, "11", "Grupo Vendas Dê ?"	,"","", "mv_ch11", "C", 06, 0, 0, "G", "", "ACY"	, "", "", "mv_par11",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	//PutSx1( cPerg, "12", "Grupo Vendas Até ?"	,"","", "mv_ch12", "C", 06, 0, 0, "G", "", "ACY"	, "", "", "mv_par12",,,,,,,,,,,,,,,,,{"Cliente Ate", "para considerar na", "geração do relatório."},{},{} )
+	PutSx1( cPerg, "11", "Grupo(s) ?"			,"","","mv_ch11","C",80,0,0,"G","U_FILGRP()"			,"","","","mv_par11",,,,,,,,,,,,,,,,,{"Grupo(s)"     	,"para considerar na","geração do relatório."},{},{} )
+
+Return .T.
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³FGrupos   ºAutor  ³Microsiga           º Data ³  10/18/07   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Filtra a selecao de grupos de clientes                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+
+*/
+User Function FILGRP()
+
+	Local cTitulo	:=	"Filtro dos Grupos"
+	Local MvPar
+	Local MvParDef	:=	""
+
+	Private aFil		:= {}
+	Private lTipoRet 	:= .T.
+	
+	cAlias := Alias() 					 		// Salva Alias Anterior
+	
+	IF lTipoRet
+		MvPar:=&(Alltrim(ReadVar()))		 	// Carrega Nome da Variavel do Get em Questao
+		mvRet:=Alltrim(ReadVar())			 	// Iguala Nome da Variavel ao Nome variavel de Retorno
+	EndIF
+	
+	DbSelectArea("ACY")
+	DbGoTop()
+	While ACY->(!Eof())
+		aAdd(aFil, ALLTRIM(UPPER(ACY->ACY_GRPVEN))+"-"+ALLTRIM(UPPER(ACY->ACY_DESCRI)))
+		MvParDef += ALLTRIM(ACY->ACY_GRPVEN) + "/"
+		ACY->(DbSkip())
+	EndDo
+
+	IF lTipoRet
+		If f_Opcoes(	@MvPar		,;	//Variavel de Retorno
+		   				cTitulo		,;	//Titulo da Coluna com as opcoes
+						aFil		,;	//Opcoes de Escolha (Array de Opcoes)
+						MvParDef	,;	//String de Opcoes para Retorno
+									,;	//Nao Utilizado
+									,;	//Nao Utilizado
+						.F.	 		,;	//Se a Selecao sera de apenas 1 Elemento por vez
+						7			,;	//Tamanho da Chave
+						99			,;	//No maximo de elementos na variavel de retorno
+						.F.			,;	//Inclui Botoes para Selecao de Multiplos Itens
+						.F.			,;	//Se as opcoes serao montadas a partir de ComboBox de Campo ( X3_CBOX )
+									,;	//Qual o Campo para a Montagem do aOpcoes
+						.F.			,;	//Nao Permite a Ordenacao
+						.F.			,;	//Nao Permite a Pesquisa
+						.F.    		,;	//Forca o Retorno Como Array
+						""			;	//Consulta F3
+					  )
+
+			MvPar	:= ALLTRIM(StrTran( MvPar , "*" , "" ))
+			&MvRet 	:= mvpar									 					// Devolve Resultado
+		EndIF
+	EndIF
+	
+	DbSelectArea(cAlias) 								 							// Retorna Alias
+	MvParDef := StrTran( MvParDef , "*" , "" )
+
+Return( IF( lTipoRet , .T. , MvParDef ) )

@@ -1,0 +1,20 @@
+#Include "Protheus.CH"
+#Include "RwMake.CH"
+#Include "TopConn.CH"
+
+User Function TMKGRSP(_cNProsp,_cLProsp)
+	
+	If RecLock("SUS",.F.)
+		SUS->US_XNCONT	:= ACH->ACH_XNCONT
+		SUS->US_XTCONT	:= ACH->ACH_XTCONT
+		SUS->US_XCCONT	:= ACH->ACH_XCCONT
+		SUS->US_XNCON2	:= ACH->ACH_XNCON2
+		SUS->US_XTCON2	:= ACH->ACH_XTCON2
+		SUS->US_XCCON2	:= ACH->ACH_XCCON2
+		SUS->US_XNCON3	:= ACH->ACH_XNCON3
+		SUS->US_XTCON3	:= ACH->ACH_XTCON3
+		SUS->US_XCCON3	:= ACH->ACH_XCCON3
+		SUS->(MsUnLock())
+	EndIf
+
+Return()

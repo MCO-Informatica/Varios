@@ -1,0 +1,39 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT110TEL       | Autor | Lucas Baia          | Data |    18/02/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para criação de campos no Cabeçalho da Solicitação
+//        | de Compras.
+//---------------------------------------------------------------------------------
+// Uso    | VERQUIMICA INDUSTRIA E COMERCIO DE PRODUTOS QUIMICOS EIRELI
+//---------------------------------------------------------------------------------
+
+
+User Function MT110TEL()
+
+Local oNewDialog := PARAMIXB[1]
+Local aPosGet    := PARAMIXB[2]
+Local nOpcx      := PARAMIXB[3]
+Local nReg       := PARAMIXB[4]  
+Local oCampo
+
+
+If nOpcx == 3
+
+Public cA110Cc  := CriaVar("C1_XCABCC")
+
+Else
+
+Public cA110Cc  := SC1->C1_XCABCC
+
+Endif
+
+aadd(aPosGet[1],0)
+aadd(aPosGet[1],0)
+
+@ 63,22 SAY 'Centro de Custo' PIXEL SIZE 45,11 Of oNewDialog
+@ 63,78 MSGET oCampo VAR cA110Cc F3 CpoRetF3("C1_XCABCC") Picture PesqPict("SC1","C1_XCABCC") Valid CheckSX3("C1_XCABCC",cA110Cc) When IIF(INCLUI,.T.,.F.) PIXEL SIZE 10,08 Of oNewDialog
+oCampo:bHelp := {|| ShowHelpCpo( "C1_XCABCC", {GetHlpSoluc("C1_XCABCC")[1]}, 5  )}
+
+Return

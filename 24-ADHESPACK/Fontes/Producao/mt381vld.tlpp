@@ -1,0 +1,34 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT381VLD        | Autor | Lucas Baia          | Data |    03/08/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para Validação na hora de Gravar o Ajuste de Empenho.
+//        | O Retorno é .T. ou .F.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MT381VLD()
+
+Local lInclui   := PARAMIXB[1]
+Local lAltera   := PARAMIXB[2]
+Local lRet      := .T.
+Local nI		:= 0
+
+IF lInclui .OR. lAltera
+    For nI := 1 To Len(aCols)
+        IF !GDDeleted(nI)
+            IF aCols[nI,aScan(aHeader,{|x|UPPER(Alltrim(x[2])) == "D4_DTVALID"})] < Date()
+
+                lRet    := .F.
+                FWAlertError("Não será permitido a Gravação dos Empenhos, pois existem Data de Validade dos Lotes vencidas, favor revisar!", "ATENÇÃO")
+                Return (lRet)
+
+            ENDIF
+        ENDIF
+    Next nI
+ENDIF
+
+Return (lRet)

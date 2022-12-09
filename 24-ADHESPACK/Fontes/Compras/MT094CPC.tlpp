@@ -1,0 +1,18 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT094CPC         | Autor | Lucas Baia          | Data |    04/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para exibir campos do Pedido de Compras.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MT094CPC()
+
+Local cCampos
+
+cCampos := "C7_XPTAX"
+
+Return (cCampos)

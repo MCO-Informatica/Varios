@@ -1,0 +1,179 @@
+#include "totvs.ch"
+
+// IMPRESSORA TLP2844
+#define cPorta  "LPT1"
+#define cModelo "ELTRON"
+
+
+User Function DHOME17()
+
+Local oDlg                        
+Local cNota 	:= SPACE(9)                 
+Local cSerie 	:= SPACE(3)   
+Private cCliente:= SPACE(6)
+Private cLoja 	:= SPACE(2)
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 320,398 PIXEL TITLE "Impress?o Etiqueta Volume Amazon"
+                            
+@ 003+(20*1),010 Say "Nota Fiscal: " of oDlg Pixel
+@ 002+(20*1),070 MsGet oNota Var cNota when .T. Size 50,10 of oDlg Pixel
+@ 003+(20*2),010 Say "Série: " of oDlg Pixel
+@ 002+(20*2),070 MsGet oSerie Var cSerie when .T. Size 20,10 of oDlg Pixel
+
+@ 145,140 BUTTON "Imprimir" SIZE 28,13 PIXEL OF oDlg ACTION (FPrint(cNota, cSerie),oDlg:End())
+@ 145,170 BUTTON "Sair" SIZE 28,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+
+
+
+Static Function FPrint(cNota,cSerie)
+
+IF Empty(cNota)
+	MsgInfo("Nota Fiscal n?o informada !","Atenç?o")
+	Return()
+endif                    
+
+IF Empty(cSerie)
+	MsgInfo("Série da Nota Fiscal n?o informada !","Atenç?o")
+	Return()
+endif          
+
+DbSelectArea("SF2")		
+DbSetOrder(1)	
+if !DbSeek(xFilial("SF2")+cNota+cSerie)
+	MsgInfo("Nota Fiscal / Série n?o existe !","Atenç?o")
+	Return()
+endif	
+       
+cPedido := ""
+DbSelectArea("SD2")
+DbsetOrder(3) 
+SD2->(DbGotop())
+if DbSeek(xFilial("SD2")+cNota+cSerie)
+   cPedido := SD2->D2_PEDIDO
+else
+	MsgInfo("Pedido n?o localizado na Nota Fiscal !","Atenç?o")
+	Return()
+endif   
+                   
+aItens:={}
+nQtdCaixas := 0
+
+dbSelectArea("SC5")
+dbSetOrder(1)
+dbSeek(xFilial("SC5")+cPedido,.f.)
+nQtdCaixas := SC5->C5_VOLUME1
+cCliente := SC5->C5_CLIENTE
+cloja	 :=	SC5->C5_LOJACLI
+
+
+dbSelectArea("SA1")
+dbSetOrder(1)
+dbSeek(xFilial("SA1")+cCliente+cloja,.f.)
+
+_cEnd	:=	Alltrim(SA1->A1_END)
+_cCompl	:=	Alltrim(SA1->A1_COMPLEM)
+_cBairro:= 	Alltrim(SA1->A1_BAIRRO)
+_cMun	:= 	Alltrim(SA1->A1_MUN)
+_cUf	:=	Alltrim(SA1->A1_EST)
+_cCep	:=	Alltrim(SA1->A1_CEP)
+_cArmaz	:=	Alltrim(SA1->A1_LINX)
+
+If nQtdCaixas <= 0
+	DbSelectArea("ZZ2")
+	ZZ2->(DbSetOrder(1))
+	ZZ2->(DbSeek(xFilial("ZZ2") + "C" + cPedido))
+	While !ZZ2->(Eof()) .And. ZZ2->ZZ2_NUM == cPedido
+		nPosProd := aScan(aItens, {|x| Alltrim(x[1]) == ZZ2->ZZ2_CAIXA})
+		If nPosProd == 0    
+			aAdd(aItens,{ZZ2->ZZ2_CAIXA})
+			nQtdCaixas += 1
+	    endif                                
+		ZZ2->(DbSkip())
+	EndDo
+EndIf
+
+MSCBPRINTER(cModelo, cPorta)
+MSCBCHKStatus(.f.)
+
+For nS := 1 to nQtdCaixas
+	
+	MSCBBEGIN(1,6)
+	//MSCBBOX(07,03,96,73)                
+	
+	//MSCBLineH(07,15,96,3) 
+	//MSCBLineH(07,25,96,3) 
+	//MSCBLineH(07,33,96,3) 
+	//MSCBLineH(07,41,96,3) 
+	//MSCBLineH(07,49,96,3) 
+	//MSCBLineH(07,57,96,3) 
+	//MSCBLineH(07,65,96,3) 
+
+    //MSCBLineV(48,03,15) 
+    
+    //MSCBLineV(34,15,25) 
+    //MSCBLineV(48,15,25) 
+    //MSCBLineV(73,15,25) 
+
+    //MSCBLineV(73,33,41) 
+    
+    //MSCBLineV(73,49,57) 
+
+    //MSCBLineV(73,65,73) 
+                   
+	/*
+	IF cLoja$"01"
+		MSCBSAY(07,05,"ENDERECO ENTREGA GRU5", "N","4","1,1")
+		MSCBSAY(07,10,"Av. Antonio Candido Machado, 3100 - Galpao 3100 ABD", "N","3","1,1")
+		MSCBSAY(07,15,"Jordanesia - Cajamar - SP - 07776-415", "N","3","1,1")
+	ELSE
+		MSCBSAY(07,05,"ENDERECO ENTREGA XBRA", "N","4","1,1")
+		MSCBSAY(07,10,"Av. Dr. Antonio Joao Abdalla, 260 - Bloco 400", "N","3","1,1")
+		MSCBSAY(07,15,"Jordanesia - Cajamar - SP - 07776-902", "N","3","1,1")
+	ENDIF
+	*/
+
+	MSCBSAY(07,05,"ENDERECO ENTREGA "+_cArmaz, "N","4","1,1")
+	MSCBSAY(07,10,_cEnd+" - "+_cCompl, "N","3","1,1")
+	MSCBSAY(07,15,_cBairro+" - "+_cMun+" - "+_cUf+" - "+Subs(_cCep,1,5)+"-"+Subs(_cCep,6,3), "N","3","1,1")
+
+	MSCBSAY(07,22,"ENDERECO ORIGEM", "N","4","1,1")
+	MSCBSAY(07,28,"Rua Visconde de Taunay, 815", "N","3","1,1")
+	MSCBSAY(07,33,"Bom Retiro - Sao Paulo - SP - 01132-000", "N","3","1,1")
+	
+
+	MSCBSAY(07,40,"CHAVE ACESSO", "N","4","1,1")
+	MSCBSAY(07,45,SF2->F2_CHVNFE, "N", "3", "1,1")
+    MSCBSAYBAR(07,50,SF2->F2_CHVNFE,'N','MB07',08,.F.,.F.,,,2,1)
+    
+/* versao original
+	MSCBSAY(07,62,"PEDIDO AMAZON", "N", "4", "1,1")
+	MSCBSAY(40,62,Posicione("SC5",1,xFilial("SC5")+cPedido,"C5_ORDCOMP"), "N", "3", "1,1")
+	MSCBSAYBAR(07,67,Posicione("SC5",1,xFilial("SC5")+cPedido,"C5_ORDCOMP"),'N','MB07',07,.F.,.F.,,,2,1)
+	
+	MSCBSAY(63,70,"VOLUMES", "N", "4", "1,1")
+	cCX := STRZERO(nS,3)+"/"+STRZERO(nQtdCaixas,3)
+	MSCBSAY(80,70,cCX, "N", "3", "1,2")                                                              
+*/
+    
+    // alterado Vincenzo Guida para nova impressora zebra
+    MSCBSAY(07,60,"PEDIDO AMAZON", "N", "4", "1,1")
+	MSCBSAY(40,60,Posicione("SC5",1,xFilial("SC5")+cPedido,"C5_ORDCOMP"), "N", "3", "1,1")
+	MSCBSAYBAR(07,65,Posicione("SC5",1,xFilial("SC5")+cPedido,"C5_ORDCOMP"),'N','MB07',07,.F.,.F.,,,2,1)
+	
+	MSCBSAY(63,68,"VOLUMES", "N", "4", "1,1")
+	cCX := STRZERO(nS,3)+"/"+STRZERO(nQtdCaixas,3)
+	MSCBSAY(80,68,cCX, "N", "3", "1,2") 
+
+	MSCBEND()                                        
+	
+	SLEEP(600)
+	
+Next nS
+
+MSCBCLOSEPRINTER()
+
+Return nil

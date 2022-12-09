@@ -1,0 +1,40 @@
+#INCLUDE "PROTHEUS.CH"
+//-------------------------------------------------------------------
+/*{Protheus.doc} M440SC9I
+Ponto de Entrada na Geracao do SC9
+
+@author Guilherme Santos
+@since 08/11/2016
+@version P12
+*/
+//-------------------------------------------------------------------
+User Function M440SC9I()
+	Local aArea 		:= GetArea()
+	Local aAreaSC5	:= SC5->(GetArea())
+	Local aAreaSC6	:= SC6->(GetArea())
+	Local aAreaSC9	:= SC9->(GetArea())
+	Local aAreaSB1	:= SB1->(GetArea())
+	Local aAreaZZ4	:= ZZ4->(GetArea())
+
+	Local cCodEnd		:= Posicione("SB1", 1, xFilial("SB1") + SC9->C9_PRODUTO, "B1_ENDLOC")
+	
+	If !Empty(cCodEnd) 
+		DbSelectArea("ZZ4")
+		DbSetOrder(1)		//ZZ4_FILIAL, ZZ4_CODIGO
+		
+		If ZZ4->(DbSeek(xFilial("ZZ4") + cCodEnd))
+			RecLock("SC9", .F.)
+				SC9->C9_XENDERE 	:= ZZ4->ZZ4_LOCAL
+				SC9->C9_XNIVEL	:= ZZ4->ZZ4_NIVEL
+				SC9->C9_XSUBNIV	:= ZZ4->ZZ4_SUBNIV
+			MsUnlock()
+		EndIf
+	EndIf
+
+	RestArea(aAreaZZ4)
+	RestArea(aAreaSB1)
+	RestArea(aAreaSC9)
+	RestArea(aAreaSC6)
+	RestArea(aAreaSC5)
+	RestArea(aArea)
+Return NIL

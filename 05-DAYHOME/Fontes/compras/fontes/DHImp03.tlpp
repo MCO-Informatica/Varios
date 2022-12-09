@@ -1,0 +1,135 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#include "rwmake.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+        
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ DHIMP03  บAutor  ณDaniel Viana Moda   บ Data ณ  03/10/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importar os dados do Sistema Linx (conexao direta do BD)   บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Especifico DayHome - Saldo Inicial                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function DHImp03
+
+Local cQuery     := ""
+Local nCount     := 0
+Local cAliasSQL  := "MSSQL/DayHome"
+Local cIpBanco   := "192.168.0.2"
+Local aProdutos  := {}
+Local aMta010    := {}
+Local cCodProd   := ""
+Local cCodFil    := ""
+Local cDescProd  := ""
+Private nAmbSiga := AdvConnection()
+
+If MsgYesNo("Importar o Saldo Inicial ? ")
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณSe conecta ao BD do sistema Linx.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	TcConType("TCPIP")
+	nAmbPol := TcLink(cAliasSQL, cIpBanco)
+	
+	If nAmbPol < 0
+		
+		Conout("--- ["+DTos(Date())+"] Nao foi possivel se conectar ao banco de dados Linx!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+	Else
+		
+		TCSETCONN(nAmbPol)
+		Conout("--- ["+DTos(Date())+"] Conectado ao cadastro de produtos Linx... ["+SubStr(Time(),1,5)+"] ---")
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณMonta Query.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤู
+		cQuery := " SELECT PRODUTO B9_COD, FILIAL B9_FILIAL, ESTOQUE B9_QINI "
+		cQuery += " FROM ESTOQUE_PRODUTOS WHERE FILIAL <> 'DAYHOME FOOD SERVICE'"
+		cQuery += " ORDER BY PRODUTO "
+//		cQuery += " GROUP BY PRODUTO, FILIAL, ESTOQUE "
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณVerifica se a area esta aberta.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		If Select("TEMP") > 0
+			
+			TEMP->(DbCloseArea())
+			
+		EndIf
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณCria arquivo de trabalho.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TcQuery cQuery New Alias "TEMP"
+		
+		TcSetField("TEMP","B9_QINI"         ,"N",TamSx3("B9_QINI" )[1]  ,TamSx3("B9_QINI"  )[2])
+		
+		DbSelectArea("TEMP")
+		TEMP->(DbGotop())
+		
+		DbGoTop()
+		Count To nCount
+		DbGoTop()
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณSe conecta ao BD do sistema protheus.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TCSETCONN(nAmbSiga)
+		
+		Conout("--- ["+DTos(Date())+"] Finalizando conexao!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+		Conout("--- ["+DTos(Date())+"] Obtendo conexao com PROTHEUS... ["+SubStr(Time(),1,5)+"] ---")
+		TcSetConn(nAmbSiga)
+		
+		While TEMP->(!Eof())
+			
+			ProcRegua()
+			
+			If AllTrim(cCodProd+cCodFil) <> AllTrim(TEMP->B9_COD+TEMP->B9_FILIAL)
+			
+				DbSelectArea("SB9")
+				RecLock("SB9",.T.)
+				
+				If AllTrim(TEMP->B9_FILIAL) == "DAYHOME"
+					
+					Replace B9_FILIAL  With "01"
+					
+				Else
+					
+					Replace B9_FILIAL  With "02"
+					
+				EndIf
+				
+				Replace B9_COD   With TEMP->B9_COD
+				Replace B9_QINI  With TEMP->B9_QINI
+				
+				MsUnLock() 
+				
+			EndIf
+			     
+			cCodProd := TEMP->B9_COD
+			cCodFil  := TEMP->B9_FILIAL
+			
+			DbSelectArea("TEMP")
+			TEMP->(DbSkip())
+			
+		EndDo
+		
+	EndIf
+	
+	TCSQLExec(cQuery)
+	
+	DbSelectArea("TEMP")
+	DbCloseArea()
+	
+EndIf
+
+Return()

@@ -1,0 +1,17 @@
+#Include "Protheus.ch"
+
+User Function MA030TOK()
+	Local lRet := .T.
+
+	If Empty(M->A1_SATIV1) .AND. Empty(M->A1_SATIV2)
+		lRet := .F.
+		MsgInfo("É obrigatório o preenchimento de ao menos um segmento!","Atenção")
+	EndIf
+
+	//---> Customização feita pelo Lucas Baía - Ticket 6130
+	IF M->A1_XLGPD == .F. .AND. Empty(M->A1_TELEX)
+		lRet := .F.
+		MsgInfo("É obrigatório o preenchimento do número de CELULAR!","Atenção")
+	ENDIF
+
+Return lRet

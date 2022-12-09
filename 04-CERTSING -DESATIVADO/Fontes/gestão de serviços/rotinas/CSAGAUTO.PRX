@@ -1,0 +1,78 @@
+#INCLUDE "FWMBROWSE.CH"
+#INCLUDE "FWMVCDEF.CH"
+
+User Function CSAGAUTO()
+
+Local oMBrowse
+Local oModel := FWLoadModel( 'CSAG0001' )
+Local oView := FWLoadView( 'CSAG0001' )
+Local oMenuDef := FWLoadMenuDef( 'CSAG0001' )
+Local aRotina := {}
+Local cLocal    := MsDocPath()
+
+aRotina := oMenuDef	
+	
+lOk := ( FWExecView('Solicitação de ATendiemento','CSAG0001', MODEL_OPERATION_INSERT,, { || .T. } ) == 0 )
+
+Return (lOk)
+
+User Function CSAGEROS(aAuto)
+
+Local oMBrowse
+Local oModel := FWLoadModel( 'CSAG0001' )
+Local oView := FWLoadView( 'CSAG0001' )
+Local oMenuDef := FWLoadMenuDef( 'CSAG0001' )
+Local aRotina := {}
+Local cLocal    := MsDocPath()
+Local nCont := 0
+
+aRotina := oMenuDef
+
+oModel:SetOperation(MODEL_OPERATION_INSERT)	
+oModel:Activate()
+
+For n := 1 To Len(aAuto[1][2])
+		
+	oModel:SetValue(aAuto[1][1],aAuto[1][2][n][1],aAuto[1][2][n][2])
+		
+Next n
+	
+nConTrole := 1
+nProdut := 18
+	
+For nX := 1 To Len(aAuto[2][2])/18
+	
+	For t := nConTrole To nProdut
+		
+		oModel:SetValue(aAuto[2][1],aAuto[2][2][t][1],aAuto[2][2][t][2])
+				
+	Next t
+		
+	nControle := nControle + 18
+	nProdut := nProdut + 18
+	
+	If nX < Len(aAuto[2][2])/18
+		
+		oModel:GetModel( 'PA1DETAIL' ):AddLine()
+			
+	End If
+		
+Next nX
+
+If oModel:VldData()	
+
+	oModel:CommitData()
+
+Else		
+	
+	VarInfo("Gerar OS",oModel:GetErrorMessage())	
+		
+EndIf
+	
+ConfirmSx8()
+
+lOk := .T.	
+		
+oModel:DeActivate()	
+
+Return (lOk)

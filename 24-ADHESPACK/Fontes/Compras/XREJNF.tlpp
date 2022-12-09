@@ -1,0 +1,40 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | XREJNF       | Autor | Lucas Baia          | Data |    25/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para Rejeitar Notas Fiscais, pois foram reprovadas
+//        | pelo Setor de Qualidade.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function XREJNF(cDoc,cSerie,cFornece,cForLoja)
+
+DbSelectArea("SF1");SF1->(DbSetOrder(1)) //F1_FILIAL + F1_DOC + F1_SERIE + F1_FORNECE + F1_LOJA + F1_TIPO
+DbSelectArea("SD1");SD1->(DbSetOrder(1)) //D1_FILIAL + D1_DOC + D1_SERIE + D1_FORNECE + D1_LOJA + D1_COD + D1_ITEM
+
+IF MsgYesNo("Deseja mesmo Rejeitar a Nota Fiscal selecionada?", "ATENÇÃO")
+    IF SD1->(DbSeek(xFilial("SD1")+cDoc+cSerie+cFornece+cForLoja,.f.))
+        WHILE SD1->(!EOF()) .AND. (SD1->D1_DOC+SD1->D1_SERIE+SD1->D1_FORNECE+SD1->D1_LOJA) == (cDoc+cSerie+cFornece+cForLoja)
+            RecLock("SD1", .F.)
+                SD1->D1_XMOTREJ := "2"
+            SD1->(MsUnlock())
+            SD1->(DbSkip())
+        ENDDO
+    ENDIF
+
+    IF SF1->(DbSeek(xFilial("SF1")+cDoc+cSerie+cFornece+cForLoja,.f.))
+        RecLock("SF1", .F.)
+            SF1->F1_XMOTREJ := "2"
+        SF1->(MsUnlock())
+    ENDIF
+
+ELSE
+
+    MsgInfo("Operação cancelada pelo Usuário!","ATENÇÃO")
+
+ENDIF
+
+Return

@@ -1,0 +1,6 @@
+User Function SUBJ52()
+
+nQtdLinLote --   // SUBTRAI QUANDO ENTRAR NO LOTE J52, POIS O NUMERO SEQUENCIAL DO REGISTRO TEM QUE SER O MESMO DO REGISTRO PRINCIPAL "J"
+nJ52L ++          // SOMA O CONTADOR nJ52 criado no F420PORT(), este campo será somado no registro TREILLER DE LOTE DO J. 
+nJ52T ++
+Return nQtdTitLote

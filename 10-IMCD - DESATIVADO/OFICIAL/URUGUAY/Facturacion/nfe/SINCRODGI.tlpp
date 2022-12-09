@@ -1,0 +1,346 @@
+#INCLUDE 'PROTHEUS.CH'
+#INCLUDE "TBICONN.CH"
+#INCLUDE "FILEIO.CH"
+
+#DEFINE NBYTES_READ 40960
+
+#DEFINE TRANSMITIDO 		'S'
+#DEFINE AUTORIZADO 			'P'
+#DEFINE REJEITADO_RONDANET 	'E'
+#DEFINE REJEITADO_DGI 		'M'
+
+#DEFINE TYPE_CFE 	1
+#DEFINE TYPE_RESG 	2
+
+USER FUNCTION SINCRODGI( lAuto, cSerie, cTipoFil )
+
+	Local lIntByFile := .T.
+	Local cSincro := ""
+	Local nHandle := 0
+	Local cAliasMnt := ""
+	Local nX := 1
+
+	Local aSerie := {}
+	Default lAuto	:= .T.
+	Default cSerie	:= "LA"
+	Default cTipoFil	:= ""
+
+	PREPARE ENVIRONMENT EMPRESA '03' FILIAL '01'
+
+	aAdd(aSerie, {'FA' ,"SF2"})
+	aAdd(aSerie, {'LA' ,"SF2"})
+	aAdd(aSerie, {'TA' ,"SF2"})
+	aAdd(aSerie, {'NDA' ,"SF2"})
+	aAdd(aSerie, {'NCA' ,"SF1"})
+	aAdd(aSerie, {'FA' ,"SF1"})
+
+	lIntByFile 	:= GetNewPar("MV_RONDATP",.T.)
+	cSincro := "autonfesinc" + cEmpAnt + cFilAnt + "_JOB.lck"
+	//Cria lock no semaforo para evitar mais de uma sincronizacao simultanea
+	nHandle := U_IMCDLOCK(cSincro,.F.)
+
+	FOR nX := 1 to len(aSerie)
+		cSerie := aSerie[nX,1]
+		cAliasMnt :=aSerie[nX,2]
+
+		DbSelectArea(cAliasMnt)
+
+		If valType(cSerie)<>"C"
+			cSerie	:=  Iif(cAliasMnt=="SF2",F2_SERIE,F1_SERIE)
+		EndIf
+
+		If valType(lAuto)<>"L"
+			lAuto	:= .F.
+		EndIf
+
+		If valType(ctipofil)<>"C"   .Or. !(ctipofil$"12")
+			ctipofil	:= Iif(cAliasMnt=="SF2","1","2")
+		EndIf
+
+		If nHandle <> -1
+			If lIntByFile
+				//Modelo de integracao baseado na troca de arquivos
+				MsgRun( "Espere Sincronização" ,, {||	SincByFile() } )
+			Else
+				//Modelo de integracao baseado em arquitetura WebServices
+				If lAuto
+					SincByWs( lAuto, cSerie, cTipoFil )
+
+					autoNfeMsg( "Finalizando o processo principal de Sincronismo" + IIf(cTipoFil == "1", " - Nota de Saida"," - Nota de Entrada"), .T., cEmpAnt, cFilAnt, cSerie , "4")
+				Else
+					MsgRun( "Espere Sincronização" ,, {||	SincByWs(.F. ,cSerie,ctipofil) } )
+				EndIf
+			EndIf
+		Else
+			MsgAlert("Espere Sincronização")
+		Endif
+
+	next Nx
+
+	//Libera o lock no semaforo
+	U_IMCDLOCK(cSincro,.T.)
+
+	//Alivia memoria
+	DelClassIntF()
+
+	RESET ENVIRONMENT
+
+Return
+
+
+User Function IMCDLOCK(cLock,lClose)
+
+	Local cDir 	:= getPathSemaforo()
+	Local nHandle := 0
+	Default lClose	:= .T.
+
+	makeDir( getPathSemaforo() )
+
+	if file(cDir+cLock)
+		nHandle := FOpen(cDir+cLock,,0,.F.)
+	else
+		nHandle := FCreate( cDir+cLock,0)
+		fClose(nHandle)
+	endif
+
+	if lClose
+		fClose(nHandle)
+		FT_FUSE()
+		If FERASE(cDir+cLock) == -1
+			MsgStop('Falha na deleção do Arquivo '+cLock)
+		Else
+			MsgStop('Arquivo '+cLock+' deletado com sucesso.')
+		Endif
+	endif
+
+return nHandle
+
+
+STATIC FUNCTION SincByWs( lAuto, cSerieFil, cTipoFil )
+	Local aArea			:= (Alias())->(GetArea())
+	Local cQuery 		:= ""
+	Local cDescRej		:= ""
+	Local oWsRonda		:= Nil
+	Local cSerCae		:= ""
+	Local cNroCae		:= ""
+	Local cArq64		:= ""
+	Local cFailMsg		:= ""
+	Local cPulaLin		:= chr(13) + chr(10)
+	Local cWsVersao		:= GetNewPar("MV_URUVWS","2.0")		//Versao 2.0 (antiga) ou Versao 3.1 (nova)
+	Local cProcName		:= "Sincronismo"
+	Local cProcesso		:= "4"
+	Local nDias 		:= 30 // Tratamento para performance da query, monitorar apenas 60 dias antes da data-base
+	Local dDatabase		:= Date()
+	Local dDatafil		:= SToD ("  /  /  ")
+
+	Default lAuto		:= .F.
+	Default cSerieFil	:= ""
+
+
+	If lAuto
+		//----------------------------------------------
+		// Calcula a data inicio e final
+		//----------------------------------------------
+		dDatafil := (dDataBase-nDias) 	//Data atual - 60 dias
+		dDtInFil := dDatafil				//Data inicio
+
+		dDtEndFil := dDatabase			//Data fim
+
+		autoNfeMsg( "Iniciando o processo principal de " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+
+	EndIf
+
+	dbSelectArea('SF1')
+	dbSelectArea('SF2')
+	If FindFunction('U_RFATC01')
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Seleciona os documentos pendentes de processamento de acordo com tipo escolhido (entrada ou saida) e as datas de emissao preenchidas ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If SubStr(cTipoFil,1,1) == "1"
+
+			If lAuto
+				autoNfeMsg( "ETAPA 1 - Consulta nota de Saida " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+			EndIf
+
+			cQuery += "SELECT SF2.F2_SERIE SERIE, SF2.F2_DOC DOC, SF2.F2_SERCAE SERCAE, SF2.F2_CAEE NROCAE, SF2.F2_CODDOC CODDOC, "
+			cQuery += " SF2.F2_ARQPDF NF_PDF, SF2.F2_FLFTEX STAT, SF2.R_E_C_N_O_ RECN, 'SAIDA' AS TYPE_NF "
+			cQuery += " FROM " + RetSqlName("SF2") + " SF2 "
+			cQuery += " WHERE SF2.F2_FILIAL = '" + xFilial('SF2') + "'"
+			cQuery += "		AND SF2.F2_SERIE = '" + cSerieFil + "'"
+			cQuery += "		AND SF2.F2_CODDOC <> ' ' "
+			If !Empty(dDtInFil) .and. !Empty(dDtEndFil)
+				cQuery += "		AND SF2.F2_EMISSAO BETWEEN '" + DTOS(dDtInFil) + "' AND '" + DTOS(dDtEndFil) + "'"
+			EndIf
+			cQuery += " 	AND (SF2.F2_FLFTEX = '" + TRANSMITIDO + "' OR SF2.F2_FLFTEX = '" + AUTORIZADO + "')"
+			cQuery += " 	AND SF2.D_E_L_E_T_ = ' ' "
+
+			If lAuto
+				autoNfeMsg( "Query do processo de " + cProcName + ": " + allTrim( cQuery ) )
+			EndIf
+
+		Else
+
+			If lAuto
+				autoNfeMsg( "ETAPA 2 - Consulta nota de Entrada " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+			EndIf
+
+			cQuery := "SELECT SF1.F1_SERIE SERIE, SF1.F1_DOC DOC, SF1.F1_SERCAE SERCAE, SF1.F1_CAEE NROCAE, SF1.F1_CODDOC CODDOC, "
+			cQuery += " SF1.F1_ARQPDF NF_PDF, SF1.F1_FLFTEX STAT, SF1.R_E_C_N_O_ RECN, 'ENTRADA' AS TYPE_NF "
+			cQuery += " FROM " + RetSqlName("SF1") + " SF1 "
+			cQuery += " WHERE SF1.F1_FILIAL = '" + xFilial('SF1') + "'"
+			cQuery += "		AND SF1.F1_SERIE = '" + cSerieFil + "'"
+			cQuery += "		AND SF1.F1_CODDOC <> ' ' "
+			If !Empty(dDtInFil) .and. !Empty(dDtEndFil)
+				cQuery += "		AND SF1.F1_EMISSAO BETWEEN '" + DTOS(dDtInFil) + "' AND '" + DTOS(dDtEndFil) + "'"
+			EndIf
+			cQuery += " 	AND (SF1.F1_FLFTEX = '" + TRANSMITIDO + "' OR SF1.F1_FLFTEX = '" + AUTORIZADO  + "')"
+			cQuery += " 	AND SF1.D_E_L_E_T_ = ' ' "
+
+			If lAuto
+				autoNfeMsg( "Query do processo de " + cProcName  + ": " + allTrim( cQuery ) )
+			EndIf
+
+		EndIf
+
+		iif(Select('QRY')>0,QRY->(dbCloseArea()),Nil)
+		dbUseArea( .T., "TOPCONN", TCGENQRY(,,cQuery), "QRY", .F., .T.)
+		While QRY->(!Eof())
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³1* - Verifica se possui CAE. Se nao tiver, Coloca o numero e a serie do documento³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If Empty(QRY->SERCAE) .or. Empty(QRY->NROCAE)
+
+				cSerCae := Alltrim(SubStr(QRY->SERIE,2))
+				cNroCae := QRY->DOC
+
+				If QRY->TYPE_NF == 'ENTRADA'
+					SF1->(dbGoTo(QRY->RECN))
+					RecLock('SF1',.F.)
+					SF1->F1_SERCAE := cSerCae
+					SF1->F1_CAEE := cNroCae
+					SF1->(msUnlock())
+				Else
+					SF2->(dbGoTo(QRY->RECN))
+					RecLock('SF2',.F.)
+					SF2->F2_SERCAE := cSerCae
+					SF2->F2_CAEE := cNroCae
+					SF2->(msUnlock())
+				EndIf
+			Else
+				cSerCae := Iif(Len(Alltrim(QRY->SERCAE))>1,Alltrim(SubStr(QRY->SERCAE,2)),Alltrim(QRY->SERCAE))
+				cNroCae := QRY->NROCAE
+			EndIf
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³2* Atualiza o status do documento de acordo com os dados recebidos³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If !Empty(cSerCae) .and. !Empty(cNroCae)
+				cDescRej := alltrim(U_RFATC01(SM0->M0_CGC,val(QRY->CODDOC),cSerCae,val(cNroCae), ,lAuto))
+				If !Empty(cDescRej)
+					If QRY->TYPE_NF == 'ENTRADA'
+						SF1->(dbGoTo(QRY->RECN))
+						RecLock('SF1',.F.)
+						If upper(substr(cDescRej,1,2)) == "BE" .or. upper(substr(cDescRej,1,2)) == "BS"
+							SF1->F1_FLFTEX := REJEITADO_DGI
+						ElseIf upper(substr(cDescRej,1,2)) == "AE" //.or. upper(substr(cDescRej,1,2)) == "AS"
+							SF1->F1_FLFTEX := AUTORIZADO
+						EndIf
+						SF1->F1_SITNOTA := cDescRej
+						SF1->(msUnlock())
+					Else
+						SF2->(dbGoTo(QRY->RECN))
+						RecLock('SF2',.F.)
+						If upper(substr(cDescRej,1,2)) == "BE" .or. upper(substr(cDescRej,1,2)) == "BS"
+							SF2->F2_FLFTEX := REJEITADO_DGI
+						ElseIf upper(substr(cDescRej,1,2)) == "AE" //.or. upper(substr(cDescRej,1,2)) == "AS"
+							SF2->F2_FLFTEX := AUTORIZADO
+						EndIf
+						SF2->F2_SITNOTA := cDescRej
+						SF2->(msUnlock())
+					EndIf
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³3* Atualiza o documento (PDF) na base do Protheus a partir do Base64 enviado pelo WS³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If cWsVersao == "2.0"
+					oWsRonda := WSRondanet():New()
+				ElseIf cWsVersao == "3.1"
+					oWsRonda := WSRondanetService():New()
+				EndIf
+
+				oWsRonda:_URL := GetNewPar("MV_IPWSRON","")
+				//----------------------------------------------------------
+				// Versao 2.0 - Retorno WSRondanet
+				//----------------------------------------------------------
+				If cWsVersao == "2.0"
+					If oWsRonda:getDocument(alltrim(SM0->M0_CGC),val(QRY->CODDOC),cSerCae,val(cNroCae))
+						cArq64 := oWsRonda:cReturn
+						If QRY->TYPE_NF == 'ENTRADA'
+							SF1->(dbGoTo(QRY->RECN))
+							RecLock('SF1',.F.)
+							SF1->F1_ARQPDF := cArq64
+							SF1->(msUnlock())
+						Else
+							SF2->(dbGoTo(QRY->RECN))
+							RecLock('SF2',.F.)
+							SF2->F2_ARQPDF := cArq64
+							SF2->(msUnlock())
+						EndIf
+						If lAuto
+							autoNfeMsg( "Atualizando retorno " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+						EndIf
+					EndIf
+
+					//----------------------------------------------------------
+					// Versao 3.1 - Retorno WSRondanetService
+					//----------------------------------------------------------
+				ElseIf cWsVersao == "3.1"
+
+					//Pouza pegar o retorno do WebService
+					//If oWsRonda:getDocument(alltrim(SM0->M0_CGC),val(QRY->CODDOC),cSerCae,val(cNroCae))
+					cArq64 := oWsRonda:cReturn
+					If QRY->TYPE_NF == 'ENTRADA'
+						SF1->(dbGoTo(QRY->RECN))
+						RecLock('SF1',.F.)
+						SF1->F1_ARQPDF := cArq64
+						SF1->(msUnlock())
+					Else
+						SF2->(dbGoTo(QRY->RECN))
+						RecLock('SF2',.F.)
+						SF2->F2_ARQPDF := cArq64
+						SF2->(msUnlock())
+					EndIf
+					If lAuto
+						autoNfeMsg( "Atualizando retorno " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+					EndIf
+				EndIf
+			EndIf
+
+			//Zera variaveis e vai para o proximo registro
+			cSerCae := ""
+			cNroCae := ""
+			cArq64 	:= ""
+			QRY->(dbSkip())
+		EndDo
+		QRY->(dbCloseArea())
+	EndIf
+
+	//Exibe dialog ao usuario com o resultado da sincronização
+	If Empty(alltrim(cFailMsg))
+		If lAuto
+			autoNfeMsg( "Sincronizacao Concluida " + IIf(cTipoFil == "1", " - Nota de Saida"," - Nota de Entrada"), .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+		Else
+			MsgInfo('Sincronizacao Concluida')
+		EndIf
+	Else
+		If lAuto
+			autoNfeMsg( "Falha na inicialização do processo de " + cProcName, .T., cEmpAnt, cFilAnt, cSerieFil , cProcesso)
+		Else
+			Aviso('Atenção','Os documentos abaixo relacionados nao puderam ser sincronizados com exito. ' + cPulaLin + cFailMsg,{'Ok'})
+		EndIf
+	EndIf
+
+	RestArea(aArea)
+Return

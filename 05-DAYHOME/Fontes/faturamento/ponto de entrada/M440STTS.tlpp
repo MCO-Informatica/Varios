@@ -1,0 +1,17 @@
+#INCLUDE "Protheus.ch"
+
+User Function M440STTS() 
+
+Local aArea:= GetArea()
+                   
+dbSelectArea("SC5")
+dbSetOrder(1)
+If dbSeek(xFilial("SC5")+SC5->C5_NUM) //SC9->C9_PEDIDO)
+	RecLock("SC5",.F.)
+	Replace C5_LIBPOR With AllTrim(Upper(SubStr(cUsuario,7,15)))
+	Replace C5_DTLIB  With dDatabase
+	MsUnLock()
+EndIf
+
+RestArea(aArea)
+Return()

@@ -1,0 +1,40 @@
+#Include 'Protheus.ch'
+
+#DEFINE cFONT   '<b><font size="5" color="red"><b><u>'
+#DEFINE cFONTOK '<font size="5" color="black">'
+#DEFINE cFONTGR '<font size="5" color="Green">'
+#DEFINE cNOFONT '</b></font></u></b> ' 
+//---------------------------------------------------------------------------------
+// Rotina | RFATG19           | Autor | Ricardo Souza           | Data | 11/06/2021
+//---------------------------------------------------------------------------------
+// Descr. | Fonte customizado com objetivo de travar com a Mensagem dizendo que
+//        | precisa ser atualizado o Cadastro de Cliente que fez a ultima compra
+//        | em 2020 inferior.
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda
+//--------------------------------------------------------------------------------- 
+// OBS    | Colocar esse fonte através do Gatilho de C5_CLIENTE para C5_CLIENTE.
+//--------------------------------------------------------------------------------- 
+User Function RFATG19()
+
+Local _cArmaz   := M->C5_X_ARMAZ
+Local _cTransp  := M->C5_TRANSP
+
+//	000007-SEDEX 10 - ACF/PORTAL DO MORUMBI                            
+//	000009-SEDEX INTERNACIONAL                                        
+//	000029-SEDEX HOJE                                                  
+//	000094-SEDEX COM AR                                                
+//	000097-CORREIOS                      
+//	001001-SEDEX HOJE                                                  
+
+//----> VALIDA A TRANSPORTADORA USADA SE FOR ARMAZERM 01A1 LOOKLOG
+If _cArmaz$"01A1" .And. _cTransp$"000007.000009.000029.000094.000097.001001"
+
+    Alert( cFONT+"ATENÇÃO" + cNOFONT + cFONTOK + "<br>Esse código de transporte via Correio não é permitido!"+chr(13)+;
+    cFONTOK+"Para a correta integração do TOTVS x CORREIOS utilize os códigos 000004 ou 001000."+cNOFONT)
+    
+    _cTransp := ""
+    
+EndIf
+ 
+Return(_cTransp)

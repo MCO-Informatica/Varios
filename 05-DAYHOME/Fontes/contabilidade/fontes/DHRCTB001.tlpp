@@ -1,0 +1,486 @@
+#INCLUDE "Protheus.CH"
+#INCLUDE "TopConn.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHRCTB001	บAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณExporta็ใo contแbil - Tela de Parametros                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function DHRCTB001()
+
+Local cDirPad		:= GetMv("MV_XDIRPAD",,"C:\")
+Local cArquivo		:= "DHRCTB001"
+Local cPerg			:= PADR("DHRCTB001",10)
+Local cTitulo		:= "Exporta็ใo Contแbil"
+Local cNomeR		:= "DHRCTB001"+DTOS(dDataBase)+Substr(Time(),1,2)+Substr(Time(),4,2)
+Local cDescr		:= "Exporta็ใo Contแbil"
+Local cTipoArq		:= "XLS"
+Local nOpcPad		:= 1
+Local cMsgProc		:= "Aguarde. Gerando Excel..."
+Local lEnd			:= .T.
+
+Private oXml		:= Nil
+Private cXml		:= ""
+
+CriaSX1(cPerg)
+
+U_XMLPerg(cPerg,; 
+          cDirPad,; 
+          {|lEnd, cArquivo| ImpExcel(cArquivo)},; 
+          cTitulo,; 
+          cNomeR,; 
+          cDescr,;
+          cTipoArq,;
+          nOpcPad,;
+          cMsgProc)
+          
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณImpExcel	บAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณImprime os itens							                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function ImpExcel(cArquivo)
+
+Local aItens    := {}
+Local aSaldo	:= {}
+Local nPos		:= 0
+Local nQtdRed	:= 0
+Local oCabec1 	:= NIL
+Local oCabec2	:= NIL 
+Local oItem1	:= NIL
+Local oItem2	:= NIL
+Local oItem3	:= NIL
+Local cBanco	:= "XYZ"
+Local cCtaDeb	:= ""
+Local cCtaCrd	:= ""
+Local nSaldo	:= 0
+Local nFolder	:= 0
+Local cHist		:= ""
+Local cBenef	:= ""
+
+ExecQueryR()
+
+oCabec1:= CellStyle():New("sCabec1")
+oCabec1:SetHAlign("Left")
+oCabec1:SetFont("Arial",10,"#000000", .T.)  //#4682B4
+oCabec1:SetInterior("#4682B4", "Solid")		 //#ADD8E6
+oCabec1:SetWrapText(.T.)
+oCabec1:SetBorder("Top")
+oCabec1:SetBorder("Bottom")
+oCabec1:SetBorder("Left")
+oCabec1:SetBorder("Right")    
+
+oCabec2:= CellStyle():New("sCabec2")
+oCabec2:SetHAlign("Left")
+oCabec2:SetFont("Arial",10,"#000000", .T.)  //#4682B4
+oCabec2:SetInterior("#ADD8E6", "Solid")		 //#ADD8E6
+oCabec2:SetWrapText(.T.)
+oCabec2:SetBorder("Top")
+oCabec2:SetBorder("Bottom")
+oCabec2:SetBorder("Left")
+oCabec2:SetBorder("Right")
+
+oItem1:= CellStyle():New("sItem1")
+oItem1:SetHAlign("Left")
+oItem1:SetFont("Arial",08,"#000000", .F.)
+oItem1:SetInterior("#FFFFFF", "Solid")		
+oItem1:SetWrapText(.T.)
+oItem1:SetBorder("Top")
+oItem1:SetBorder("Bottom")
+oItem1:SetBorder("Left")
+oItem1:SetBorder("Right")         
+
+oItem2:= CellStyle():New("sItem2")
+oItem2:SetHAlign("Right")
+oItem2:SetFont("Arial",08,"#000000", .F.)
+oItem2:SetInterior("#FFFFFF", "Solid")		
+oItem2:SetWrapText(.T.)
+oItem2:SetBorder("Top")
+oItem2:SetBorder("Bottom")
+oItem2:SetBorder("Left")
+oItem2:SetBorder("Right")
+
+oItem3:= CellStyle():New("sItem3")
+oItem3:SetHAlign("Right")
+oItem3:SetFont("Arial",08,"#000000", .F.)
+oItem3:SetInterior("#FFFFFF", "Solid")		
+oItem3:SetWrapText(.T.)
+oItem3:SetBorder("Top")
+oItem3:SetBorder("Bottom")
+oItem3:SetBorder("Left")
+oItem3:SetBorder("Right")          
+
+oXML := ExcelXML():New()
+
+While TRBSE5->(!EOF())
+
+	cCtaDeb := ""
+	cCtaCrd := ""
+
+	If cBanco <> TRBSE5->E5_BANCO
+		
+		cBanco := TRBSE5->E5_BANCO
+		nFolder++		
+
+		oXML:SetPageSetup(2,.T.,.F.,0,0,0,0,0,0)
+		oXML:SetPrintSetup(9,60)
+		oXML:SetFolder(nFolder)
+		oXML:SetFolderName("Banco "+TRBSE5->E5_BANCO)	
+		
+		oXML:SetColSize({	"110",;		// Dt. Movimento
+							"110",;		// Vlr. Movimento
+							"110",;		// Saldo
+							"035",;		// Banco
+							"050",;		// Agencia
+							"050",;		// Conta
+							"050",;		// Num Cheque
+							"030",;		// R/P
+							"200",;		// Beneficiario
+							"200",;		// Historico
+							"080",;		// Cta. D้bito
+							"080"})		// Cta. Cr้dito
+	ImpCabec(oCabec1,oItem1)
+	
+	nSaldo := 0	
+	nSaldo := RetUltSld(TRBSE5->E5_BANCO)
+
+	oXML:AddRow("15",{	""														,; 
+					""													,; 
+					TransForm(nSaldo,PesqPict("SF2","F2_VALBRUT"))																,; 
+					""													,; 
+					""													,; 
+					""													,; 
+					""													,; 
+					""													,;						
+					""		 											,;
+					""													,;
+					""																,;
+					""													}	 	  	,; 
+					{oItem1					 											,;
+					oItem1							   									,;
+					oItem3					   											,;
+					oItem1					  											,;
+					oItem1				   												,;							
+					oItem1					  											,;
+					oItem1																,;
+					oItem1                                                             ,;
+					oItem1                                                             ,;
+					oItem1																,;
+					oItem1																,;
+					oItem1																})
+	
+	Endif	
+	
+	If TRBSE5->E5_RECPAG = 'R'
+		nSaldo := nSaldo+TRBSE5->E5_VALOR //Saldo Atual + Valor
+		
+		cCtaCrd := Posicione("SA6",1,xFilial("SA6")+TRBSE5->E5_BANCO+TRBSE5->E5_AGENCIA,"A6_CONTA")
+		//cCtaCrd := TRBSE5->E5_CREDITO		
+		
+		If !Empty(TRBSE5->E5_FORNECE)
+			SA2->(DbSetOrder(1))
+			If SA2->(DbSeek(xFilial("SA2")+TRBSE5->E5_CLIFOR+TRBSE5->E5_LOJA))
+				cCtaDeb	:= SA2->A2_CONTA
+			Endif
+		Endif
+		
+		If !Empty(TRBSE5->E5_CLIENTE)
+			SA1->(DbSetOrder(1))
+			If SA1->(DbSeek(xFilial("SA1")+TRBSE5->E5_CLIFOR+TRBSE5->E5_LOJA))
+				cCtaDeb := SA1->A1_CONTA
+			Endif
+		Endif
+		
+		//Lancamento Manual
+		If Empty(TRBSE5->E5_NUMERO)
+			cCtaDeb := TRBSE5->E5_DEBITO
+		Endif
+	Else
+		nSaldo := nSaldo-TRBSE5->E5_VALOR //Saldo Atual - Valor
+		
+		cCtaDeb := Posicione("SA6",1,xFilial("SA6")+TRBSE5->E5_BANCO+TRBSE5->E5_AGENCIA,"A6_CONTA")
+		//cCtaDeb := TRBSE5->E5_CREDITO
+		
+		If !Empty(TRBSE5->E5_CLIENTE)
+			SA1->(DbSetOrder(1))
+			If SA1->(DbSeek(xFilial("SA1")+TRBSE5->E5_CLIFOR+TRBSE5->E5_LOJA))
+				cCtaCrd := SA1->A1_CONTA
+			Endif
+		Endif
+		
+		If !Empty(TRBSE5->E5_FORNECE)
+			SA2->(DbSetOrder(1))
+			If SA2->(DbSeek(xFilial("SA2")+TRBSE5->E5_CLIFOR+TRBSE5->E5_LOJA))
+				cCtaCrd	:= SA2->A2_CONTA
+			Endif
+		Endif
+		
+		//Lancamento Manual
+		If Empty(TRBSE5->E5_NUMERO)
+			cCtaCrd := TRBSE5->E5_CREDITO
+		Endif
+	Endif
+	
+	cHist := TRBSE5->E5_HISTOR
+	cBenef:= TRBSE5->E5_BENEF
+	
+	If Alltrim(TRBSE5->E5_TIPO) == 'RA' .Or. Alltrim(TRBSE5->E5_TIPO) == 'PA'	
+	
+		If Empty(TRBSE5->E5_BENEF) .Or. (UPPER(ALLTRIM(TRBSE5->E5_BENEF)) $ "ORCAMENTO")
+		
+			SE1->(DbSetOrder(1))
+			If SE1->(DbSeek(xFilial("SE1")+TRBSE5->E5_PREFIXO+TRBSE5->E5_NUMERO+TRBSE5->E5_PARCELA))			
+				SE5->(DbSetOrder(10))				
+				If SE5->(DbSeek(xFilial("SE5")+SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA+SE1->E1_TIPO+SE1->E1_FILIAL))
+					cBenef:= SE5->E5_BENEF
+					cHist := "Recebimento titulo "+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE1->E1_PARCELA
+				Else
+					If (UPPER(ALLTRIM(TRBSE5->E5_BENEF)) $ "ORCAMENTO") .And. Alltrim(TRBSE5->E5_TIPO) == 'RA'
+						cBenef:= "DAYHOME COMERCIAL LTDA"
+						cHist := "REC. DP. NรO IDENTIFICADA"	
+					Else 
+						If (UPPER(ALLTRIM(TRBSE5->E5_BENEF)) $ "ORCAMENTO") .And. Alltrim(TRBSE5->E5_TIPO) == 'PA'
+							cHist := "PAGAMENTO ANTECIPADO"
+						Endif
+					Endif
+				Endif
+			Else
+				If TRBSE5->E5_TIPO == 'RA' .And. (UPPER(ALLTRIM(TRBSE5->E5_BENEF)) $ "ORCAMENTO") 
+					cBenef:= "DAYHOME COMERCIAL LTDA"
+					cHist := "REC. DP. NรO IDENTIFICADA"
+				ElseIf TRBSE5->E5_TIPO == 'PA' .And. (UPPER(ALLTRIM(TRBSE5->E5_BENEF)) $ "ORCAMENTO") 
+					cHist := "PAGAMENTO ANTECIPADO"
+				Endif
+			Endif  
+		Endif
+	
+	Endif
+			
+	oXML:AddRow("15",{	DTOC(STOD(TRBSE5->E5_DTDISPO))										,; 
+						TransForm(TRBSE5->E5_VALOR,PesqPict("SF2","F2_VALBRUT"))			,; 
+						TransForm(nSaldo,PesqPict("SF2","F2_VALBRUT"))						,; 
+						TRBSE5->E5_BANCO													,; 
+						TRBSE5->E5_AGENCIA													,; 
+						TRBSE5->E5_CONTA													,; 
+						TRBSE5->E5_NUMCHEQ													,; 
+						TRBSE5->E5_RECPAG													,;						
+						cBenef					 											,;
+						cHist																,;
+						cCtaDeb																,;
+						cCtaCrd													}	 	  	,; 
+						{oItem1					 											,;
+						oItem3							   									,;
+						oItem3					   											,;
+						oItem1					  											,;
+						oItem1				   												,;							
+						oItem1					  											,;
+						oItem1																,;
+						oItem1                                                             ,;
+						oItem1                                                             ,;
+						oItem1																,;
+						oItem1																,;
+						oItem1																})
+	
+	TRBSE5->(DbSkip())
+EndDo                                   
+
+cXML := oXML:GetXML(cArquivo)
+
+Return(cArquivo)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณExecQueryRบAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณMonta query para exporta็ใo			                      บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function ExecQueryR()
+
+Local cQry := ""
+
+If Select("TRBSE5") > 0
+	TRBSE5->(DbCloseArea())
+Endif
+
+cQry := " SELECT E5_FILIAL, E5_DATA, E5_VALOR, E5_BANCO, E5_AGENCIA, E5_CONTA, E5_NUMCHEQ, E5_RECPAG, E5_DTDIGIT, E5_DTDISPO, "+CRLF
+cQry += " E5_BENEF, E5_HISTOR, E5_CLIFOR, E5_LOJA, E5_CREDITO, E5_DEBITO, E5_NUMERO, E5_PARCELA, E5_PREFIXO, E5_TIPO, E5_CLIENTE, E5_FORNECE "+CRLF
+cQry += " FROM "+RetSqlName("SE5")+" SE5 "+CRLF
+cQry += " Where "
+cQry += " E5_FILIAL = '"+xFilial("SE5")+"' AND "+CRLF
+cQry += " E5_DTDISPO BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND "+CRLF
+//cQry += " E5_DTDIGIT BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND "
+//cQry += " E5_DATA BETWEEN '"+DTOS(MV_PAR01)+"' AND '"+DTOS(MV_PAR02)+"' AND "+CRLF
+cQry += " E5_BANCO BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"' AND "+CRLF
+cQry += " E5_RECONC = 'x' AND "+CRLF
+cQry += " SE5.D_E_L_E_T_ = ' ' "+CRLF
+cQry += " Order By E5_BANCO, E5_DTDISPO "
+                                      
+cQry := ChangeQuery(cQry)
+TcQuery cQry New Alias "TRBSE5"
+
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณImpCabec	บAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณImprime cabe็alho							                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function ImpCabec(oCabec1,oItem1)
+
+Local aCabec1	:= {"Dt. Movim.","Vlr. Movim.","Saldo","Banco","Ag.","C. Bco","N. Chq.","R/P","Beneficiario","Historico","Cta. D้bito","Cta. Cr้dito"}
+
+oXML:AddRow("15",aCabec1		,;
+				{oCabec1		,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			,;
+				oCabec1			})
+				
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณRetUltSld	บAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณRetorna Ultimo Saldo bancario				                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function RetUltSld(cBanco)
+
+Local cQry := ""
+Local nSld := 0
+Local cDtd := ""
+Local cMes := MONTH(MV_PAR01)-1
+Local cDia := Day(MV_PAR01)
+Local cAno := Year(MV_PAR01)
+
+If cMes <= 0
+	cDia := 31
+	cAno := cAno-1
+Endif
+
+cDtd := StrZero(cAno,4)+StrZero(cMes,2)+StrZero(cDia,2)
+cDtd := LastDay(STOD(cDtd))
+cDtd := DTOS(cDtd)
+
+If Select("TRBSE8") > 0
+	TRBSE8->(DbCloseArea())
+Endif
+
+cQry := " SELECT E8_FILIAL, E8_BANCO, E8_AGENCIA, E8_CONTA, E8_DTSALAT, E8_SALATUA "+CRLF
+cQry += " FROM "+RetSqlName("SE8")+" SE8 "+CRLF
+cQry += " Where "+CRLF
+cQry += " E8_FILIAL = '"+xFilial("SE8")+"' AND "+CRLF
+cQry += " E8_BANCO = '"+cBanco+"' AND "+CRLF
+cQry += " E8_DTSALAT BETWEEN '"+DTOS(FirstDay(STOD(cDtd)))+"' AND '"+cDtd+"' AND "+CRLF
+cQry += " SE8.D_E_L_E_T_ = ' ' "+CRLF
+cQry += " Order By E8_DTSALAT Desc"
+
+cQry := ChangeQuery(cQry)
+TcQuery cQry New Alias "TRBSE8"
+
+If TRBSE8->(!EOF())
+	If TRBSE8->E8_DTSALAT <= cDtd .Or. TRBSE8->E8_DTSALAT >= cDtd
+		nSld := TRBSE8->E8_SALATUA
+	Endif
+Endif
+
+Return(nSld)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCriaSX1	บAutor  ณMicrosiga           บ Data ณ  02/05/11   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณCria perguntas do relat๓rio				                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function CriaSX1(cPerg)
+
+PutSx1(	cPerg , "01" , "Data De ?", "Data De ?", "Data De ?", "mv_ch1",;
+		"D" , 08 , 0 , 0 , "G" , ,;
+		 , , ,;
+		"mv_par01", , , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		{}, {}, {}, )
+
+PutSx1(	cPerg , "02" , "Data At้ ?", "Data At้ ?", "Data At้ ?", "mv_ch2",;
+		"D" , 08 , 0 , 0 , "G" , ,;
+		 , , ,;
+		"mv_par02", , , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		{}, {}, {}, )
+
+
+PutSx1(	cPerg , "03" , "Banco de ?", "Banco de ?", "Banco de ?", "mv_ch3",;
+		"C" , 03 , 0 , 0 , "G" , ,"SA6";
+		 , , ,;
+		"mv_par03", , , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		{}, {}, {}, )
+		                                                                            
+PutSx1(	cPerg , "04" , "Banco At้ ?", "Banco At้ ?", "Banco At้ ?", "mv_ch4",;
+		"C" , 03 , 0 , 0 , "G" , ,"SA6";
+		 , , ,;
+		"mv_par04", , , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		 , , ,;
+		{}, {}, {}, )
+
+Return()

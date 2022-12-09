@@ -1,0 +1,115 @@
+#include "protheus.ch" 
+#include "topconn.ch"
+
+/* 
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ DHOME_ECTE ºAutor  ³ FONTANELLI       º Data ³ 02/05/2017  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Excluir  Notas Fiscais nos Lancamentos de CTE              º±±  
+±±º          ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DAYHOME                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function DHOME_ECTE()
+
+_cArea := GetArea()
+
+if alltrim(SF1->F1_ESPECIE) == "CTE"
+
+	nOpc := 0
+	If MsgNoYes("Confirma a Exclusão NF de origem do CTE ? ")
+		nOpc := 1
+	Else
+		nOpc := 0
+	Endif
+
+	if nOpc == 1
+	
+		cQuery := "	SELECT ZCT_FILIAL, ZCT_DOC, ZCT_SERIE, ZCT_FORNEC, ZCT_LOJA,"
+		cQuery += "			TOTCTE, ZCT_ORGFL, ZCT_ORGNF, ZCT_ORGSER,"
+		cQuery += "			D2_PEDIDO PEDIDO, SUM(D2_TOTAL) TOTPED"
+		cQuery += "		FROM ("
+		cQuery += "			SELECT" 
+		cQuery += "					ZCT_FILIAL, ZCT_DOC, ZCT_SERIE, ZCT_FORNEC, ZCT_LOJA," 
+		cQuery += "					("  
+		cQuery += "						SELECT F1_VALMERC FROM "+RetSqlName("SF1")+" SF1"
+		cQuery += "						 WHERE F1_FILIAL = '"+SF1->F1_FILIAL+"'"   
+		cQuery += "						   AND F1_DOC = '"+SF1->F1_DOC+"'"
+		cQuery += "						   AND F1_SERIE = '"+SF1->F1_SERIE+"'"
+		cQuery += "						   AND F1_FORNECE = '"+SF1->F1_FORNECE+"'"
+		cQuery += "						   AND F1_LOJA = '"+SF1->F1_LOJA+"'"  
+		cQuery += "						   AND SF1.D_E_L_E_T_ = ''"
+		cQuery += "					) TOTCTE,"
+		cQuery += "					ZCT_ORGFL, ZCT_ORGNF, ZCT_ORGSER"
+		cQuery += "				FROM "+RetSqlName("ZCT")+" ZCT"
+		cQuery += "			   WHERE ZCT_FILIAL = '"+SF1->F1_FILIAL+"'"   
+		cQuery += "				 AND ZCT_DOC = '"+SF1->F1_DOC+"'"
+		cQuery += "				 AND ZCT_SERIE = '"+SF1->F1_SERIE+"'"
+		cQuery += "				 AND ZCT_FORNEC = '"+SF1->F1_FORNECE+"'"
+		cQuery += "				 AND ZCT_LOJA = '"+SF1->F1_LOJA+"'"  
+		cQuery += "				 AND ZCT.D_E_L_E_T_ = ' '" 
+		cQuery += "			) TMP1"
+		cQuery += "			LEFT OUTER JOIN "+RetSqlName("SD2")+" SD2"
+		cQuery += "	                ON D2_FILIAL = ZCT_ORGFL"
+		cQuery += "	               AND D2_DOC = ZCT_ORGNF"
+		cQuery += "	               AND D2_SERIE = ZCT_ORGSER" 
+		cQuery += "	               AND SD2.D_E_L_E_T_ = ' '" 
+		cQuery += "	GROUP BY ZCT_FILIAL, ZCT_DOC, ZCT_SERIE, ZCT_FORNEC, ZCT_LOJA,"
+		cQuery += "			 TOTCTE, ZCT_ORGFL, ZCT_ORGNF, ZCT_ORGSER,"
+		cQuery += "			 D2_PEDIDO"
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"TMPQry",.T.,.T.)
+		dbSelectArea("TMPQry")
+		TMPQry->(dbGoTop())
+		While !TMPQry->(Eof())
+			DbSelectArea("SC5")
+			SC5->(DbSetOrder(1))
+			SC5->(DbGoTop())
+			If SC5->(DbSeek(TMPQry->ZCT_ORGFL+TMPQry->PEDIDO))
+			   IF (SC5->C5_CTENF == TMPQry->ZCT_DOC)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CTEFIL  := SPACE(2)
+				   SC5->C5_CTENF   := SPACE(9)
+				   SC5->C5_CTESER  := SPACE(3)
+				   SC5->C5_CTEVLOR := 0
+				   SC5->C5_CTEPERC := 0
+				   SC5->C5_CTEVAL  := 0
+				   MsUnLock()
+				endif
+			endif
+			TMPQry->(DbSkip())
+		EndDo
+		TMPQry->(dbCloseArea())   	
+	
+		DbSelectArea("ZCT")
+		ZCT->(DbSetOrder(1))
+		ZCT->(DbGoTop())
+		If ZCT->(DbSeek(SF1->F1_FILIAL+SF1->F1_DOC+SF1->F1_SERIE+SF1->F1_FORNECE+SF1->F1_LOJA))
+			
+			While !Eof() .and. ZCT->ZCT_FILIAL == SF1->F1_FILIAL;
+						 .and. ZCT->ZCT_DOC == SF1->F1_DOC;
+						 .and. ZCT->ZCT_SERIE == SF1->F1_SERIE;
+						 .and. ZCT->ZCT_FORNEC == SF1->F1_FORNECE;
+						 .and. ZCT->ZCT_LOJA == SF1->F1_LOJA
+			
+				Reclock("ZCT",.F.)
+				DbDelete()
+				MsUnlock()
+				
+				DbSelectArea("ZCT")
+				ZCT->(DbSkip())
+			EndDo
+		endIf
+	
+	endif
+endif
+                             
+RestArea(_cArea)	
+
+return()

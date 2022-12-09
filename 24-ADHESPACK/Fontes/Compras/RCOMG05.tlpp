@@ -1,0 +1,60 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOMG05        | Autor | Lucas Baia          | Data |    07/06/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Gatilho para automatizar Casas Decimais no Pedido de Vendas,
+//        | Documento de Entrada, Pré-Nota.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function RCOMG05()
+
+
+Local _1UMSC7       := ""
+Local _2UMSC7       := ""
+Local _1UMSD1       := ""
+Local _2UMSD1       := ""
+Local _lRet1UM      := 0
+Local _lRet2UM      := 0
+
+//---> Para capturar os Dados dos campos.
+IF Alltrim(FUNNAME()) == "MATA121"
+    _1UMSC7      := Alltrim(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_UM" })])
+    _2UMSC7      := Alltrim(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_SEGUM" })])
+ELSEIF Alltrim(FUNNAME()) $ "MATA103/MATA140"
+    _1UMSD1      := Alltrim(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_UM" })])
+    _2UMSD1      := Alltrim(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_SEGUM" })])
+ENDIF
+
+//---> Inicia-se a Validação.
+IF Alltrim(FUNNAME()) == "MATA121" //---> Pedido de Compras
+    IF _1UMSC7 == "UN" .AND. _2UMSC7 == "KG"
+        _lRet1UM :=  INT(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_QUANT" })])
+    ENDIF
+
+    IF _1UMSC7 == "KG" .AND. _2UMSC7 == "L"
+        _lRet1UM :=  (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C7_QUANT" })])
+    ENDIF
+
+    IF EMPTY(_2UMSC7)
+        _lRet1UM :=  (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })])
+    ENDIF
+
+ELSEIF Alltrim(FUNNAME()) $ "MATA103/MATA140" //---> Documentos de Entrada e Pré Nota de Entrada.
+    IF _1UMSD1 == "UN" .AND. _2UMSD1 == "KG"
+        _lRet1UM :=  INT(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })])
+    ENDIF
+
+    IF _1UMSD1 == "KG" .AND. _2UMSD1 == "L"
+        _lRet1UM :=  (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })])
+    ENDIF
+    
+    IF EMPTY(_2UMSD1)
+        _lRet1UM :=  (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })])
+    ENDIF
+ENDIF
+
+Return _lRet1UM

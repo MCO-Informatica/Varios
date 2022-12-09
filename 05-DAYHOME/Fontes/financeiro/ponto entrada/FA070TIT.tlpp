@@ -1,0 +1,15 @@
+#include 'protheus.ch'
+#include 'topconn.ch'
+
+/*
+Author: Robert Santos
+Data: 12 abr 2012
+Descr: PE para verificar baixa
+*/                            
+
+user function FA070TIT()
+           
+// atualizar chamados e ocorrencias
+u_dhfinx2()
+
+return .t.

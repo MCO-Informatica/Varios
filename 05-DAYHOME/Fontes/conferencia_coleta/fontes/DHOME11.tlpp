@@ -1,0 +1,68 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "FONT.CH"
+#INCLUDE "TOTVS.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME11   º Autor ³Fontanelli          º Data ³ 26/01/2015  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri‡„o ³ Impressaõ do Numero do Pedido 							  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DAYHOME                            	                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÏÍÍÍÑÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºAnalista Resp.³  Data  ³ Manutencao Efetuada                           º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º              ³  /  /  ³                                               º±±
+±±º              ³  /  /  ³                                               º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DAYHOME11(numero)
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+dbSelectArea("SC5")
+dbSetOrder(1)
+SC5->(DbGoTop())       
+if dbSeek(xFilial("SC5")+numero)
+   cTransportadora := "TRANSPORTADORA : " + Posicione("SA4",1,xFilial("SA4") + SC5->C5_TRANSP, "A4_NOME")
+   cMemo		   := MSMM(SC5->C5_CODOBS,80)
+   cSeparador      := "SEPARADOR: "+SC5->C5_XSUSER
+endif
+
+// Monta objeto para impressão  
+oPrint := TMSPrinter():New("Pedido para Conferência")  
+
+oPrint:SetLandscape()  
+oPrint:Setup()     
+oPrint:SetLandscape()//força orientação de página do relatório como paisagem.
+oPrint:StartPage()                  
+oFont1 := TFont():New('Courier new',,200,.T.)  
+oFont2 := TFont():New('Courier new',,012,.T.)  
+oFont3 := TFont():New('Courier new',,012,.T.)  
+
+oPrint:Say(0150+300,150,numero,oFont1,1400,CLR_BLACK)  
+oPrint:Say(0900+300,150,cTransportadora,oFont2,20,CLR_BLACK)  
+oPrint:Say(1000+300,150,UPPER(cSeparador),oFont2,20,CLR_BLACK)  
+
+oPrint:Say(1100+300,150,"OBSERVAÇÃO: ",oFont3)  
+Caracter:=70		
+LinMEMO:= 1200+300
+For a:= 1 To MLCOUNT(cMemo,Caracter)
+    If !Empty(MEMOLINE(cMemo,Caracter,a))
+        oPrint:Say(LinMEMO,0150,UPPER(MEMOLINE(cMemo,Caracter,a)),oFont3)
+        LinMEMO:=LinMEMO+80
+    endif
+Next                                           '
+
+// Visualiza a impressão  
+oPrint:EndPage()       
+oPrint:Preview()  
+
+Return()

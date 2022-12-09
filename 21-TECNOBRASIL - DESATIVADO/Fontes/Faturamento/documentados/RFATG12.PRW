@@ -1,0 +1,20 @@
+/* ATRIBIU O CONTEÚDO EM MEMÓRIA DE M->A1_CEL1  À _cCelular, VERIFICA SE QUATIDADE DE DIGITOS DO NÚMERO DIGITADO EM M->A1_CEL1 <>9 QUE 2.SE SIM, EXECUTA O ALERT(), E RETORNA BRANCO PARA _cCelular, EVITANDO QUE O NUMERO DIGITADO SEJA COMPOSTO POR MENOS DE 9 DIGITO.*/
+//Segundo If VERIFICA SE O NUMERO DIGITADO EM A1_CEL1 É COMPOSTO POR 9 DÍGITOS E SE O PRIMEIRO CARACTER DA STRING DIGITADA, CONTÉM DÍGITO 9
+//M->A1_CEL1 É DOMÍNIO E CONTRA DOMÍNIO
+
+User Function RFATG12() 
+
+_cCelular := M->A1_CEL1
+
+IF LEN(ALLTRIM(M->A1_CEL1))<>9 
+	alert("Número Celular Inválido")           
+	_cCelular:=  ""
+EndIf
+
+If LEN(ALLTRIM(M->A1_CEL1))==9 .And. !Subs(Alltrim(M->A6_NUMCON),1,1)$"9"
+	alert("O número do celular deve começar com 9")
+	_cCelular:=  ""
+Endif
+    
+
+Return(_cCelular)

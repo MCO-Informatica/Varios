@@ -1,0 +1,348 @@
+#INCLUDE "protheus.ch"
+#INCLUDE "rwmake.ch"
+#INCLUDE "topconn.ch"  
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} DHACER01
+Rotina para levantamento dos itens das notas de entrada, onde deve ser atualizado os campos D1_BASNDES e D1_ICMNDES.
+       Sera utilizado pelo sistema para geracao do relat๓rio Controle de Estoque CAT 17 - MATR461
+
+@author		DayHome
+@since		25/09/2015
+@version	P11
+@obs		Parametros: Nenhum
+/*/
+//-------------------------------------------------------------------
+
+// Query Original para levantamento dos itens das notas de entrada, onde deve ser atualizado os campos D1_BASNDES e D1_ICMNDES
+// Sera utilizado pelo sistema para geracao do relat๓rio Controle de Estoque CAT 17 - MATR461
+/*
+SELECT SD1.D1_FILIAL, SD1.D1_DTDIGIT, SD1.D1_DOC, SD1.D1_SERIE, SD1.D1_FORNECE, SD1.D1_LOJA, SD1.D1_COD, SD1.D1_CLASFIS,
+              SD1.D1_QUANT, SD1.D1_VUNIT, SD1.D1_TOTAL, SD1.D1_TES, SD1.D1_CF, 
+              SD1.D1_VALIPI, SD1.D1_BASEICM, SD1.D1_VALICM, SD1.D1_ICMSRET, SD1.D1_BRICMS, SD1.D1_BASNDES, SD1.D1_ICMNDES,
+              SD1.R_E_C_N_O_,
+              SB1.B1_COD, SB1.B1_DESC, SB1.B1_CRICMS, SB1.B1_CRICMST,
+              SF4.F4_CODIGO, SF4.F4_CRICMS, SF4.F4_CRICMST, SF4.F4_SITTRIB,
+              SA2.A2_COD, SA2.A2_LOJA, SA2.A2_NOME, SA2.A2_EST, SA2.A2_GRPTRIB
+
+FROM SD1010 SD1, SF4010 SF4, SB1010 SB1, SA2010 SA2
+
+WHERE SD1.D1_FILIAL BETWEEN '01' AND '03'
+             AND SD1.D1_DTDIGIT BETWEEN '20100101' AND '20151231'
+             AND SD1.D_E_L_E_T_ <> '*'
+             AND SD1.D1_TIPO = 'N'
+             AND SD1.D1_ICMSRET = 0
+
+             AND SD1.D1_FORNECE = SA2.A2_COD AND SD1.D1_LOJA = SA2.A2_LOJA
+             AND SA2.D_E_L_E_T_ <> '*'
+             AND SA2.A2_GRPTRIB = 'NAC'
+
+             AND SD1.D1_TES = SF4.F4_CODIGO
+             AND SF4.F4_SITTRIB = '60'
+             AND SF4.D_E_L_E_T_ <> '*'
+
+             AND SD1.D1_COD = SB1.B1_COD
+             AND SB1.D_E_L_E_T_ <> '*'
+*/
+
+User Function DHACER01()
+
+PRIVATE _aDialog
+PRIVATE cPerg     := "DHACER01  "
+
+AjustaSx1(cPerg)
+Pergunte( cPerg, .F. )
+
+DEFINE MSDIALOG _aDialog TITLE "ATUALIZAวรO DOC. DE ENTRADA P/ CAT17" FROM C(105) , C(074) TO C(304) , C(700) PIXEL
+
+@ C(002),C(003) To C(080),C(310)
+@ C(010),C(015) Say OemToAnsi( "Esta rotina realiza o preenchimento dos campos D1_BASNDES e D1_ICMNDES, de acordo com as" )
+@ C(022),C(015) Say OemToAnsi( "  regras definidas pela DayHome: CST 60, GR.TRIB NAC.  " )
+@ C(034),C(015) Say OemToAnsi( "Deve ser realizada para inicio de utilizacao do Controle Estoque CAT17." )
+@ C(046),C(015) Say OemToAnsi( " * Atualiza Somente quando os campos estiverem sem preenchimento." )
+@ C(085),C(015) BmpButton Type 1 Action( Close(_aDialog) , Processa( {|| RunProc() }, "Selecionando Registros..." ) )
+@ C(085),C(050) BmpButton Type 2 Action Close(_aDialog)
+@ C(085),C(085) BmpButton Type 5 Action Pergunte( cPerg, .T. )
+Activate Dialog _aDialog Centered
+
+Return
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบFuno    ณRunProc   บ Autor ณ                    บ Data ณ 23/10/2015  บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescrio ณ Executa o Processamento.                                   บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ ETCTB004                                                   บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿*/
+Static Function RunProc()
+
+LOCAL _cQry
+LOCAL _aArea := GetArea()
+
+PRIVATE _nCont := 0
+
+If Aviso( "Prosseguir ?" , "Confirma a atualiza็ใo ?" , {"Confirma","Cancela"} ) == 2
+	Return( Nil )
+EndIf
+
+dbSelectArea("SA2")
+dbSetOrder(1)
+dbSelectArea("SB1")
+dbSetOrder(1)
+dbSelectArea("SF4")
+dbSetOrder(1)
+dbSelectArea("SF7")
+dbSetOrder(1)
+
+_cQry := "SELECT SD1.R_E_C_N_O_ RECNOSD1 "
+
+_cQry += "FROM " + RetSqlName("SD1") + " SD1, " + RetSqlName("SF4") + " SF4, " + RetSqlName("SB1") + " SB1, " + RetSqlName("SA2") + " SA2 "
+
+_cQry += "WHERE SD1.D1_FILIAL BETWEEN '" + mv_par03 + "' AND '" + mv_par04 + "'"
+_cQry += "   AND SD1.D1_DTDIGIT BETWEEN '" + DTOS(mv_par01) + "' AND '" + DTOS(mv_par02) + "'"
+_cQry += "   AND SD1.D_E_L_E_T_ <> '*'"
+_cQry += "   AND SD1.D1_TIPO = 'N'"
+_cQry += "   AND SD1.D1_ICMSRET = 0"   // Somente se Nao estiver Preenchido pelo Usuario
+
+_cQry += "   AND SD1.D1_FORNECE = SA2.A2_COD AND SD1.D1_LOJA = SA2.A2_LOJA"
+_cQry += "   AND SA2.D_E_L_E_T_ <> '*'"
+_cQry += "   AND SA2.A2_GRPTRIB = 'NAC'"
+
+_cQry += "   AND SD1.D1_TES = SF4.F4_CODIGO"
+_cQry += "   AND SF4.F4_SITTRIB = '60'"
+_cQry += "   AND SF4.D_E_L_E_T_ <> '*'"
+
+_cQry += "   AND SD1.D1_COD = SB1.B1_COD"
+_cQry += "   AND SB1.D_E_L_E_T_ <> '*'"
+
+_cQry := ChangeQuery(_cQry)
+TcQuery _cQry New Alias "TMPSD1"
+
+dbGoTop()
+If Eof()
+	dbCloseArea()
+	RestArea( _aArea )
+	Aviso( "Dados nใo encontrados" , "Nใo foram encontrados dados a processar." , { "Retornar"} )
+	Return
+EndIf
+
+ProcRegua( LastRec() )
+
+Do While !Eof()
+	IncProc()
+
+	dbSelectArea("SD1")
+	dbGoTo( TMPSD1->RECNOSD1 )
+
+	If Recno() == TMPSD1->RECNOSD1
+	
+		dbSelectArea("SA2")
+		dbSeek( xFilial("SA2")+SD1->D1_FORNECE+SD1->D1_LOJA, .F. )   // Posiciona o Fornecedor. As demais tabelas serao posicionadas pela funcao abaixo
+		
+		DHSD1100I()  // Executa a Rotina que Faz os Calculos e Preenche os Campos D1_BASNDES e D1_ICMNDES (Aproveitado o ponto de entrada SD1100I
+		
+	EndIf
+
+	dbSelectArea("TMPSD1")
+	dbSkip()
+
+EndDo
+
+dbCloseArea()
+RestArea( _aArea )
+
+Aviso( "Processamento Finalizado!" , "Registros atualizados: " + AllTrim(Str(_nCont)) , {"Finalizar"} ) == 2
+
+Return
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบFuno    ณDHSD1100I บ Autor ณ                    บ Data ณ  23/10/15   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescrio ณ Aproveitado o ponto de entrada SD1100I, para atualizacao   บฑฑ
+ฑฑบ          ณ dos campos para a CAT17   				                  บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Protheus 11                                                บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿*/
+Static Function DHSD1100I()  // Aproveitado o ponto de entrada que realiza o preenchimento dos campos, no documento de entrada
+
+LOCAL _aArea    := GetArea()
+LOCAL _aAreaSB1 := SB1->( GetArea() )
+LOCAL _aAreaSF4 := SF4->( GetArea() )
+LOCAL _aAreaSF7 := SF7->( GetArea() )
+
+LOCAL _nBASNDES := 0
+LOCAL _nICMNDES := 0
+LOCAL _cGRTRIB  := ""
+LOCAL _nXIPICOM := 0
+LOCAL _nMargem  := 0
+LOCAL _nIcmPad  := ( GetMv("MV_ICMPAD") / 100 )
+
+If SD1->D1_BASNDES == 0  // So atualizara se o campo nao foi informado pelo usuario na inclusao da nota
+	
+	dbSelectArea("SF4")  // TES
+	dbSetOrder(1)        // Codigo
+	dbSeek( xFilial("SF4") + SD1->D1_TES , .F. )
+	
+	If SF4->F4_CRICMS == "1"  .AND. Trim( SF4->F4_SITTRIB ) == "60" .AND. Trim( SA2->A2_GRPTRIB ) == "NAC" // Verifica se a TES trata o Credito de ST para ressarcimento e SITTRIB
+		
+		dbSelectArea("SB1")  // Produtos
+		dbSetOrder(1)        // Cod
+		dbSeek( xFilial("SB1") + SD1->D1_COD , .F. )
+		
+		_cGRTRIB  := SB1->B1_GRTRIB
+		_nXIPICOM := SB1->B1_XIPICOM
+		
+		dbSelectArea("SF7")  // Excecoes Fiscais
+		dbSetOrder(1)        // GrTrib + GrpCli + Sequen
+		dbSeek( xFilial("SF7") + _cGRTRIB , .T. )
+		
+		Do While SF7->F7_GRTRIB == _cGRTRIB .AND. !Eof()
+			//If ( SF7->F7_EST == SA2->A2_EST .AND. SF7->F7_GRPCLI == "NAC" ) .OR. ( "*" $ TRIM(SF7->F7_EST) .AND. SF7->F7_GRPCLI == "NAC" )
+			If SF7->F7_GRPCLI == "NAC"  // Por solicitacao do cliente, buscar o primeiro GRPCLI = NAC para considerar a Margem, independente do ESTADO
+				_nMargem := SF7->F7_MARGEM
+				Exit
+			EndIf
+			dbSkip()
+		EndDo
+		
+		_nBASNDES := ( SD1->D1_QUANT * ( SD1->D1_VUNIT * ( 1 + Iif(_nXIPICOM==0,0,(_nXIPICOM/100)) ) ) ) * ( 1 + ( _nMargem/100 ) )  // Base
+		
+		_nICMNDES := ( _nBASNDES * _nIcmPad ) - ( ( SD1->D1_QUANT * SD1->D1_VUNIT ) * _nIcmPad )                         // Valor
+		
+		RecLock("SD1",.F.)
+		SD1->D1_BASNDES := _nBASNDES
+		SD1->D1_ICMNDES := _nICMNDES
+		MsUnLock()
+
+		_nCont++
+		
+	Endif
+	
+EndIf
+
+RestArea( _aAreaSF7 )
+RestArea( _aAreaSF4 )
+RestArea( _aAreaSB1 )
+RestArea( _aArea )
+
+Return( .T. )
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบFuno    ณAjustaSX1 บ Autor ณ                    บ Data ณ             บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescrio ณ Funcao que ajusta o alias do Sx1                     	  บฑฑ
+ฑฑบ          ณ     										                  บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Protheus 10                                                บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿*/
+Static Function AjustaSX1(cPerg)
+
+Local aAreaAnt := GetArea()
+Local aPerg    := {}
+Local nX       := 0
+Local nY       := 0
+Local aCpoPerg := {}
+
+aAdd( aPerg, {'01' ,'Periodo De             ' , 'Periodo De             ' , 'Periodo De             ' , 'mv_ch1' , 'D', 8, 0, 0,'G', '','mv_par01' ,'','','','','','','','','','','','','','','','','','S',''})
+aAdd( aPerg, {'02' ,'Periodo Ate            ' , 'Periodo Ate            ' , 'Periodo Ate            ' , 'mv_ch2' , 'D', 8, 0, 0,'G', '','mv_par02' ,'','','','','','','','','','','','','','','','','','S',''})
+aAdd( aPerg, {'03' ,'Filial De              ' , 'Filial De              ' , 'Filial De              ' , 'mv_ch3' , 'C', 2, 0, 0,'G', '','mv_par03' ,'','','','','','','','','','','','','','','','','SM0','S',''})
+aAdd( aPerg, {'04' ,'Filial Ate             ' , 'Filial Ate             ' , 'Filial Ate             ' , 'mv_ch4' , 'C', 2, 0, 0,'G', '','mv_par04' ,'','','','','','','','','','','','','','','','','SM0','S',''})
+
+aAdd( aCpoPerg, 'X1_ORDEM'   ) // 01
+aAdd( aCpoPerg, 'X1_PERGUNT' ) // 02
+aAdd( aCpoPerg, 'X1_PERSPA'  ) // 03
+aAdd( aCpoPerg, 'X1_PERENG'  ) // 04
+aAdd( aCpoPerg, 'X1_VARIAVL' ) // 05
+aAdd( aCpoPerg, 'X1_TIPO'    ) // 06
+aAdd( aCpoPerg, 'X1_TAMANHO' ) // 07
+aAdd( aCpoPerg, 'X1_DECIMAL' ) // 08
+aAdd( aCpoPerg, 'X1_PRESEL'  ) // 09
+aAdd( aCpoPerg, 'X1_GSC'     ) // 10
+aAdd( aCpoPerg, 'X1_VALID'   ) // 11
+aAdd( aCpoPerg, 'X1_VAR01'   ) // 12
+aAdd( aCpoPerg, 'X1_DEF01'   ) // 13
+aAdd( aCpoPerg, 'X1_DEFSPA1' ) // 14
+aAdd( aCpoPerg, 'X1_DEFENG1' ) // 15
+aAdd( aCpoPerg, 'X1_CNT01'   ) // 16
+aAdd( aCpoPerg, 'X1_DEF02'   ) // 17
+aAdd( aCpoPerg, 'X1_DEFSPA2' ) // 18
+aAdd( aCpoPerg, 'X1_DEFENG2' ) // 19
+aAdd( aCpoPerg, 'X1_DEF03'   ) // 20
+aAdd( aCpoPerg, 'X1_DEFSPA3' ) // 21
+aAdd( aCpoPerg, 'X1_DEFENG3' ) // 22
+aAdd( aCpoPerg, 'X1_DEF04'   ) // 23
+aAdd( aCpoPerg, 'X1_DEFSPA4' ) // 24
+aAdd( aCpoPerg, 'X1_DEFENG4' ) // 25
+aAdd( aCpoPerg, 'X1_DEF05'   ) // 26
+aAdd( aCpoPerg, 'X1_DEFSPA5' ) // 27
+aAdd( aCpoPerg, 'X1_DEFENG5' ) // 28
+aAdd( aCpoPerg, 'X1_F3'      ) // 29
+aAdd( aCpoPerg, 'X1_PYME'    ) // 30
+aAdd( aCpoPerg, 'X1_GRPSXG'  ) // 31
+aAdd( aCpoPerg, 'X1_HELP'    ) // 32
+aAdd( aCpoPerg, 'X1_PICTURE' ) // 33
+
+dbSelectArea( "SX1" )
+dbSetOrder( 1 )
+For nX := 1 To Len( aPerg )
+	If !dbSeek( cPerg + aPerg[nX][1] )
+		RecLock( "SX1", .T. )
+		For nY := 1 To Len( aPerg[nX] )
+			If aPerg[nX][nY] <> NIL .and. !Empty( aPerg[nX][nY] )
+				SX1->( &( aCpoPerg[nY] ) ) := aPerg[nX][nY]
+			EndIf
+		Next
+		SX1->X1_GRUPO := cPerg
+		MsUnlock()
+	EndIf
+Next
+
+RestArea( aAreaAnt )
+
+Return( Nil )
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑฺฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฟฑฑ
+ฑฑณPrograma   ณ   C()   ณ Autores ณ Norbert/Ernani/Mansano ณ Data ณ10/05/2005ณฑฑ
+ฑฑรฤฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤดฑฑ
+ฑฑณDescricao  ณ Funcao responsavel por manter o Layout independente da       ณฑฑ
+ฑฑณ           ณ resolucao horizontal do Monitor do Usuario.                  ณฑฑ
+ฑฑภฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤูฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿*/
+Static Function C(nTam)
+
+Local nHRes	:=	oMainWnd:nClientWidth	// Resolucao horizontal do monitor
+
+If nHRes == 640	// Resolucao 640x480 (soh o Ocean e o Classic aceitam 640)
+	nTam *= 0.8
+ElseIf (nHRes == 798).Or.(nHRes == 800)	// Resolucao 800x600
+	nTam *= 1
+Else	// Resolucao 1024x768 e acima
+	nTam *= 1.28
+EndIf
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณTratamento para tema "Flat"ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+If "MP8" $ oApp:cVersion
+	If (Alltrim(GetTheme()) == "FLAT") .Or. SetMdiChild()
+		nTam *= 0.90
+	EndIf
+EndIf
+
+Return Int(nTam)

@@ -1,0 +1,60 @@
+#Include 'Protheus.ch'
+//---------------------------------------------------------------------------------------------------------------------------
+/*/{Protheus.doc} DFATV004
+(valida a digitação do desconto, para produtos promocionais não é permitido conceder 
+desconto
+@type function
+@author Cris
+@since 26/09/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+
+/*/
+//---------------------------------------------------------------------------------------------------------------------------
+User Function DFATV004()
+	
+		Local lLibCpo	:= .T.
+		Local aArea		:= GetArea()
+		Local nPosProm	:= Ascan(aHeader,{|x| ALLTRIM(x[2]) == 'C6_XPROMO'})
+		Local nPosDesc	:= Ascan(aHeader,{|x| ALLTRIM(x[2]) == 'C6_DESCONT'})
+					
+			//Para venda sem vendedor (parametro ES_CODVND) não é permitido aplicar qualquer desconto, produtos com ou sem promoção	
+			//Comentando para quando precisar aplicar a regra.
+			/*	if SuperGetMv('ES_CODVND',.F.,'106')  == Alltrim(M->C5_VEND1) .and. M->C6_DESCONT <> 0
+								
+				if !IsBlind()
+
+					HELP("HELP",, 'Não permitido - Desconto',, "Para pedido sem vendedor não é permitido aplicar qualquer desconto. Tecle ESC para sair do campo. ", 1, 0)
+					
+				EndIf
+				
+				lLibCpo	:= .F.
+				
+			EndIf
+			*/
+			//Para produtos promocionais não é permitido aplicar desconto
+			if lLibCpo .AND. aCols[n][nPosProm]  == 'P' .AND. M->C5_XPERPRO <> 'S' // .AND. M->C6_DESCONT > 0  // Validacao C5_XPERPRO realizada em 30/10/2017  
+
+				if !IsBlind()
+
+					HELP("HELP",, 'Não permitido - Desconto',, "Para produtos promocionais não é permitido aplicar desconto. Tecle ESC para sair do campo. ", 1, 0)
+					
+				EndIf
+				
+				lLibCpo	:= .F.
+				
+			EndIf 
+		
+			//Limpa variavel de memória
+			if !lLibCpo
+			
+				M->C6_DESCONT	:= 0
+						
+			EndIf
+					
+		RestArea(aArea)
+		
+Return lLibCpo

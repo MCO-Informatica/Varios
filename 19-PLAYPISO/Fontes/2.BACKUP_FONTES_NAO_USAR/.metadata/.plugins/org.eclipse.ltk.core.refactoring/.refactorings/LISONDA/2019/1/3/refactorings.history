@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Renomear recurso &quot;LISONDA/1.PRODUÇÃO/1.ERP/FAT/Nfe/nfesefaz.prw&quot; a &quot;nfesefaz_alt.prw&quot;" description="Renomear recurso &quot;nfesefaz.prw&quot;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="1.PRODUÇÃO/1.ERP/FAT/Nfe/nfesefaz.prw" name="nfesefaz_alt.prw" stamp="1547759236732" updateReferences="true"/>
+</session>

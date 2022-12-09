@@ -1,0 +1,19 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | NUMSA2        | Autor | Lucas Baia          | Data |    16/02/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para normalizar Código de Fornecedor.
+//---------------------------------------------------------------------------------
+// Uso    | VERION
+//---------------------------------------------------------------------------------
+
+
+User Function NUMSA2()
+
+_cNumSA2    := GETMV("MV_XNUMSA2")         
+_cNSA2      := GETMV("MV_XNUMSA2")
+
+PutMV("MV_XNUMSA2",Soma1(_cNumSA2))
+ 
+Return(_cNSA2)

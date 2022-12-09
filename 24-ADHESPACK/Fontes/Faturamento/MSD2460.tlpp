@@ -1,0 +1,31 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MSD2460        | Autor | Lucas Baia          | Data |    03/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado durante a gravação de Item a Item da tabela
+//        | SD2.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MSD2460()
+
+Local _cArea    := GetArea()
+Local _cEst     := POSICIONE("SF4",1,xFilial("SF4")+SD2->D2_TES,"F4_ESTOQUE")
+
+dbSelectArea("SD2")
+
+IF _cEst == "N"
+
+    Reclock("SD2",.F.)
+        SD2->D2_XLOTE       := SC6->C6_XLOTE
+        SD2->D2_XDTLOT      := SC6->C6_XDTLOT
+    SD2->(MsunLock())
+
+ENDIF
+
+RestArea(_cArea)
+
+Return

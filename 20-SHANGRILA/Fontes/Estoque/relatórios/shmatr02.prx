@@ -1,0 +1,1290 @@
+#Include "Protheus.CH"
+#Include "SHMATR825.CH"
+#Include 'Topconn.ch'
+
+Static cTipoTemp
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun??o    ³ MATR825  ³ Autor ³ Felipe Nunes Toledo   ³ Data ³ 08/06/06 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³ Relatorio de Horas Improdutivas / Produtivas               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+*/
+User Function SHMATR02()
+	Local oReport
+
+	Private cTpHr     := GetMV("MV_TPHR")
+	Private cAliasSH6 := "SH6"
+	Private bConv     := {|x| A680ConvHora(x,"C",cTpHr) }
+
+	If FindFunction("TRepInUse") .And. TRepInUse()
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Interface de impressao                                                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		oReport:= ReportDef()
+		oReport:PrintDialog()
+	Else
+		MATR825R3()
+	EndIf
+
+Return NIL
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportDef ³ Autor ³Felipe Nunes Toledo    ³ Data ³08/06/06  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³A funcao estatica ReportDef devera ser criada para todos os ³±±
+±±³          ³relatorios que poderao ser agendados pelo usuario.          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR825			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportDef()
+	Local oReport
+	Local oApont
+	Local aOrdem  := {STR0004,STR0005,STR0006,STR0007,STR0008}	//"Por OP"###"Por Recurso"###"Por Motivo"###"Por Data"###"Por Operador"
+	Local cPictH6 := If(cTpHr == "C","@R 999.99",'')
+	Local cPictHr := If(cTpHr == "C","@R 99.99",'')
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao do componente de impressao                                      ³
+//³                                                                        ³
+//³TReport():New                                                           ³
+//³ExpC1 : Nome do relatorio                                               ³
+//³ExpC2 : Titulo                                                          ³
+//³ExpC3 : Pergunte                                                        ³
+//³ExpB4 : Bloco de codigo que sera executado na confirmacao da impressao  ³
+//³ExpC5 : Descricao                                                       ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:= TReport():New("SHMATR825",OemToAnsi(STR0001),PadR("MTR826",Len(SX1->X1_GRUPO)), {|oReport| ReportPrint(oReport,aOrdem)},OemToAnsi(STR0002)+" "+OemToAnsi(STR0003)) //##"Relacao  de Horas Improdutivas / Produtivas apontadas, de acordo com a ordem selecionada pelo usuario."
+	oReport:SetLandscape() //Define a orientacao de pagina do relatorio como paisagem.
+	oReport:SetTotalText(STR0023) //"Motivos que geraram horas improdutivas"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas - MTR826                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01     // Lista Horas Improdutivas / Produtivas / Ambas³
+//³ mv_par02     // De  OP 					                     ³
+//³ mv_par03     // Ate OP										 ³
+//³ mv_par04     // De  Recurso                                  ³
+//³ mv_par05     // Ate Recurso                                  ³
+//³ mv_par06     // De  Motivo                                   ³
+//³ mv_par07     // Ate Motivo                                   ³
+//³ mv_par08     // De  Data                                     ³
+//³ mv_par09     // Ate Data                                     ³
+//³ mv_par10     // De  Operador                                 ³
+//³ mv_par11     // Ate Operador                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+	Pergunte(oReport:uParam,.F.)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao da secao utilizada pelo relatorio                               ³
+//³                                                                        ³
+//³TRSection():New                                                         ³
+//³ExpO1 : Objeto TReport que a secao pertence                             ³
+//³ExpC2 : Descricao da seçao                                              ³
+//³ExpA3 : Array com as tabelas utilizadas pela secao. A primeira tabela   ³
+//³        sera considerada como principal para a seção.                   ³
+//³ExpA4 : Array com as Ordens do relatório                                ³
+//³ExpL5 : Carrega campos do SX3 como celulas                              ³
+//³        Default : False                                                 ³
+//³ExpL6 : Carrega ordens do Sindex                                        ³
+//³        Default : False                                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Sessao 1 (oApont)                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oApont := TRSection():New(oReport,STR0025,{"SH6","SH1","SH4"},aOrdem) //"Relatorio de Horas Improdutivas / Produtivas"
+	oApont:SetHeaderPage()
+	oApont:SetTotalInLine(.T.)
+
+	TRCell():New(oApont,'H6_TIPO'   ,'SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_OP'     ,'SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_TEMPO'  ,'SH6',/*Titulo*/,cPictH6    ,/*Tamanho*/,/*lPixel*/, {|| TimeH6(Nil,Nil,cAliasSH6) })
+	TRCell():New(oApont,'H6_RECURSO','SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H1_DESCRI' ,'SH1',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_FERRAM' ,'SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H4_DESCRI' ,'SH4',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_MOTIVO' ,'SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'X5_DESCRI' ,'SX5',STR0024   ,"@!"		  ,35		  ,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_DTAPONT','SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_OPERADO','SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_DATAINI','SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_DATAFIN','SH6',/*Titulo*/,/*Picture*/,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+	TRCell():New(oApont,'H6_HORAINI','SH6',/*Titulo*/,cPictHr    ,/*Tamanho*/,/*lPixel*/,{|| TimeH6(Nil, 'H6_HORAINI', cAliasSH6) })
+	TRCell():New(oApont,'H6_HORAFIN','SH6',/*Titulo*/,cPictHr    ,/*Tamanho*/,/*lPixel*/,{|| TimeH6(Nil, 'H6_HORAFIN', cAliasSH6) })
+	If cTpHr == "C"
+		TRCell():New(oApont,'PRODUTIVA'  ,'SH6',/*Titulo*/,cPictH6,/*Tamanho*/,/*lPixel*/,{|| Val(StrTran(If(H6_TIPO=='P',TimeH6(Nil,Nil,cAliasSH6),"000:00"),':','.')) })
+		TRCell():New(oApont,'IMPRODUTIVA','SH6',/*Titulo*/,cPictH6,/*Tamanho*/,/*lPixel*/,{|| Val(StrTran(If(H6_TIPO=='I',TimeH6(Nil,Nil,cAliasSH6),"000:00"),':','.')) })
+	Else
+		TRCell():New(oApont,'PRODUTIVA'  ,'SH6',/*Titulo*/,cPictH6,/*Tamanho*/,/*lPixel*/,{|| If(H6_TIPO=='P',TimeH6(Nil,Nil,cAliasSH6),"000:00") })
+		TRCell():New(oApont,'IMPRODUTIVA','SH6',/*Titulo*/,cPictH6,/*Tamanho*/,/*lPixel*/,{|| If(H6_TIPO=='I',TimeH6(Nil,Nil,cAliasSH6),"000:00") })
+	EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao das celulas c/ base no SX5, para totalizar os motivos de hrs Improdutivas³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SX5")
+	dbSeek(xFilial("SX5")+"44")
+	Do While X5_FILIAL+X5_TABELA == xFilial("SX5")+"44"
+		TRCell():New(oApont,Trim(SX5->X5_CHAVE),,Trim(SX5->X5_CHAVE),cPictH6,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/)
+		dbSkip()
+	EndDo
+
+Return(oReport)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportPrint ³ Autor ³Felipe Nunes Toledo  ³ Data ³08/06/06  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³A funcao estatica ReportPrint devera ser criada para todos  ³±±
+±±³          ³os relatorios que poderao ser agendados pelo usuario.       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ExpO1: Objeto Report do Relatorio                           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR825			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportPrint(oReport,aOrdem)
+	Local oApont    := oReport:Section(1)
+	Local nOrdem    := oApont:GetOrder()
+	Local nCnt      := 3 // Variavel p/ controle dos Motivos que deveram serem impressos
+	Local cWhere
+	Local cOrderBy
+	Local cIndex
+	Local xValMot
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Titulo do relatorio³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:SetTitle(STR0001+" "+aOrdem[nOrdem])
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Defininco a Quebra ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If nOrdem == 1
+		oBreak := TRBreak():New(oApont,oApont:Cell("H6_OP"),STR0020+STR0012,.T.) // "Total da OP:"
+	Elseif nOrdem == 2
+		oBreak := TRBreak():New(oApont,oApont:Cell("H6_RECURSO"),STR0020+STR0013,.T.)// "Total do Recurso:"
+	Elseif nOrdem == 3
+		oBreak := TRBreak():New(oApont,oApont:Cell("H6_MOTIVO"),STR0020+STR0014,.T.)// "Total do Motivo:"
+	Elseif nOrdem == 4
+		oBreak := TRBreak():New(oApont,oApont:Cell("H6_DTAPONT"),STR0020+STR0015,.T.) // "Total da Data:"
+	Elseif nOrdem == 5
+		oBreak := TRBreak():New(oApont,oApont:Cell("H6_OPERADO"),STR0020+STR0016,.T.) // "Total do Operador:"
+	Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Totalizando as Horas Produtivas / Improdutivas conforme a Quebra³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oFunction := TRFunction():New(oApont:Cell('PRODUTIVA'),'PRODUTIVA',If(cTpHr =="N","TIMESUM","TIMESUM"),oBreak,STR0021,/*Picture*/,/*uFormula*/,.F.,.F.) //"Horas Produtivas"
+	oFunction := TRFunction():New(oApont:Cell('IMPRODUTIVA'),'IMPRODUTIVA',If(cTpHr =="N","TIMESUM","SUM"),oBreak,STR0022,/*Picture*/,/*uFormula*/,.F.,.F.) //"Horas Improdutivas"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Totalizando a Horas Improdutivas, por Motivos, p/ impressao no Final do relatorio³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SX5")
+	dbSeek(xFilial("SX5")+"44")
+	Do While X5_FILIAL+X5_TABELA == xFilial("SX5")+"44"
+		oFunction := TRFunction():New(oApont:Cell(Trim(SX5->X5_CHAVE)),Trim(SX5->X5_CHAVE),If(cTpHr =="N","TIMESUM","SUM"),,Padr(Trim(Upper(SX5->X5_DESCRI)),35,"-"),,/*uFormula*/,.F.,.T.)
+		dbSkip()
+	EndDo
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Filtragem do relatorio                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	#IFDEF TOP
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Transforma parametros Range em expressao SQL                            ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		MakeSqlExpr(oReport:uParam)
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Query do relatorio da secao 1                                           ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	
+		oApont:BeginQuery()
+	
+		cAliasSH6 := GetNextAlias()
+	
+		cWhere := "%"
+		If mv_par01 == 1
+			cWhere += " H6_TIPO = 'I' AND "
+		Elseif mv_par01 == 2
+			cWhere += " H6_TIPO = 'P' AND "
+		EndIf
+		cWhere += "%"
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Order by de acordo com a ordem selecionada.                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cOrderBy := "%"
+		If nOrdem == 1
+			cOrderBy += " H6_FILIAL, H6_OP, H6_DTAPONT " // Por OP
+		ElseIf nOrdem == 2
+			cOrderBy += " H6_FILIAL, H6_RECURSO, H6_DTAPONT, H6_OP " // Por Recurso
+		ElseIf nOrdem == 3
+			cOrderBy += " H6_FILIAL, H6_MOTIVO, H6_DTAPONT " // Por Motivo
+		ElseIf nOrdem == 4
+			cOrderBy += " H6_FILIAL, H6_DTAPONT, H6_MOTIVO " // Por Data
+		ElseIf nOrdem == 5
+			cOrderBy += " H6_FILIAL, H6_OPERADO, H6_DTAPONT " //Por Operador
+		EndIf
+		cOrderBy += "%"
+	
+		BeginSql Alias cAliasSH6
+		
+			SELECT SH6.H6_FILIAL, SH6.H6_PRODUTO, SH6.H6_OPERAC, SH6.H6_SEQ, SH6.H6_DATAINI, SH6.H6_HORAINI,
+			SH6.H6_DATAFIN, SH6.H6_HORAFIN, SH6.H6_RECURSO, SH6.H6_OP, SH6.H6_MOTIVO, SH6.H6_DTAPONT,
+			SH6.H6_OPERADO, SH6.H6_TEMPO, SH6.H6_TIPOTEM, SH6.H6_TIPO, SH6.H6_FERRAM, SH6.H6_X_LOTEP, SH6.H6_X_TEMPA
+		
+			FROM %table:SH6% SH6
+		
+			WHERE H6_FILIAL = %xFilial:SH6% AND
+			H6_OP       Between %Exp:mv_par02% AND %Exp:mv_par03% AND
+			H6_RECURSO  Between %Exp:mv_par04% AND %Exp:mv_par05%	 AND
+			H6_MOTIVO   Between %Exp:mv_par06% AND %Exp:mv_par07%	 AND
+			H6_DTAPONT  Between %Exp:mv_par08% AND %Exp:mv_par09%	 AND
+			H6_OPERADO  Between %Exp:mv_par10% AND %Exp:mv_par11%	 AND
+			%Exp:cWhere%
+			SH6.%NotDel%
+		
+			ORDER BY %Exp:cOrderBy%
+		
+		EndSql
+	
+		oApont:EndQuery()
+	#ELSE
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Transforma parametros Range em expressao ADVPL                          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		MakeAdvplExpr(oReport:uParam)
+	
+		dbSelectArea(cAliasSH6)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Indice Condicional de acordo com a ordem selecionada.        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If nOrdem == 1
+			cIndex:="H6_FILIAL+H6_OP+DTOS(H6_DTAPONT)"
+		ElseIf nOrdem == 2
+			cIndex:="H6_FILIAL+H6_RECURSO+DTOS(H6_DTAPONT)+H6_OP"
+		ElseIf nOrdem == 3
+			cIndex:="H6_FILIAL+H6_MOTIVO+DTOS(H6_DTAPONT)"
+		ElseIf nOrdem == 4
+			cIndex:="H6_FILIAL+DTOS(H6_DTAPONT)+H6_MOTIVO"
+		ElseIf nOrdem == 5
+			cIndex:="H6_FILIAL+H6_OPERADO+DTOS(H6_DTAPONT)"
+		EndIf
+	
+		cCondicao := 'H6_FILIAL=="'+xFilial("SH6")+'".And.'
+		cCondicao += 'H6_TIPO$"'+IIF(mv_par01==1,"I",IIF(mv_par01==2,"P","PI"))+'".And.'
+		If mv_par01 # 2
+			cCondicao += '(Empty(H6_OP) .Or. (H6_OP>="'+mv_par02+'".And.H6_OP<="'+mv_par03+'")) .And.'
+		Else
+			cCondicao += 'H6_OP>="'+mv_par02+'".And.H6_OP<="'+mv_par03+'".And.'
+		EndIf
+		cCondicao += 'H6_RECURSO>="'+mv_par04+'".And.H6_RECURSO<="'+mv_par05+'".And.'
+		cCondicao += 'H6_MOTIVO>="'+mv_par06+'".And.H6_MOTIVO<="'+mv_par07+'".And.'
+		cCondicao += 'DTOS(H6_DTAPONT)>="'+DTOS(mv_par08)+'".And.DTOS(H6_DTAPONT)<="'+DTOS(mv_par09)+'"'
+	
+		oReport:Section(1):SetFilter(cCondicao,cIndex)
+	
+	#ENDIF
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Posicionamento das tabelas³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	TRPosition():New(oApont,"SH1",1,{|| xFilial("SH1") + (cAliasSH6)->H6_RECURSO})
+	TRPosition():New(oApont,"SH4",1,{|| xFilial("SH4") + (cAliasSH6)->H6_FERRAM })
+	TRPosition():New(oApont,"SX5",1,{|| xFilial("SX5")+"44"+(cAliasSH6)->H6_MOTIVO })
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Inibindo celulas, utilizadas apenas para totalizadores³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oApont:Cell('PRODUTIVA'):Hide()
+	oApont:Cell('IMPRODUTIVA'):Hide()
+	oApont:Cell('PRODUTIVA'):HideHeader()
+	oApont:Cell('IMPRODUTIVA'):HideHeader()
+
+	dbSelectArea("SX5")
+	dbSeek(xFilial("SX5")+"44")
+	Do While X5_FILIAL+X5_TABELA == xFilial("SX5")+"44"
+		oApont:Cell(Trim(SX5->X5_CHAVE)):Hide()
+		oApont:Cell(Trim(SX5->X5_CHAVE)):HideHeader()
+		dbSkip()
+	EndDo
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Inicio da impressao do fluxo do relatorio                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:SetMeter(SH6->(LastRec()))
+	oApont:Init()
+
+	dbSelectArea(cAliasSH6)
+	While !oReport:Cancel() .And. !(cAliasSH6)->(Eof())
+		SX5->(dbSeek(xFilial("SX5")+"44"))
+		dbSelectArea(cAliasSH6)
+		Do While SX5->(X5_FILIAL+X5_TABELA) == xFilial("SX5")+"44"
+			If ALLTRIM((cAliasSH6)->H6_MOTIVO) == Trim(SX5->X5_CHAVE)
+				If cTpHr == "C"
+					oApont:Cell(Trim(SX5->X5_CHAVE)):SetValue( Val(StrTran(TimeH6(Nil,Nil,cAliasSH6),':','.')))
+				Else
+					oApont:Cell(Trim(SX5->X5_CHAVE)):SetValue( TimeH6(Nil,Nil,cAliasSH6) )
+				EndIf
+			Else
+				oApont:Cell(Trim(SX5->X5_CHAVE)):SetValue(0)
+			Endif
+			SX5->(dbSkip())
+		EndDo
+		oApont:PrintLine()
+		(cAliasSH6)->(dbSkip())
+		oReport:IncMeter()
+	EndDo
+
+	dbSelectArea("SX5")
+	dbSeek(xFilial("SX5")+"44")
+	Do While X5_FILIAL+X5_TABELA == xFilial("SX5")+"44"
+		xValMot := oApont:GetFunction(Trim(SX5->X5_CHAVE)):ReportValue()
+		If ValType(xValMot) == "N" .And. xValMot == 0 // Nao imprime Motivos com Total de Horas zerado.
+			oReport:aFunction[nCnt]:lEndSection := .F.
+			oReport:aFunction[nCnt]:lEndReport  := .F.
+			oReport:aFunction[nCnt]:lEndPage    := .F.
+		EndIf
+		nCnt++
+		dbSkip()
+	EndDo
+
+	oApont:Finish()
+	(cAliasSH6)->(DbCloseArea())
+
+Return NIL
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Descri??o ³ PLANO DE MELHORIA CONTINUA                                 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ITEM PMC  ³ Responsavel              ³ Data         |BOPS:		      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³      01  ³                          ³              |                  ³±±
+±±³      02  ³Erike Yuri da Silva       ³23/01/2006    |00000092017       ³±±
+±±³      03  ³                          ³              |                  ³±±
+±±³      04  ³                          ³              |                  ³±±
+±±³      05  ³                          ³              |                  ³±±
+±±³      06  ³                          ³              |                  ³±±
+±±³      07  ³                          ³              |                  ³±±
+±±³      08  ³                          ³              |                  ³±±
+±±³      09  ³Erike Yuri da Silva       ³23/01/2006    |00000092017       ³±±
+±±³      10  ³                          ³              |                  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun??o    ³ MATR825  ³ Autor ³Rodrigo de A. Sartorio ³ Data ³ 09/01/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³ Relatorio de Horas Improdutivas / Produtivas               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ SIGAPCP                                                    ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³         ATUALIZACOES SOFRIDAS DESDE A CONSTRU?AO INICIAL.             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador ³ Data   ³ BOPS ³  Motivo da Alteracao                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Rodrigo Sart³03/11/98³XXXXXX³ Acerto p/ Bug Ano 2000                   ³±±
+±±³Fernando J. ³31/03/99³XXXXXX³ Acerto na fun??o R825Calc para soma de   ³±±
+±±³            ³        ³      ³ fra??es de Horas.                        ³±±
+±±³CesarValadao³31/03/99³XXXXXX³Manutencao na SetPrint()                  ³±±
+±±³CesarValadao³25/05/99³21659A³Aumento do Tam. Total de Hrs Improdutivas ³±±
+±±³Patricia Sal³18/04/00³003265³Imprimir Cod/Descr. da Ferramenta.        ³±±
+±±³Iuspa       ³04/10/01³XXXXXX³Padronizacao para centesimal EM H6_TEMPO  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+*/
+Static Function MATR825R3()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis obrigatorias dos programas de relatorio            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	LOCAL Tamanho  := "G"
+	LOCAL titulo   := STR0001	//"Relatorio de Horas Improdutivas / Produtivas"
+	LOCAL cDesc1   := STR0002	//"Relacao  de Horas Improdutivas / Produtivas apontadas, de acordo"
+	LOCAL cDesc2   := STR0003	//"com a ordem selecionada pelo usuario."
+	LOCAL cDesc3   := ""
+	LOCAL cString  := "SH6"
+	LOCAL aOrd     := {STR0004,STR0005,STR0006,STR0007,STR0008}	//"Por OP"###"Por Recurso"###"Por Motivo"###"Por Data"###"Por Operador"
+	LOCAL wnrel    := "SHMATR825"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private padrao de todos os relatorios         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	PRIVATE aReturn:= {STR0009,1,STR0010, 2, 2, 1, "",1 }	//"Zebrado"###"Administracao"
+	PRIVATE nLastKey:= 0 ,cPerg := "MTR826"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas - MTR826                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01     // Lista Horas Improdutivas / Produtivas / Ambas³
+//³ mv_par02     // De  OP										 ³
+//³ mv_par03     // Ate OP										 ³
+//³ mv_par04     // De  Recurso                                  ³
+//³ mv_par05     // Ate Recurso                                  ³
+//³ mv_par06     // De  Motivo                                   ³
+//³ mv_par07     // Ate Motivo                                   ³
+//³ mv_par08     // De  Data                                     ³
+//³ mv_par09     // Ate Data                                     ³
+//³ mv_par10     // De  Operador                                 ³
+//³ mv_par11     // Ate Operador                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	pergunte(cPerg,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+	wnrel:=SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.F.,aOrd,,Tamanho)
+
+	If nLastKey = 27
+		Set Filter to
+		Return
+	Endif
+
+	SetDefault(aReturn,cString)
+
+	If nLastKey = 27
+		Set Filter to
+		Return
+	Endif
+
+	RptStatus({|lEnd| C825Imp(aOrd,@lEnd,wnRel,titulo,Tamanho)},titulo)
+
+Return NIL
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun??o    ³ C825IMP  ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 09/01/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³ Chamada do Relatorio                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR825  			                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function C825Imp(aOrd,lEnd,WnRel,titulo,Tamanho)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis locais exclusivas deste programa                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+	LOCAL nTipo    := 0
+	LOCAL cRodaTxt := STR0011	//"REGISTRO(S)"
+	LOCAL nCntImpr := 0,i
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas na totalizacao do relatorio             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	LOCAL cTotProd:="0000:00",cTotImprod:="0000:00"
+	LOCAL cHrReal :="0000:00"
+	LOCAL cHrPrev :="0000:00"
+	LOCAL nTotHrReal:= 0
+	LOCAL nTotHrPrev:= 0
+	LOCAL cQuebra,cCampo,cMens
+	LOCAL cIndex
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas na totalizacao dos motivos              ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	LOCAL aMotivos:={},nProcura
+	
+	//ALTERADO BRUNO 24-07-14
+	
+	local cMotivos	:= "'PP',"
+	local cMetas	:= ""
+	local cDescri	:= ""
+	local nZRM		:= 0
+	local nMotivos	:= 0
+	local nPosZRM	:= 0
+	local nTotPP	:= 0
+	local nTotHP	:= 0
+	local nTotHM	:= 0
+	local nTotOU	:= 0
+	local nTotPR	:= 0
+	local nTotHsPerd:= 0
+	local nTotHsDisp:= 0
+	local nTotHsPPR	:= 0
+	local nHsOcupada:= 0
+	local nHsPerdida:= 0
+	local nHsFull	:= 0
+	local lTipoPPUni:= .T.
+	//Variáveis para cálculo do Percentual
+	local nPercOcup	:= 0
+	local nPercPerd	:= 0
+	local nPercProd	:= 0
+	local nPercImp	:= 0
+	local nPercAbaix:= 0
+	local nPercent	:= 0
+	local nPercHOcup:= 0
+	local nPercHPerd:= 0
+	local nPercPProg:= 0
+	local nMetaHora	:= 0
+	local cMaskPerc	:= "@E 999.999"
+	local cUnidMed	:= ""
+	local c2UnidMed	:= ""
+	local aTotProd	:= {}
+	local aTotProd2	:= {}
+	local nPosTotPr	:= 0
+	local nPosTotPr2:= 0
+	local nPosLin	:= 0
+	Local nB		:= 0
+	Local nR		:= 0
+	Local i 		:= 0
+	//private cAlias	:= "AAA"
+	
+	//TERMINO ALTERACAO BRUNO
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Condicao de Filtragem do SH6                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	LOCAL cCond := 'H6_FILIAL=="'+xFilial("SH6")+'".And.'
+	
+	private aZRM	:= {}
+	
+	cCond += 'H6_TIPO$"'+IIF(mv_par01==1,"I",IIF(mv_par01==2,"P","PI"))+'".And.'
+	If mv_par01#2
+		cCond += '(Empty(H6_OP) .Or. (H6_OP>="'+mv_par02+'".And.H6_OP<="'+mv_par03+'")) .And.'
+	Else
+		cCond += 'H6_OP>="'+mv_par02+'".And.H6_OP<="'+mv_par03+'".And.'
+	EndIf
+	cCond += 'H6_RECURSO>="'+mv_par04+'".And.H6_RECURSO<="'+mv_par05+'".And.'
+	cCond += 'H6_MOTIVO>="'+mv_par06+'".And.H6_MOTIVO<="'+mv_par07+'".And.'
+	cCond += 'DTOS(H6_DTAPONT)>="'+DTOS(mv_par08)+'".And.DTOS(H6_DTAPONT)<="'+DTOS(mv_par09)+'"'
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Indice Condicional de acordo com a ordem selecionada.        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If aReturn[8] = 1
+		cIndex:="H6_FILIAL+H6_OP+DTOS(H6_DTAPONT)"
+		cCampo:="H6_FILIAL+H6_OP"
+		cMens:=STR0012	//"da OP:"
+	ElseIf aReturn[8] = 2
+		cIndex:="H6_FILIAL+H6_RECURSO+DTOS(H6_DTAPONT)"
+		cCampo:="H6_FILIAL+H6_RECURSO"
+		cMens:=STR0013	//"do Recurso:"
+	ElseIf aReturn[8] = 3
+		cIndex:="H6_FILIAL+H6_MOTIVO+DTOS(H6_DTAPONT)"
+		cCampo:="H6_FILIAL+H6_MOTIVO"
+		cMens:=STR0014	//"do Motivo:"
+	ElseIf aReturn[8] = 4
+		cIndex:="H6_FILIAL+DTOS(H6_DTAPONT)+H6_MOTIVO"
+		cCampo:="H6_FILIAL+DTOS(H6_DTAPONT)"
+		cMens:=STR0015	//"da Data:"
+	ElseIf aReturn[8] = 5
+		cIndex:="H6_FILIAL+H6_OPERADO+DTOS(H6_DTAPONT)"
+		cCampo:="H6_FILIAL+H6_OPERADO"
+		cMens:=STR0016	//"do Operador:"
+	EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Pega o nome do arquivo de indice de trabalho             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cNomArq := CriaTrab("",.F.)
+
+//If cTipoTemp == Nil
+//	cTipoTemp:=GetMV("MV_TPHR")
+//EndIf
+	cTipoTemp:="C"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Cria o indice de trabalho                                ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	dbSelectArea("SH6")
+	IndRegua("SH6",cNomArq,cIndex,,cCond,STR0017)	//"Selecionando Registros..."
+	dbGoTop()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa variaveis para controlar cursor de progressao     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	SetRegua(LastRec())
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Adiciona a ordem escolhida ao titulo do relatorio          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	titulo+=" "+aOrd[aReturn[8]]
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa os codigos de caracter Comprimido/Normal da impressora ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	nTipo  := IIF(aReturn[4]==1,15,18)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Contadores de linha e pagina                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	PRIVATE li := 80 ,m_pag := 1
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Cria o cabecalho.                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//cabec1 := STR0018	//"TIPO ORDEM DE    NUMERO   RECURSO                                   FERRAMENTA                    MOTIVO                                 DATA        OPERADOR      DATA       DATA     HORA  HORA"
+//cabec2 := STR0019	//"     PRODUCAO    DE HORAS                                                                                                                APONTAMENTO               INICIO      FIM   INICIO   FIM"
+	cabec1 := "TP ORDEM DE    PRODUTO     RECURSO                             MOTIVO RECDES                            DATA        OPERADOR      DATA      DATA     HORA   HORA       QUANTIDADE SEG        TEMPO    TEMPO   PROD/H  META/H"
+	cabec2 := "   PRODUCAO                                                                                      APONTAMENTO              INICIO      FIM     INICIO FIM                   UM         ESTIMADO REAL    REAL"
+//	   				   X  XXXXXXXXXXX XXXXXXXXXXXXXXX XXXXXX 123456789012345678901234567890 XX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXX  XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXX  XXXXX XXXXXXXXXXXXXXXX XXXXXX   XXXXXX
+//      	    	   0         1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20        21         22
+//      			   012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789001234567890
+
+	R_TotHrTepEstPos := 0
+	R_TotHrProd      := 0
+	R_TotHrImProd    := 0
+	R_TotHrTepEst    := 0
+	R_HrExtrv        := 0
+	/*nTotProd         := 0
+	nTotProd2		 := 0 */
+	aTotProd		:= {}
+	aTotProd2		:= {}
+		
+	
+	SG2->(DbSetOrder(1))
+	
+	Do While !Eof()
+		If H6_OPERADO < mv_par10 .Or. H6_OPERADO > mv_par11
+			IncRegua()
+			dbSkip()
+			Loop
+		EndIf
+		cHrReal		:= If(cTipoTemp=="N","0000:00",0)
+		cHrPrev		:= cHrReal
+		nTotHrReal	:= "0000:00"
+		nTotHrPrev	:= 0
+		cTotProd    := "0000:00"
+		cTotImProd  := "0000:00"
+		/*nTotProd    := 0
+		nTotProd2	:= 0 */
+		aTotProd	:= {}
+		aTotProd2	:= {}
+		cQuebra:=&(cCampo)
+		Do While !Eof() .And. &(cCampo) == cQuebra
+			If H6_OPERADO < mv_par10 .Or. H6_OPERADO > mv_par11
+				IncRegua()
+				dbSkip()
+				Loop
+			EndIf
+			If li > 58
+				cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+			EndIf
+			IncRegua()
+			dbSelectArea("SH1")
+			dbSeek(xFilial("SH1")+SH6->H6_RECURSO)
+			dbSelectArea("SH4")
+			dbSeek(xFilial("SH4")+SH6->H6_FERRAM)
+			dbSelectArea("SC2")
+			dbSeek(xFilial("SC2")+SH6->H6_OP)
+			If !Empty(C2_ROTEIRO)
+				cRoteiro:=C2_ROTEIRO
+			Else
+				dbSelectArea("SB1")
+				dbSeek(xFilial("SB1")+SH6->H6_PRODUTO)
+				cRoteiro:=B1_OPERPAD
+			EndIf
+		
+			dbSelectArea("SG2")
+			dbSeek(xFilial("SG2")+SH6->H6_PRODUTO+cRoteiro+SH6->H6_OPERAC)
+			dbSelectArea("SH6")
+		
+			If Empty(cRoteiro)
+				cRoteiro := StrZero(1, Len(SG2->G2_CODIGO))
+			Endif
+		
+			cHrReal		:= TimeH6()
+			If H6_TIPO == "I"
+				cHrPrev		:= 0
+			else
+				cHrPrev		:= R895Calc()
+			endif
+		
+		//   		cabec1 := "TP ORDEM DE    PRODUTO         RECURSO                               MOTIVO                                 DATA        OPERADOR      DATA      DATA     HORA   HORA  QUANTIDADE       TEMPO    TEMPO  "
+		//			cabec2 := "   PRODUCAO                                                                                                 APONTAMENTO              INICIO      FIM     INICIO FIM                    ESTIMADO REAL   "
+		//	   				   X  XXXXXXXXXXX XXXXXXXXXXXXXXX XXXXXX 123456789012345678901234567890 XX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXX  XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXX  XXXXX XXXXXXXXXXXXXXXX XXXXXX   XXXXXX
+		//      	    	   0         1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20        21         22
+		//      			   012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789001234567890
+			@ li,000 PSay Substr(H6_TIPO,1,1)	  	  Picture PesqPict("SH6","H6_TIPO",1)
+			@ li,003 PSay Substr(H6_OP,1,11)	  	  Picture PesqPict("SH6","H6_OP",11)
+			@ li,015 PSay Substr(H6_PRODUTO,1,15) 	  Picture PesqPict("SH6","H6_PRODUTO",15)
+			@ li,027 PSay Substr(H6_RECURSO,1,6)	  Picture PesqPict("SH6","H6_RECURSO",6)
+			@ li,038 PSay Substr(SH1->H1_DESCRI,1,24)
+			@ li,058 PSay Substr(H6_MOTIVO,1,2)		  Picture PesqPict("SH6","H6_MOTIVO",2)
+		//dbSelectArea("SX5")
+		//dbSeek(xFilial("SX5")+"44"+SH6->H6_MOTIVO)
+		//@ li,072 PSay Substr(X5Descri(),1,35)
+		//dbSelectArea("SH6")
+			@ li,061 PSay H6_XRECDES + ' '+Substr(H6_OBSERVA,1,30)
+			@ li,098 PSay H6_DTAPONT		Picture PesqPict("SH6","H6_DTAPONT",8)
+			@ li,110 PSay H6_OPERADO		Picture PesqPict("SH6","H6_OPERADO",10)
+			@ li,121 PSay H6_DATAINI		Picture PesqPict("SH6","H6_DATAINI",8)
+			@ li,132 PSay H6_DATAFIN		Picture PesqPict("SH6","H6_DATAFIN",8)
+			@ li,143 PSay TimeH6(,"H6_HORAINI")		Picture PesqPict("SH6","H6_HORAINI",8)
+			@ li,150 PSay TimeH6(,"H6_HORAFIN")		Picture PesqPict("SH6","H6_HORAFIN",8)
+			@ li,156 PSay H6_QTDPROD		Picture PesqPict("SH6","H6_QTDPROD",16)
+		
+		//CALCULO 2 UM
+			_TConv	:= POSICIONE("SB1",1,XFILIAL("SB1")+H6_PRODUTO,"B1_TIPCONV"   )  	// DIVISOR OU MULTIPLICADOR
+			_FConv	:= POSICIONE("SB1",1,XFILIAL("SB1")+H6_PRODUTO,"B1_CONV"   )     	// FATOR
+			_Vseg	:= 0                                                             	// IRÁ GRAVAR O RESULTADO
+			If _TConv == "D"
+				_Vseg := H6_QTDPROD / _FConv
+			Else
+				_Vseg := H6_QTDPROD * _FConv
+			EndIf
+		
+			If _Vseg <> 0
+				@ Li, PCOL()+000  PSAY  _Vseg			Picture "@E 99999.9"
+				@ Li, PCOL()+000  PSAY  "-"+ POSICIONE("SB1",1,XFILIAL("SB1")+H6_PRODUTO,"B1_SEGUM"   )
+			EndIf
+		
+			@ li,183 PSay StrTran(StrZero(cHrPrev,6,2),'.',':')    //  Picture TimePict()
+			@ li,192 PSay cHrReal			Picture PesqPict("SH6","H6_TEMPO",7)   // Picture If(cTipoTemp == "C",TimePict(),"@!")    // Converte campo H6_TEMPO para normal
+			@ li,pcol()+001 Psay H6_QTDPROD / Val(StrTran((cHrReal),':','.')) Picture "@E 9,999,999.9"
+			
+			//ALTERADO BRUNO 22-10-14
+			//@ li,pcol()+001 Psay POSICIONE("SG2",1,XFILIAL("SG2")+H6_PRODUTO+POSICIONE("SC2",1,XFILIAL("SC2")+H6_OP,"C2_ROTEIRO")+H6_OPERAC,"G2_LOTEPAD") Picture "@E 9999999"
+			If SH6->H6_X_LOTEP == 0
+				If SG2->(DbSeek(xFilial("SG2")+SH6->H6_PRODUTO+POSICIONE("SC2",1,XFILIAL("SC2")+SH6->H6_OP,"C2_ROTEIRO")+SH6->H6_OPERAC))
+					nMetaHora := round(SG2->G2_LOTEPAD / SG2->G2_TEMPAD,1)
+				EndIf
+			Else 
+				nMetaHora := round(SH6->H6_X_LOTEP / SH6->H6_X_TEMPA,1)
+			EndIf
+			@ li,pcol()+001 Psay nMetaHora Picture "@E 9,999,999.9"
+		//	//ALTERADO BRUNO 22-10-14
+			nTotHrReal	+= If(cTipoTemp=="N",Val(StrTran(A680ConvHora(cHrReal, "N", "C"), ":", ".")),cHrReal)
+		//		nTotHrPrev	+= If(cTipoTemp=="N",Val(StrTran(A680ConvHora(cHrPrev, "N", "C"), ":", ".")),cHrPrev)
+		//		nTotHrPrev	+= Val(StrTran(A680ConvHora(cHrPrev, "N", "C"), ":", "."))
+			If H6_TIPO == "I"
+				nProcura:=ASCAN(aMotivos,{|x| x[1] == ALLTRIM(H6_MOTIVO)})
+				If nProcura = 0
+					AADD(aMotivos,{ALLTRIM(H6_MOTIVO),R825Calc("0000:00")})
+				Else
+					aMotivos[nProcura,2]:=R825Calc(aMotivos[nProcura,2])
+				EndIf
+				cTotImprod:=R825Calc(cTotImProd)
+			Else
+				cTotProd:=R825Calc(cTotProd)
+				nTotHrPrev	+= cHrPrev
+				
+				//ALTERADO BRUNO 18-12-14
+				/*nTotProd 	+= H6_QTDPROD
+				nTotProd2	+= _Vseg*/
+								
+				//Verificando as unidades de medida do produto
+				cUnidMed := POSICIONE("SB1",1,xFilial("SB1")+H6_PRODUTO,"B1_UM")
+				c2UnidMed:= POSICIONE("SB1",1,xFilial("SB1")+H6_PRODUTO,"B1_SEGUM")
+				
+				nPosTotPr := Ascan(aTotProd,{|x| AllTrim(x[1]) == allTrim(cUnidMed)})
+				nPosTotPr2:= Ascan(aTotProd2,{|x| AllTrim(x[1]) == allTrim(c2UnidMed)})
+				
+				//Totalizando a primeira unidade de medida
+				if nPosTotPr > 0
+					aTotProd[nPosTotPr][2]	+= H6_QTDPROD
+				else
+					aadd(aTotProd,{cUnidMed,H6_QTDPROD})
+				endIf
+				
+				//Totalizando a segunda unidade de medida
+				if nPosTotPr2 > 0
+					aTotProd2[nPosTotPr2][2]	+= _Vseg
+				else
+					if _Vseg > 0
+						aadd(aTotProd2,{c2UnidMed,_Vseg})
+					endIf
+				endIf
+											
+				//TERMINO BRUNO 18-12-14
+				
+			EndIf
+			li++
+		
+			dbSkip()
+		EndDo
+		li++
+		If li > 58
+			cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+		EndIf
+		@ li,000 PSay STR0020+cMens	//"Total "
+		@ li,026 PSay STR0021+A680ConvHora(cTotProd, "C", GetMV("MV_TPHR"))	//"Horas Produtivas - "
+		@ li,077 PSay STR0022+A680ConvHora(cTotImProd, "C", GetMV("MV_TPHR"))	//"Horas Improdutivas - "
+		@ li,125 PSay "Tempo Estimado - "+StrTran(StrZero(nTotHrPrev,7,2),'.',':') //"Tempo Estimado - "  StrTran(StrZero(cHrPrev, 7, 2),',',':')
+		
+		//ALTERADO BRUNO 18-12-14  
+		//Impressao dos totais, divididos por unidade de medida.
+		for nB:=1 to len(aTotProd)
+			@ li,155 PSay aTotProd[nB][1] + " "+Transform(aTotProd[nB][2],"@E 9,999,999.9")
+			if len(aTotProd2) >= nB
+				@ li,172 PSay aTotProd2[nB][1] + " "+Transform(aTotProd2[nB][2],"@E 9,999,999.9")
+				nPosLin := nB
+			endIf
+			li++
+		next nB
+		
+		nPosLin++
+		for nB:=nPosLin to len(aTotProd2)
+			@ li,175 PSay aTotProd2[nB][1]+" "+Transform(aTotProd2[nB][2],"@E 9,999,999.9")
+			li++
+		next nB
+		
+		//TERMINO BRUNO 18-12-14
+		
+		li++;li++
+		T_TotHrProd   := Val(StrTran(cTotProd,':','.'))
+		T_TotHrImProd := Val(StrTran(cTotimProd,':','.'))
+		R_TotHrProd   += T_TotHrProd
+		R_TotHrImProd += T_TotHrImProd
+		R_TotHrTepEst += nTotHrPrev
+		If nTotHrPrev < T_TotHrProd
+			R_HrExtrv += ( T_TotHrProd - nTotHrPrev )
+		endif
+	EndDo
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Imprime resumo por motivo em folha separada.             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	R_HrPRitm := R_HrExtrv
+	R_HrParad := 0
+	R_HrManut := 0
+	R_HrOtSer := 0
+	R_HrPreve := 0
+	R_HrNegli := 0
+
+	TPMOT = 0
+	
+	//ALTERADO BRUNO 24-07-14
+	For i:=1 to Len(aMotivos)
+		cMotivos += "'"+aMotivos[i,1] + "',"
+	next i
+	cMotivos	:= subStr(cMotivos,1,len(cMotivos)-1)
+	//cMotivos	:= subStr(cMotivos,1,2)
+	
+	aZRM	:= retZRM(cMotivos) // aZRM[x][1] = ZRM_RMETAS
+								// aZRM[x][2] = ZRM_CHAVE
+								// aZRM[x][3] = ZRM_DESCRI
+								// aZRM[x][4] = Soma das horas
+								// aZRM[x][5] = campo para ordenação para impressao
+	//Ordenando o vetor pela Meta
+		
+	nZRM := len(aZRM)
+	
+	//Calculando a Soma dos valores
+	nMotivos := Len(aMotivos)
+	for i:=1 to nMotivos
+		
+		nPosZRM := aScan(aZRM,{|x| AllTrim(x[2]) == aMotivos[i,1]})
+		
+		aZRM[nPosZRM][4] +=  Val(StrTran(aMotivos[i,2],':','.'))
+		
+	next i
+	
+	//Verificando se so tem tipo PP, para impressão da hora extraviada
+	for nR:=1 to nZRM
+		if aZRM[nR][1] <> "PP"
+			lTipoPPUni := .F.
+		endIf
+		
+		//Calculando os totais de cada grupo
+		if aZRM[nR][1] == "PP"
+			nTotPP += aZRM[nR][4]
+			aZRM[nR][5]:= 0 //Posição 5 utilizada para ordenação do array para exibição.
+		elseIf aZRM[nR][1] == "HP"
+			nTotHP += aZRM[nR][4]
+			aZRM[nR][5]:= 1
+		elseIf aZRM[nR][1] == "HM"
+			nTotHM += aZRM[nR][4]
+			aZRM[nR][5]:= 2
+		elseIf aZRM[nR][1] == "OU"
+			nTotOU += aZRM[nR][4]
+			aZRM[nR][5]:= 3
+		elseIf aZRM[nR][1] == "PR"
+			nTotPR += aZRM[nR][4]
+			aZRM[nR][5]:= 4
+		endIf
+	next nR
+	
+	//Verificando TOTAL HORAS DISPONÍVEL 100% e HORAS DISPONIVEIS PPR
+	nHsOcupada	:= R_TotHrProd - R_HrExtrv //horas produtivas - horas abaixo da meta
+	nTotHsPPR	:= R_TotHrProd + R_TotHrImProd - nTotOU
+	 	
+	//Soma das Horas Perdidas
+	nTotHsPerd := nTotPP + nTotHP + nTotHM + nTotOU + R_HrExtrv
+	nHsPerdida := nTotHsPerd
+	
+	nTotHsDisp	:= nHsOcupada + nHsPerdida
+	nHsFull		:= nHsOcupada+nHsPerdida+nTotPR
+	
+	//ordenando o vetor para impressao na tela
+	aZRM := aSort(aZrm, , , {|x,y| x[5] < y[5] })
+	
+	//CÁLCULO DAS PORCENTAGENS
+	nPercOcup := round(retPorcent(100, nTotHsDisp, nHsOcupada),3) 									//Horas Ocupadas
+	nPercPerd := round(retPorcent(100, nTotHsDisp, nHsPerdida),3) 									//Horas Perdidas
+	nPercProd := round(retPorcent(100, nTotHsPPR, R_TotHrProd),3) 									//Horas Produtivas
+	nPercImp  := round(retPorcent(100, nHsOcupada  + (nTotHsPerd - nTotOU), nTotHsPerd - nTotOU),3)	//Horas Improdutivas
+	nPercOcup2:= round(retPorcent(100, nHsOcupada  + (nTotHsPerd - nTotOU), nHsOcupada),3) 			//Horas Ocupadas
+	nPercAbaix:= round(retPorcent(100, R_TotHrProd + (nTotHsPerd - nTotOU), R_HrExtrv),3) 			//Horas Abaixo da Meta
+	nPercPerd := round(retPorcent(100, nTotHsDisp, nTotHsPerd),3) 									//Horas Abaixo da Meta
+	
+	nPercHOcup:= round(retPorcent(100, nHsFull, nHsOcupada),3) 		//Horas Ocupadas
+	nPercHPerd:= round(retPorcent(100, nHsFull, nHsPerdida),3) 		//Horas Perdidas
+	nPercPProg:= round(retPorcent(100, nHsFull, nTotPR),3) 		//Paradas Programadas
+	
+	//Inicia os motivos improdutivos sempre em uma nova página
+	cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+	
+	@ li,55 PSay "Porcentagem (%)"
+	
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "TOTAL HORAS FULL"
+	@ li,40 PSay StrTran(StrZero(nHsFull,9,2),'.',':')
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "Horas Ocupadas"
+	@ li,40 PSay StrTran(StrZero(nHsOcupada,9,2),'.',':')
+	@ li,60 PSay transfor(nPercHOcup,cMaskPerc)
+	li++
+	@ li,00 PSay "Horas Perdidas"
+	@ li,40 PSay StrTran(StrZero(nHsPerdida,9,2),'.',':')
+	@ li,60 PSay transfor(nPercHPerd,cMaskPerc)
+	li++
+	@ li,00 PSay "Paradas Programadas"
+	@ li,40 PSay StrTran(StrZero(nTotPR,9,2),'.',':')
+	@ li,60 PSay transfor(nPercPProg,cMaskPerc)
+	li++
+	li++
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	
+	li++
+	@ li,00 PSay "TOTAL HORAS DISPONÍVEL"
+	@ li,40 PSay StrTran(StrZero(nTotHsDisp,9,2),'.',':')
+	@ li,60 PSay "100.000"
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "Horas Ocupadas "
+	@ li,40 PSay StrTran(StrZero(nHsOcupada,9,2),'.',':')
+	@ li,60 PSay transfor(nPercOcup,cMaskPerc)
+	li++
+	@ li,00 PSay "Horas Perdidas "
+	@ li,40 PSay StrTran(StrZero(nHsPerdida,9,2),'.',':')
+	@ li,60 PSay transfor(nPercPerd,cMaskPerc)
+	li++
+	li++
+	li++
+	
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "HORAS DISPONÍVEIS PPR (h.ocup. + h.imp.)"
+	@ li,40 PSay StrTran(StrZero(nHsOcupada + (nTotHsPerd - nTotOU) ,9,2),'.',':')
+	@ li,60 PSay transfor(100,cMaskPerc)
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "Horas Produtivas (Trabalhadas)"
+	@ li,40 PSay StrTran(StrZero(R_TotHrProd,9,2),'.',':')
+	li++
+	@ li,00 PSay "Horas Ocupadas(h.prod. - prd. ab. meta)"
+	@ li,40 PSay StrTran(StrZero(nHsOcupada,9,2),'.',':')
+	@ li,60 PSay transfor(nPercOcup2,cMaskPerc)
+	li++
+	@ li,00 PSay "Horas Improdutivas(h.perd - h.n prev.)"
+	@ li,40 PSay StrTran(StrZero(nTotHsPerd - nTotOU,9,2),'.',':') //ALTERADO BRUNO 24-09-14
+	@ li,60 PSay transfor(nPercImp,cMaskPerc)
+	li++
+	li++
+	li++
+	
+	If li > 58
+		cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+	EndIf
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	@ li,00 PSay "HORAS PERDIDAS "
+	@ li,40 PSay StrTran(StrZero(nTotHsPerd,9,2),'.',':')
+	@ li,60 PSay transfor(100,cMaskPerc)
+	li++
+	@ li,00 PSay "---------------------------------------------------------------------"
+	li++
+	//Printando os dados na tela
+	lAbaixoMeta := .F.
+	for nB:=1 to nZRM
+			
+		If li > 57
+			cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+		EndIf
+				
+		if cMetas <> aZRM[nB][1]
+			cDescri := posicione("SX5",1,xFilial("SX5")+"ZZ"+aZRM[nB][1],"X5_DESCRI")
+			
+			if nB > 1;li++;	endIf
+			
+			//ALTERADO BRUNO - 18-12-14
+				if aZRM[nB][1] <> "PR"
+					@ li,00 PSay allTrim(cDescri)	 //Grupo dos motivos Improdutivos (Cabeçalho)
+				else
+					@ li,00 PSay "---------------------------------------------------------------------"
+					li++
+					@ li,00 PSay allTrim(cDescri)
+					@ li,40 PSay StrTran(StrZero(nTotPR,9,2),'.',':')
+					@ li,60 PSay transfor(100,cMaskPerc)
+					li++
+					@ li,00 PSay "---------------------------------------------------------------------"
+				//li++
+				endIf
+			//TERMINO BRUNO - 18-12-14
+				if aZRM[nB][1] == "PP"
+					nTotPP += R_HrExtrv //Somando as horas extraviadas
+					@ li,40 PSay StrTran(StrZero(nTotPP,9,2),'.',':')
+				elseIf aZRM[nB][1] == "HP"
+					@ li,40 PSay StrTran(StrZero(nTotHP,9,2),'.',':')
+				elseIf aZRM[nB][1] == "HM"
+					@ li,40 PSay StrTran(StrZero(nTotHM,9,2),'.',':')
+				elseIf aZRM[nB][1] == "OU"
+					@ li,40 PSay StrTran(StrZero(nTotOU,9,2),'.',':')
+				endIf
+				li++
+			endIf
+		
+		//Motivos Improdutivos (Itens)
+			If allTrim(aZRM[nB][1]) + allTrim(aZRM[nB][2])  <> 'PPPP'
+				@ li,15 PSay allTrim(aZRM[nB][2])+" "+subStr(allTrim(aZRM[nB][3]),1,26)
+				@ li,45 PSay StrTran(StrZero(aZRM[nB][4],9,2),'.',':')
+				
+					//Printando o percentual de cada item
+		//ALTERADO BRUNO - 18-12-14
+				if aZRM[nB][1] <> "PR"
+					nPercent :=  round(retPorcent(100, nTotHsPerd, aZRM[nB][4]),3)
+				else
+					nPercent :=  round(retPorcent(100, nTotPR, aZRM[nB][4]),3)
+				endIf
+		//TERMINO BRUNO - 18-12-14
+				@ li,60 PSay transfor(nPercent,cMaskPerc)
+		
+				li++
+			 
+			EndIf
+		
+	
+		
+		//Horas Extraviadas - pertence ao grupo "PP" e é o unico registro nao relacionado à tabela ZRM.
+				
+		
+		//Horas Extraviadas - pertence ao grupo "PP" e é o unico registro nao relacionado à tabela ZRM.		
+					
+		//Horas Extraviadas - pertence ao grupo "PP" e é o unico registro nao relacionado à tabela ZRM.		
+			If !lAbaixoMeta
+				if nB <> nZRM
+					if (aZRM[nB][1] == "PP" .and. aZRM[nB+1][1] <> "PP") .OR. (lTipoPPUni .and. nB == nZRM)
+						@ li,15 PSay "HORAS ABAIXO DA META"
+						@ li,45 PSay StrTran(StrZero(R_HrExtrv,9,2),'.',':')
+						nPercent :=  round(retPorcent(100, nTotHsPerd, R_HrExtrv),3)
+						@ li,60 PSay transfor(nPercent,cMaskPerc)
+						li++
+						lAbaixoMeta := .T.
+					endIf
+				else
+					if (aZRM[nB][1] == "PP")
+						@ li,15 PSay "HORAS ABAIXO DA META"
+						@ li,45 PSay StrTran(StrZero(R_HrExtrv,9,2),'.',':')
+						nPercent :=  round(retPorcent(100, nTotHsPerd, R_HrExtrv),3)
+						@ li,60 PSay transfor(nPercent,cMaskPerc)
+						li++
+						lAbaixoMeta := .T.
+					endIf
+				endIf
+			endif
+			
+			cMetas := aZRM[nB][1]
+		
+		next nB
+				 
+		IF li != 80
+			Roda(nCntImpr,cRodaTxt,Tamanho)
+		EndIF
+	
+	//TERMINO BRUNO 24-07-14
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Devolve as ordens originais do arquivo                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		RetIndex("SH6")
+		Set Filter to
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Apaga indice de trabalho                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		cNomArq += OrdBagExt()
+		Delete File &(cNomArq)
+
+		If aReturn[5] = 1
+			Set Printer To
+			dbCommitAll()
+			OurSpool(wnrel)
+		Endif
+
+		MS_FLUSH()
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun??o    ³ R825Calc ³ Autor ³Rodrigo Sart¢rio       ³ Data ³ 30/03/99 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri??o ³ Soma as Horas Enviadas (cHoraOri) com as Horas do H6_TEMPO ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³         ATUALIZACOES SOFRIDAS DESDE A CONSTRU?AO INICIAL.             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador ³ Data   ³ BOPS ³  Motivo da Alteracao                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Iuspa       ³04/10/01³XXXXXX³ Alteracao no calculo usando H6_TEMPO     ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+	Static Function R825Calc(cHoraOri)
+
+		Local nHor1      := Val(StrTran(cHoraOri,':','.'))
+		Local nHor2      := Val(StrTran(TimeH6("C"),':','.'))   // Uso H6_TEMPO que esta sempre no formato centesimal
+		Local nTamHora	  := If(TamSX3("H6_TEMPO")[1]>7,TamSX3("H6_TEMPO")[1],7)
+		Local cHoraDest  := '0000:00'
+
+		If !Empty(cHoraOri)
+			cHoraDest := StrTran(StrZero(nHor1+nHor2, nTamHora, 2),'.',':')
+		EndIf
+
+		Return(cHoraDest)
+///------------------------------------------------------------////
+	Static Function R895Calc(cAliasSH6)
+		Local nLotPad := If(SG2->G2_LOTEPAD==0,1,SG2->G2_LOTEPAD)
+		Local nTemPad := If(SG2->G2_TEMPAD ==0,1,SG2->G2_TEMPAD)
+		Local nTempo  := Nil
+		Local cTime   := Nil
+		Local nQuant
+
+		Default cAliasSH6 := "SH6"
+        If (cAliasSH6)->H6_X_LOTEP > 0
+	        nLotPad := (cAliasSH6)->H6_X_LOTEP 
+	        nTemPad := (cAliasSH6)->H6_X_TEMPA
+        EndIf
+		nQuant  := (cAliasSH6)->(H6_QTDPROD)	//+H6_QTDPERD)
+
+		If cTipoTemp == Nil
+			cTipoTemp:=GetMV("MV_TPHR")
+		EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Se MV_TPHR for N (Normal) devo converter G2_TEMPAD para            ³
+//³ centesimal para permitir multiplicar pela quantidade produzida     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If cTipoTemp == "N"
+			nTemPad := Int(nTemPad) + (Mod(nTemPad, 1) / 0.6)
+		Endif
+
+// Calcula Tempo de Dura??o baseado no Tipo de Operacao
+		If SG2->G2_TPOPER $ " 1"
+			nTempo := nQuant * nTemPad / nLotPad
+			dbSelectArea("SH1")
+			dbSeek(xFilial("SH1")+(cAliasSH6)->H6_RECURSO)
+			If Found() .And. SH1->H1_MAOOBRA # 0
+				nTempo :=Round( nTempo / H1_MAOOBRA,5)
+			EndIf
+			dbSelectArea(cAliasSH6)
+		ElseIf SG2->G2_TPOPER == "4"
+			nQuantAloc:= nQuant % nLotPad
+			nQuantAloc:= Int(nQuant)+If(nQuantAloc>0,nLotPad-nQuantAloc,0)
+			nTempo := Round(nQuantAloc * ( nTemPad / nLotPad ),5)
+			dbSelectArea("SH1")
+			dbSeek(xFilial("SH1")+(cAliasSH6)->H6_RECURSO)
+			If Found() .And. SH1->H1_MAOOBRA # 0
+				nTempo :=Round( nTempo / H1_MAOOBRA,5)
+			EndIf
+			dbSelectArea(cAliasSH6)
+		ElseIf SG2->G2_TPOPER == "2" .Or. SG2->G2_TPOPER == "3"
+			nTempo := nTemPad
+		EndIf
+
+		If cTipoTemp == "N"
+			cTime  := StrZero(Int(nTempo), 3) + ":" + StrZero(Mod(nTempo, 1) * 100, 2)
+			cTime := A680ConvHora(cTime, "C", "N")
+		Endif
+
+		Return IF(cTipoTemp=="N",cTime,nTempo)
+
+
+/**
+*
+* @author: Bruno Ricardo de Oliveira
+* @since: 24/07/2014 - 14:33:35
+* @description: Retornando os dados da tabela ZRM.
+*/ 
+	static function retZRM(cMotivos)
+	
+		local cQuery := ""
+	
+		if empty(allTrim(cMotivos))
+			cMotivos := "' '"
+		endIf
+		
+		cQuery := " SELECT * FROM "+retSQLTab("CYN")+CRLF
+		cQuery += " WHERE "+retSQLDel("CYN")+CRLF
+		cQuery += " 	AND CYN_FILIAL = '"+xFilial("CYN")+"' "+CRLF
+		cQuery += " 	AND LTRIM(CYN_CDSP) IN ("+cMotivos+")"+CRLF
+		cQuery += " ORDER BY CYN_X_RM "
+			
+		TCQUERY cQuery NEW ALIAS ZZZ
+		
+		while !ZZZ->(Eof())
+			AADD(aZRM,{allTrim(ZZZ->CYN_X_RM),allTrim(ZZZ->CYN_CDSP),allTrim(ZZZ->CYN_DSSP),0,0})
+			ZZZ->(DbSkip())
+		End
+	
+		ZZZ->(DbCloseArea())
+	
+	
+		return aZRM
+
+
+/**
+*
+* @author: Bruno Ricardo de Oliveira
+* @since: 24/09/2014 - 08:27:08
+* @description: Regra de três para verificar a porcentagem das horas improdutivas.
+*/ 
+	static function retPorcent(nPorcent,nValor1,nValor2)
+
+		local nRet := 0
+	
+		nRet := (nPorcent * nValor2) / nValor1
+
+		return nRet

@@ -1,0 +1,243 @@
+#include 'protheus.ch'
+#INCLUDE "TOTVS.CH"
+
+/*/{Protheus.doc} IMCDFAR01
+description
+@type function
+@version 
+@author 
+@since 27/05/2020
+@return return_type, return_description
+/*/
+user function IMCDFAR01()
+    local aParamBox as array
+    local dDataIni as date
+    local dDataFim as date
+    local cDocIni as character
+    local cDocFim as character
+    local cSerieIni as character
+    local cSerieFim as character
+    local cCodCliIni as character
+    local cLojCliIni as character
+    local cCodCliFim as character
+    local cLojCliFim as character
+    PRIVATE cTitulo := 'Generacion de facturas IMCD'
+    PRIVATE ACabec  as ARRAY
+    PRIVATE aCols as ARRAY
+    PRIVATE aRet as array
+
+    aParamBox := {}
+    aRet      := {}
+
+
+    //-------------------------------------------------------------------------
+    //Definção dos parâmetros do parambox
+    //------------------------------------------------------------------------
+    //aAdd(aParamBox,{9,"Ingrese los parámetros del reporte:" ,150,7,.T.})
+    aAdd(aParamBox,{1,"Fecha Inicial ",Ctod(Space(8)),"","","","",50,.T.})
+    aAdd(aParamBox,{1,"Fecha Final ",Ctod(Space(8)),"","","","",50,.T.})
+    aAdd(aParamBox,{1,"Factura Inicial",Space(TamSx3("F2_DOC")[1]),"","","","",50,.F.})
+    aAdd(aParamBox,{1,"Serie Inicial",Space(TamSx3("F2_SERIE")[1]),"","","","",50,.F.})
+    aAdd(aParamBox,{1,"Factura Final",Space(TamSx3("F2_DOC")[1]),"","","","",50,.T.})
+    aAdd(aParamBox,{1,"Serie Final",Space(TamSx3("F2_SERIE")[1]),"","","","",50,.t.})
+    aAdd(aParamBox,{1,"Cliente Inicial",Space(TamSx3("F2_CLIENTE")[1]),"","","SA1","",50,.F.})
+    aAdd(aParamBox,{1,"Loja Inicial",Space(TamSx3("F2_LOJA")[1]),"","","","",50,.F.})
+    aAdd(aParamBox,{1,"Cliente Final",Space(TamSx3("F2_CLIENTE")[1]),"","","SA1","",50,.t.})
+    aAdd(aParamBox,{1,"Loja Final",Space(TamSx3("F2_LOJA")[1]),"","","","",50,.T.})
+    If ParamBox(aParamBox,"Ingrese los parámetros del reporte:",@aRet,,,,,,,.T.,.T.)
+        lRet := .f.
+        Processa( { || lRet := BUSCADADOS(  ) } , "Selecionando os Registros" , "" , .f. )
+        if lRet
+            Processa( { || GERAEXCEL() } , "Gerando Planilha Excel" , "" , .f. )
+        Else
+            Aviso( cTitulo,"Nenhum dado gerado! Verifique os parametros utilizados.",{"OK"},3)
+        Endif
+
+    endif
+
+    aSize(aParambox,0)
+    aSize(aRet,0)
+
+return
+
+STATIC FUNCTION BUSCADADOS()
+
+    Local cAliasQry := GetNextAlias()
+    Local lRet := .F.
+
+    aCols := {}
+
+    BEGINSQL   Alias cAliasQry
+	Column D2_EMISSAO as Date
+	Column D2_DTDIGIT as Date
+
+        SELECT 
+            D2_FILIAL, D2_ITEM , D2_COD , D2_UM , D2_QUANT , D2_PRCVEN , D2_TOTAL , D2_TES,
+            D2_CF , D2_PEDIDO , D2_ITEMPV , D2_CLIENTE , D2_LOJA , D2_DOC , D2_SERIE , 
+            D2_EMISSAO, D2_EST, D2_TIPO , D2_NFORI, D2_SERIORI , D2_ITEMORI ,D2_DTDIGIT
+            , A1_NOME, A1_CGC, F2_MOEDA, F4_TEXTO
+
+        FROM %Table:SD2% NF, %Table:SA1% CLI, %Table:SF2% CNF, %Table:SF4% TES
+
+        WHERE   F4_FILIAL || F4_CODIGO = D2_FILIAL||D2_TES
+            AND TES.D_E_L_E_T_ = ' '
+            AND A1_COD || A1_LOJA = D2_CLIENTE || D2_LOJA
+            AND CLI.%NotDel%
+            AND F2_DOC || F2_SERIE  = D2_DOC || D2_SERIE 
+            AND F2_CLIENTE || F2_LOJA = D2_CLIENTE || D2_LOJA
+            AND F2_FILIAL = D2_FILIAL
+            AND CNF.%NotDel%
+            AND D2_EMISSAO BETWEEN %Exp:dtos(aRet[1])% AND  %Exp:dtos(aRet[2])% 
+            AND D2_DOC || D2_SERIE BETWEEN %Exp:aRet[3] + aRet[4]% AND  %Exp:aRet[5]+aRet[6] % 
+            AND D2_CLIENTE || D2_LOJA BETWEEN %Exp:aRet[7] + aRet[8]% AND  %Exp:aRet[9]+aRet[10] % 
+            AND NF.%NotDel%
+
+            
+            ORDER BY D2_EMISSAO
+
+    ENDSQL
+
+    DbSelectArea(cAliasQry)
+    (cAliasQry)->(DbGoTop())
+    ProcRegua(RecCount())
+
+    While !(cAliasQry)->(EOF())
+
+        IncProc(" Nf " + (cAliasQry)->D2_DOC + " de "+DTOC((cAliasQry)->D2_EMISSAO)+ " . . .")
+
+        cMoeda :=  &( 'MV_MOEDA'+ cValToChar((cAliasQry)->F2_MOEDA) )
+
+        cCampoOri:= 'M2_MOEDA' + cValToChar((cAliasQry)->F2_MOEDA)
+        
+        nTasaOri := 1
+
+        If (cAliasQry)->F2_MOEDA <> 1
+            IF SM2->(DbSeek(  (cAliasQry)->D2_EMISSAO , .T. ))
+                nTasaOri := SM2->( FieldGet( FieldPos( cCampoOri ) ) )
+            EndIf
+        EndIf
+
+        aAdd(aCols,{ (cAliasQry)->D2_FILIAL, (cAliasQry)->D2_EMISSAO, (cAliasQry)->D2_DOC , (cAliasQry)->D2_SERIE ,;
+            (cAliasQry)->D2_PRCVEN , (cAliasQry)->D2_TOTAL ,cMoeda, nTasaOri, (cAliasQry)->D2_TES, (cAliasQry)->F4_TEXTO ,;
+            (cAliasQry)->D2_CLIENTE , (cAliasQry)-> D2_LOJA , (cAliasQry)->A1_NOME , (cAliasQry)->A1_CGC })
+
+        (cAliasQry)->(DbSkip())
+        lRet := .T.
+
+    EndDo
+
+    (cAliasQry)->(DbCloseArea())
+    MsErase(cAliasQry)
+
+RETURN lRet
+
+Static Function GERAEXCEL()
+
+    Local oExcel  	:= FWMSEXCEL():New()
+    Local nI,nJ   	:= 0
+    Local cArq    	:= ""
+    Local cPlan    := "Factura"
+    Local cTab   := cPlan+"Itens"
+    Local aColunas := {}
+
+    //Escolha o local para salvar o arquivo
+    Local cMascara  := "Todos os arquivos|."
+    Local cTitulo   := "Guardar el archivo "
+    Local nMascpad  := 0
+    Local cDirini   :=  'C:\TEMP\'
+    Local lSalvar   := .F. /*.T. = Salva || .F. = Abre*/
+    Local nOpcoes   :=  NOR(GETF_LOCALHARD,GETF_RETDIRECTORY )
+    Local lArvore   := .F. /*.T. = apresenta o árvore do servidor || .F. = não apresenta*/
+
+    cArq := cGetFile(cMascara, cTitulo, nMascpad, cDirini, lSalvar, nOpcoes, lArvore)	//"Salvar como"
+
+    cArq += iif(EMPTY(cArq),GetTempPath(.T.),"")+ cPlan +"_"+dtos(date())+"_"+Replace(Time(), ":", "")+".xnl"
+
+//Gerando o arquivo
+    oExcel:AddworkSheet(cPlan)
+    oExcel:AddTable(cPlan,cTab)
+
+    ACabec := {}
+    aAdd( ACabec, { "Sucursal", "C","@!" })
+    aAdd( ACabec, { "Emision", "D","@!" })
+    aAdd( ACabec, { "Num. de Doc.", "C","@!" })
+    aAdd( ACabec, { "Serie", "C","@!" })
+    aAdd( ACabec, { "Valor Unit.", "N","@E 999,999,999.9999"})
+    aAdd( ACabec, { "Valor Total", "N","@E 999,999,999.9999"})
+    aAdd( ACabec, { "Moneda", "C","@!"})
+    aAdd( ACabec, { "Taxa", "N","@E 9,999.9999"})
+    aAdd( ACabec, { "Tipo Salida", "C","@!" })
+    aAdd( ACabec, { "Concepto de la venta","C","@!" })
+    aAdd( ACabec, { "Cliente", "C","@!" })
+    aAdd( ACabec, { "Tienda", "C","@!" })
+    aAdd( ACabec, { "Nombre", "C","@!" })
+    aAdd( ACabec, { "RUT", "C","@!" })
+
+/*    aAdd( ACabec, { "Item", "C","@!" })
+    aAdd( ACabec, { "Producto", "C","@!" })
+    aAdd( ACabec, { "Unidad", "N","@!" })
+    aAdd( ACabec, { "Cantidad", "N","@!" })
+   
+    aAdd( ACabec, { "Cód. Fiscal", "C","@!" })
+    aAdd( ACabec, { "Num. Pedido", "C","@!" })
+    aAdd( ACabec, { "Item Ped.", "C","@!" })
+    aAdd( ACabec, { "Provinc.Dest", "C","@!" })
+    aAdd( ACabec, { "Tipo Doc.", "C","@!" })
+    aAdd( ACabec, { "Doc.Original", "C","@!" })
+    aAdd( ACabec, { "Serie Orig.", "C","@!" })
+    aAdd( ACabec, { "Item Doc.Ori", "C","@!" })
+    aAdd( ACabec, { "Fecha Digit.", "D","@!" })
+    aAdd( ACabec, { " ", "C","@!" }) */
+
+    aCab := ACLONE(ACabec)
+    aItens := ACLONE(aCols)
+
+    For nI := 1 to len(aCab)
+        nAl := 1 // Alinha: Esquerda
+        nTp := 1 // Tipo: Normal
+        If aCab[nI,2] == "D"
+            nAl := 2 // Alinha: Centralizado
+            nTp := 4 // Tipo: Data
+        ElseIf aCab[nI,2] == "L"
+            nAl := 2 // Alinha: Centralizado
+            nTp := 1 // Tipo: Normal
+        ElseIf aCab[nI,2] == "N"
+            nAl := 3 // Alinha: Direita
+            nTp := 2 // Tipo: Numero
+        EndIf
+        oExcel:AddColumn(cPlan,cTab,aCab[ni,1],nAl,nTp)
+    Next nI
+
+    For nI := 1 to len(aItens)
+        aColunas := {}
+        For nJ := 1 to len(aItens[nI])
+            IncProc()
+            If aCab[nJ,2] == "C"
+                aAdd(aColunas,Transform(aItens[nI,nJ],aCab[nJ,3]))
+            ElseIf aCab[nJ,2] $ "N/D"
+                aAdd(aColunas,aItens[nI,nJ])
+            ElseIf aCab[nJ,2] == "L"
+                aAdd(aColunas,IIf(aItens[nI,nJ],"TRUE","FALSE"))
+            EndIf
+        Next
+        If len(aColunas) > 0
+            oExcel:AddRow(cPlan,cTab,aColunas)
+        EndIf
+
+    Next
+
+    oExcel:Activate()
+
+    If !Empty(cArq)
+        oExcel:GetXMLFile(cArq)
+        MsgAlert("Arquivo gerado com sucesso!"+CHR(13)+CHR(10)+CHR(13)+CHR(10)+cArq,"IMCDFAR01")
+        If !ApOleClient("MsExcel")
+            MsgStop("Microsoft Excel não instalado!","Atencao")
+            Return
+        EndIf
+        oExcelVer:= MsExcel():New()
+        oExcelVer:WorkBooks:Open(cArq)
+        oExcelVer:SetVisible(.T.)
+    EndIf
+
+Return Nil

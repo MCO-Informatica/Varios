@@ -1,0 +1,14 @@
+User Function A650LEMP
+
+Local aLinCol:= aClone(PARAMIXB)  //Conteudo da linha do aCols posicionado
+Local cRetLocal := aLinCol[3]
+
+// Verifica se o produto = 'MP' e o Armazem = '01' altera conteudo para '03'
+
+//Alert("Entrou PE A650LEMP")
+
+//If (aLinCol[1]=='MP'+Space(13)) .And. (aLinCol[3]=='01')
+   cRetLocal := '03'
+//EndIf 
+
+Return cRetLocal

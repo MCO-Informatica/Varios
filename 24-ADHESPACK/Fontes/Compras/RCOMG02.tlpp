@@ -1,0 +1,31 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOMG02        | Autor | Lucas Baia          | Data |    20/03/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para calcular a DENSIDADE da Rotina Doc. de Entrada.
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+
+
+User Function RCOMG02()
+
+Local nQuant    := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_QUANT" })]
+Local nDensid   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_XDENSID" })]
+Local c2UM      := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_COD" })],"B1_SEGUM")
+Local lRet      := ""
+
+IF !EMPTY(c2UM)
+
+    lRet := nQuant * nDensid
+
+ELSE
+
+    Alert("Produto não possui 2ª Unidade de Medida cadastrada!")
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "D1_XDENSID" })] := 0
+    lRet    := 0
+
+ENDIF
+
+Return lRet

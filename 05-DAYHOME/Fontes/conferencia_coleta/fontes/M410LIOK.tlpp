@@ -1,0 +1,494 @@
+#Include "Protheus.Ch"
+#Include "Topconn.ch"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³M410LIOK  ºAutor  ³Claudio H Delcole   º Data ³  12/04/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada para validar linha do pedido de venda.     º±±
+±±º          ³Tratamento para Comissao média.                             º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Dayhome                                                   º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function M410LIOK()
+
+Local nPosVlr 	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_VALOR"})
+Local nPosCom 	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_COMIS1"})
+Local nPosCom2 	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_COMIS2"})
+Local nPosPro 	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_PRODUTO"})      // incluido no dia 08/02/2010 pelo Daniel Miranda
+Local nPosNota 	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_NFORI"})
+Local nPosSerie	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_SERIORI"})
+
+Local nValComis	:= 0
+Local nValorTot	:= 0
+Local nValComis2:= 0
+Local nComiss	:= 0
+Local nComiss2	:= 0 
+Local nLinha	:= 0
+Local nPeso 	:= 0
+Local nH		:= 0
+Local cProduto 	:= ""
+Local lRet		:= .T.
+Local lNumSerie := .F.
+
+//INICIO FONTANELLI
+LOCAL nPosDel := Len(aHeader) + 1
+LOCAL _nQTDMULT := 0 
+LOCAL _nQTDVEN  := 0     
+
+ If !aCols[n,nPosDel] // Linha nao Deletada
+	_nQTDMULT := Posicione("SB1",1,xFilial("SB1")+gdFieldGet("C6_PRODUTO",n),"B1_QTDMULT") 
+	_nQTDVEN  := gdFieldGet("C6_QTDVEN",n) 
+	
+	if alltrim(M->C5_OPER) <> '10' .AND. M->C5_X_MULTI <> 'N' // Validacao C5_X_MULTI criada em 30/10/2017
+		if 	_nQTDMULT > 0 
+			If MOD(_nQTDVEN,_nQTDMULT)<>0
+				//----> verifica se tes controla multiplo de embalagem
+				If Posicione("SF4",1,xFilial("SF4")+aCols[n,Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_TES"})],"F4_X_MULTI")$"S"
+					Aviso("Aviso","Quantidade do Item "+gdFieldGet("C6_ITEM",n)+" referente ao produto "+alltrim(gdFieldGet("C6_PRODUTO",n))+" não e multiplo de "+ALLTRIM(STR(_nQTDMULT))+".",{"Ok"},1,)
+					Return(.F.)
+			    EndIf
+			endif
+	 	Endif     
+ 	endif
+ 	
+ endif
+ //FIM FONTANELLI
+
+If Inclui .Or. Altera
+
+	nValComis	:= 0
+	nValComis2	:= 0
+	cProduto	:= aCols[n,nPosPro]
+	nLinha 		:= n
+	nPeso 		:= 0
+
+	/* Verifica se o produto tem controle por número de série */
+	SB5->(DbSetOrder(1))
+	If SB5->(DbSeek(xFilial('SB5') + Alltrim(cProduto) )) .And. SB5->B5_XNUMSER = 'S'
+		lNumSerie := .T.
+	Endif
+
+	If !lNumSerie
+		For nH := 1 to Len(aCols)
+			If !GdDeleted(nH) 
+				nValComis 	:= (nValComis + ((aCols[nH,nPosVlr] * aCols[nH,nPosCom]) / 100))
+				nValComis2 	:= (nValComis2 + ((aCols[nH,nPosVlr] * aCols[nH,nPosCom2]) / 100))
+				nValorTot	:= nValorTot + aCols[nH,nPosVlr]
+				nPeso += aCols[n][Ascan(AHeader,{|X| Upper(AllTrim(X[2]))=="C6_PESBRU"})]
+
+			EndIf      
+
+			// incluso por Daniel para gerar msg no PV caso repita algum item   			 
+
+			If ((Alltrim(cProduto) == Alltrim(aCols[nH,nPosPro])) .And. (nH <> nLinha))
+				MsgAlert("Produto já cadastrado no item " + StrZero(nH,2) + " deste Pedido de Venda !!!","Atencao!")
+			EndIf 
+			
+		Next nH
+	Endif
+
+	
+	nComissM := (nValComis/nValorTot)*100
+	nComissM2:= (nValComis2/nValorTot)*100	
+	
+	M->C5_COMISSM := nComissM
+	M->C5_COMISS2 := nComissM2  
+//	M->C5_TOPEBRU := nPeso + 1	                  
+	M->C5_TOPEBRU := round(nPeso, 4) + 1 //Alterado por Júlio César | Partners RL | 02/08/2019 - 09:53
+	
+	// Faz a Validacao da Regra Comercial
+	//lRet := ValidRegra(n)
+		
+EndIf 
+
+//Tratamento para Mercadoria que deixou de ir (Fernando Carvalho)
+If M->C5_OPER == "49"
+	If Empty(aCols[n,nPosNota]) .OR. Empty(aCols[n,nPosSerie])
+	    Alert("Para mercadorias que deixou de ir é necessário incluir a Nota Original e a Serie Original.")
+	    lRet := .F.
+	EndIf     	
+EndIf
+
+Return(lRet)
+
+Static Function ValidRegra(_N1)
+
+Local nPosProd := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_PRODUTO"})
+Local nPosDcIt := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_DESCONT"})
+Local nPosCom1 := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_COMIS1"})
+Local nPosCom2 := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_COMIS2"})
+Local nPosCom3 := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_COMIS3"})
+Local nPosCom4 := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_COMIS4"})
+Local nPosCom5 := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_COMIS5"})
+Local nPosVlr  := Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_VALOR"})
+Local cCliente := M->C5_CLIENTE
+Local cLoja    := M->C5_LOJACLI
+Local nDescCb1 := 0
+Local nDescCb2 := 0
+Local nDescCb3 := 0
+Local nDescCb4 := 0
+Local aRetorno := {}
+Local lAchou   := .F.
+Local cIsento  := " "
+Local cTpPed   := Alltrim(M->C5_DHORIGA)
+Local cValPed  := SuperGetMv("DH_TIPOPED",.F.,"F")
+Local nPrazo   := 0
+Local _N2      := 0
+Local lRet	   := .T.
+Local cGrpProd := ""
+
+DbSelectarea("SB1")
+DbSetOrder(1)
+If DbSeek(xFilial("SB1") + Acols[_N1][nPosProd])
+	cGrpProd	:= SB1->B1_GRUPO
+Endif	
+
+DbSelectArea("SA1")
+DbSetOrder(1)
+If DbSeek(xFilial("SA1") + cCliente + cLoja)
+	cIsento := IIF(Alltrim(SA1->A1_INSCR) == "ISENTO","S","N")
+	cRegiao := SA1->A1_REGIAO
+Endif
+
+If ValType(M->C5_DESC1) <> Nil
+	nDescCb1 := M->C5_DESC1
+Endif
+	
+If ValType(M->C5_DESC2) <> Nil
+	nDescCb2 := M->C5_DESC2
+Endif	
+
+If ValType(M->C5_DESC3) <> Nil
+	nDescCb3 := M->C5_DESC3
+Endif
+	
+If Valtype(M->C5_DESC4) <> Nil
+	nDescCb4 := M->C5_DESC4
+Endif
+
+DbSelectArea("SE4")
+DbSetOrder(1)
+If DbSeek(xFilial("SE4") + M->C5_CONDPAG)
+	cCondPag := SE4->E4_COND
+
+	For _N2 := 1 to Len(cCondPag)
+		nPosVirgula := At(",",cCondPag)
+		
+		If nPosVirgula > 0
+			cDias := Substr(cCondPag,1,nPosVirgula-1)
+			
+			nPrazo += Val(cDias)
+			
+			cCondPag := Substr(cCondPag,nPosVirgula+1,Len(cCondPag))		
+		Else
+			cDias := cCondPag
+			
+			nPrazo += Val(cDias)
+			
+			exit
+		Endif	
+	Next _N2
+	
+	nPrazo := (nPrazo / _N2)
+Endif
+
+nDescProd := aCols[_N1][nPosDcIt]
+nVlrItem  := aCols[_N1][nPosVlr]
+nVlrTotal := aCols[_N1][nPosVlr]
+
+nVlrDesc1 := ((nVlrItem * nDescCb1)/100)
+nVlrItem  -= nVlrDesc1
+nVlrDesc2 := ((nVlrItem * nDescCb2)/100)
+nVlrItem  -= nVlrDesc2
+nVlrDesc3 := ((nVlrItem * nDescCb3)/100)
+nVlrItem  -= nVlrDesc3
+nVlrDesc4 := ((nVlrItem * nDescCb4)/100)
+nVlrItem  -= nVlrDesc4
+nVlrDesc5 := ((nVlrItem * nDescProd)/100)
+nVlrItem  -= nVlrDesc5
+
+nTotDesc := nVlrDesc1 + nVlrDesc2 + nVlrDesc3 + nVlrDesc4 + nVlrDesc5
+
+nTotDesc := ((nTotDesc / nVlrTotal) * 100)
+
+cCodRegra := GetRegraCli(cCliente,cLoja)
+
+If !Empty(cCodRegra)
+	// Verificando se existe Regra Comercial especifica para o Produto, dentro da Regra Comercial Encontrada
+	cQrySZ4 := "SELECT	R_E_C_N_O_ [RECNO_] "
+	cQrySZ4 += "FROM 	" + RetSqlName("SZ4") + " SZ4 "
+	cQrySZ4 += "WHERE	SZ4.D_E_L_E_T_ = '' "
+	cQrySZ4 += "		AND SZ4.Z4_FILIAL = '" + xFilial("SZ4") + "' "
+	cQrySZ4 += "		AND SZ4.Z4_CODIGO = '" + cCodRegra + "' "
+	cQrySZ4	+= "		AND SZ4.Z4_COD1 = '" + Acols[_N1][nPosProd] + "' "
+	cQrySZ4	+= "		AND SZ4.Z4_COD2 = '" + Acols[_N1][nPosProd] + "' "
+	
+	If Select("SZ4TMP") > 0
+		SZ4TMP->(DbCloseArea())
+	Endif
+	
+	Tcquery cQrySZ4 New Alias "SZ4TMP"
+	
+	nRegs := 0
+	
+	Count To nRegs
+	
+	If nRegs > 0	
+		SZ4TMP->(DbGoTop())
+		
+		While !SZ4TMP->(Eof())
+			nRecno := SZ4TMP->RECNO_
+			
+			DbSelectArea("SZ4")
+			DbGoTo(nRecno)
+					
+			// Verifica se a Regra Eh ou Nao Especifica para Feira
+			If cTpPed $ cValPed
+				If SZ4->Z4_FEIRA == "N"
+					Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " esta configurada para Pedidos Emitidos Fora da Feira. Solucao: Altere o tipo do Pedido",{"OK"})
+					Return(.F.)
+				Endif
+			Else
+				If SZ4->Z4_FEIRA == "S"
+					Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " esta configurada para Pedidos Emitidos na Feira. Solucao: Altere o tipo do Pedido",{"OK"})
+					Return(.F.)
+				Endif						
+			Endif
+			
+			If dDatabase < SZ4->Z4_INIVIG .Or. dDataBase > SZ4->Z4_FIMVIG
+				Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " se encontra fora do Periodo de Vigencia",{"OK"})
+				Return(.F.)
+			Endif		
+			
+			If nPrazo < SZ4->Z4_PRZMD
+				Aviso("Aviso","O Prazo  de " + Alltrim(Str(nPrazo)) + " para Pagamento é menor que o Prazo Inicial da Regra. Solução: Altere o Prazo para Pagamento.",{"OK"})
+				Return(.F.)
+			Elseif nPrazo > SZ4->Z4_PRZMA
+				Aviso("Aviso","O Prazo  de " + Alltrim(Str(nPrazo)) + " para Pagamento é maior que o Prazo Final da Regra. Solução: Altere o Prazo para Pagamento.",{"OK"})
+				Return(.F.)
+			Endif
+			
+			If (SZ4->Z4_ISENTO == "N" .Or. Empty(SZ4->Z4_ISENTO)) .And. cIsento == "S"
+				Aviso("Aviso","A Regra Comercial foi configurada para Clientes Não Isentos e o Cliente selecionado é Isento de Inscrição Estadual.",{"OK"})
+				Return(.F.)
+			Elseif SZ4->Z4_ISENTO == "S" .And. cIsento == "S"
+				Aviso("Aviso","A Regra Comercial foi configurada para Clientes Isentos e o Cliente selecionado não é Isento de Inscrição Estadual.",{"OK"})
+				Return(.F.)		
+			Endif
+			
+			If (cRegiao < SZ4->Z4_REGDE .Or. cRegiao > SZ4->Z4_REGATE)
+				Aviso("Aviso","A Região do Cliente não esta Cadastrada na Regra Comercial.",{"OK"})
+				Return(.F.)
+			Endif
+			
+			If cGrpProd < SZ4->Z4_GRP1 .Or. cGrpProd > SZ4->Z4_GRP2
+				Aviso("Aviso","O Grupo do Produto selecionado encontra-se fora da configuração da Regra Comercial.",{"OK"})
+				Return(.F.)
+			Endif
+			
+			If (nTotDesc >= SZ4->Z4_DESC1 .And. nTotDesc <= SZ4->Z4_DESCATE)
+				If nPosCom1 <> 0
+					aCols[_N1][nPosCom1] := SZ4->Z4_D1C1
+				Endif	
+				
+				If nPosCom2 <> 0
+					aCols[_N1][nPosCom2] := SZ4->Z4_D1C2
+				Endif	
+				
+				If nPosCom3 <> 0
+					aCols[_N1][nPosCom3] := SZ4->Z4_D1C3
+				Endif	
+				
+				If nPosCom4 <> 0
+					aCols[_N1][nPosCom4] := SZ4->Z4_D1C4
+				Endif	
+				
+				If nPosCom5 <> 0
+					aCols[_N1][nPosCom5] := SZ4->Z4_D1C5
+				Endif		
+				
+				Return(.T.)
+			Else
+				Aviso("Aviso","O Desconto Total Calculado se encontra fora da Faixa Configurada",{"OK"})
+				Return(.F.)
+			Endif
+			
+			SZ4TMP->(DbSkip())
+		Enddo
+	Else
+		// Verificando se existe Regra Comercial Generica para o Produto, dentro da Regra Comercial Encontrada
+		cQrySZ4 := "SELECT	R_E_C_N_O_ [RECNO_] "
+		cQrySZ4 += "FROM 	" + RetSqlName("SZ4") + " SZ4 "
+		cQrySZ4 += "WHERE	SZ4.D_E_L_E_T_ = '' "
+		cQrySZ4 += "		AND SZ4.Z4_FILIAL = '" + xFilial("SZ4") + "' "
+		cQrySZ4 += "		AND SZ4.Z4_CODIGO = '" + cCodRegra + "' "
+		cQrySZ4	+= "		AND SZ4.Z4_COD1 >= '" + Acols[_N1][nPosProd]+ "' "
+		cQrySZ4	+= "		AND SZ4.Z4_COD2 <= '" + Acols[_N1][nPosProd]+ "' "
+		
+		If Select("SZ4TMP") > 0
+			SZ4TMP->(DbCloseArea())
+		Endif
+		
+		Tcquery cQrySZ4 New Alias "SZ4TMP"
+		
+		nRegs := 0
+		
+		Count To nRegs
+		
+		If nRegs > 0
+			nCount := 0
+			SZ4TMP->(DbGoTop())
+			While !SZ4TMP->(Eof())
+				nRecno := SZ4TMP->RECNO_
+				nCount += 1
+				
+				DbSelectArea("SZ4")
+				DbGoTo(nRecno)
+						
+				// Verifica se a Regra Eh ou Nao Especifica para Feira
+				If cTpPed $ cValPed
+					If SZ4->Z4_FEIRA == "N" .And. nCount == nRegs
+						Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " esta configurada para Pedidos Emitidos Fora da Feira. Solucao: Altere o tipo do Pedido",{"OK"})
+						Return(.F.)
+					Endif
+				Else
+					If SZ4->Z4_FEIRA == "S" .And. nCount == nRegs
+						Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " esta configurada para Pedidos Emitidos na Feira. Solucao: Altere o tipo do Pedido",{"OK"})
+						Return(.F.)
+					Endif						
+				Endif
+				
+				If dDatabase < SZ4->Z4_INIVIG .Or. dDataBase > SZ4->Z4_FIMVIG .And. nCount == nRegs
+					Aviso("Aviso","A Regra Especifica para o Produto " + Acols[_N1][nPosProd] + " se encontra fora do Periodo de Vigencia",{"OK"})
+					Return(.F.)
+				Endif		
+				
+				If nPrazo < SZ4->Z4_PRZMD .And. nCount == nRegs
+					Aviso("Aviso","O Prazo  de " + Alltrim(Str(nPrazo)) + " para Pagamento é menor que o Prazo Inicial da Regra. Solução: Altere o Prazo para Pagamento.",{"OK"})
+					Return(.F.)
+				Elseif nPrazo > SZ4->Z4_PRZMA .And. nCount == nRegs
+					Aviso("Aviso","O Prazo  de " + Alltrim(Str(nPrazo)) + " para Pagamento é maior que o Prazo Final da Regra. Solução: Altere o Prazo para Pagamento.",{"OK"})
+					Return(.F.)
+				Endif
+				
+				If (SZ4->Z4_ISENTO == "N" .Or. Empty(SZ4->Z4_ISENTO)) .And. cIsento == "S" .And. nCount == nRegs
+					Aviso("Aviso","A Regra Comercial foi configurada para Clientes Não Isentos e o Cliente selecionado é Isento de Inscrição Estadual.",{"OK"})
+					Return(.F.)
+				Elseif SZ4->Z4_ISENTO == "S" .And. cIsento == "S" .And. nCount == nRegs
+					Aviso("Aviso","A Regra Comercial foi configurada para Clientes Isentos e o Cliente selecionado não é Isento de Inscrição Estadual.",{"OK"})
+					Return(.F.)		
+				Endif
+				
+				If (cRegiao < SZ4->Z4_REGDE .Or. cRegiao > SZ4->Z4_REGATE) .And. nCount == nRegs
+					Aviso("Aviso","A Região do Cliente não esta Cadastrada na Regra Comercial.",{"OK"})
+					Return(.F.)
+				Endif
+				
+				If cGrpProd < SZ4->Z4_GRP1 .Or. cGrpProd > SZ4->Z4_GRP2 .And. nCount == nRegs
+					Aviso("Aviso","O Grupo do Produto selecionado encontra-se fora da configuração da Regra Comercial.",{"OK"})
+					Return(.F.)
+				Endif
+				
+				If (nTotDesc >= SZ4->Z4_DESC1 .And. nTotDesc <= SZ4->Z4_DESCATE)
+					If nPosCom1 <> 0
+						aCols[_N1][nPosCom1] := SZ4->Z4_D1C1
+					Endif	
+					
+					If nPosCom2 <> 0
+						aCols[_N1][nPosCom2] := SZ4->Z4_D1C2
+					Endif	
+					
+					If nPosCom3 <> 0
+						aCols[_N1][nPosCom3] := SZ4->Z4_D1C3
+					Endif	
+					
+					If nPosCom4 <> 0
+						aCols[_N1][nPosCom4] := SZ4->Z4_D1C4
+					Endif	
+					
+					If nPosCom5 <> 0
+						aCols[_N1][nPosCom5] := SZ4->Z4_D1C5
+					Endif		
+					
+					Return(.T.)
+				Else
+					If nCount == nRegs
+						Aviso("Aviso","O Desconto Total Calculado se encontra fora da Faixa Configurada",{"OK"})
+						Return(.F.)
+					Endif	
+				Endif
+			
+				SZ4TMP->(DbSkip())
+			Enddo
+		Else
+		Endif
+	Endif
+Else
+	lRet := .F.
+	Aviso("Aviso","Não Existe(m) Regra(s) Comercial(is) para o Cliente Selecionado. ",{"OK"})
+Endif
+
+
+Return(lRet)
+
+Static Function GetRegraCli(cCliente,cLoja)
+
+Local cCodigo := ""
+
+cQrySZ4 := "SELECT	DISTINCT(SZ4.Z4_CODIGO) [Z4_CODIGO] "
+cQrySZ4 += "FROM 	" + RetSqlName("SZ4") + " SZ4 "
+cQrySZ4 += "WHERE	SZ4.D_E_L_E_T_ = '' "
+cQrySZ4 += "		AND SZ4.Z4_FILIAL = '" + xFilial("SZ4") + "' "
+cQrySZ4 += "		AND SZ4.Z4_CLIENTE = '" + cCliente+ "' "
+cQrySZ4 += "		AND SZ4.Z4_LOJA = '" + cLoja + "' "
+
+If Select("SZ4TMP") > 0
+	SZ4TMP->(DbCloseArea())
+Endif
+
+Tcquery cQrySZ4 New Alias "SZ4TMP"
+
+nRegs := 0
+
+Count To nRegs
+
+If nRegs > 0 // Existe uma Regra Especifica para o Cliente
+	SZ4TMP->(DbGoTop())
+	While !SZ4TMP->(Eof())
+		cCodigo := SZ4TMP->Z4_CODIGO
+		SZ4TMP->(DbSkip())
+	Enddo
+Else
+	// Verificando a Existencia de uma Regra Generica para Clientes
+	cQrySZ4 := "SELECT	DISTINCT(SZ4.Z4_CODIGO) [Z4_CODIGO] "
+	cQrySZ4 += "FROM 	" + RetSqlName("SZ4") + " SZ4 "
+	cQrySZ4 += "WHERE	SZ4.D_E_L_E_T_ = '' "
+	cQrySZ4 += "		AND SZ4.Z4_FILIAL = '" + xFilial("SZ4") + "' "
+	cQrySZ4 += "		AND SZ4.Z4_CLIENTE = '******' "
+	cQrySZ4 += "		AND SZ4.Z4_LOJA = '**' "
+	
+	If Select("SZ4TMP") > 0
+		SZ4TMP->(DbCloseArea())
+	Endif
+	
+	Tcquery cQrySZ4 New Alias "SZ4TMP"
+	
+	nRegs := 0
+	
+	Count To nRegs
+	
+	If nRegs > 0
+		SZ4TMP->(DbGoTop())
+		While !SZ4TMP->(Eof())
+			cCodigo := SZ4TMP->Z4_CODIGO
+			SZ4TMP->(DbSkip())
+		Enddo	
+	Endif		
+Endif
+
+Return(cCodigo)

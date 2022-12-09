@@ -1,0 +1,401 @@
+#Include 'Protheus.ch'
+#Include 'TbiConn.ch'
+#Define ENTER Chr(13)+Chr(10)
+ 
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME07   ºAutor  ³                    º Data ³  10/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Importar localizador do Correio                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME07()
+
+Local aDados		:= 	{}
+Local aAutoErro		:=	{}
+Local cFile      	:=	''
+Local cArray		:=	''
+Local cErro			:=	''
+Local nHandle		:= 	0
+Local nLin   		:= 	0
+Local nLin			:= 	0
+Local nI			:=	0
+Local nX			:= 	0
+Private nOpc		:= 	3
+Private aCab		:=	{}
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+lMsErroAuto	:= .F.
+lAutoErrNoFile := .t.
+cFile	:=	cGetFile('Arquivos (*.*)|*.*' , 'Selecione o arquivo do Correio a ser processado.', 1, 'C:\', .F., GETF_LOCALHARD + GETF_NETWORKDRIVE)
+nHandle	:=	Ft_Fuse(cFile)
+
+If(nHandle == -1)
+	
+	Return(aDados)
+	
+EndIf
+
+Ft_FGoTop()
+
+nLin:=	FT_FLastRec() - 1
+ProcRegua(nLin)
+
+While(!Ft_FEof())
+	
+	IncProc("Carregando Linha "+AllTrim(Str(nLin))+" de "+AllTrim(Str(nLin)))
+	nLin ++
+	cArray	:=	Ft_FReadLn()
+	
+	nReg := At(";",cArray)
+	                                          
+
+	//"datax"
+	Cpo01:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo01:= Alltrim(strTRan(Cpo01,'"',' '))
+	//"descri"
+	Cpo02:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo02:= Alltrim(strTRan(Cpo02,'"',' '))
+	//"destinatario"
+	Cpo03:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo03:= Alltrim(strTRan(Cpo03,'"',' '))
+	//"cep"
+	Cpo04:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo04:= Alltrim(strTRan(Cpo04,'"',' '))
+	//"uf"
+	Cpo05:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo05:= Alltrim(strTRan(Cpo05,'"',' '))
+	//"peso"
+	Cpo06:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo06:= Alltrim(strTRan(Cpo06,'"',' '))
+	//"cubico"
+	Cpo07:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo07:= Alltrim(strTRan(Cpo07,'"',' '))
+	//"qtde"
+	Cpo08:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo08:= Alltrim(strTRan(Cpo08,'"',' '))
+	//"registro"
+	Cpo09:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo09:= Alltrim(strTRan(Cpo09,'"',' '))
+	//"adicionais"
+	Cpo10:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo10:= Alltrim(strTRan(Cpo10,'"',' '))
+	//"obs"
+	Cpo11:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo11:= Alltrim(strTRan(Cpo11,'"',' '))
+	//"contalote"
+	Cpo12:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo12:= Alltrim(strTRan(Cpo12,'"',' '))
+	//"nf"
+	Cpo13:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo13:= Alltrim(strTRan(Cpo13,'"',' '))
+	//"declarado"
+	Cpo14:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo14:= Alltrim(strTRan(Cpo14,'"',' '))
+	//"unitario"
+	Cpo15:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo15:= Alltrim(strTRan(Cpo15,'"',' '))
+	//"valor"
+	Cpo16:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo16:= Alltrim(strTRan(Cpo16,'"',' '))
+	
+	cArray:= {}
+	Aadd(cArray,{Cpo01,Cpo02,Cpo03,Cpo04,Cpo05,Cpo06,Cpo07,Cpo08,Cpo09,Cpo10,Cpo11,Cpo12,Cpo13,Cpo14,Cpo15,Cpo16})	
+	aAdd(aDados, cArray)
+	
+	FT_FSkip()
+	
+EndDo
+
+FT_FUse()
+
+cFilBkp:= cFilAnt
+cFilAnt := "01"
+For nI := 2 To Len(aDados)
+	If !Empty(aDados[nI][1][13]) .AND. SUBSTR(aDados[nI][1][1],4,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][13],1,At(" ",aDados[nI][1][13])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][13],At(" ",aDados[nI][1][13])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][09]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt := "02"
+For nI := 1 To Len(aDados)
+	If !Empty(aDados[nI][1][13]) .AND. SUBSTR(aDados[nI][1][1],4,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][13],1,At(" ",aDados[nI][1][13])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][13],At(" ",aDados[nI][1][13])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][09]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt := "03"
+For nI := 1 To Len(aDados)
+	If !Empty(aDados[nI][1][13]) .AND. SUBSTR(aDados[nI][1][1],4,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][13],1,At(" ",aDados[nI][1][13])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][13],At(" ",aDados[nI][1][13])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][09]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt:= cFilBkp
+
+Return()
+
+/*
+#Include 'Protheus.ch'
+#Include 'TbiConn.ch'
+#Define ENTER Chr(13)+Chr(10)
+User Function DHOME07()
+
+Local aDados		:= 	{}
+Local aAutoErro		:=	{}
+Local cFile      	:=	''
+Local cArray		:=	''
+Local cErro			:=	''
+Local nHandle		:= 	0
+Local nLin   		:= 	0
+Local nLin			:= 	0
+Local nI			:=	0
+Local nX			:= 	0
+Private nOpc		:= 	3
+Private aCab		:=	{}
+
+lMsErroAuto	:= .F.
+lAutoErrNoFile := .t.
+cFile	:=	cGetFile('Arquivos (*.*)|*.*' , 'Selecione o arquivo do Correio a ser processado.', 1, 'C:\', .F., GETF_LOCALHARD + GETF_NETWORKDRIVE)
+nHandle	:=	Ft_Fuse(cFile)
+
+If(nHandle == -1)
+	
+	Return(aDados)
+	
+EndIf
+
+Ft_FGoTop()
+
+nLin:=	FT_FLastRec() - 1
+ProcRegua(nLin)
+
+While(!Ft_FEof())
+	
+	IncProc("Carregando Linha "+AllTrim(Str(nLin))+" de "+AllTrim(Str(nLin)))
+	nLin ++
+	cArray	:=	Ft_FReadLn()
+	
+	nReg := At(";",cArray)
+
+	//"01-Data"
+	Cpo01:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo01:= Alltrim(Cpo01)
+	//"02-Destinatário"
+	Cpo02:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo02:= Alltrim(Cpo02)
+	//"03-PN"
+	Cpo03:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo03:= Alltrim(Cpo03)
+	//"04-Endereço"
+	Cpo04:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo04:= Alltrim(Cpo04)
+	//"05-Bairro"
+	Cpo05:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo05:= Alltrim(Cpo05)
+	//"06-Cidade"
+	Cpo06:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo06:= Alltrim(Cpo06)
+	//"07-UF"
+	Cpo07:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo07:= Alltrim(Cpo07)
+	//"08-CEP"
+	Cpo08:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo08:= Alltrim(Cpo08)
+	//"09-Fone"
+	Cpo09:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo09:= Alltrim(Cpo09)
+	//"10-E-Mail"
+	Cpo10:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo10:= Alltrim(Cpo10)
+	//"11-Serviço"
+	Cpo11:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo11:= Alltrim(Cpo11)
+	//"12-Registro"
+	Cpo12:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo12:= Alltrim(Cpo12)
+	//"13-ADC"
+	Cpo13:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo13:= Alltrim(Cpo13)
+	//"14-Vlr Dec"
+	Cpo14:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo14:= Alltrim(Cpo14)
+	//"15-Peso"
+	Cpo15:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo15:= Alltrim(Cpo15)
+	//"16-Dimensões"
+	Cpo16:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo16:= Alltrim(Cpo16)
+	//"17-NF"
+	Cpo17:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo17:= Alltrim(Cpo17)
+	//"18-Obs."
+	Cpo18:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo18:= Alltrim(Cpo18)
+	//"19-Rec Ag"
+	Cpo19:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo19:= Alltrim(Cpo19)
+	//"20-Prazo (dias)"
+	Cpo20:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo20:= Alltrim(Cpo20)
+	//"21-E. Dom."
+	Cpo21:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo21:= Alltrim(Cpo21)
+	//"22-E. Sab"
+	Cpo22:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo22:= Alltrim(Cpo22)
+	//"23-Conteudo"
+	Cpo23:= Substr(cArray,1,nReg - 1); cArray := Substr(cArray,nReg+1); nReg := At(";",cArray)
+	Cpo23:= Alltrim(Cpo23)
+
+
+	cArray:= {}
+	Aadd(cArray,{Cpo01,Cpo02,Cpo03,Cpo04,Cpo05,Cpo06,Cpo07,Cpo08,Cpo09,Cpo10,Cpo11,Cpo12,Cpo13,Cpo14,Cpo15,Cpo16,Cpo17,Cpo18,Cpo19,Cpo20,Cpo21,Cpo22,Cpo23})	
+	aAdd(aDados, cArray)
+	
+	FT_FSkip()
+	
+EndDo
+
+FT_FUse()
+    
+cFilBkp:= cFilAnt
+cFilAnt := "01"
+For nI := 2 To Len(aDados)
+	If !Empty(aDados[nI][1][17]) .AND. SUBSTR(aDados[nI][1][1],3,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][17],1,At(" ",aDados[nI][1][17])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][17],At(" ",aDados[nI][1][17])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][03]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt := "02"
+For nI := 1 To Len(aDados)
+	If !Empty(aDados[nI][1][17]) .AND. SUBSTR(aDados[nI][1][1],3,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][17],1,At(" ",aDados[nI][1][17])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][17],At(" ",aDados[nI][1][17])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][03]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt := "03"
+For nI := 1 To Len(aDados)
+	If !Empty(aDados[nI][1][17]) .AND. SUBSTR(aDados[nI][1][1],3,1) = "/"
+		cSerie  := PADR(alltrim(Substr(aDados[nI][1][17],1,At(" ",aDados[nI][1][17])-1)),3)		
+		cNota   := PADR(STRZERO(VAL(Substr(aDados[nI][1][17],At(" ",aDados[nI][1][17])+1)),6),9)
+		DbSelectArea("SD2")
+		DbsetOrder(3) //D2_FILIAL+D2_DOC+D2_SERIE+D2_CLIENTE+D2_LOJA+D2_COD+D2_ITEM
+		SD2->(DbGotop())
+		If DbSeek(cFilAnt+cNota+cSerie) 
+			While SD2->(!EOF()) .AND. SD2->D2_FILIAL+SD2->D2_DOC+SD2->D2_SERIE == cFilAnt+cNota+cSerie
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+SD2->D2_PEDIDO)
+				   RecLock("SC5",.f.)
+				   SC5->C5_CORRE := aDados[nI][1][03]
+				   MsUnLock()
+			    endif
+				SD2->(DbSkip())
+			Enddo
+		endif 	
+	endif
+Next nI
+
+cFilAnt:= cFilBkp
+
+Return()
+
+*/

@@ -1,0 +1,123 @@
+#include "rwmake.ch"
+
+User Function RESTA04()
+
+Processa({|| CUSTO()},"Atualizando Custos...")
+Return
+
+Static Function CUSTO()
+
+
+dbSelectArea("SB9")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Atualizacao de Custos SB9")
+	
+	If SB9->B9_FILIAL <> xFilial("SB9")
+		SB9->(dbSkip())
+	Endif
+	If Posicione("SB1",1,xFilial("SB1")+SB9->B9_COD,"B1_CUSTD") > 0
+		RecLock("SB9",.f.)
+		SB9->B9_VINI1	:=	SB9->B9_QINI * Posicione("SB1",1,xFilial("SB1")+SB9->B9_COD,"B1_CUSTD")
+		SB9->B9_CM1		:=	Posicione("SB1",1,xFilial("SB1")+SB9->B9_COD,"B1_CUSTD")
+		MsUnLock()
+	EndIf
+	dbSelectArea("SB9")
+	dbSkip()
+EndDo
+
+dbSelectArea("SB2")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Atualizacao de Custos SB2")
+	
+	If SB2->B2_FILIAL <> xFilial("SB2")
+		SB2->(dbSkip())
+	Endif
+
+	If Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_CUSTD") > 0
+		RecLock("SB2",.f.)
+		SB2->B2_VATU1	:=	SB2->B2_QATU * Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_CUSTD")
+		SB2->B2_VFIM1	:=	SB2->B2_QFIM * Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_CUSTD")
+		SB2->B2_CM1		:=	Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_CUSTD")
+		SB2->B2_CMFIM1	:=	Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_CUSTD")
+		MsUnLock()
+	EndIf
+	
+	dbSelectArea("SB2")
+	dbSkip()
+EndDo
+
+dbSelectArea("SD1")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Atualizacao de Custos SD1")
+	
+	If SD1->D1_FILIAL <> xFilial("SD1")
+		SD1->(dbSkip())
+	Endif
+
+	If Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_CUSTD") > 0
+		RecLock("SD1",.f.)
+		SD1->D1_CUSTO	:=	SD1->D1_QUANT * Posicione("SB1",1,xFilial("SB1")+SD1->D1_COD,"B1_CUSTD")
+		MsUnLock()
+	EndIf
+	
+	dbSelectArea("SD1")
+	dbSkip()
+EndDo
+
+dbSelectArea("SD2")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Atualizacao de Custos SD2")
+	
+	If SD2->D2_FILIAL <> xFilial("SD2")
+		SD2->(dbSkip())
+	Endif
+
+	If Posicione("SB1",1,xFilial("SB1")+SD2->D2_COD,"B1_CUSTD") > 0
+		RecLock("SD2",.f.)
+		SD2->D2_CUSTO1	:=	SD2->D2_QUANT * Posicione("SB1",1,xFilial("SB1")+SD2->D2_COD,"B1_CUSTD")
+		MsUnLock()
+	EndIf
+	
+	dbSelectArea("SD2")
+	dbSkip()
+EndDo
+
+dbSelectArea("SD3")
+dbGoTop()
+ProcRegua(RecCount())
+
+While Eof() == .f.
+	
+	IncProc("Processando Atualizacao de Custos SD3")
+	
+	If SD3->D3_FILIAL <> xFilial("SD3")
+		SD3->(dbSkip())
+	Endif
+
+	If Posicione("SB1",1,xFilial("SB1")+SD3->D3_COD,"B1_CUSTD") > 0
+		RecLock("SD3",.f.)
+		SD3->D3_CUSTO1	:=	SD3->D3_QUANT * Posicione("SB1",1,xFilial("SB1")+SD3->D3_COD,"B1_CUSTD")
+		MsUnLock()
+	EndIf
+	
+	dbSelectArea("SD3")
+	dbSkip()
+EndDo
+
+Return

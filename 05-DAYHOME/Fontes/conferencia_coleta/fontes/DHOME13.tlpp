@@ -1,0 +1,88 @@
+#include "totvs.ch"
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+ 
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHOME13   ºAutor  ³                    º Data ³  10/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Tela de Status                                             º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function DHOME13()
+
+Local oDlg    
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+                             
+
+cEMISSAO   		:= SC5->C5_EMISSAO           
+cLIBERACAO		:= SC5->C5_DTLIB         
+cCREDITO		:= SC5->C5_X_DTCRE 
+cInSEPARACAO 	:= SC5->C5_XSDTINI
+cFnSEPARACAO	:= SC5->C5_XSDTFIN
+cInCONFERENCIA	:= SC5->C5_XCDTINI
+cFnCONFERENCIA	:= SC5->C5_XCDTFIN
+cNOTA			:= SC5->C5_NOTA
+cFATURAMENTO    := POSICIONE("SF2",1,xFilial("SF2")+SC5->C5_NOTA,"F2_EMISSAO")
+cCOLETA			:= SC5->C5_XLDT         
+cRASTRO         := SC5->C5_CORRE           
+cSTATUS			:= SC5->C5_XSTATUS
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 320,530 PIXEL TITLE "Tela de Status"
+
+@ 003,010 Say "Status:" of oDlg Pixel
+@ 002,070 MsGet oSTATUS Var cSTATUS when .T. Size 15,10 of oDlg Pixel
+                                      
+@ 003+(15*1),010 Say "Data Emissão:" of oDlg Pixel
+@ 002+(15*1),070 MsGet oEMISSAO Var cEMISSAO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*2),010 Say "Data Liberação:" of oDlg Pixel
+@ 002+(15*2),070 MsGet oLIBERACAO Var cLIBERACAO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*3),010 Say "Data Credito: " of oDlg Pixel
+@ 002+(15*3),070 MsGet oCREDITO Var cCREDITO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*4),010 Say "Inicio Separação: " of oDlg Pixel
+@ 002+(15*4),070 MsGet oInSEPARACAO Var cInSEPARACAO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*4),010+140 Say "Fim Separação: " of oDlg Pixel
+@ 002+(15*4),070+140 MsGet oFnSEPARACAO Var cFnSEPARACAO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*5),010 Say "Inicio Conferência: " of oDlg Pixel
+@ 002+(15*5),070 MsGet oInCONFERENCIA Var cInCONFERENCIA when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*5),010+140 Say "Fim Conferência: " of oDlg Pixel
+@ 002+(15*5),070+140 MsGet oFnCONFERENCIA Var cFnCONFERENCIA when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*6),010 Say "Nota Fiscal:" of oDlg Pixel
+@ 002+(15*6),070 MsGet oNOTA Var cNOTA when .F. Size 70,10 of oDlg Pixel
+
+@ 003+(15*6),010+140 Say "Data Faturamento:" of oDlg Pixel
+@ 002+(15*6),070+140 MsGet oFATURAMENTO Var cFATURAMENTO when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*7),010 Say "Data Coleta:" of oDlg Pixel
+@ 002+(15*7),070 MsGet oCOLETA Var cCOLETA when .F. Size 50,10 of oDlg Pixel
+
+@ 003+(15*8),010 Say "Correio Rastro:" of oDlg Pixel
+@ 002+(15*8),070 MsGet oRASTRO Var cRASTRO when .F. Size 90,10 of oDlg Pixel
+
+@ 145,230 BUTTON "Sair" SIZE 30,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+

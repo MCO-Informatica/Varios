@@ -1,0 +1,13 @@
+#include "rwmake.ch"
+////  PROGRAMA PARA SELECIONAR O ANO DO NOSSO NUMERO DO NUMERO CNAB QUANDO NAO
+////  NAO TIVER TEM QUE SER COLOCADO "00"
+
+User function pagano()
+
+IF SUBS(SE2->E2_CODBAR,01,3) != "237"
+   _RETANO := "000"
+Else
+   _RETANO := "0" + SUBS(SE2->E2_CODBAR,26,2)
+EndIf
+
+return(_RETANO)

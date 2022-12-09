@@ -1,0 +1,100 @@
+#INCLUDE "protheus.ch"
+
+User function MSD2460()
+Local aArea := Lj7GetArea({"SF2","SD2"})
+
+SD2->D2_PRUNIT := SD2->D2_PRCVEN
+SD2->D2_DESC   := 0
+SD2->D2_DESCON := 0
+
+SB1->(DBSetOrder(1))
+SB1->(DbSeek(xFilial('SB1') + SD2->D2_COD))
+
+If SD2->D2_TIPO == 'D'
+	SD1->(DbSetOrder(1))       
+	If SD1->(DbSeek(xFilial('SD1') + SD2->(D2_NFORI + D2_SERIORI + D2_CLIENTE + D2_LOJA + D2_COD  +D2_ITEMORI) ))
+		SD2->D2_CONTA  := SD1->D1_CONTA
+		SD2->D2_CCUSTO := SD1->D1_CC
+	EndIF
+EndIf
+
+//----> GRAVA REGISTRO C111 SPED (PROCESSO JUDICIAL)
+If SD2->D2_TIPO$"NICP" .AND. Posicione("SF4",1,xFilial("SF4")+SD2->D2_TES,"F4_DUPLIC")$"S"
+	If SD2->D2_SERIE $ "0" .AND. SD2->D2_VALICM > 0
+	
+		dbSelectArea("CDG")
+		CDG->(dbSetOrder(3))
+		If !CDG->(dbSeek(xFilial("CDG")+"S"+SD2->D2_DOC+SD2->D2_SERIE+SD2->D2_CLIENTE+SD2->D2_LOJA+SD2->D2_ITEM,.F.))
+			RecLock("CDG",.T.)
+			CDG->CDG_FILIAL	:= xFilial("CDG")
+			CDG->CDG_TPMOV	:= "S"
+			CDG->CDG_DOC	:= SD2->D2_DOC
+			CDG->CDG_SERIE	:= SD2->D2_SERIE
+			CDG->CDG_CLIFOR	:= SD2->D2_CLIENTE
+			CDG->CDG_LOJA	:= SD2->D2_LOJA
+			CDG->CDG_IFCOMP := "000003"
+			CDG->CDG_PROCES	:= "50075792820194036110"
+			CDG->CDG_TPPROC := "1"
+			CDG->CDG_ITPROC := "00000001"
+			CDG->CDG_VALOR	:= SD2->D2_VALICM
+			CDG->CDG_ITEM	:= SD2->D2_ITEM	
+			CDG->CDG_SDOC	:= SD2->D2_SERIE
+			CDG->(MsUnLock())
+
+			dbSelectArea("CDG")
+			RecLock("CDG",.T.)
+			CDG->CDG_FILIAL	:= xFilial("CDG")
+			CDG->CDG_TPMOV	:= "S"
+			CDG->CDG_DOC	:= SD2->D2_DOC
+			CDG->CDG_SERIE	:= SD2->D2_SERIE
+			CDG->CDG_CLIFOR	:= SD2->D2_CLIENTE
+			CDG->CDG_LOJA	:= SD2->D2_LOJA
+			CDG->CDG_IFCOMP := "000003"
+			CDG->CDG_PROCES	:= "50075792820194036110"
+			CDG->CDG_TPPROC := "1"
+			CDG->CDG_ITPROC := "00000002"
+			CDG->CDG_VALOR	:= SD2->D2_VALICM
+			CDG->CDG_ITEM	:= SD2->D2_ITEM	
+			CDG->CDG_SDOC	:= SD2->D2_SERIE
+			CDG->(MsUnLock())
+
+		Else
+			RecLock("CDG",.F.)
+			CDG->CDG_FILIAL	:= xFilial("CDG")
+			CDG->CDG_TPMOV	:= "S"
+			CDG->CDG_DOC	:= SD2->D2_DOC
+			CDG->CDG_SERIE	:= SD2->D2_SERIE
+			CDG->CDG_CLIFOR	:= SD2->D2_CLIENTE
+			CDG->CDG_LOJA	:= SD2->D2_LOJA
+			CDG->CDG_IFCOMP := "000003"
+			CDG->CDG_PROCES	:= "50075792820194036110"
+			CDG->CDG_TPPROC := "1"
+			CDG->CDG_ITPROC := "00000001"
+			CDG->CDG_VALOR	:= SD2->D2_VALICM
+			CDG->CDG_ITEM	:= SD2->D2_ITEM	
+			CDG->CDG_SDOC	:= SD2->D2_SERIE
+			CDG->(MsUnLock())
+
+
+			dbSelectArea("CDG")
+			RecLock("CDG",.F.)
+			CDG->CDG_FILIAL	:= xFilial("CDG")
+			CDG->CDG_TPMOV	:= "S"
+			CDG->CDG_DOC	:= SD2->D2_DOC
+			CDG->CDG_SERIE	:= SD2->D2_SERIE
+			CDG->CDG_CLIFOR	:= SD2->D2_CLIENTE
+			CDG->CDG_LOJA	:= SD2->D2_LOJA
+			CDG->CDG_IFCOMP := "000003"
+			CDG->CDG_PROCES	:= "50075792820194036110"
+			CDG->CDG_TPPROC := "1"
+			CDG->CDG_ITPROC := "00000002"
+			CDG->CDG_VALOR	:= SD2->D2_VALICM
+			CDG->CDG_ITEM	:= SD2->D2_ITEM	
+			CDG->CDG_SDOC	:= SD2->D2_SERIE
+			CDG->(MsUnLock())
+
+		EndIf
+	EndIf
+EndIf
+
+Return

@@ -1,0 +1,55 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+
+/*/{Protheus.doc} User Function MTA650I     
+    Ponto de Entrada responsбvel pela Geraзгo de Ordens de Produзгo.
+    
+    No caso abaixo, foi desenvolvido para gravar as mesmas informações das OPs Pai para OPs Filhas.
+    @type  Function
+    @author Lucas Baia / Cair� Vieira - UPDUO
+    @since 19/05/2021
+    @version version
+    @param 
+    @return 
+    @example
+    (examples)
+    @see https://tdn.totvs.com.br/pages/releaseview.action?pageId=6089303
+    /*/
+User Function MTA650I()
+
+	Local _cObs     := SC2->C2_OBS
+	Local _cPedido  := SC2->C2_PEDIDO
+	Local _cItemPv  := SC2->C2_ITEMPV
+    Local _cRoteiro := SC2->C2_ROTEIRO
+	Local _cChave1  := SC2->(C2_FILIAL+C2_NUM+C2_ITEM+"001")
+	Local _cChave2  := SC2->(C2_FILIAL+C2_NUM+C2_ITEM)
+	Local _aArea    := GetArea()
+	
+    If Alltrim(FunName())$"MATA650C" .or. ProcName(1) == "MATA650C"
+    
+        DBSELECTAREA("SC2")
+        dbSetOrder(1) //C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD
+        If dbSeek(_cChave2+"002")
+            while !SC2->(Eof()) .And. SC2->(C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN) <= _cChave2+"999"
+
+                reclock("SC2",.F.)
+
+                SC2->C2_OBS     := _cObs
+                SC2->C2_PEDIDO  := _cPedido
+                SC2->C2_ITEMPV  := _cItemPv
+                SC2->C2_ROTEIRO := _cRoteiro
+
+                SC2->(MSUNLOCK())
+
+                //alert(SC2->C2_NUM+" "+SC2->C2_ITEM+" "+SC2->C2_SEQUEN+" "+SC2->C2_PEDIDO+" "+SC2->C2_ITEMPV)
+
+                SC2->(dbSkip())
+            endDo
+
+        Endif
+    EndIf 
+
+	RestArea(_aArea)
+
+Return
+

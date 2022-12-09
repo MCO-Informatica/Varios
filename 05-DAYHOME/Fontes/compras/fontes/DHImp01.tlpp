@@ -1,0 +1,647 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#include "rwmake.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ DHIMP01  บAutor  ณDaniel Viana Moda   บ Data ณ  03/10/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importar os dados do Sistema Linx (conexao direta do BD)   บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Especifico DayHome                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function DHImp01
+
+Local cQuery     := ""
+Local nCount     := 0
+Local cAliasSQL  := "MSSQL/DayHome"
+Local cIpBanco   := "192.168.0.2"
+Local aProdutos  := {}
+Local aMta010    := {}
+Local cCodProd   := ""
+Local cDescProd  := ""
+Private nAmbSiga := AdvConnection()
+
+If MsgYesNo("Importar o Cadastro de Produtos ? ")
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณSe conecta ao BD do sistema Linx.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	TcConType("TCPIP")
+	nAmbPol := TcLink(cAliasSQL, cIpBanco)
+	
+	If nAmbPol < 0
+		
+		Conout("--- ["+DTos(Date())+"] Nao foi possivel se conectar ao banco de dados Linx!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+	Else
+		
+		TCSETCONN(nAmbPol)
+		Conout("--- ["+DTos(Date())+"] Conectado ao cadastro de produtos Linx... ["+SubStr(Time(),1,5)+"] ---")
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณMonta Query.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤู
+		cQuery := " SELECT DISTINCT(SB1.PRODUTO) B1_COD, DESC_PRODUTO B1_DESC, 'PA' B1_TIPO, UNIDADE B1_UN, '01' B1_LOCPAD, "
+		cQuery += " IPI B1_PIPI,SB1.CLASSIF_FISCAL B1_POSIPI, SB1.INATIVO B1_MSBLQ, '103' B1_TE, '601' B1_TS, "
+		cQuery += " ESTILISTA B1_QE, PESO B1_PESO, '11020301' B1_CONTA, SB1.TRIBUT_ORIGEM B1_ORIGEM, "
+		cQuery += " TRIBUT_ICMS B1_CLASFIS, CODIGO_BARRA B1_CODBAR, GRUPO_PRODUTO B1_MODELO, "
+		cQuery += " SB1.COMPOSICAO, DESC_COMPOSICAO B1_MAT_PRI, PESO*(1+0.06) B1_PESBRU, "
+		cQuery += " SB1.PRODUTO B1_CODANT, COD_CATEGORIA B1_DHCATEG, COMPRIMENTO B5_COMPR, "
+		cQuery += " ESPESSURA B5_ESPESS, LARGURA B5_LARG, ALTURA B5_ALTURLC, "
+		cQuery += " REFER_FABRICANTE B5_CODCLI, STATUS_VENDA_ATUAL B1_DHABSM, LOCALIZACAO_PRODUTO B1_DHLOCAL, 'B1_ALIQII' B1_ALIQII, "
+		cQuery += " FABRICANTE B1_FABRIC"
+		
+		cQuery += " FROM PRODUTOS SB1 "
+		cQuery += " LEFT JOIN CLASSIF_FISCAL CLA ON CLA.CLASSIF_FISCAL = SB1.CLASSIF_FISCAL "
+		cQuery += " LEFT JOIN MATERIAIS_COMPOSICAO MAT ON  SB1.COMPOSICAO = MAT.COMPOSICAO "
+		cQuery += " LEFT JOIN PRODUTOS_BARRA BAR ON SB1.PRODUTO = BAR.PRODUTO "
+		cQuery += " LEFT JOIN PRODUTO_CORES COR ON SB1.PRODUTO = COR.PRODUTO "
+		cQuery += " LEFT JOIN PRODUTOS_LOCALIZACAO LOC ON SB1.PRODUTO = LOC.PRODUTO "
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณVerifica se a area esta aberta.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		If Select("TEMP") > 0
+			
+			TEMP->(DbCloseArea())
+			
+		EndIf
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณCria arquivo de trabalho.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TcQuery cQuery New Alias "TEMP"
+		
+		//	TcSetField("TEMP","B1_QE"           ,"N",TamSx3("B1_QE"   )[1]  ,TamSx3("B1_QE"    )[2])
+		TcSetField("TEMP","B1_PESO"         ,"N",TamSx3("B1_PESO" )[1]  ,TamSx3("B1_PESO"  )[2])
+		TcSetField("TEMP","B1_PESBRU"       ,"N",TamSx3("B1_PESO" )[1]  ,TamSx3("B1_PESBRU")[2])
+		TcSetField("TEMP","B1_IPI"          ,"N",TamSx3("B1_IPI"  )[1]  ,TamSx3("B1_IPI"   )[2])
+		
+		DbSelectArea("TEMP")
+		TEMP->(DbGotop())
+		
+		DbGoTop()
+		Count To nCount
+		DbGoTop()
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณSe conecta ao BD do sistema protheus.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TCSETCONN(nAmbSiga)
+		
+		Conout("--- ["+DTos(Date())+"] Finalizando conexao!!! ["+SubStr(Time(),1,5)+"] ---")
+		
+		Conout("--- ["+DTos(Date())+"] Obtendo conexao com PROTHEUS... ["+SubStr(Time(),1,5)+"] ---")
+		TcSetConn(nAmbSiga)
+		
+		While TEMP->(!Eof())
+			
+			ProcRegua()
+			
+			If cCodProd <> TEMP->B1_COD
+				
+				DbSelectArea("SB1")
+				RecLock("SB1",.T.)
+				
+				Replace B1_FILIAL  With XFilial("SB1")
+				Replace B1_COD     With TEMP->B1_COD
+				
+				If At("LUVA C/3", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/3", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/3", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/3", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/3", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+				ElseIf At("LUVA C/ 3", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 3", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 3", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 3", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 3", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+					
+				ElseIf At("LUVA C/6", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/6", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/6", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/6", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/6", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LUVA C/ 6", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 6", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 6", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 6", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 6", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LUVA C/2", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/2", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/2", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/2", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/2", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LUVA C/ 2", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 2", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 2", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 2", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 2", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LUVA C/4", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/4", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/4", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/4", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/4", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+				ElseIf At("LUVA C/ 4", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 4", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 4", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 4", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 4", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+					
+				ElseIf At("LUVA C/12", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/12", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/12", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/12", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/12", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "06"
+					
+					
+				ElseIf At("LUVA C/03", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/03", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/03", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/03", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/03", TEMP->B1_DESC)+9,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+				ElseIf At("LUVA C/ 03", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 03", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 03", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 03", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 03", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+					
+				ElseIf At("LUVA C/06", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/06", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/06", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/06", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/06", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LUVA C /6", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C /6", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C /6", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C /6", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C /6", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LUVA C/ 06", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 06", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 06", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 06", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 06", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LUVA C/02", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/02", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/02", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/02", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/02", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LUVA C/ 02", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 02", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 02", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 02", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 02", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LUVA C/04", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/04", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/04", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/04", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/04", TEMP->B1_DESC)+10,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+				ElseIf At("LUVA C/ 04", TEMP->B1_DESC) > 0
+					
+					If At("LUVA C/ 04", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LUVA C/ 04", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LUVA C/ 04", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LUVA C/ 04", TEMP->B1_DESC)+11,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+					
+				ElseIf At("LV C/3", TEMP->B1_DESC) > 0
+					
+					If At("LV C/3", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/3", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/3", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/3", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+				ElseIf At("LV C/ 3", TEMP->B1_DESC) > 0
+					
+					If At("LV C/ 3", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/ 3", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/ 3", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/ 3", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+				ElseIf At("LV C /3", TEMP->B1_DESC) > 0
+					
+					If At("LV C /3", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C /3", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C /3", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C /3", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "03"
+					
+				ElseIf At("LV C/6", TEMP->B1_DESC) > 0
+					
+					If At("LV C/6", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/6", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/6", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/6", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LV C/ 6", TEMP->B1_DESC) > 0
+					
+					If At("LV C/ 6", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/ 6", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/ 6", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/ 6", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "05"
+					
+				ElseIf At("LV C/2", TEMP->B1_DESC) > 0
+					
+					If At("LV C/2", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/2", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/2", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/2", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LV C/ 2", TEMP->B1_DESC) > 0
+					
+					If At("LV C/ 2", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/ 2", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/ 2", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/ 2", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "02"
+					
+				ElseIf At("LV C/4", TEMP->B1_DESC) > 0
+					
+					If At("LV C/4", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/4", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/4", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/4", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+				ElseIf At("LV C /4", TEMP->B1_DESC) > 0
+					
+					If At("LV C /4", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C /4", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C /4", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C /4", TEMP->B1_DESC)+7,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+				ElseIf At("LV C/ 4", TEMP->B1_DESC) > 0
+					
+					If At("LV C/ 4", TEMP->B1_DESC) == 1
+						
+						cDescProd := SubStr(TEMP->B1_DESC,At("LV C/ 4", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					Else
+						
+						cDescProd := SubStr(TEMP->B1_DESC,1,At("LV C/ 4", TEMP->B1_DESC)-1)+;
+						SubStr(TEMP->B1_DESC,At("LV C/ 4", TEMP->B1_DESC)+8,Len(TEMP->B1_DESC))
+						
+					EndIf
+					
+					Replace B1_DESC    With cDescProd
+					Replace B1_UM      With "04"
+					
+					
+				Else
+					
+					Replace B1_DESC    With TEMP->B1_DESC
+					Replace B1_UM      With TEMP->B1_UN
+					
+				EndIf
+				
+				Replace B1_TIPO    With TEMP->B1_TIPO
+				Replace B1_LOCPAD  With TEMP->B1_LOCPAD
+				Replace B1_POSIPI  With TEMP->B1_POSIPI
+				Replace B1_MSBLQL  With IIF(TEMP->B1_MSBLQ == "0", "2", "1")
+				Replace B1_TE      With TEMP->B1_TE
+				Replace B1_TS      With TEMP->B1_TS
+				//			Replace B1_QE      With Val(TEMP->B1_QE)
+				Replace B1_DHQE    With TEMP->B1_QE
+				Replace B1_PESO    With TEMP->B1_PESO
+				Replace B1_CONTA   With TEMP->B1_CONTA
+				Replace B1_ORIGEM  With TEMP->B1_ORIGEM
+				Replace B1_CLASFIS With TEMP->B1_CLASFIS
+				Replace B1_MODELO  With TEMP->B1_MODELO
+				Replace B1_MAT_PRI With TEMP->B1_MAT_PRI
+				Replace B1_PESBRU  With TEMP->B1_PESBRU
+				Replace B1_CODANT  With TEMP->B1_CODANT
+				Replace B1_DHCATEG With IIF(AllTrim(TEMP->B1_DHCATEG) == "D", "1", IIF(AllTrim(TEMP->B1_DHCATEG) == "F", "2", "3"))
+				Replace B1_CODBAR  With TEMP->B1_CODBAR
+				Replace B1_DHABSM  With IIF(TEMP->B1_DHABSM == "0", .T., .F.)
+				Replace B1_BITMAP  With TEMP->B1_COD
+				Replace B1_DHFABRI With TEMP->B5_CODCLI
+				Replace B1_DHLJFAB With "01"
+				Replace B1_FABRIC  With TEMP->B1_FABRIC
+				
+				MsUnLock()
+				
+				DbSelectArea("SB5")
+				RecLock("SB5", .T.)
+				
+				Replace B5_FILIAL  With XFilial("SB5")
+				Replace B5_COD     With TEMP->B1_COD
+				Replace B5_COMPR   With TEMP->B5_COMPR
+				Replace B5_ESPESS  With TEMP->B5_ESPESS
+				Replace B5_LARG    With TEMP->B5_LARG
+				Replace B5_ALTURLC With TEMP->B5_ALTURLC
+				Replace B5_CODCLI  With TEMP->B5_CODCLI
+				Replace B5_CEME    With TEMP->B1_DESC
+				
+				MsUnLock()
+				
+			EndIf
+			
+			cCodProd := TEMP->B1_COD
+			
+			DbSelectArea("TEMP")
+			TEMP->(DbSkip())
+			
+		EndDo
+		
+	EndIf
+	
+	cQuery := " UPDATE SB1010 SET B1_DHFABRI = A2_COD "
+	cQuery += " FROM SB1010 "
+	cQuery += " INNER JOIN SA2010 ON A2_NOME LIKE B1_FABRIC "
+	
+	TCSQLExec(cQuery)
+	
+	cQuery := " UPDATE SB1010 SET B1_GRUPO = GRUPO "
+	cQuery += " FROM SB1010 "
+	cQuery += " INNER JOIN ARQUIVO_DANIEL ON B1_COD LIKE '%'+PRODUTO "
+	
+	TCSQLExec(cQuery)
+	
+	DbSelectArea("TEMP")
+	DbCloseArea()
+	
+EndIf
+
+Return()

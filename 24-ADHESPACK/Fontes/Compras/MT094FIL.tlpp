@@ -1,0 +1,24 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT094FIL       | Autor | Lucas Baia          | Data |    26/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para Filtros da tela de Liberação de 
+//        | Documentos.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MT094FIL()
+
+Local cRet := ""
+Local cCodUser  := RETCODUSR()
+
+IF cCodUser $ "000015" //MATEUS.SANCHEZ
+    cRet := "CR_TIPO  == 'SC'"
+ELSE
+    cRet := "CR_TIPO  <> ''"
+ENDIF
+
+Return (cRet)

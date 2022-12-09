@@ -1,0 +1,49 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RFATG22           | Autor | Lucas Baia          | Data |    25/09/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Gatilho customizado para preencher o Código de Barra no campo C6_PRODUTO																		
+//        | e retornar em Código, Descrição, Unidade de Medidas e etc...
+//---------------------------------------------------------------------------------
+// Uso    | Biodomani Indústria e Comércio Ltda
+//---------------------------------------------------------------------------------
+
+User Function RFATG22()
+
+Local cCodProd  := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })]//ASCan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })
+//Local cTES      := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_TES" })]
+Local cCodBar   := SB1->B1_CODBAR
+Local nCount // Irá fazer a contagem do FOR.
+
+
+FOR nCount := 1 to Len(aCols)
+
+dbSelectArea("SB1")
+dbSetOrder(5)
+
+IF !aCols[nCount][Len(aHeader)+1]
+    If dbSeek(xFilial("SB1")+cCodProd)
+        cCodBar := cCodProd
+        If cCodProd = cCodBar
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })]   := Posicione("SB1",5,xFilial("SB1")+cCodBar,"B1_COD") //SB1->B1_COD
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_DESCRI" })]    := Posicione("SB1",5,xFilial("SB1")+cCodProd,"B1_DESC")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_UM" })]        := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_UM")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_LOCAL" })]     := M->C5_X_ARMAZ
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_X_EMPFA" })]   := M->C5_X_EMPFA
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_CLASFIS" })]   := CodSitTri()
+            //aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_CODLAN" })]    := Posicione("SF4",1,xFilial("SF4")+cTES,"F4_CODLAN")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_CC" })]        := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_CC")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_CONTA" })]     := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_CONTA")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_ITEMCTA" })]   := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_ITEMCC")
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_CLVL" })]      := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_CLVL")
+        EndIf    
+    EndIf
+EndIf
+NEXT nCount
+
+/*If ExistTrigger('C6_PRODUTO') // verifica se existe trigger para este campo
+    RunTrigger(2,Len(aCols),nil,,'C6_PRODUTO')
+Endif*/
+
+Return (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })])

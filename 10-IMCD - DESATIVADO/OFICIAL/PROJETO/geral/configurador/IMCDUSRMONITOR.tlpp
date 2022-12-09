@@ -1,0 +1,512 @@
+#include 'protheus.ch'
+#Include "FwMvcDef.CH"
+
+
+user function IMCDUSRMONITOR()
+
+    local aCoors        as array   
+    local oFWLayer      as object 
+    local cAdmUser      as character
+    Local aParamBox     as array
+    local oButOkPar     as object
+    private oPnlParam   as object
+    private aRetPar     as array
+    Private oDlgPrinc   as object
+    private oPnlBrw     as object
+    private oBrowse     as object
+    private oColumn     as object
+    private oServer     as object
+    private aRotina     as array
+    private cAliasUsr   as character
+    private oBrowse     as object
+    private aTblAux     as array
+    private oTable      as object
+    private aFields     as array
+    private aIni        as array
+    private aComboEnv   as array
+    private oServerSlv  as object
+    private cEnv        as character
+    private aIniSlaves  as array
+
+    aIni := getIni()
+    //-------------------------------------
+    //Inicialização de variáveis
+    //-------------------------------------
+    cCadastro := ""
+    aParamBox := {}
+    aRetPar := {1,space(100), space(6), space(40)}
+    aComboEnv := {}
+    aadd(aComboEnv,"")
+    aEval(aIni, {|x|aadd(aComboEnv,x[1]) })
+    Define MsDialog oDlgPrinc Title 'Monitor Conexões IMCD' From 0, 5 To 598, 1352 Pixel
+
+    //--------------------------------------------------
+    // Cria o conteiner onde serão colocados os browses
+    //--------------------------------------------------
+    oFWLayer := FWLayer():New()
+    oFWLayer:Init( oDlgPrinc, .F., .T. )
+
+    //-----------------------------------------------
+    //Definição do Painel 
+    //-----------------------------------------------
+    oFWLayer:AddLine( 'PANEL', 100, .F. )                 //Cria uma "linha" com 100% da tela
+    oFWLayer:AddCollumn( 'ALL', 100, .T., 'PANEL' )        //Painel central
+    oPanel     := oFWLayer:GetColPanel( 'ALL', 'PANEL'  ) 
+
+
+    //---------------------------
+    //Criação da aba dashboard
+    //---------------------------
+    oLayer := FWLayer():New()
+    oLayer:Init( oPanel, .T. )
+
+    //---------------------------------------------------
+    //Criação das duas colunas principais para dividir 
+    //a tela do dashboard no meio verticalmente.
+    //---------------------------------------------------
+    oLayer:addLine("MAIN", 100)
+    oLayer:AddCollumn( "COLMAIN1", 100, , "MAIN"  )
+
+
+    //Determinando a estrutura da primeira coluna (coluna à esquerda)
+    oLayerUp := FWLayer():New()
+    oLayerUp:Init( oLayer:getColPanel("COLMAIN1", "MAIN"), .T. )
+    oLayerUp:AddLine   ( "LinTop", 45 )
+	oLayerUp:AddLine   ( "LinDown", 55 )
+
+
+    //Montando a tela de parâmetros do dashboard
+    oLayerUp:AddCollumn( "Col01", 100, , "LinTop"  )
+    oLayerUp:AddWindow ( "Col01", "Window01", "Parâmetros ", 100, .F., , , "LinTop" )
+    oPnlParam := oLayerUp:GetWinPanel( "Col01", "Window01", "LinTop" )
+    aAdd(aParamBox,{2,"Ambiente Salvo",1,aComboEnv,100,"U_IMCDFILLAMB()",.F.})
+    aAdd(aParamBox,{1,"IP"  ,Space(100),"","","","",100,.F.}) 
+    aAdd(aParamBox,{1,"Porta"  ,Space(6),"","","","",50,.F.}) 
+    aAdd(aParamBox,{1,"Environment"  ,Space(40),"","","","",50,.F.}) 
+    ParamBox(aParamBox,"Parâmetros...",@aRetPar,,,,,,oPnlParam)
+    oButOkPar := TButton():New( 080, 015, "Connect",oPnlParam,   {||loadUser()}, 70,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+    oButDisconnect := TButton():New( 080, 090, "Disconnect User",oPnlParam,   {||U_DISCONN()}, 90,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+    oButDisconnectAll := TButton():New( 080, 0185, "Disconnect All Users",oPnlParam,   {||U_DISCONN(.T.)}, 90,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+    oButRefresh := TButton():New( 080, 0285, "Refresh",oPnlParam,   {||loadUser(.T.)}, 70,10,,,.F.,.T.,.F.,,.F.,,,.F. ) 
+
+    //Montando a tela de parâmetros do dashboard
+    oLayerUp:AddCollumn( "Col01", 100, , "LinDown"  )
+    oLayerUp:AddWindow ( "Col01", "Window01", "Threads", 100, .F., , , "LinDown" )
+    oPnlBrw := oLayerUp:GetWinPanel( "Col01", "Window01", "LinDown" )
+    // ATIVA E EXIBE O NAVEGADOR
+    oBrowse := BrowseDef()
+    oBrowse:Activate(oPnlBrw)
+    //criaBrw()
+
+    Activate MsDialog oDlgPrinc Center
+    if !empty(oServer)
+        oServer:disconnect()
+    endif
+
+
+Return NIL
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} atuVlZNT
+Função responsável pela atualização dos indicadores do dashboard do
+painel de integração fiorde.
+@author  marcio.katsumata
+@since   19/09/2019
+@version 1.0
+/*/
+//-------------------------------------------------------------------
+static function loadUser(lRefresh)
+    local cAmbiente as character
+    local lLimpa    as logical
+    local nInd      as numeric
+    default lRefresh := .F.
+
+    lLimpa := .T.
+    lConnected := .F.
+   
+    if!empty(aRetPar) .and. !lRefresh
+
+        if !empty(aRetPar[1] )
+            cAmbiente := aRetPar[1]
+            IMCDFILLAMB(cAmbiente)
+        endif
+        cIp    := alltrim(aRetPar[2])
+        nPorta := val(aRetPar[3])
+        cEnv   := alltrim(aRetPar[4])
+
+        if !empty(oServer)
+            oServer:disconnect()
+            freeObj(oServer)
+        endif
+
+        if !empty(cIp) .and. !empty(nPorta) .and. !empty(cEnv)
+
+	        //----------------------------------------
+	        //Prepara o objeto de conexão ao ambiente.
+	        //----------------------------------------
+	        oServer := TRPC():new( cEnv )
+
+	        //-----------------------------------------------
+	        //Realizando conexão com o ip e porta solicitado
+	        //-----------------------------------------------
+	        if lConnected := oServer:connect( cIp, nPorta) 
+                aIniSlaves := getIniBal( cIp, nPorta)
+            endif
+        endif
+    endif
+
+    if lConnected .or. lRefresh
+        for nInd := 1 to len(aIniSlaves)
+            oServerSlv := TRPC():new( cEnv )
+            if oServerSlv:connect( aIniSlaves[nInd][1], aIniSlaves[nInd][2]) 
+                U_REFRESH(lLimpa, aIniSlaves[nInd][1], aIniSlaves[nInd][2], nInd==len(aIniSlaves))
+                lLimpa := .F.
+                oServerSlv:disconnect()
+            else
+                if nInd==len(aIniSlaves)
+                    oBrowse:refresh()
+                    oBrowse:goTop(.T.)
+                endif
+            endif
+        next nInd
+    endif
+return .T.
+
+
+// DEFINIÇÕES DO BROWSER (POSSÍVEL HERDAR)
+Static Function BrowseDef()
+    cAliasUsr  := GetNextAlias()      // GERA UM ALIAS ALEATÓRIO
+    oBrowse := FwMBrowse():New()   // OBJETO DO NAVEGADOR
+    aTblAux := GenTableStr(cAliasUsr) // ESTRUTURA DA TABELA TEMPORÁRIA
+    oTable  := aTblAux[1]          // OBJETO DA TABELA TEMPORÁRIA
+    aFields := aTblAux[2]          // CAMPOS DA ESTRUTURA
+
+    // CONFIGURAÇÕES DO NAVEGADOR
+	oBrowse:SetAlias(cAliasUsr)
+	oBrowse:SetQueryIndex(GetTableInd(oTable))
+	oBrowse:SetTemporary(.T.)
+	oBrowse:SetFields(aFields)
+	oBrowse:DisableDetails()
+
+
+    // oBrowse:SetTimer() // CONFIGURAR TIMER PARA ATUALIZAÇÃO
+Return (oBrowse)
+
+
+// CRIA A ESTRUTURA DA TABELA TEMPORÁRIA COM BASE
+// NO RETORNO DA FUNÇÃO GETUSERINFOARRAY()
+Static Function GenTableStr(cAliasUsr)
+    Local aFields := {}                             // VETOR DE CAMPOS DO BROWSER
+    Local aTblFld := {}                             // VETOR DE CAMPOS DA TABELA
+    Local oTable  := FwTemporaryTable():New(cAliasUsr) // OBJETO DA TABELA TEMPORÁRIA
+    Local nX      := 0                              // CONTROLADOR DO LAÇO DE REPETIÇÃO
+
+    // CAMPOS DA TABELA
+    AAdd(aFields, {"Usuário",       "TMP_USERID", "C", 30, 00})
+    AAdd(aFields, {"Módulo",        "TMP_MODULE", "C", 10, 00})
+    AAdd(aFields, {"Rotina",        "TMP_ROUTIN", "C", 40, 00})
+    AAdd(aFields, {"Função",        "TMP_FUNCT",  "C", 25, 00})
+    AAdd(aFields, {"Ambiente",      "TMP_ENV",    "C", 20, 00})
+    AAdd(aFields, {"Data",          "TMP_DATE",   "D", 08, 00})
+    AAdd(aFields, {"Hora",          "TMP_TIME",   "C", 08, 00})
+    AAdd(aFields, {"Id da Máquina", "TMP_COMPUT", "C", 30, 00})
+    AAdd(aFields, {"Thread",        "TMP_THREAD", "N", 8, 00})
+    AAdd(aFields, {"Balance",       "TMP_SERVER", "C", 20, 00})
+    AAdd(aFields, {"Ip",            "TMP_IP"    , "C", 50, 00})
+    AAdd(aFields, {"Porta",         "TMP_PORTA"  , "N", 8, 00})
+
+    For nX := 1 To Len(aFields)
+        AAdd(aTblFld, {aFields[nX][2], aFields[nX][3], aFields[nX][4], aFields[nX][5]})
+    Next nX
+
+    // INSERE OS CAMPOS NA TABELA TEMPORÁRIA
+    oTable:SetFields(aTblFld)
+
+    // ÍNDICES DA TABELA TEMPORÁRIA
+    oTable:AddIndex("01", {"TMP_USERID"})           // ÍNDICE POR USUÁRIO
+    oTable:AddIndex("02", {"TMP_DATE", "TMP_TIME"}) // ÍNDICE POR DATE E HORA
+    oTable:AddIndex("03", {"TMP_FUNCT"})            // ÍNDICE POR FUNÇÃO
+    oTable:AddIndex("04", {"TMP_MODULE"})           // ÍNDICE POR MÓDULO
+    oTable:AddIndex("05", {"TMP_ROUTIN"})           // ÍNDICE POR ROTINA
+    oTable:AddIndex("06", {"TMP_SERVER"})           // ÍNDICE SERVIDOR (BALANCE)
+    oTable:AddIndex("07", {"TMP_IP", "TMP_PORTA"})  // ÍNDICE SERVIDOR (IP E PORTA)
+    // CRIA A TABELA
+    oTable:Create()
+
+    // PREENCHE A TABELA COM DADOS
+    //FillTable(cAliasUsr)
+Return ({oTable, aFields})
+
+// RETORNA O ÍNDICE JÁ CRIADO NA TABELA TEMPORÁRIA
+// **NÃO É NECESSÁRIO ALTERAR O COMPORTAMENTO
+Static Function GetTableInd(oTable)
+    Local aIndex  := {}                          // ÍNDICES PARA ENVIO AO BROWSER
+    Local aIndAux := oTable:oStruct:GetIndexes() // ÍNDICES JÁ CRIADOS NA TABELA
+    Local cIndAux := ""                          // AUXILIAR DA MONTAGEM DOS ÍNDICES DO BROWSER
+    Local nX      := 0                           // CONTROLADOR DO LAÇO DE REPETIÇÃO
+
+    // LAÇO DE REPETIÇÃO PARA MONTAGEM DO ÍNDICE DO BROWSER
+    For nX := 1 To Len(aIndAux)
+        AEval(aIndAux[nX][2], {|cIndex| cIndAux += cIndex + "+"})
+        AAdd(aIndex, SubStr(cIndAux, 1, Len(cIndAux) - 1))
+
+        cIndAux := ""
+    Next nX
+Return (aIndex)
+
+// REALIZA O PREENCHIMENTO DA TABELA TEMPORÁRIA COM
+// BASE NO RETORNO DA FUNÇÃO GETUSERINFOARRAY()
+Static Function FillTable(cAliasUsr, cIp, nPorta)
+    Local aMonitor := oServerSlv:callProc("GetUserInfoArray" )	 // DADOS DE CONEXÃO DE TODAS AS THREADS
+    Local nX       := 0                  // CONTROLADOR DO LAÇO DE REPETIÇÃO
+
+
+    // GRAVA OS DADOS RETORNADOS PELA FUNÇÃO GETUSERINFOARRAY()
+    For nX := 1 To Len(aMonitor)
+        // REMOVE ANOTAÇÕES DE SIGAMDI
+        If (!AllTrim(aMonitor[nX][5]) == "SIGAMDI")
+            RecLock(cAliasUsr, .T.)
+               (cAliasUsr)-> TMP_USERID := aMonitor[nX][1]
+               (cAliasUsr)-> TMP_COMPUT := aMonitor[nX][2]
+               (cAliasUsr)-> TMP_THREAD := aMonitor[nX][3]
+               (cAliasUsr)-> TMP_SERVER := aMonitor[nX][4]
+               (cAliasUsr)-> TMP_FUNCT  := aMonitor[nX][5]
+               (cAliasUsr)-> TMP_ENV    := aMonitor[nX][6]
+               (cAliasUsr)-> TMP_DATE   := GetDate(aMonitor[nX][7])
+               (cAliasUsr)-> TMP_TIME   := SubStr(aMonitor[nX][7], At(":", aMonitor[nX][7]) - 2, 8)
+               (cAliasUsr)-> TMP_MODULE := IIf(!SubStr(aMonitor[nX][11], 1, 3) == "###", AllTrim(SubStr(aMonitor[nX][11], At("SIGA", aMonitor[nX][11]), 8)), "TDS")
+               (cAliasUsr)-> TMP_ROUTIN := IIf(!SubStr(aMonitor[nX][11], 1, 3) == "###", AllTrim(SubStr(aMonitor[nX][11], At("Obj ", aMonitor[nX][11]) + 5, Len(aMonitor[nX][11]))), aMonitor[nX][11])
+               (cAliasUsr)-> TMP_IP      := cIp
+               (cAliasUsr)-> TMP_PORTA   := nPorta
+            MsUnlock()
+        EndIf
+    Next nX
+
+    // POSICIONA NO INÍCIO DO ARQUIVO
+    DbGoTop()
+    aSize(aMonitor,0)
+Return (NIL)
+
+// MONTA A DATA CONFORME STRING RETORNADA
+// PELA FUNÇÃO GETUSERINFOARRAY()
+Static Function GetDate(cDtMonitor)
+    Local cDate  := SubStr(cDtMonitor, 1, Len(cDtMonitor) - 1) // EXTRAI A DATA SEM O SALTO DE LINHA
+    Local cMonth := SubStr(cDate, 5, 3)                                  // EXTRAI O MÊS
+    Local cDay   := StrZero(Val(SubStr(cDate, 9, 2)), 2)                 // EXTRAI O DIA
+    Local cYear  := SubStr(cDate, Len(cDate) - 3)                        // EXTRAI O ANO
+    Local dDate  := dDataBase                                            // INICIA A DATA
+
+    // TRANSFORMA OS TRÊS CARACTERES DO MÊS NO NÚMERO CORRESPONDENTE
+    Do Case
+        Case (cMonth == SubStr(CMonth(CToD("02/01/2019")), 1, 3))
+            cMonth := "01"
+        Case (cMonth == SubStr(CMonth(CToD("02/02/2019")), 1, 3))
+            cMonth := "02"
+        Case (cMonth == SubStr(CMonth(CToD("02/03/2019")), 1, 3))
+            cMonth := "03"
+        Case (cMonth == SubStr(CMonth(CToD("02/04/2019")), 1, 3))
+            cMonth := "04"
+        Case (cMonth == SubStr(CMonth(CToD("02/05/2019")), 1, 3))
+            cMonth := "05"
+        Case (cMonth == SubStr(CMonth(CToD("02/06/2019")), 1, 3))
+            cMonth := "06"
+        Case (cMonth == SubStr(CMonth(CToD("02/07/2019")), 1, 3))
+            cMonth := "07"
+        Case (cMonth == SubStr(CMonth(CToD("02/08/2019")), 1, 3))
+            cMonth := "08"
+        Case (cMonth == SubStr(CMonth(CToD("02/09/2019")), 1, 3))
+            cMonth := "09"
+        Case (cMonth == SubStr(CMonth(CToD("02/10/2019")), 1, 3))
+            cMonth := "10"
+        Case (cMonth == SubStr(CMonth(CToD("02/11/2019")), 1, 3))
+            cMonth := "11"
+        Case (cMonth == SubStr(CMonth(CToD("02/12/2019")), 1, 3))
+            cMonth := "12"
+    EndCase
+
+    // MONTA A DATA CONFORME DIA, MÊS E ANO
+    dDate := CTod(cDay + "/" + cMonth + "/" + cYear)
+Return (dDate)
+
+// ENCERRA A CONEXÃO DE UM USUÁRIO
+User Function Disconn(lAll)
+    local lContinua as logical
+
+
+    lContinua := .T.
+
+    if !lAll
+        If (!ThreadID() == (cAliasUsr)->TMP_THREAD)
+            oServerSlv := TRPC():new( cEnv )
+            if oServerSlv:connect((cAliasUsr)->TMP_IP, (cAliasUsr)->TMP_PORTA)
+                // FINALIZA A CONEXÃO DO USUÁRIO
+                oServerSlv:callProc("killUser",AllTrim((cAliasUsr)->TMP_USERID), AllTrim((cAliasUsr)->TMP_COMPUT), (cAliasUsr)->TMP_THREAD, AllTrim((cAliasUsr)->TMP_ENV))
+                // ATUALIZA A GRID DE DADOS
+                oServerSlv:disconnect()
+            endif
+        endif
+    else
+        (cAliasUsr)->(dbGoTop())
+        oServerSlv := TRPC():new( cEnv )
+        while (cAliasUsr)->(!eof()) .and. lContinua
+            cChaveIp := (cAliasUsr)->TMP_IP
+            nPorta   := (cAliasUsr)->TMP_PORTA
+      
+            if oServerSlv:connect((cAliasUsr)->TMP_IP, (cAliasUsr)->TMP_PORTA)
+        
+                while cChaveIP == (cAliasUsr)->TMP_IP .and. nPorta == (cAliasUsr)->TMP_PORTA
+                    oServerSlv:callProc("killUser",AllTrim((cAliasUsr)->TMP_USERID), AllTrim((cAliasUsr)->TMP_COMPUT), , AllTrim((cAliasUsr)->TMP_ENV))
+                    (cAliasUsr)->(dbSkip())
+                enddo
+                oServerSlv:disconnect()
+            else
+                lContinua := .F.
+            endif
+        enddo
+    EndIf
+
+    loadUser(.T.)
+
+Return (NIL)
+
+// ATUALIZA A GRID DE DADOS
+User Function Refresh(lLimpa, cIp, nPorta, lRefresh)
+
+    if lLimpa
+        (cAliasUsr)->(DbGoTop())
+
+        // DELETA OS REGISTROS
+        While((cAliasUsr)->(!EOF()))
+
+            RecLock(cAliasUsr, .F.)
+            (cAliasUsr)->(DbDelete())
+            (cAliasUsr)->(MsUnlock())
+
+            (cAliasUsr)->(DbSkip())
+        End
+    endif
+    // PREENCHE A TABELA COM NOVOS VALORES
+    FillTable(cAliasUsr, cIp, nPorta)
+    if lRefresh
+        oBrowse:refresh()
+        oBrowse:goTop(.T.)
+    endif
+Return (NIL)
+
+
+static function getIni()  
+    Local cIniName := GetRemoteIniName() // Resultado: "C:\totvs\bin\SmartClient\smartclient.ini"
+    Local lUnix := IsSrvUnix()
+    Local nPos := Rat( IIf( lUnix, "/", "\" ), cIniName )
+    Local cPathRmt
+   	local cArqIni as character
+	local nHandle as numeric
+	local aIniRet as array
+	local nInd    as numeric
+	local cLinhas as character
+    local nPosLen as numeric
+    local cLinha  as character
+    local xValue  
+
+    if !( nPos == 0 )
+        cPathRmt := SubStr( cIniName, 1, nPos - 1 )
+        cPathRmt +=  IIf( lUnix, "/", "\" )+"monitorimcd.ini"
+    else
+        cPathRmt := ""
+    endif
+
+
+
+	cArqIni := cPathRmt
+	aIniRet  := {}
+	nInd    := 1
+	nHandle := Ft_FUse(cArqIni)
+
+	if nHandle >= 0
+		while ! FT_FEof()
+
+			cLinha := Ft_FReadLn()
+
+			if "[" $ cLinha .and. substr(cLinha,1,1) <> ";"
+				
+				aadd(aIniRet, {})
+				nPosLen := len(aIniRet)
+				aadd(aIniRet[nPosLen], strtran(strtran(cLinha, "[", ""), "]", ""))
+				
+				
+				FT_FSkip()
+				
+				if !FT_FEof()
+					cLinha := Ft_FReadLn()
+
+					aadd(aIniRet[nPosLen], strtran(strtran(cLinha, "ENVIRONMENT", ""), "=", ""))
+
+					FT_FSkip()
+
+					if !FT_FEof()
+						cLinha := upper(Ft_FReadLn())
+						nParms := val(alltrim(strtran(strtran(cLinha, "NPARMS", ""), "=", "")))
+
+						aadd(aIniRet[nPosLen], array(nParms))
+
+						FT_FSkip()
+
+						while nInd <= nParms .and. ! FT_FEof()
+							
+							cLinha := upper(Ft_FReadLn())
+							xValue := alltrim(strtran(strtran(cLinha,"PARM"+alltrim(cValToChar(nInd)), ""),"=",""))
+							aIniRet[nPosLen][3][nInd] := xValue
+							nInd++
+
+							FT_FSkip()
+						enddo
+
+						nInd := iif(nInd>nParms, nParms, nInd--) 
+						aSize(aIniRet[nPosLen][3], nInd)
+						nInd := 1 
+					endif
+				endif	
+			endif
+
+			FT_FSkip()
+		enddo
+
+	endif
+
+return aIniRet
+
+
+static function getIniBal( cIpMaster, nPortaMaster)  
+    local cServerIni as character
+    local aIniRet    as array
+    local aSlavesAux as array
+    local nInd       as numeric
+
+    cServerIni :=oServer:callProc("GetAdv97") 
+    aSlavesAux := StrTokArr2(oServer:callProc("GetPvProfString","ServerNetwork", "Servers", "", cServerIni), ",")
+    aIniRet    := {}
+    if !empty(aSlavesAux)
+        for nInd := 1 to len(aSlavesAux)
+            cIp := oServer:callProc("GetPvProfString",aSlavesAux[nInd], "Server", "", cServerIni)
+            nPorta := val(oServer:callProc("GetPvProfString",aSlavesAux[nInd], "Port", "", cServerIni))
+            aadd(aIniRet, {cIp, nPorta})
+        next nInd
+    else
+        aadd(aIniRet, {cIpMaster, nPortaMaster})
+    endif
+
+    aSize(aSlavesAux,0)
+
+return aIniRet
+
+static function IMCDFILLAMB(cAmbiente)
+    local nChoice as numeric
+    nChoice := aScan(aIni, {|x|alltrim(x[1])==alltrim(cAmbiente)})
+    
+    aRetPar[2] := aIni[nChoice][3][1]
+    aRetPar[3] := aIni[nChoice][3][2]
+    aRetPar[4] := aIni[nChoice][2]
+
+    oPnlParam:refresh()
+return .T.
+

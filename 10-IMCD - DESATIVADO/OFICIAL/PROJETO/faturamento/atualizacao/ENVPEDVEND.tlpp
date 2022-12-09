@@ -1,0 +1,678 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE 'RWMAKE.CH'
+#INCLUDE 'FONT.CH'
+#INCLUDE "TBICONN.CH"
+#INCLUDE "RPTDEF.CH"
+
+User Function ENVPEDVEND()
+
+	Local aArea		:= GetArea()
+	Local lRet		:= .T.
+	Local cMsg    	:= "Enviar Confirmação do Pedido por email para?"
+	Local nOpc    	:= 4
+	Local lDispMail := .T.
+
+	Private cMensagem :=""
+	Private cTermo :=""
+	Private cMailCli :=""
+
+	dbSelectArea("SC5")
+	dbSetOrder(1)
+	dbSeek(xFilial("SC5")+SC5->C5_NUM,.F.)
+
+	cAssunto := "Confirmação de Pedido de Venda- "+SC5->C5_NUM
+
+	IF !(IsInCallStack("A415BAIXA"))
+
+		nOpc := Aviso("Confirmação do Pedido "+SC5->C5_NUM, cMsg, {"Cliente", "Meu e-mail", "Ambos", "Cancelar"}, 2)
+		if nOpc > 3
+			RestArea(aArea)
+			Return()
+		endif
+
+		cAssunto := "Reenvio - " + cAssunto
+	endif
+
+	PROCESSA( { || GerarHtml(@lRet)  }, "Gerando E-mail dp Pedido de Venda "+SC5->C5_NUM,PROCNAME())
+
+	If lRet
+
+		aAttach := {}
+		
+			cCC := " "
+
+			if nOpc == 2
+				cMailCli :=  alltrim(UsrRetMail(__cUserID))+";"
+			elseif nOpc == 3
+				cCC := alltrim(UsrRetMail(__cUserID))+";"
+			EndIf
+
+		if MsgYesNo( "Deseja enviar o Pedido via Email, para: "+ cMailCli +";"+cCC)
+
+			lRet := U_ENVMAILIMCD(cMailCli,cCC,/*copia oculta*/"",cAssunto,cMensagem,aAttach,lDispMail)
+
+			if lRet
+				cMsg := "Email enviado para: "+cMailCli + chr(10)+chr(13)+iif(Empty(cCC),"",'Com Copia: '+cCC)
+				U_GrvLogPd(SC5->C5_NUM,SC5->C5_CLIENTE,SC5->C5_LOJACLI,"Email","Email enviado com sucesso", ,cMsg)
+			else
+				Aviso("Falha no envio do email","Erro No servidor", {"OK"},1)
+				cMsg := "Erro no email: "+cMailCli + iif(Empty(cCC),"",' ou: '+cCC)
+				U_GrvLogPd(SC5->C5_NUM,SC5->C5_CLIENTE,SC5->C5_LOJACLI,"Email","Falha no envio do email")
+
+				Aviso("Falha no envio do email","Erro No servidor", {"OK"},1)
+			endif
+
+		endif
+
+
+		
+	else
+		cMsg1 := "Falha no envio do email"
+		cMsg2 := "Favor abrir chamado informando o Numero do Pedido"
+		Aviso("Email de Confirmação", cMsg1+CRLF+cMsg2 , {"OK"},1)
+	endif
+
+	RestArea(aArea)
+
+Return( lRet )
+
+/*
+Gerar arquivo HTML com a Cópia do Pedido
+*/
+Static Function GerarHtml(lRet)
+
+	cMensagem := '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+	cMensagem += '<html xmlns="http://www.w3.org/1999/xhtml">'
+	cMensagem += '<head>'
+	cMensagem += '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'
+	cMensagem += '<title>ENVPEDVEND-IMCD</title>'
+	cMensagem += '  <style type="text/css"> '
+	cMensagem += '	<!-- '
+	cMensagem += '  table, th, td { border: 1px solid black; }'
+	cMensagem += '	.Empresa { text-align: center; justify-content: center; } '
+	cMensagem += '	.style1 {font-family: Segoe UI,Verdana, Arial;font-size: 12pt;} '
+	cMensagem += '	.style2 {font-family: Segoe UI,Verdana, Arial;font-size: 16pt;}'
+	cMensagem += '	.style2A {font-family: Segoe UI,Verdana, Arial;font-size: 16pt; color: navy}'
+	cMensagem += '	.style3A {font-family: Segoe UI,Verdana, Arial;font-size: 18pt; color: navy}'
+	cMensagem += '	--> '
+	cMensagem += '  </style>'
+	cMensagem += '</head>'
+	cMensagem += '<body>'
+
+	lRet := htCabec( )
+
+	if lRet
+
+		htTermo()
+
+		cMensagem += '</body> '
+		cMensagem += '</html> '
+
+	Endif
+
+return( lRet )
+
+Static Function htCabec()
+
+	Local _cNome  := ""
+	Local _cCgc   := ""
+	Local _cTel   := ""
+	Local _cEmpEnt := ""
+	Local _cEEnt  := ""
+	Local _cCepe  := ""
+	Local _cBaie  := ""
+	Local _cCide  := ""
+	Local _cEste  := ""
+
+	Local cPedCli := ""
+	Local cLogo := GETMV("MV_ENDLOGO")
+	Local nX := 0
+
+	Private aRedesp := {}
+	Private cNomVen := ""
+	Private cTelVend := space( len( SA3->A3_TEL ) )
+	Private cEmailVend := space( len( SA3->A3_EMAIL ) )
+	Private cVenInt := ""
+	Private cTelInt := ""
+	Private cEmaInt := ""
+
+	if SC6->( dbSeek( xFilial( "SC6" ) + SC5->C5_NUM ) )
+
+		cPedCli := SC6->C6_NUMPCOM
+	endif
+
+	SA1->(dbSetOrder(1))
+	SA1->( dbSeek( xFilial( "SA1" ) + SC5->C5_CLIENTE + SC5->C5_LOJACLI ) )
+
+	_cNome := SA1->A1_NOME
+	_cCgc  := SA1->A1_CGC
+	_cTel  := "("+SA1->A1_DDD+") "+SA1->A1_TEL
+
+	_cEndCli := Capital(ALLTRIM(IIF(EMPTY(SA1->A1_ENDENT),SA1->A1_END,SA1->A1_ENDENT)))
+	_cBaiCli := Capital(ALLTRIM(IIF(EMPTY(SA1->A1_BAIRROE),SA1->A1_BAIRRO,SA1->A1_BAIRROE)))
+	_cCidCli := Capital(ALLTRIM(IIF(EMPTY(SA1->A1_MUNE),SA1->A1_MUN,SA1->A1_MUNE)))
+	_cEstCli := Capital(ALLTRIM(IIF(EMPTY(SA1->A1_ESTE),SA1->A1_EST,SA1->A1_ESTE)))
+	_cCepCli := TRANSFORM(ALLTRIM(IIF(EMPTY(SA1->A1_CEPE),SA1->A1_CEP,SA1->A1_CEPE)), "@R 99999-99")
+
+	cMailCli := Lower(ALLTRIM(IIF(!EMPTY(SC5->C5_XMAILCO),C5_XMAILCO,SA1->A1_EMAIL )))
+	cVend := iif (empty(SC5->C5_VEND1),SA1->A1_VEND,SC5->C5_VEND1)
+	cVendI := SA1->A1_VENDINT
+
+	If !Empty(SC5->C5_CENT) .and. SC5->C5_CENT + SC5->C5_LENT <> SC5->C5_CLIENTE + SC5->C5_LOJACLI
+
+		SA1->(dbSeek(xFilial("SA1") + SC5->C5_CENT + SC5->C5_LENT))
+		_cEmpEnt := Capital("( " + ALLTRIM( SA1->A1_NOME ) + ") ")
+		_cEEnt := Capital(SA1->A1_END)
+		_cBaie := Capital(SA1->A1_BAIRRO)
+		_cCide := Capital(SA1->A1_MUN)
+		_cEste := Capital(SA1->A1_EST)
+		_cCepe := TRANSFORM(SA1->A1_CEP, "@R 99999-99")
+
+	Else
+		_cEmpEnt :=  Capital(ALLTRIM( SA1->A1_NOME ) )
+		_cEEnt := _cEndCli
+		_cCepe := _cCepCli
+		_cBaie := _cBaiCli
+		_cCide := _cCidCli
+		_cEste := _cEstCli
+
+	Endif
+
+	if SA3->( dbSeek( xFilial("SA3") +  cVend) )
+		cNomVen := CAPITAL(ALLTRIM(SA3->A3_NOME))
+		cTelVend := "("+Alltrim(SA3->A3_DDDTEL)+")" + transf( alltrim( SA3->A3_TEL ), "@R !!!!-!!!!!!!!!!!!!!!" )
+		cEmailVend := LOWER(alltrim( SA3->A3_EMAIL ))
+	endif
+
+	if SA3->( dbSeek( xFilial("SA3") + cVendI) )
+		cVenInt := CAPITAL(ALLTRIM(SA3->A3_NOME))
+		cTelInt := "("+Alltrim(SA3->A3_DDDTEL)+")" + transf( alltrim( SA3->A3_TEL ), "@R !!!!-!!!!!!!!!!!!!!!" )
+		cEmaInt := LOWER(alltrim( SA3->A3_EMAIL ))
+	endif
+
+	SE4->( dbSeek( xFilial( "SE4" ) + SC5->C5_CONDPAG ) )
+	SA4->( dbSeek( xFilial( "SA4" ) + SC5->C5_TRANSP ) )
+
+
+	cMensagem += '<div class="empresa" >'
+	cMensagem += '<img alt="IMCD LOGO" class="img__src img__cover" src="'+cLogo+'" width="658" height="191"><br/><br/>'
+	cMensagem += '<p class="style2A" style="text-align:center" >Confirmação de Pedido</p>'
+	cMensagem += '<p class="style2A" style="text-align:center" >Número '+SC5->C5_NUM +'</p>'
+	cMensagem += '<p class="style2A" style="text-align:center">Data de Emissão: ' + dtoc( SC5->C5_EMISSAO ) + '</p>'
+	cMensagem += '</div> '
+
+	cMensagem += '<hr />'
+
+	cMensagem += '<div class="empresa">'
+	cMensagem += '<p class="style3A">'+Capital(ALLTRIM(SM0->M0_NOMECOM))+'</p>'
+
+	cEnd := Capital( ALLTRIM(SM0->M0_ENDENT)+iif(EMPTY(SM0->M0_COMPENT),"" ,' - '+ALLTRIM(SM0->M0_COMPENT)))
+	cEnd += Capital(' - '+ALLTRIM(SM0->M0_BAIRENT)+' - '+ALLTRIM(SM0->M0_CIDENT)+' - '+ALLTRIM(SM0->M0_ESTENT))
+
+	cMensagem += '<p class="style2">'+cEnd+' - CEP: '+ALLTRIM(SM0->M0_CEPENT)+'</p>'
+	cMensagem += '<p class="style1">Fone: '+ALLTRIM(SM0->M0_TEL)
+	cMensagem += ' – e-mail <a href="mailto:imcdbrasil@imcdbrasil.com.br">imcdbrasil@imcdbrasil.com.br</a>'
+	cMensagem += ' – internet: <a href="http://www.imcdgroup.com">www.imcdgroup.com</a></p> '
+	cMensagem += '</div> '
+
+	cMensagem += '<hr />'
+
+	cMensagem += '<div> '
+
+	//cMensagem += '<p class="style1">Nr. Pedido Cliente: '+Alltrim(cPedCli)+'</p>'
+
+	cMensagem += '<p class="style1">Cliente: ' + _cNome +'CNPJ: '+ _cCgc+'</p> '
+	cMensagem += '<p class="style1">Contato: '+CAPITAL(SC5->C5_XNOMCON)+ ' - Telefone:'+_cTel+'</p>'
+	cMensagem += '<p class="style1">' +_cEndCli+ ' CEP: '+_cCepCli+'</p>'
+	cMensagem += '<p class="style1">Bairro: '+_cBaiCli+' - Município: '+_cCidCli+' - UF : ' + _cEstCli + '</p>'
+
+	cMensagem += '</div>'
+	cMensagem += '<hr />
+	cMensagem += '<div>'
+
+	cMensagem += '<p class="style1">Vendedor: ' + cNomVen  +'</p>'
+	cMensagem += '<p class="style1">Vendedor Interno: '+cVenInt+'</p>'
+	cMensagem += '</div>'
+	cMensagem += '<hr />
+	cMensagem += '<div>'
+	cMensagem += '<p class="style1">Transportadora: '+SA4->A4_NOME +' -  Frete: '+iif(SC5->C5_TPFRETE="C","CIF","FOB")+'</p>'
+
+	IF SC5->C5_XTRASEC == 'S' .and. !empty(SC5->C5_REDESP)
+
+		REDESPACHO()
+
+		For nX := 1 To Len(aRedesp)
+			cMensagem += '<p class="style1">'+aRedesp[nX]+'</p>'
+		Next nX
+
+	ENDIF
+
+	cMensagem += '</div>'
+
+	cMensagem += '<hr />
+	cMensagem += '<div>'
+
+	cMensagem += '<p class="style1">Local de Entrega: </p>'
+
+	if Len(aRedesp) > 0
+
+		cMensagem += '<p class="style1">'+aRedesp[2]+'</p>'
+		cMensagem += '<p class="style1">'+aRedesp[3]+'</p>'
+
+	Else
+		cEnd := _cEEnt +" - Bairro "+_cBaie+", "
+		cEnd += _cCide+" - "+_cEste+" -  CEP " +transform(_cCepe, "@R 99999-99")
+
+		cMensagem += '<p class="style1">'+_cEmpEnt+'</p>'
+		cMensagem += '<p class="style1">'+cEnd+'</p>'
+
+	Endif
+
+	cMensagem += '</div>'
+	cMensagem += '<hr />
+	cMensagem += '<div>'
+
+	lRet := htItens()
+
+	cMensagem += '</div>'
+
+	if lRet
+		htInforma()
+	endif
+
+Return lRet
+/*
+Itens do Pedido
+*/
+Static Function htItens( )
+	Local _nIpi := 0
+	Local _nQtd := 0
+	Local _nPrc := 0
+	Local lRet := .F.
+	Local aSX513  := {}
+	Local cDesCfo := ""
+	Local cCfop   := ""
+
+	dbSelectArea("SC6")
+	dbSetOrder(1)
+	MsSeek(xFilial("SC6")+SC5->C5_NUM)
+
+	cCfop := SC6->C6_CF
+
+	aSX513 := FWGetSX5("13",cCfop)
+
+	if !Empty(aSX513)
+		cDesCfo := aSX513[1][4]
+	endif
+
+	cMensagem += '<p class="style1">Prazo de Pagamento: '+SE4->E4_DESCRI+'</p>'
+	cMensagem += '<p class="style1">CFOP: '+cCfop+' '+cDesCfo +'</p> '
+
+	cMensagem += '<div>'
+	cMensagem += '<table style="width:100%">'
+	cMensagem += '<tr>'
+	cMensagem += '<th>ITEM</th>'
+	cMensagem += '<th>PRODUTO</th>'
+	cMensagem += '<th>QUANTIDADE/UN</th>'
+	cMensagem += '<th>MOEDA</th>'
+	cMensagem += '<th>Pre&ccedil;o Unit&aacute;rio NET</th>'
+	cMensagem += '<th>IPI</th>'
+	cMensagem += '<th>Data Prev. Entrega</th>'
+	cMensagem += '<th>Num Ped Cliente</th>'
+	cMensagem += '<th>Item Ped Cliente</th>'
+	cMensagem += '</tr>'
+
+	Do While .not. SC6->( eof() ) .and.  ;
+			SC6->C6_FILIAL == xFilial( "SC6" ) .and.;
+			SC6->C6_NUM == SC5->C5_NUM
+
+		_nIpi := 0
+
+		SB1->( dbSeek( xFilial( "SB1" ) + SC6->C6_PRODUTO ) )
+
+		if SF4->( dbSeek( xFilial( "SF4" ) + SC6->C6_TES ) ) .and. SF4->F4_IPI == "S"
+			_nIpi := SB1->B1_IPI
+		endif
+
+		_nQtd := SC6->C6_QTDVEN
+
+		if SC6->C6_XMOEDA == 1
+
+			_nPrc := IIF(SC6->C6_XVLRINF > 0,SC6->C6_XVLRINF,SC6->C6_XPRUNIT)  //SC6->C6_PRCVEN
+
+		else
+			//---------------------------------------------
+			//Alterado em 16/01/18 por Marcos Andrade
+			//Substituir o campo C6_XPRCMOE por C6_XPRUNIT
+			//---------------------------------------------
+			//_nPrc := SC6->C6_XPRCMOE
+			_nPrc := IIF(SC6->C6_XVLRINF > 0,SC6->C6_XVLRINF,SC6->C6_XPRUNIT)
+
+		endif
+
+		cMensagem += '<tr>'
+		cMensagem += '<td style="text-align:center">'
+		cMensagem += '<p>'+SC6->C6_PRODUTO+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:left">'
+		cMensagem += '<p>'+ALLTRIM(SB1->B1_DESC)+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+TRANSF( _nQtd,"@E 999,999,999.99" )+' '+SC6->C6_UM+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:center">'
+		cMensagem += '<p>'+VERMOEDA( SC6->C6_XMOEDA )+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+TRANSF( ROUND(_nPrc,4),"@E 999,999,999.9999" )+' '+SC6->C6_UM+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+TRANSF( _nIpi,"@E 99.99" )+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+DTOC( SC6->C6_ENTREG)+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+ALLTRIM( SC6->C6_NUMPCOM )+'</p>'
+		cMensagem += '</td>'
+		cMensagem += '<td style="text-align:right">'
+		cMensagem += '<p>'+ALLTRIM( SC6->C6_ITEMPC )+'</p>'
+		cMensagem += '</td>'
+
+		cMensagem += '</tr>'
+
+		SC6->( dbSkip() )
+
+		lRet := .T.
+
+	EndDo
+
+	cMensagem += '</div>'
+	cMensagem += '</tbody>'
+	cMensagem += '</table>'
+	cMensagem += '<p></p>'
+
+Return( lRet )
+
+/* Informações Gerais do final do Pedido */
+
+Static Function htInforma( )
+
+	cMensagem += '<div>'
+	cMensagem += '<p>Obs:</p>'
+
+	if .not. Empty( SC5->C5_HIST )
+		cMensagem += '<p class="style1">Obs: '+SC5->C5_HIST+'</p>'
+	endif
+
+	cMensagem += '</div>'
+	cMensagem += '<hr />'
+
+	cMensagem += '<div>'
+	cMensagem += '<p>Informa&ccedil;&otilde;es Gerais:</p>'
+	cMensagem += '<p>Vide Termo e condi&ccedil;&otilde;es Comerciais abaixo.</p>'
+	cMensagem += '<p>&nbsp;</p>'
+	cMensagem += '</div>'
+	cMensagem += '<hr />'
+
+	cMensagem += '<div>'
+	cMensagem += '<p>OBSERVA&Ccedil;&Ocirc;ES:</p>'
+
+	cMensagem += '<p>1) O efetivo embarque fica sujeito ainda, as limitações das linhas de crédito, '
+	cMensagem += 'validação das licenças e alvarás e / ou impedimento de força maior;</p>'
+
+	cMensagem += '<p>2) O faturamento ocorrerá em Reais (R$), utilizando-se a taxa de dólar de venda '
+	cMensagem += 'comercial (PTAX) publicada no Banco Central do dia anterior a data de faturamento  '
+	cMensagem += 'e/ou (PTAX ) médio negociado.</p>'
+
+	cMensagem += '<p>3) Quando a negociação ocorrer em reais, desconsiderar a informação acima;</p>'
+
+	if CEMPANT <> '02'
+		cMensagem += '<p>4) O prazo de entrega do pedido deve ser validado junto ao vendedor devido a '
+		cMensagem += 'região de atendimento, podendo variar, após o faturamento da Nota Fiscal.</p>'
+	else
+		cMensagem += '<p>4) O faturamento/entrega do pedido deve ser alinhado junto ao vendedor previamente, '
+		cMensagem += 'e em caso de frete FOB indicar a transportadora para a emissão da NF.</p>'
+	endif
+
+	cMensagem += '<p>5) Pedidos com entregas programadas, estarão sujeitos a reajustes de preços de '
+	cMensagem += 'acordo com o fabricante ou novas condições de mercado.</p>'
+
+	cMensagem += '<p>&nbsp;</p>'
+	cMensagem += '<p>Sem mais para o momento, nos colocamos a sua inteira disposi&ccedil;&atilde;o '
+	cMensagem += 'para maiores esclarecimentos.</p>'
+
+	cMensagem += '</div>'
+/*	
+	cMensagem += '<div>'
+	cMensagem += '<p>OBSERVA&Ccedil;&Ocirc;ES:</p>'
+	cMensagem += '<p>1) O efetivo embarque fica sujeito ainda, as limita&ccedil;&otilde;es das linhas de cr&eacute;dito e / ou impedimento de for&ccedil;a maior;</p>'
+	cMensagem += '<p>2) O faturamento ocorrer&aacute; em Reais (R$), utilizando-se a taxa de d&oacute;lar de venda comercial (PTAX) publicada na Gazeta Mercantil, na data efetiva do faturamento;</p>'
+	cMensagem += '<p>3) Quando a negocia&ccedil;&atilde;o ocorrer em reais, desconsiderar a informa&ccedil;&atilde;o acima;</p>'
+	cMensagem += '<p>4) Esta proposta comercial &eacute; valida por 48 horas;</p>'
+	cMensagem += '<p>5) Entrega ser&aacute; realizada em at&eacute; 48 horas, ap&oacute;s a confirma&ccedil;&atilde;o do pedido pelo cliente;</p>'
+	cMensagem += '<p>6) Pedidos com entregas programadas, superiores a 5 dias da data de confirma&ccedil;&atilde;o estar&atilde;o sujeitos a reajustes de pre&ccedil;os de acordo com o fabricante ou novas condi&ccedil;&otilde;es de mercado.</p>'
+	cMensagem += '<p>&nbsp;</p>'
+	cMensagem += '<p>Sem mais para o momento, nos colocamos a sua inteira disposi&ccedil;&atilde;o para maiores esclarecimentos.</p>'
+	cMensagem += '</div>'
+*/
+
+	cMensagem += '<div>'
+	cMensagem += '<p>Atenciosamente,</p>'
+	cMensagem += '<p>'+cNomVen+'</p>'
+	cMensagem += '<p>Tel.: '+cTelVend+'-</p>'
+	cMensagem += '<p>'+cEmailVend+'</p>'
+	cMensagem += '</div>'
+	cMensagem += '<br>'
+	cMensagem += '<hr />'
+
+Return( .T. )
+
+
+Static Function htTermo( )
+
+	Local cLocal := ' '
+	Local cEstado := ALLTRIM(SM0->M0_ESTENT)
+	Local aSX512 := FWGetSX5("12", cEstado )
+
+	if !Empty(aSX512)
+		cEstado := Capital(aSX512[1][4])
+	endif
+
+	cLocal := 'IMCD: '+Capital(ALLTRIM(SM0->M0_NOMECOM))+', '
+	cLocal += 'estabelecida na cidade de '+capital(ALLTRIM(SM0->M0_CIDENT))+', estado de '+cEstado+", à "
+	cLocal += Capital( ALLTRIM(SM0->M0_ENDENT)+iif(EMPTY(SM0->M0_COMPENT),"" ,' - '+ALLTRIM(SM0->M0_COMPENT)))
+	cLocal += Capital( ' - '+ALLTRIM(SM0->M0_BAIRENT)) + ', CEP: '+ALLTRIM(SM0->M0_CEPENT)
+
+	cMensagem += '<div>'
+	cMensagem += '<p style="text-align: center;"><span style="font-size:20px">TERMOS E CONDI&Ccedil;&Otilde;ES GERAIS DE VENDA</span></p>'
+	cMensagem += '<p style="text-align: center;"><span style="font-size:20px">'+Capital(ALLTRIM(SM0->M0_NOMECOM))+'</span></p>'
+	cMensagem += '</div>'
+	cMensagem += '<div>'
+	cMensagem += '<h3 dir="ltr">Artigo 1 GERAL</h3>'
+	cMensagem += '<p dir="ltr">1.1 Defini&ccedil;&otilde;es:</p>'
+	cMensagem += '<p dir="ltr">Acordo: qualquer acordo e/ou ato legal entre a IMCD e o Comprador quanto &agrave; compra de mercadorias da IMCD pelo Comprador.</p>'
+	cMensagem += '<p dir="ltr">'+cLocal+'</p>'
+	cMensagem += '<p dir="ltr">O Comprador: qualquer pessoa f&iacute;sica ou jur&iacute;dica que deseje firmar um acordo, que firme um acordo ou que j&aacute; tenha firmado um Acordo com a IMCD, bem como qualquer pessoa f&iacute;sica ou jur&iacute;dica para a qual a IMCD forne&ccedil;a ou j&aacute; tenha fornecido seus produtos.</p>'
+	cMensagem += '<p dir="ltr">Termos e Condi&ccedil;&otilde;es: estes termos e condi&ccedil;&otilde;es gerais de venda da IMCD.</p>'
+	cMensagem += '<p dir="ltr">1.2 Exceto quando expressamente acordado de modo contr&aacute;rio por escrito, estes Termos e Condi&ccedil;&otilde;es se aplicar&atilde;o a todas as ofertas e cota&ccedil;&otilde;es oriundas da IMCD a todo e qualquer Acordo.</p>'
+	cMensagem += '<p dir="ltr">1.3 Desist&ecirc;ncias, aditivos e modifica&ccedil;&otilde;es e qualquer ren&uacute;ncia quanto a estes Termos e Condi&ccedil;&otilde;es somente s&atilde;o v&aacute;lidos se forem expressamente acordados por escrito pela IMCD.</p>'
+	cMensagem += '<p dir="ltr">1.4 A aplica&ccedil;&atilde;o de termos e condi&ccedil;&otilde;es gerais utilizados pelo Comprador e quaisquer outros termos e condi&ccedil;&otilde;es gerais est&atilde;o expressamente rejeitados.</p>'
+	cMensagem += '<p dir="ltr">1.5 O texto do Acordo prevalecer&aacute; sobre estes Termos e Condi&ccedil;&otilde;es caso exista um conflito.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 2 OFERTAS E ACORDOS</h3>'
+	cMensagem += '<p dir="ltr">2.1 Todas as ofertas, cota&ccedil;&otilde;es e propostas de pre&ccedil;o da IMCD estar&atilde;o sempre sujeitas a contrato e podem, a menos que proibido por lei, ser alteradas ou revogadas pela IMCD a qualquer momento, independentemente de conterem um per&iacute;odo para aceita&ccedil;&atilde;o.</p>'
+	cMensagem += '<p dir="ltr">2.2 Suplementos, promessas e mudan&ccedil;as verbais ser&atilde;o vinculantes somente se tiverem sido feitos por pessoal IMCD autorizado.</p>'
+	cMensagem += '<p dir="ltr">2.3 Amostras e modelos apresentados ou fornecidos servir&atilde;o somente como indica&ccedil;&otilde;es, sem que os produtos devam estar em conformidade com aquelas amostras e modelos. Varia&ccedil;&otilde;es secund&aacute;rias quanto a tamanho, peso, n&uacute;mero, cor e outras propriedades declaradas n&atilde;o ser&atilde;o consideradas defeito. A pr&aacute;tica comercial determinar&aacute; se as altera&ccedil;&otilde;es s&atilde;o secund&aacute;rias.</p>'
+	cMensagem += '<p dir="ltr">2.4 A IMCD se reserva ao direito, antes de iniciar ou dar continuidade a suas atividades, e a qualquer tempo, de exigir uma garantia do Comprador para o cumprimento de qualquer uma de suas obriga&ccedil;&otilde;es sob qualquer Acordo. A garantia ser&aacute; fornecida do modo estipulado pela IMCD a seu exclusivo crit&eacute;rio.</p>'
+	cMensagem += '<p dir="ltr">2.5 Se o Comprador n&atilde;o houver fornecido a garantia dentro do prazo de 14 dias ap&oacute;s a solicita&ccedil;&atilde;o estipulada pela IMCD, toda a quantia devida pelo Comprador &agrave; IMCD dever&aacute; ser quitada imediatamente, sem a obrigatoriedade de emiss&atilde;o de aviso de cobran&ccedil;a.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 3 ENTREGAS</h3>'
+	cMensagem += '<p dir="ltr">3.1 Salvo disposi&ccedil;&atilde;o em contr&aacute;rio acordada por escrito, a entrega de mercadoria ficar&aacute; &agrave; disposi&ccedil;&atilde;o do Comprador no local convencionado e no prazo estabelecido (transa&ccedil;&atilde;o do tipo &ldquo;Ex Works&rdquo;, de acordo com a vers&atilde;o mais recente dos Incoterms, publicados pela C&acirc;mara de Com&eacute;rcio Internacional).</p>'
+	cMensagem += '<p dir="ltr">3.2 A entrega ocorrer&aacute; em local definido de acordo com a vers&atilde;o mais recente dos Incoterms, os quais prevalecer&atilde;o no &acirc;mbito de um conflito entre estes Termos e Condi&ccedil;&otilde;es e os Incoterms aplic&aacute;veis.</p>'
+	cMensagem += '<p dir="ltr">3.3 O risco vinculado &agrave; mercadoria comprada passar&aacute; ao Comprador quando de sua entrega, de acordo com os termos de entrega especificados no Artigo 3.1 ou quaisquer outros termos de entrega que forem acordados conforme o Artigo 3.1. Para entregas do tipo &ldquo;Ex Works&rdquo;, o prazo de entrega &eacute; aquele do momento em que a IMCD notifica o Comprador de que a mercadoria est&aacute; pronta para retirada. Para entregas de acordo com quaisquer outros termos de entrega, o prazo de entrega &eacute; aquele em que a mercadoria comprada chega ao local de entrega, mesmo que o Comprador n&atilde;o aceite a entrega.</p>'
+	cMensagem += '<p dir="ltr">3.4 Salvo disposi&ccedil;&atilde;o em contr&aacute;rio acordada por escrito, o prazo de entrega especificado e concordado n&atilde;o ser&aacute; um prazo final. O simples fato de a IMCD exceder o prazo de entrega acordado n&atilde;o constituir&aacute; descumprimento de contrato, n&atilde;o resultar&aacute; em mora ou outra obriga&ccedil;&atilde;o ao Comprador e n&atilde;o dar&aacute; direito ao Comprador a rescindir o Acordo ou qualquer outra provid&ecirc;ncia para descumprimento contratual.</p>'
+	cMensagem += '<p dir="ltr">3.5 Se um prazo de entrega n&atilde;o houver sido claramente acordado, um prazo de entrega razo&aacute;vel ser&aacute; aplicado.</p>'
+	cMensagem += '<p dir="ltr">3.6 A IMCD poder&aacute;, em todo e a qualquer momento, entregar em consigna&ccedil;&atilde;o, e sempre poder&aacute; emitir nota fiscal separadamente para tais atividades parciais.</p>'
+	cMensagem += '<p dir="ltr">3.7 Se o Comprador n&atilde;o aceitar a entrega, ou em caso de entrega do tipo &ldquo;Ex Works&rdquo; a mercadoria n&atilde;o for retirada em at&eacute; sete dias depois da entrega ou do modo estipulado pela IMCD, o Comprador estar&aacute; em infra&ccedil;&atilde;o quanto ao Acordo, sem que uma notifica&ccedil;&atilde;o de infra&ccedil;&atilde;o seja necess&aacute;ria, e a IMCD poder&aacute; emitir nota fiscal e receber o pre&ccedil;o acordado. A IMCD poder&aacute;, ent&atilde;o, sem preju&iacute;zo de seus outros direitos sob a lei, estes Termos e Condi&ccedil;&otilde;es ou o Acordo, armazenar a mercadoria sob responsabilidade e risco do Comprador. Todos os custos resultantes deste ocorrido, incluindo, mas n&atilde;o limitados a, impostos, arrecada&ccedil;&otilde;es, pr&ecirc;mios de seguro, taxas, obriga&ccedil;&otilde;es e cobran&ccedil;as ser&atilde;o de responsabilidade do Comprador.</p>'
+	cMensagem += '<p dir="ltr">3.8 Se uma situa&ccedil;&atilde;o prevista no Artigo 3.7 surgir, e, apesar de dado um prazo razo&aacute;vel pela IMCD, o Comprador ainda assim n&atilde;o tenha retirado a mercadoria ou n&atilde;o consiga retir&aacute;-la em tempo e/ou adequadamente, a IMCD ficar&aacute;, sem preju&iacute;zo de seus outros direitos sob a lei, estes Termos e Condi&ccedil;&otilde;es e/ou o Acordo, livre de todas as suas obriga&ccedil;&otilde;es e poder&aacute; reter o pre&ccedil;o de compra (caso tenha sido pago) como compensa&ccedil;&atilde;o por custos de armazenamento incorridos e contra qualquer perda de valor a que a mercadoria tenha sofrido desde sua entrega.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 4 PRE&Ccedil;OS</h3>'
+	cMensagem += '<p dir="ltr">4.1 Salvo disposi&ccedil;&atilde;o em contr&aacute;rio acordada por escrito, todos os pre&ccedil;os ficar&atilde;o isentos de impostos sobre vendas, os custos de transporte e/ou o envio de produtos, outros custos incorridos quanto &agrave; entrega, taxas governamentais e/ou impostos devidos.</p>'
+	cMensagem += '<p dir="ltr">4.2 A IMCD poder&aacute;, em todo e a qualquer momento, por notifica&ccedil;&atilde;o por escrito ao Comprador, alterar seus pre&ccedil;os, sob a condi&ccedil;&atilde;o de que os pre&ccedil;os que j&aacute; houverem sido acordados possam ser alterados somente se os fatores determinantes de custo em que os pre&ccedil;os s&atilde;o baseados forem alterados entre o firmamento do acordo e a entrega. Tais ajustes de pre&ccedil;o n&atilde;o permitir&atilde;o que o Comprador rescinda o contrato. Tais fatores determinantes de custo incluem, sem se limitar a, pre&ccedil;o de mat&eacute;ria-prima, custo de m&atilde;o de obra, custo com previd&ecirc;ncia social, custos, impostos (incluindo impostos de vendas e outras taxas governamentais), impostos de importa&ccedil;&atilde;o e exporta&ccedil;&atilde;o e taxas de c&acirc;mbio.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 5 EMBALAGENS E EQUIPAMENTO DE TRANSPORTE</h3>'
+	cMensagem += '<p dir="ltr">5.1 Salvo disposi&ccedil;&atilde;o em contr&aacute;rio, embalagens retorn&aacute;veis fornecidas pela IMCD permanecer&atilde;o de propriedade da IMCD e devem ser devolvidas &agrave; IMCD em perfeito estado ap&oacute;s seu uso. Se a embalagem retorn&aacute;vel n&atilde;o for devolvida em perfeito estado, a IMCD n&atilde;o mais ser&aacute; obrigada a recolher a embalagem retorn&aacute;vel, e a nota fiscal da embalagem original emitida para o frete ser&aacute; convertida em venda efetiva e cobrada do Comprador.</p>'
+	cMensagem += '<p dir="ltr">5.2 O carregamento ou abastecimento do equipamento de transporte e/ou da embalagem disponibilizada pelo Comprador acontecer&aacute; sob responsabilidade e risco do Comprador. Entretanto, caso a IMCD seja respons&aacute;vel, as disposi&ccedil;&otilde;es do Artigo 8 destes Termos e Condi&ccedil;&otilde;es ser&atilde;o ent&atilde;o inteiramente aplic&aacute;veis.</p>'
+	cMensagem += '<p dir="ltr">5.3 A IMCD se reserva ao direito de se recusar a carregar equipamento e/ou abastecer embalagem caso n&atilde;o sejam verificadas as condi&ccedil;&otilde;es m&iacute;nimas de seguran&ccedil;a estabelecidas periodicamente pela IMCD. Neste caso, a IMCD n&atilde;o ser&aacute; respons&aacute;vel por nenhum custo (incluindo, mas sem limita&ccedil;&atilde;o a, os custos determinados pelo Artigo 3.7) decorrente de um poss&iacute;vel atraso.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 6 DEVOLU&Ccedil;&Otilde;ES E RECLAMA&Ccedil;&Otilde;ES</h3>'
+	cMensagem += '<p dir="ltr">6.1. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por lei, a IMCD n&atilde;o ficar&aacute; obrigada, sem consentimento por escrito de sua parte, a aceitar devolu&ccedil;&otilde;es do Comprador. Se produtos forem devolvidos sem aprova&ccedil;&atilde;o por escrito da IMCD, seu envio e armazenamento ap&oacute;s a devolu&ccedil;&atilde;o ser&atilde;o de risco e despesa do Comprador.</p>'
+	cMensagem += '<p dir="ltr">6.2. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por lei, o risco de produtos devolvidos continuar&aacute; de responsabilidade do Comprador at&eacute; que a IMCD aceite a devolu&ccedil;&atilde;o e os produtos devolvidos por escrito, aceita&ccedil;&atilde;o esta &agrave; qual a IMCD poder&aacute; atribuir condi&ccedil;&otilde;es.</p>'
+	cMensagem += '<p dir="ltr">6.3. O Comprador ser&aacute; respons&aacute;vel por verificar, ou fazer com que algu&eacute;m verifique, a conformidade dos produtos durante sua entrega. Reclama&ccedil;&otilde;es devem ser feitas por escrito dentro de 14 dias a contar da data de entrega, declarando-se as raz&otilde;es para a queixa e. Caso este procedimento n&atilde;o seja cumprido, o Comprador ser&aacute; considerado como tendo que ter aceitado a quantidade e a qualidade dos produtos e perder&aacute; qualquer reivindica&ccedil;&atilde;o contra a IMCD quanto aos defeitos nos produtos fornecidos, de acordo com o estipulado no Artigo 7 em rela&ccedil;&atilde;o &agrave;s garantias.</p>'
+	cMensagem += '<p dir="ltr">6.4. Reclama&ccedil;&otilde;es sobre produtos que j&aacute; tiverem sido tratados e/ou processados de qualquer forma ap&oacute;s a entrega n&atilde;o ser&atilde;o aceitas.</p>'
+	cMensagem += '<p dir="ltr">6.5. Registrar uma reclama&ccedil;&atilde;o n&atilde;o exime o Comprador de suas obriga&ccedil;&otilde;es de pagamento.</p>'
+	cMensagem += '<p dir="ltr">6.6. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por lei, se uma reclama&ccedil;&atilde;o for registrada em tempo e de acordo com estes Termos e Condi&ccedil;&otilde;es, e a IMCD for da opini&atilde;o de que a queixa &eacute; justific&aacute;vel, a IMCD ter&aacute; a liberdade de escolher entre entregar o que ficou faltando ou entregar novamente os produtos considerados imperfeitos sem cobran&ccedil;a, ou assegurar um desconto em seu pre&ccedil;o. Ao agir em um dos modos descritos, a IMCD ter&aacute; inteiramente dispensado sua obriga&ccedil;&atilde;o de garantia sob o Artigo 7. Os produtos substitu&iacute;dos se tornar&atilde;o propriedade da IMCD.</p>'
+	cMensagem += '<p dir="ltr">6.7. Em qualquer caso, mas sem se limitar ou derrogar as disposi&ccedil;&otilde;es do Artigo 6.3, o Comprador ter&aacute; uma reclama&ccedil;&atilde;o contra a IMCD sob este Artigo 6 quanto aos defeitos nos produtos fornecidos por um per&iacute;odo m&aacute;ximo de tr&ecirc;s meses a contar da data de entrega.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 7 GARANTIA</h3>'
+	cMensagem += '<p dir="ltr">A IMCD garante ao Comprador que os produtos vendidos ao Comprador estar&atilde;o, no momento de entrega, em conformidade com as especifica&ccedil;&otilde;es fornecidas pela IMCD ao Comprador quanto a tais produtos. A IMCD n&atilde;o faz nenhuma garantia expressa ou impl&iacute;cita quanto &agrave; adequa&ccedil;&atilde;o de mercado ou aptid&atilde;o para qualquer finalidade espec&iacute;fica dos produtos. Esta garantia n&atilde;o ser&aacute; v&aacute;lida caso o Comprador deixe de cumprir suas obriga&ccedil;&otilde;es de acordo com o Acordo e/ou estes Termos e Condi&ccedil;&otilde;es. Recorrer &agrave; garantia n&atilde;o exime o Comprador de suas obriga&ccedil;&otilde;es com o Acordo e/ou estes Termos e Condi&ccedil;&otilde;es. No obstante qualquer disposi&ccedil;&atilde;o em contr&aacute;rio contida nestes Termos e Condi&ccedil;&otilde;es, em caso de viola&ccedil;&atilde;o da garantia dada ao Comprador nos termos do Artigo 7, a &uacute;nica a&ccedil;&atilde;o cab&iacute;vel ao Comprador &eacute; um pedido de desempenho espec&iacute;fico pela IMCD de suas obriga&ccedil;&otilde;es sob esta garantia.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 8 RESPONSABILIDADES</h3>'
+	cMensagem += '<p dir="ltr">8.1. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por lei, a IMCD n&atilde;o ser&aacute; respons&aacute;vel por quaisquer danos sofridos pelo Comprador, independentemente de este dano ser resultante de falha da IMCD ao cumprir suas obriga&ccedil;&otilde;es sob os termos do Acordo e/ou estes Termos e Condi&ccedil;&otilde;es (incluindo a obriga&ccedil;&atilde;o de garantia do Artigo 7), ou de algum ato e/ou omiss&atilde;o por parte da pr&oacute;pria IMCD e/ou por terceiros agindo por instru&ccedil;&atilde;o da IMCD, a menos que o Comprador prove que o dano seja resultado de imprud&ecirc;ncia intencional e proposital por, exclusivamente, algum diretor da IMCD.</p>'
+	cMensagem += '<p dir="ltr">8.2. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por lei, a IMCD n&atilde;o ser&aacute; respons&aacute;vel por (i) perda indireta, especial ou consequente de nenhum tipo, (ii) perda de receita ou de lucro, ou (iii) perda sofrida pelo Comprador ou por terceiro como consequ&ecirc;ncia de a IMCD, ou uma pessoa respons&aacute;vel perante a lei, ter cometido uma viola&ccedil;&atilde;o n&atilde;o-material do Acordo.</p>'
+	cMensagem += '<p dir="ltr">8.3. A IMCD n&atilde;o ser&aacute; respons&aacute;vel por dano ou perda, de qualquer natureza e forma, que surja ou seja incorrida ap&oacute;s os produtos entregues pela IMCD tenham sido tratados e/ou processados.</p>'
+	cMensagem += '<p dir="ltr">8.4. A IMCD n&atilde;o garante a integridade nem a precis&atilde;o das informa&ccedil;&otilde;es recebidas pela IMCD de seu pr&oacute;prio fornecedor e n&atilde;o ser&aacute; respons&aacute;vel por nenhum dano &ndash; de qualquer natureza e em qualquer forma &ndash; incorrido como resultado da incompletude ou imprecis&atilde;o destas informa&ccedil;&otilde;es.</p>'
+	cMensagem += '<p dir="ltr">8.5. A responsabilidade da IMCD estar&aacute;, em qualquer evento, sempre limitada por evento, com uma s&eacute;rie de eventos conectados contabilizando um &uacute;nico evento, para a quantia que &eacute; paga sob a ap&oacute;lice de seguro de responsabilidade civil de neg&oacute;cios da IMCD no caso em quest&atilde;o.</p>'
+	cMensagem += '<p dir="ltr">8.6. O Comprador deve compensar a IMCD por, e a indeniz&aacute;-la contra, todas as reivindica&ccedil;&otilde;es de terceiros, por quaisquer motivos, em rela&ccedil;&atilde;o &agrave; compensa&ccedil;&atilde;o por quaisquer danos, custos, juros e/ou perdas que surjam em rela&ccedil;&atilde;o aos produtos entregues pela IMCD ao Comprador, a menos que, e na medida em que, o Comprador demonstre que a reclama&ccedil;&atilde;o perten&ccedil;a exclusivamente &agrave; al&ccedil;ada de responsabilidade da IMCD.</p>'
+	cMensagem += '<p dir="ltr">8.7. As disposi&ccedil;&otilde;es deste Artigo 8 se aplicar&atilde;o tamb&eacute;m a favor de todas as pessoas f&iacute;sicas e jur&iacute;dicas utilizadas pela IMCD para celebrar este Acordo.</p>'
+	cMensagem += '<p dir="ltr">8.8. Quaisquer duas ou mais limita&ccedil;&otilde;es de responsabilidade estabelecidas nestes Termos e Condi&ccedil;&otilde;es ser&atilde;o capazes de serem aplicadas aos mesmos fatos, e &agrave;s mesmas garantias, indeniza&ccedil;&otilde;es, representa&ccedil;&otilde;es, viola&ccedil;&otilde;es ou causas de a&ccedil;&otilde;es e, do mesmo modo, as v&aacute;rias limita&ccedil;&otilde;es de responsabilidade estipuladas nestes Termos e Condi&ccedil;&otilde;es ser&atilde;o cumulativas.</p>'
+	cMensagem += '<p dir="ltr">8.9. Nenhuma reclama&ccedil;&atilde;o por dano relacionado a produtos poder&aacute; prestar falso testemunho contra a IMCD, assim como tamb&eacute;m n&atilde;o o far&aacute; nenhuma reclama&ccedil;&atilde;o a menos que (i) a IMCD tenha sido notificada sobre uma reivindica&ccedil;&atilde;o dentro de tr&ecirc;s meses depois da data de entrega daqueles produtos e (ii) dentro de dois meses depois da data do recibo pela IMCD do aviso acima mencionado, a IMCD tenha sido servida por processos de tribunal iniciais adequados ou procedimentos de arbitragem tenham sido iniciados nos termos do Artigo 16.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 9 CONFORMIDADE COM AS LEIS</h3>'
+	cMensagem += '<p dir="ltr">9.1 O comprador estar&aacute; em conformidade com todas as leis aplic&aacute;veis, incluindo, mas n&atilde;o limitado a, leis antissuborno e anticorrup&ccedil;&atilde;o, como a Lei Anticorrup&ccedil;&atilde;o brasileira, e leis relacionadas com o controle de exporta&ccedil;&otilde;es e regula&ccedil;&otilde;es alfandeg&aacute;rias, tais como (i) as regras para pa&iacute;ses com embargos, (ii) as restri&ccedil;&otilde;es sobre a venda de produtos para pa&iacute;ses com restri&ccedil;&otilde;es ou negados, e (iii) o regime para o controle de exporta&ccedil;&otilde;es, transfer&ecirc;ncias, corretagem e tr&acirc;nsito de itens de dupla utiliza&ccedil;&atilde;o (dual-use items). O Comprador n&atilde;o utilizar&aacute;, vender&aacute;, transportar&aacute; nem transferir&aacute; os produtos comprados da IMCD, nem direta nem indiretamente, para ou atrav&eacute;s de nenhum pa&iacute;s, entidade ou indiv&iacute;duo conforme proibi&ccedil;&atilde;o sob regulamenta&ccedil;&otilde;es nacionais e internacionais.</p>'
+	cMensagem += '<p dir="ltr">9.2 Sem preju&iacute;zo ao Artigo 9.1, o Comprador estar&aacute; em conformidade com todas as leis e regulamenta&ccedil;&otilde;es aplic&aacute;veis ao desempenhar suas obriga&ccedil;&otilde;es nos termos do Acordo de acordo com o C&oacute;digo de Conduta da IMCD. O Comprador confirma ter lido e concordado com o C&oacute;digo de Conduta da IMCD, o qual est&aacute; dispon&iacute;vel para consulta no seguinte website:<a href="http://www.google.com/url?q=http%3A%2F%2Fwww.imcdgroup.com&amp;sa=D&amp;sntz=1&amp;usg=AFQjCNFQcEmxwVLjMJIahBzv2nE1CvpVlg" target="_blank"> </a><a href="http://www.google.com/url?q=http%3A%2F%2Fwww.imcdgroup.com&amp;sa=D&amp;sntz=1&amp;usg=AFQjCNFQcEmxwVLjMJIahBzv2nE1CvpVlg" target="_blank">www.imcdgroup.com</a>.</p>'
+	cMensagem += '<p dir="ltr">9.3 O Comprador providenciar&aacute; para que quaisquer terceiros a quem os produtos da IMCD se destinem, seja em sua forma original, intermedi&aacute;ria ou como o produto final, recaiam sob as mesmas obriga&ccedil;&otilde;es, conforme estipulado neste Artigo 9, que todos os terceiros ao longo da cadeia de fornecimento, bem como at&eacute; mesmo o usu&aacute;rio final, estejam sob a mesma e exata conformidade.</p>'
+	cMensagem += '<p dir="ltr">9.4 O Comprador concorda em indenizar a IMCD, seus escrit&oacute;rios, colaboradores, agentes e representantes de e contra quaisquer danos, perdas, obriga&ccedil;&otilde;es, penalidades, custos e gastos, incluindo honor&aacute;rios advocat&iacute;cios, resultantes de reclama&ccedil;&otilde;es, processos, a&ccedil;&otilde;es, procedimentos legais, exig&ecirc;ncias, julgamentos ou acordos que resultem da falta de ades&atilde;o do Comprador &agrave;s disposi&ccedil;&otilde;es deste Artigo 9.</p>'
+	cMensagem += '<p dir="ltr">Artigo 10 FOR&Ccedil;A MAIOR (DESCUMPRIMENTO N&Atilde;O IMPUT&Aacute;VEL)</p>'
+	cMensagem += '<p dir="ltr">10.1 Caso, por motivo de for&ccedil;a maior, a IMCD fique impossibilitada de cumprir o Acordo, ou seu desempenho se torne mais dispendioso, a IMCD ter&aacute; o direito a, por notifica&ccedil;&atilde;o por escrito ao Comprador, suspender o Acordo na &iacute;ntegra ou parcialmente pela dura&ccedil;&atilde;o da situa&ccedil;&atilde;o de for&ccedil;a maior, ou rescindir o Acordo na &iacute;ntegra ou parcialmente sem interven&ccedil;&atilde;o judicial e sem que a IMCD seja obrigada a pagar nenhuma compensa&ccedil;&atilde;o.</p>'
+	cMensagem += '<p dir="ltr">10.2 O termo &ldquo;for&ccedil;a maior&rdquo; ser&aacute; compreendido como qualquer circunst&acirc;ncia, tanto prevista quanto imprevista, que permanentemente ou temporariamente impe&ccedil;a a IMCD de cumprir o Acordo ou que torne a atividade mais dispendiosa. Tais circunst&acirc;ncias compreender&atilde;o, mas n&atilde;o se limitar&atilde;o, a incapacidade de pagamento, por quaisquer motivos, greves, excesso de colaboradores doentes, interrup&ccedil;&otilde;es na produ&ccedil;&atilde;o, problemas de transporte, inc&ecirc;ndios e outras interrup&ccedil;&otilde;es no neg&oacute;cio, proibi&ccedil;&otilde;es de importa&ccedil;&atilde;o, exporta&ccedil;&atilde;o e transporte, entregas atrasadas ou com problemas por fornecedores da IMCD, e outros eventos for a do controle da IMCD, tais como inunda&ccedil;&otilde;es, tempestades, desastres naturais e/ou nucleares, guerras e/ou amea&ccedil;as de guerra, mas tamb&eacute;m mudan&ccedil;as na legisla&ccedil;&atilde;o e/ou medidas governamentais. Al&eacute;m disso, a IMCD pode sempre se valer de for&ccedil;a maior no caso de inadequa&ccedil;&atilde;o dos produtos e/ou pessoas utilizadas pela IMCD cumprir o Acordo.</p>'
+	cMensagem += '<p dir="ltr">10.3 Se a IMCD suspender o cumprimento do Acordo de acordo com as disposi&ccedil;&otilde;es deste Artigo 10, o Comprador deve, a pedido da IMCD, prorrogar quaisquer cartas de cr&eacute;dito previstas pelo Acordo e/ou a seguran&ccedil;a exigida de acordo com o Artigo 2.4 destes Termos e Condi&ccedil;&otilde;es at&eacute; a nova data de entrega.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 11 PAGAMENTO</h3>'
+	cMensagem += '<p dir="ltr">11.1. Salvo disposi&ccedil;&atilde;o em contr&aacute;rio por escrito, os pagamentos devem ser realizados dentro de 14 dias da emiss&atilde;o da nota fiscal, sem nenhum desconto e/ou compensa&ccedil;&atilde;o na moeda especificada na nota fiscal.</p>'
+	cMensagem += '<p dir="ltr">11.2. Se o pagamento na &iacute;ntegra n&atilde;o for realizado dentro do prazo descrito, o Comprador estar&aacute; em viola&ccedil;&atilde;o do Acordo e, sujeito &agrave; taxa de juros legal m&aacute;xima prescrita e aplic&aacute;vel, ser&aacute; respons&aacute;vel por (i) uma multa de 2%, e (ii) juros di&aacute;rios &agrave; taxa de 1% ao m&ecirc;s, sobre a quantia em aberto a partir da data de notifica&ccedil;&atilde;o at&eacute; a data de pagamento na &iacute;ntegra.</p>'
+	cMensagem += '<p dir="ltr">11.3. O Comprador pagar&aacute; a IMCD na &iacute;ntegra e a indenizar&aacute; ante quaisquer e todos os custos, taxas, gastos, perdas, danos e reclama&ccedil;&otilde;es (incluindo, mas n&atilde;o limitados a, emolumentos), incorridos como resultado do descumprimento por parte do Comprador das obriga&ccedil;&otilde;es nos termos deste Acordo.</p>'
+	cMensagem += '<p dir="ltr">11.4. Sem preju&iacute;zo &agrave;s disposi&ccedil;&otilde;es do Artigo 6.3, as reclama&ccedil;&otilde;es acerca de cobran&ccedil;a somente podem ser feitas dentro do prazo de pagamento. As reclama&ccedil;&otilde;es devem ser encaminhadas por escrito. A submiss&atilde;o de uma reclama&ccedil;&atilde;o n&atilde;o suspender&aacute; a obriga&ccedil;&atilde;o de pagamento do Comprador.</p>'
+	cMensagem += '<p dir="ltr">11.5. Quaisquer pagamentos recebidos pelo Comprador periodicamente ser&atilde;o usados na seguinte ordem e prioridade: (i) primeiramente, a fim de encerrar quaisquer reivindica&ccedil;&otilde;es de indeniza&ccedil;&atilde;o as quais a IMCD possa ter de acordo com o Artigo 11.3; (ii) em segundo lugar, amortizar juros que possam ter sido incorridos em favor da IMCD nos termos do Artigo 11.2; e (iii) em terceiro lugar, encerrar quaisquer quantias em aberto devidas &agrave; IMCD quanto aos pre&ccedil;os do produto, a come&ccedil;ar pela antiga quantia em aberto mais antiga e principal, independentemente de quaisquer instru&ccedil;&otilde;es em contr&aacute;rio oriundas do Comprador.</p>'
+	cMensagem += '<p dir="ltr">11.6. O Comprador ser&aacute; incapaz de compensar quaisquer d&iacute;vidas com a IMCD contra quaisquer reclama&ccedil;&otilde;es do Comprador contra a IMCD.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 12 SUSPENS&Atilde;O E RESCIS&Atilde;O</h3>'
+	cMensagem += '<p dir="ltr">12.1 Sem preju&iacute;zo &agrave;s disposi&ccedil;&otilde;es do Artigo 10, e sem preju&iacute;zo a quaisquer outras medidas que possam estar dispon&iacute;veis &agrave; IMCD nos termos da da lei, estes Termos e Condi&ccedil;&otilde;es e/ou Acordo, a IMCD pode suspender o cumprimento de suas obriga&ccedil;&otilde;es sob os termos deste Acordo inteira ou parcialmente ou recindir o Acordo inteira ou parcialmente de modo extrajudicial por uma notifica&ccedil;&atilde;o por escrito, sem que fique obrigada a pagar compensa&ccedil;&atilde;o, caso (ou caso a IMCD razoavelmente suspeite que):</p>'
+	cMensagem += '<p dir="ltr">a) o Comprador tenha cometido uma viola&ccedil;&atilde;o material do Acordo, e neste aspecto, uma viola&ccedil;&atilde;o da obriga&ccedil;&atilde;o do Comprador em pagar por produtos pontualmente e na &iacute;ntegrathe ser&aacute; considerada uma viola&ccedil;&atilde;o material do Acordo;</p>'
+	cMensagem += '<p dir="ltr">b) uma ordem de penhora tenha sido deferida contra o Comprador;</p>'
+	cMensagem += '<p dir="ltr">c) o Comprador tenha se tornado incapaz de pagar suas d&iacute;vidas na medida em que estas vencem, tenha se tornado insolvente, ou tenha agido com o prop&oacute;sito de negocia&ccedil;&atilde;o, acordo com credores ou cess&atilde;o para o benef&iacute;cio de seus credores;</p>'
+	cMensagem += '<p dir="ltr">d) quaisquer a&ccedil;&otilde;es tenham sido iniciadas, tomadas ou institu&iacute;das contra o Comprador, para que uma ordem de liquida&ccedil;&atilde;o ou ordem de liquida&ccedil;&atilde;o provis&oacute;ria seja feita para tanto, para sua dissolu&ccedil;&atilde;o, reorganiza&ccedil;&atilde;o ou indica&ccedil;&atilde;o de algum administrador societ&aacute;rio, fiduci&aacute;rio, liquidante, deposit&aacute;rio judicial, inventariante, advogado ou profissional semelhante em rela&ccedil;&atilde;o ao Comprador ou ao ativo do Comprador;</p>'
+	cMensagem += '<p dir="ltr">e) o Comprador, se pessoa f&iacute;sica, tenha morrido; ou</p>'
+	cMensagem += '<p dir="ltr">f) todo o neg&oacute;cio do Comprador, ou uma parte material dele, tenha sido vendido ou dissolvido, ou o Comprador tenha deixado de conduzir todo o neg&oacute;cio ou uma parte material dele.</p>'
+	cMensagem += '<p dir="ltr">12.2 Se, de acordo com o Artigo 12.1, a suspenda o cumprimento do Acordo, o Comprador deve, a pedido da IMCD, prorrogar quaisquer cartas de cr&eacute;dito prescritas pelo Acordo e/ou seguran&ccedil;a exigida de acordo com o Artigo 2.4 destes Termos e Condi&ccedil;&otilde;es at&eacute; a nova data de entrega.</p>'
+	cMensagem += '<p dir="ltr">12.3 Se, de acordo com o Artigo 12.1, a IMCD rescinda o Acordo na &iacute;ntegra ou em parte, a IMCD pode reivindicar, como sua propriedade, quaisquer produtos entregues, mas ainda n&atilde;o pagos, na sua totalidade sem preju&iacute;zo a seus direitos de reclamar por danos.</p>'
+	cMensagem += '<p dir="ltr">12.4 Se alguma das situa&ccedil;&otilde;es descritas no Artigo 12.1 surgir, todas as quantias devidas pelo Comprador &agrave; IMCD vencer&atilde;o e dever&atilde;o ser pagas na &iacute;ntegra e imediatamente, sem que uma notifica&ccedil;&atilde;o de d&eacute;bito seja exigida.</p>'
+	cMensagem += '<p dir="ltr">12.5 O Comprador n&atilde;o pode suspender o cumprimento de suas obriga&ccedil;&otilde;es sob ou em rela&ccedil;&atilde;o ao Acordo ou estes Termos e Condi&ccedil;&otilde;es sob nenhuma hip&oacute;tese.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 13 RESERVA DE PROPRIEDADE</h3>'
+	cMensagem += '<p dir="ltr">13.1 Os produtos fornecidos pela IMCD ao Comprador permanecer&atilde;o propriedade da IMCD at&eacute; que o Comprador tenha pago todas as quantias, incluindo juros e gastos, que deve &agrave; IMCD sob ou em rela&ccedil;&atilde;o ao Acordo.</p>'
+	cMensagem += '<p dir="ltr">13.2 Antes que o pagamento tenha sido realizado na &iacute;ntegra de acordo com o Artigo 13.1, o Comprador n&atilde;o ter&aacute; o direito de caucionar inteira nem parcialmente os produtos a terceiros. O Comprador tamb&eacute;m n&atilde;o ter&aacute; direito de transferir a propriedade dos produtos, sen&atilde;o em conformidade com suas atividades normais ou o uso normal dos produtos.</p>'
+	cMensagem += '<p dir="ltr">13.3 Antes que o pagamento tenha sido realizado na &iacute;ntegra de acordo com o Artigo 13.1, o Comprador manter&aacute; os produtos entregues sujeitos a reserve de propriedade com o cuidado devido e como identific&aacute;vel propriedade da IMCD e proteger&aacute; os produtos contra dano e roubo.</p>'
+	cMensagem += '<p dir="ltr">13.4 Se uma das situa&ccedil;&otilde;es descritas no Artigo 12.1 surgir, a IMCD ter&aacute; o direito de retirar ela mesma, ou de fazer com que algu&eacute;m retire, os produtos que forem sua propriedade, com despesas resultantes sob a responsabilidade do Comprador, do local em que se localizarem. O Comprador cooperar&aacute; plenamente, e autoriza a IMCD irrevogavelmente, por este instrumento, se tal situa&ccedil;&atilde;o surgir, a adentrar, ou permitir que algu&eacute;m adentre, as instala&ccedil;&otilde;es em uso pelo Comprador ou para ele.</p>'
+	cMensagem += '<p dir="ltr">13.5 O Comprador n&atilde;o ter&aacute; autoriza&ccedil;&atilde;o para invocar um direito de reten&ccedil;&atilde;o quanto aos custos incorridos em rela&ccedil;&atilde;o &agrave; estocagem de acordo com o Artigo 13.3, ou para compensar aqueles custos contra o desempenho de suas atividades.</p>'
+	cMensagem += '<p dir="ltr">13.6 Se o Comprador formar um novo produto (parcialmente) a partir de produtos a ele entregues pela IMCD, esta ter&aacute; copropriedade e direitos sobre o novo produto em propor&ccedil;&atilde;o ao valor do produto processado ou misturado em rela&ccedil;&atilde;o ao novo produto. Al&eacute;m disso, o Comprador reservar&aacute; (parte de) o produto para a IMCD, e esta continuar&aacute; sempre propriet&aacute;ria de modo igual &agrave; sua parcela de copropriedade at&eacute; que todas as obriga&ccedil;&otilde;es &agrave;s quais se refere o Artigo 13.1 tenham sido cumpridas.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 14 PROPRIEDADE INTELECTUAL</h3>'
+	cMensagem += '<p dir="ltr">14.1 O Acordo e estes Termos e Condi&ccedil;&otilde;es n&atilde;o implicam nenhuma transfer&ecirc;ncia nem o licenciamento de nenhum direito de propriedade intelectual ao Comprador.</p>'
+	cMensagem += '<p dir="ltr">14.2 O Comprador garante a IMCD, em todo e a qualquer momento, e indeniza a IMCD para que o uso pela IMCD de dados, especifica&ccedil;&otilde;es e materiais fornecidos pelo Comprador n&atilde;o viole nenhuma regula&ccedil;&atilde;o contratual nem infrinja o direito de terceiros.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 15 IMPROCED&Ecirc;NCIA E CONVERS&Atilde;O</h3>'
+	cMensagem += '<p dir="ltr">Se alguma disposi&ccedil;&atilde;o do Acordo ou destes Termos e Condi&ccedil;&otilde;es for considerada ou se tornar ilegal, inv&aacute;lida, n&atilde;o vinculante ou inexequ&iacute;vel (em cada caso ou em sua totalidade ou parcialmente) sob quaisquer leis ou jurisdi&ccedil;&otilde;es:</p>'
+	cMensagem += '<p dir="ltr">a) aquela disposi&ccedil;&atilde;o, quanto &agrave; sua ilegalidade, invalidez, falta de efeito vinculante ou inexequibilidade, n&atilde;o far&aacute; parte do Acordo ou destes Termos e Condi&ccedil;&otilde;es, mas a legalidade, a validez, o efeito vinculante e a exequibilidade das restantes disposi&ccedil;&otilde;es do Acordo e destes Termos e Condi&ccedil;&otilde;es n&atilde;os ser&atilde;o afetadas; e</p>'
+	cMensagem += '<p dir="ltr">b) uma disposi&ccedil;&atilde;o se aplicar&aacute; entre a IMCD e o Comprador que seja legal, v&aacute;lida, vinculante e exequ&iacute;vel de modo t&atilde;o semelhante quanto poss&iacute;vel em termos de conte&uacute;do e prop&oacute;sito.</p>'
+
+	cMensagem += '<h3 dir="ltr">Artigo 16 FORO COMPETENTE, DIREITO APLIC&Aacute;VEL</h3>'
+	cMensagem += '<p dir="ltr">16.1 As leis brasileiras se aplicar&atilde;o exclusivamente a todos os Acordos e estes Termos e Condi&ccedil;&otilde;es, incluindo este Artigo 16, e a toda obriga&ccedil;&atilde;o n&atilde;o-contratual que surja de ou em rela&ccedil;&atilde;o ao Acordo ou estes Termos e Condi&ccedil;&otilde;es. A aplicabilidade da Conven&ccedil;&atilde;o das Na&ccedil;&otilde;es Unidas sobre Contratos para a Venda Internacional de Mercadorias (CISG, na sigla em ingl&ecirc;s) fica explicitamente exclu&iacute;da. Sujeitos ao Artigo 16.2, todos os lit&iacute;gios que surjam em rela&ccedil;&atilde;o a este acordo, incluindo os lit&iacute;gios quanto &agrave; exist&ecirc;ncia e validez daquele instrumento, ser&atilde;o resolvidos por jurisdi&ccedil;&atilde;o competente. Para os prop&oacute;sitos deste Artigo 16.1, as partes consentem, incondicional e irrevogavelmente, com a jurisdi&ccedil;&atilde;o da cidade de S&atilde;o Paulo.</p>'
+	cMensagem += '<p dir="ltr">16.2 Se a IMCD assim o eleger por aviso escrito, um lit&iacute;gio pode ser tratado por arbitragem de acordo com as regras da C&acirc;mara de Com&eacute;rcio Brasil-Canad&aacute; (Centro de Arbitragem e Media&ccedil;&atilde;o da C&acirc;mara de Com&eacute;rcio Brasil-Canad&aacute;) (CCBB) em vigor no momento do lit&iacute;gio. A este respeito, o seguinte se aplica:</p>'
+	cMensagem += '<p dir="ltr">a) A sede, ou o local legal de arbitragem dever&aacute; ser o Brasil. Os processos da arbitragem devem ocorrer em S&atilde;o Paulo, Brasil.</p>'
+	cMensagem += '<p dir="ltr">b) O tribunal decidir&aacute; de acordo com as regras da lei.</p>'
+	cMensagem += '<p dir="ltr">c) O n&uacute;mero de &aacute;rbitros ser&aacute; um.</p>'
+	cMensagem += '<p dir="ltr">d) A IMCD e o Comprador devem entrar em acordo quanto ao &aacute;rbitro. Na medida em que forem incapazes de se decidir por um &aacute;rbitro em um per&iacute;odo de 14 dias da data de solicita&ccedil;&atilde;o tanto pela IMCD quanto pelo Comprador para tal acordo, a autoridade indicada ser&aacute; a CCBB de acordo com suas pr&oacute;prias regras.</p>'
+	cMensagem += '<p dir="ltr">e) A senten&ccedil;a arbitral ser&aacute; definitiva e vinculante para a IMCD e o Comprador e nenhum deles ter&aacute; nenhum direito a recorrer de nenhuma senten&ccedil;a, exceto por apelos de erro expl&iacute;cito ou de fraude.</p>'
+	cMensagem += '<p dir="ltr">16.3 Nada neste Artigo 16 impedir&aacute; nem a IMCD nem o Comprador de procurar tutela antecipada e/ou urgente de um tribunal de jurisdi&ccedil;&atilde;o competente. Para os prop&oacute;sitos deste Artigo 16.3, as partes consentem, incondicional e irrevogavelmente, com a jurisdi&ccedil;&atilde;o da cidade de S&atilde;o Paulo.</p>'
+	cMensagem += '</div>'
+
+Return()
+
+Static Function verMoeda( nMoeda )
+	Local _cRet := "R$"
+
+	if nMoeda == 1
+		_cRet := "R$ "
+	elseif nMoeda == 2
+		_cRet := "US$"
+	elseif nMoeda == 3
+		_cRet := "UFI"
+	elseif nMoeda == 4
+		_cRet := "EUR"
+	elseif nMoeda == 5
+		_cRet := "YEN"
+	elseif nMoeda >= 6
+		_cRet := "   "
+	endif
+
+Return ( _cRet )
+
+
+/*
+Static function LeArquivo(cMensagem)
+	Local oFile
+	Default cMensagem := ""
+	oFile := FWFileReader():New(cFile)
+	if (oFile:Open())
+		while (oFile:hasLine())
+			cMensagem +=(oFile:GetLine())
+		end
+		oFile:Close()
+	endif
+
+Return
+*/
+
+Static function REDESPACHO()
+
+	Local cTransAnt := SA4->A4_COD
+
+	aRedesp := {}
+
+	IF SA4->(dbSeek(xFilial("SA4")+SC5->C5_REDESP))
+
+		cDDDSA4   := iif(!empty(SA4->A4_DDD), PADL(SA4->A4_DDD, 3, "0"), "")
+		nSizeTel  := len(alltrim(SA4->A4_TEL))
+		cTelSA4   := iif(!empty(SA4->A4_TEL), transform(SA4->A4_TEL, iif(nSizeTel==8, "@R 9999 9999", "@R 99999 9999")), "")
+		cCnpjSA4  := transform(SA4->A4_CGC, "@R 99.999.999/9999-99")
+		cIeSA4    := alltrim(SA4->A4_INSEST)
+
+		cMsg := "Transporte Seccionado  (CONSULTA 5749/2015 DE 14/09/15) Segundo trecho, "
+		cMsg += "que devera ser pago pelo cliente (FOB), sera efetuado pela :"
+		cEnd := alltrim(SA4->A4_END) +" - Bairro "+alltrim(SA4->A4_BAIRRO)+", "
+		cEnd += alltrim(SA4->A4_MUN)+" - "+alltrim(SA4->A4_EST)+" -  CEP " +transform(SA4->A4_CEP, "@R 99999-99")
+
+		aAdd(aRedesp,cMsg )
+		aAdd(aRedesp,CAPITAL(alltrim(SA4->A4_NOME)) )
+		aAdd(aRedesp,CAPITAL(cEnd))
+		aAdd(aRedesp, iif(!empty(cTelSA4), "Tel "+"("+cDDDSA4+")" +cTelSA4, ""))
+		aAdd(aRedesp, "CNPJ:" +cCnpjSA4 +" - I.E: " +cIeSA4)
+		aAdd(aRedesp, " horario de recebimento das 08hs as 17hs")
+
+	ENDIF
+
+	SA4->(dbSeek(xFilial("SA4")+cTransAnt))
+
+Return()

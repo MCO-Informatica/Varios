@@ -1,0 +1,79 @@
+#include "rwmake.ch"
+#include "protheus.ch"
+
+User Function RESTA91()
+
+if !MsgYesNo("Iniciar criação de Saldos Iniciais?", "Confirmação")
+   Alert ("Criação de Saldos Iniciais Cancelada.")
+   Return
+endif
+
+DbSelectArea("SB1")         //----> Cadastro de Produtos
+DbSetOrder(1)               //----> Produto
+
+DbSelectArea("SB9")         //----> Saldos Iniciaus
+DbSetOrder(1)               //----> Produto
+
+
+Processa({||RunProc()},"Cria Saldos Iniciais")
+
+Return
+
+
+//***********************
+Static Function RunProc()
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+dbGoTop()
+
+ProcRegua(RecCount())
+
+While !Eof()
+	
+	IncProc("Selecionando Produto "+SB1->B1_COD)
+	
+	dbSelectArea("SB9")
+	dbSetOrder(1)
+	If !dbSeek(xFilial("SB9")+SB1->B1_COD+"01",.F.)
+			RecLock("SB9",.t.)
+			SB9->B9_FILIAL  :=  XFILIAL("SB9")
+			SB9->B9_COD     :=  SB1->B1_COD
+			SB9->B9_LOCAL   :=  "01"
+			SB9->B9_QINI	:=	0
+			MsUnLock()
+	EndIf
+	If !dbSeek(xFilial("SB9")+SB1->B1_COD+"02",.F.)
+			RecLock("SB9",.t.)
+			SB9->B9_FILIAL  :=  XFILIAL("SB9")
+			SB9->B9_COD     :=  SB1->B1_COD
+			SB9->B9_LOCAL   :=  "02"
+			SB9->B9_QINI	:=	0
+			MsUnLock()
+	EndIf
+	If !dbSeek(xFilial("SB9")+SB1->B1_COD+"03",.F.)
+			RecLock("SB9",.t.)
+			SB9->B9_FILIAL  :=  XFILIAL("SB9")
+			SB9->B9_COD     :=  SB1->B1_COD
+			SB9->B9_LOCAL   :=  "03"
+			SB9->B9_QINI	:=	0
+			MsUnLock()
+	EndIf
+	If !dbSeek(xFilial("SB9")+SB1->B1_COD+"04",.F.)
+			RecLock("SB9",.t.)
+			SB9->B9_FILIAL  :=  XFILIAL("SB9")
+			SB9->B9_COD     :=  SB1->B1_COD
+			SB9->B9_LOCAL   :=  "04"
+			SB9->B9_QINI	:=	0
+			MsUnLock()
+	EndIf
+			
+	DbSelectArea("SB1")
+	DbSkip()
+
+EndDo
+
+MATA300()
+
+Return()
+

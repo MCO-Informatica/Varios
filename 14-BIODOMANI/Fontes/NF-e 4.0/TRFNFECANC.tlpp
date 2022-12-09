@@ -1,0 +1,47 @@
+#include "totvs.ch"
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+#define CTRF Chr(13) + Chr(10)
+
+//---------------------------------------------------------------------------------
+// Rotina | TRFNFECANC       | Autor | Lucas Baia          | Data |    11/07/2022	
+//---------------------------------------------------------------------------------
+// Descr. | PE disponibilizado a fim de permitir a validação das Notas Fiscais que
+//        | serão transmitidas como canceladas / inutilizadas pela rotina SPEDNFE e AUTONFEBUSINESS.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function TRFNFECANC()
+
+Local aNotas    := paramixb[1]
+Local nY        := 0
+Local aRetNota  := {}
+Local _cAux     := "0"+Subs(cFilAnt,3,2) //0101,0102,0103,.... 003
+Local _cSerie   := MV_PAR01
+Local _cNFIni   := MV_PAR02
+Local _cNFFim   := MV_PAR03
+
+IF Alltrim(FunName()) == "SPEDNFE"
+    If _cSerie <> _cAux
+        Alert("A nota fiscal "+_cNFIni+"/"+_cSerie+" não pertence a empresa/filial corrente.")
+        Return(aRetNota)
+    EndIf
+
+    For nY := 1 to len(aNotas)
+
+        If aNotas[nY][3] == _cSerie .and. aNotas[nY][4] >= _cNFIni .and. aNotas[nY][4] <= _cNFFim
+            
+            aadd(aRetNota, aNotas[nY])
+        
+        EndIf
+
+    Next nY
+ENDIF
+
+Return(aRetNota)

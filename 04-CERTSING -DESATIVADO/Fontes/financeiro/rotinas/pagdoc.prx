@@ -1,0 +1,38 @@
+#INCLUDE "rwmake.ch"
+
+/////  PROGRAMA GRAVAR AS POSICOES DE 374 A 398
+
+User function pagdoc()
+
+
+Local _xDOC   := SPACE(44)
+Local _xDOC1  := SPACE(3)
+Local _xDOC2  := SPACE(1)
+Local _xDOC3  := SPACE(1)
+Local _xDOC4  := SPACE(4)
+Local _xDOC5  := SPACE(10)
+Local _xDOC6  := SPACE(25)
+
+
+IF SUBSTR(SEA->EA_MODELO,1,2) == "01" .OR. SUBSTR(SEA->EA_MODELO,1,2) == "05"
+   IF SA2->A2_BANCO == "237"
+      _xDOC  := SPACE(40)
+   Else
+	IF SUBSTR(SEA->EA_MODELO,1,2) == "03" 
+      		_xDOC  := "C00000001"+SPACE(31)
+	ENDIF
+	IF SUBSTR(SEA->EA_MODELO,1,2) == "30" 
+      		_xDOC  := SPACE(25)+STRZERO(VAL(SA2->A2_CGC),15)                               
+	Endif
+	IF SUBSTR(SEA->EA_MODELO,1,2) == "31" 
+      				_xDOC1  := SUBSTR(SE2->E2_CODBAR,1,3) 	// BANCO          		 
+      				_xDOC2  := SUBSTR(SE2->E2_CODBAR,4,1) 	// MOEDA                 
+  					_xDOC3  := SUBSTR(SE2->E2_CODBAR,5,1) 	// DIGITO VERIFICADOR     
+  					_xDOC4  := SUBSTR(SE2->E2_CODBAR,6,4) 	// FATOR DE VENCIMENTO   
+  					_xDOC5  := SUBSTR(SE2->E2_CODBAR,10,9)	// VALOR  			      
+  					_xDOC6  := SUBSTR(SE2->E2_CODBAR,20,25)	// CAMPO LIVRE
+            		_xDoc  := _xDoc6+_xDoc3+_xDoc2+SPACE(13) // INFORMAÇÕES CONFORME PAGINA 31 DO MANUAL DO BRADESCO
+   	Endif
+	EndIf   
+EndIf   
+return(_xDOC)

@@ -1,0 +1,61 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE 'FWMVCDEF.CH'
+
+Static aIndSZ6
+Static lCopia
+
+User Function SHGEN001()
+	Local aSays   		:= {}
+	Local aButtons 		:= {}
+	Local cPerg    		:= "SHGEN001"
+	Private cCampo      := ""
+	Private aParamBox	:= {}
+	Private aRet      := {}
+
+	aAdd(aSays," Rotina Responsével por efetuar a Geração do cadastro Generico	")
+	aAdd(aSays,"             																")
+	aAdd(aSays,"                                            								")
+	aAdd(aSays," Desenvolvido Por João Zabotto - Totvs IP   								")
+	aAdd(aSays,"                                            								")
+	aAdd(aSays," Clique no botao OK para continuar.											")
+
+	aAdd(aButtons,{5,.T.,{|| AjustaPerg() }})
+	aAdd(aButtons,{1,.T.,{|| Processa({|lEnd| lOk := Processar(MV_PAR01),FechaBatch() },"Aguarde... !!!" ) }})
+	aAdd(aButtons,{2,.T.,{||  lOk := .F. ,FechaBatch() }})
+
+	FormBatch(FunDesc(),aSays,aButtons)
+
+
+Return
+
+Static Function Processar(cString)
+	Local cVldAlt := ".T." // Validação para permitir a alteração. Pode-se utilizar ExecBlock.
+	Local cVldExc := ".T." // Validação para permitir a exclusão. Pode-se utilizar ExecBlock.
+	Local cDesc   := ""
+	
+	cDesc := POSICIONE('SX2',1,cString,'X2NOME()')
+	
+	(cString)->(dbSetOrder(1))
+
+	AxCadastro(cString,cDesc,cVldExc,cVldAlt)
+	
+	(cString)->(DbCloseArea())
+
+Return
+
+
+Static Function AjustaPerg()
+	Local cPerg		:= "SHGEN001"
+	Local lRet		:= .F.
+
+	aParamBox:= {}
+
+	aAdd(@aParamBox,{1,"Tabela ?"	       ,Space(3)   ,"","","SX21",""   , 100,.F.})		// MV_PAR01
+	
+	If ParamBox(aParamBox,"Parâmetros",@aRet,,,,,,,cPerg,.T.,.T.)
+		lRet := .T.
+	Else
+		lRet := .F.
+	EndIf
+
+Return(lRet)

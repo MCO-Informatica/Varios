@@ -1,0 +1,67 @@
+#INCLUDE "rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ MT410TOK ºAutor  ³FONTANELLI          º Data ³  26/01/15   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³Ponto de entrada que efetua a VALIDACAO antes de Gravar     º±±
+±±º          ³ o Pedido de Venda                                          º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DAYHOME                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MT410TOK()
+                       
+LOCAL nPosDel := Len(aHeader) + 1
+LOCAL _nQTDMULT := 0 
+LOCAL _nQTDVEN  := 0 
+
+                  
+For I := 1 to Len(aCols)                
+
+     If !aCols[I,nPosDel] // Linha nao Deletada
+
+		_nQTDMULT := Posicione("SB1",1,xFilial("SB1")+gdFieldGet("C6_PRODUTO",I),"B1_QTDMULT") 
+		_nQTDVEN  := gdFieldGet("C6_QTDVEN",I) 
+      
+		if alltrim(M->C5_OPER) <> '10' .AND. M->C5_X_MULTI <> 'N' // Validacao C5_X_MULTI criada em 30/10/2017                                  
+			if 	_nQTDMULT > 0 
+				If MOD(_nQTDVEN,_nQTDMULT)<>0
+					If Posicione("SF4",1,xFilial("SF4")+aCols[I,Ascan(aHeader,{|x| Alltrim(x[2]) == "C6_TES"})],"F4_X_MULTI")$"S"
+						Aviso("Aviso","Quantidade do Item "+gdFieldGet("C6_ITEM",I)+" referente ao produto "+alltrim(gdFieldGet("C6_PRODUTO",I))+" não e multiplo de "+ALLTRIM(STR(_nQTDMULT))+".",{"Ok"},1,)
+						Return(.F.)
+					EndIf
+				endif
+			Endif     
+		endif
+	 endif
+Next
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	if IsInCallStack("A410COPIA")              
+		M->C5_XSTATUS := "PED"         
+		M->C5_CONFST  := "1"  
+		M->C5_COLST   := "1"   
+		M->C5_XSUSER  := " "
+		M->C5_XSDTINI := CTOD("  /  /    ")
+		M->C5_XSHRINI := " "
+		M->C5_XSDTFIN := CTOD("  /  /    ")
+		M->C5_XSHRFIN := " "
+		M->C5_XCUSER  := " "
+		M->C5_XCDTINI := CTOD("  /  /    ")
+		M->C5_XCHRINI := " "
+		M->C5_XCDTFIN := CTOD("  /  /    ")
+		M->C5_XCHRFIN := " "
+		M->C5_XLUSER  := " "
+		M->C5_XLDT    := CTOD("  /  /    ")
+		M->C5_XLHR    := " "
+		M->C5_XLMOT   := " "
+	endif
+endif
+    
+Return(.T.)

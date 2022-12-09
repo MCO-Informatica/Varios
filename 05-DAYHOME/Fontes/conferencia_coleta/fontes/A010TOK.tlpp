@@ -1,0 +1,325 @@
+#Include "PROTHEUS.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³A010TOK   ºAutor  ³FONTANELLI          º Data ³  22/01/15   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de Entrada para validacao dos dados de inclusao do    º±±
+±±º          ³produto.                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ETHOSX.                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function A010TOK()
+
+Local aArea   := GetArea()                                               
+/*
+Local cEAN13  := M->B1_EAN13
+Local cDUN14D := M->B1_DUN14D
+Local cUPC12  := M->B1_UPC12
+Local lRet    := .T.
+
+if !EMPTY(M->B1_EAN13)
+	if (ALLTRIM(M->B1_EAN13) == ALLTRIM(M->B1_UPC12)) 
+	    Alert("EAN13 == UPC12")
+		Return(.F.)
+	endif
+	if (ALLTRIM(M->B1_EAN13) == ALLTRIM(M->B1_DUN14D)) 
+	    Alert("EAN13 == DUN14")
+		Return(.F.)
+	endif
+endif
+
+if !EMPTY(M->B1_UPC12)
+	if (ALLTRIM(M->B1_UPC12) == ALLTRIM(M->B1_EAN13)) 
+	    Alert("UPC12 == EAN13")
+		Return(.F.)
+	endif
+	if (ALLTRIM(M->B1_UPC12) == ALLTRIM(M->B1_DUN14D)) 
+	    Alert("UPC12 == DUN14")
+		Return(.F.)
+	endif
+endif
+
+if !EMPTY(M->B1_DUN14D)
+	if (ALLTRIM(M->B1_DUN14D) == ALLTRIM(M->B1_UPC12)) 
+	    Alert("DUN14 == UPC12")
+		Return(.F.)
+	endif
+	if (ALLTRIM(M->B1_DUN14D) == ALLTRIM(M->B1_EAN13)) 
+	    Alert("DUN14 == EAN13")
+		Return(.F.)
+	endif
+endif
+
+IF M->B1_DHCATEG == "1"
+	if !EMPTY(cEAN13) .AND. ( M->B1_EAN13 <> SB1->B1_EAN13 )
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+				Return(.F.)
+			endif	
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+	
+	if !EMPTY(cDUN14D) .AND. ( M->B1_DUN14D <> SB1->B1_DUN14D )      
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+	
+	if !EMPTY(cUPC12) .AND. ( M->B1_UPC12 <> SB1->B1_UPC12 )           
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "1" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+endif
+
+IF M->B1_DHCATEG == "2"
+	if !EMPTY(cEAN13) .AND. ( M->B1_EAN13 <> SB1->B1_EAN13 )
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+	
+	if !EMPTY(cDUN14D) .AND. ( M->B1_DUN14D <> SB1->B1_DUN14D )      
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+	
+	if !EMPTY(cUPC12) .AND. ( M->B1_UPC12 <> SB1->B1_UPC12 )           
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			if SB1->B1_DHCATEG == "2" .or. SB1->B1_DHCATEG == "3"
+				Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+				RestArea(aArea)
+		        Return(.F.)
+		    endif
+		endif
+	endif
+endif
+
+
+
+IF M->B1_DHCATEG == "3"
+	if !EMPTY(cEAN13) .AND. ( M->B1_EAN13 <> SB1->B1_EAN13 )
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cEAN13 ))
+			Alert("O código EAN13 [ "+alltrim(cEAN13)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+	endif
+	
+	if !EMPTY(cDUN14D) .AND. ( M->B1_DUN14D <> SB1->B1_DUN14D )      
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cDUN14D ))
+			Alert("O código DUN14 [ "+alltrim(cDUN14D)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+	endif
+	
+	if !EMPTY(cUPC12) .AND. ( M->B1_UPC12 <> SB1->B1_UPC12 )           
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(12)) // B1_FILIAL+B1_EAN13
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo EAN13 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(15))// B1_FILIAL+B1_DUN14D
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo DUN14D do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif                                            
+		DbSelectArea("SB1")
+		SB1->(DbSetOrder(13)) // B1_FILIAL+B1_UPC12
+		If SB1->(DbSeek(xFilial("SB1") + cUPC12 ))
+			Alert("O código UPC12 [ "+alltrim(cUPC12)+" ] Digitado, já existe no campo UPC12 do produto [ "+alltrim(SB1->B1_COD)+" ].")
+			RestArea(aArea)
+	        Return(.F.)
+		endif
+	endif
+endif
+
+RestArea(aArea)
+*/
+Return(.T.)
+	
+
+	
+
+

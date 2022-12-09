@@ -1,0 +1,489 @@
+<!-- 
+
+
+Aprovacao do Pedido de Compra
+
+
+-->
+
+
+
+
+<html>
+<head>
+<style type="text/css">
+a:hover {  text-decoration: underline}
+a:link {  text-decoration: none}
+a:active {  }
+.texto {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #333333;
+	text-decoration: none;
+	font-weight: normal;
+	
+
+
+}
+
+
+.Scroll {
+SCROLLBAR-FACE-COLOR: #DEDEDE; 
+SCROLLBAR-HIGHLIGHT-COLOR: #DEDEDE; 
+SCROLLBAR-SHADOW-COLOR: #ffffff; 
+SCROLLBAR-3DLIGHT-COLOR: #ffffff; 
+SCROLLBAR-ARROW-COLOR:  #ffffff; 
+SCROLLBAR-TRACK-COLOR: #ffffff; 
+SCROLLBAR-DARKSHADOW-COLOR: #DEDEDE; 
+
+}
+
+
+
+.combo {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	margin: 1px;
+	padding: 1px;
+	border: 1px solid #000000;
+
+
+
+
+}
+.comboselect {
+	font-family: Arial, Helvetica, sans-serif;
+	color: #666666;
+	font-size: 11px;
+	border: 1px #CCCCCC double;
+}
+.links {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	color: #CC0000;
+	text-decoration: none;
+	font-weight: bold;
+}
+.links-clientes {
+font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #003366; text-decoration: none
+}
+.textobold {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	color: #003366;
+	text-decoration: none;
+	font-weight: bold;
+
+}
+.textoItalico {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	color: 7F7F7F;
+	text-decoration: none;
+	font-style: italic;
+	font-weight: bold;
+
+}
+.titulo {
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	color: #19167D;
+	text-decoration: none;
+	font-weight: bold;
+}
+.links-detalhes {
+font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: FF0000; text-decoration: none
+}
+.TituloMenor {
+
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #19167D;
+	text-decoration: none;
+	font-weight: bold;
+}
+.Botoes {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight: normal;
+	text-decoration: none;
+	margin: 2px;
+	padding: 2px;
+	cursor: hand;
+	border: 1px outset #000000;
+
+
+}
+.TarjaTopoMenu {
+	text-decoration: none;
+	height: 6px;
+	background-image: url('apmenu-right.jpg');
+
+
+
+
+}
+.FundoMenu {
+	text-decoration: none;
+	background-image: url('apmenu-right.jpg');
+
+}
+
+
+.FonteMenu {
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #19167D;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+
+.FonteSubMenu {
+
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #19167D;
+	text-decoration: none;
+}
+.FundoSubMenu {
+	text-decoration: none;
+	background-image: url('apmenu-right.jpg');
+
+}
+.DivisoriaOpçõesMenu {
+	text-decoration: none;
+	background-color: #6680A6;
+	background-image: url('apmenu-right.jpg');
+
+}
+.TarjaTopoLogin {
+
+	text-decoration: none;
+	background-color: #426285;
+	height: 6px;
+}
+.FundoLogin {
+
+
+	text-decoration: none;
+	background-color: #F7F7F7;
+}
+.FundoClaro {
+
+
+
+	text-decoration: none;
+	background-color: #fbfbfb;
+}
+.TituloDestaques {
+
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	color: #19167D;
+	text-decoration: none;
+	font-weight: bold;
+}
+.TextoDestaques {
+
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	color: #777777;
+	text-decoration: none;
+	font-weight: normal;
+}
+.FundoDestaques {
+
+
+
+
+	text-decoration: none;
+	background-color: #E5E5E5;
+}
+.FundoPontilhado {
+	text-decoration: none;
+	background-image: url('http://playpisopisos114283.protheus.cloudtotvs.com.br:8089/workflow/logo.jpg');
+	height: 5px
+
+
+}
+.FundoPontilhadoVertical {
+
+	text-decoration: none;
+	background-image: url('http://200.204.67.89/imagens/pontilhado_vertical.gif');
+	height: 5px
+}
+.TituloTabelas {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #FFFFFF;
+	text-decoration: none;
+	font-weight: bold;
+
+}
+.FundoTituloTabela {
+
+
+	text-decoration: none;
+	background-color: #495E73;
+}
+.TarjaTopoCor {
+	text-decoration: none;
+	height: 6px;
+	background-image: url('http://playpisopisos114283.protheus.cloudtotvs.com.br:8089/workflow/logo.jpg');
+	background-color: #6699CC
+
+
+}
+.FundoTabelaDestaques {
+
+
+
+
+	text-decoration: none;
+	background-color: #495E73;
+}
+.comboselect-pequeno {
+	font-family: Arial, Helvetica, sans-serif;
+	color: #666666;
+	font-size: 11px;
+	border: 1px solid #CCCCCC;
+	width: 132px;
+	clear: none;
+	float: none;
+	text-decoration: none;
+	left: 1px;
+	top: 1px;
+	right: 1px;
+	bottom: 1px;
+	clip:  rect(1px 1px 1px 1px);
+
+
+
+
+}
+.comboselect-grande {
+
+
+	font-family: Arial, Helvetica, sans-serif;
+	color: #666666;
+	font-size: 11px;
+	border: 1px #CCCCCC double;
+	width: 415px;
+}
+.texto-layer {
+
+font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 9px; color: #000000; text-decoration: none
+}
+.tituloAvaliacao {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 9px;
+	color: #19167D;
+	text-decoration: none;
+	font-weight: bold;
+	vertical-align: middle;
+	text-align: center;
+	line-height: 12px;
+
+
+}
+</style>
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Aprovação de Pedido de Compras</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+
+<body>
+
+<form action="mailto:%WFMailTo%" method="post" name="form1" onSubmit="ValidaPreco()">
+<table width="165%" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td height="89" background="">
+    <img src="http://playpisopisos114283.protheus.cloudtotvs.com.br:8089/workflow/logo.jpg" width="160" 160" height="103">
+    </td>
+  </tr>
+  <tr background="">
+    <td height="5" class="TarjaTopoCor">
+    <img src="" width="1" height="1"></td>
+  </tr>
+</table>
+
+<p>
+
+<br>
+
+</p>
+
+<table width="96%" border="0" align="center" cellpadding="0" cellspacing="3">
+  <tr>
+    <td width="50%"><span class="titulo"><font size="3">&raquo; </font>Aprova&ccedil;&atilde;o de Pedido de Compras</span></td>
+    <td width="50%"><div align="right"><span class="TituloMenor"><span class="textoItalico">No. %C7_NUM% 
+      &nbsp;</span></span></div></td>
+  </tr>
+</table>
+<table width="96%" border="1" align="center" cellpadding="6" cellspacing="0" bordercolor="#E5E5E5" bgcolor="#F7F7F7" >
+  <tr>
+    <td width="100%" bordercolor="#FFFFFF" class="titulo"><table border="0" cellpadding="2" cellspacing="1" width="100%">
+	<tr>
+          <td width="12%" class="TituloMenor"><b>Incluido por</b>: </td>
+          <td width="88%" class="texto" colspan="3">!usuario!</td>
+        </tr>
+        <tr>
+       	<tr>
+          <td width="12%" class="TituloMenor"><b>Emiss&atilde;o</b>: </td>
+          <td width="88%" class="texto" colspan="3">%C7_EMISSAO%</td>
+        </tr>
+        <tr>
+          <td width="12%" class="TituloMenor"><b>Fornecedor</b>:&nbsp; </td>
+          <td width="88%" class="texto" colspan="3">%FORNECEDOR%</td>
+        </tr>
+        <tr>
+          <td width="12%" class="TituloMenor"><b>Cond.Pagamento</b>: </td>
+          <td width="88%" class="texto" colspan="3">%E4_DESCRI%</td>
+        </tr>
+        <tr>
+          <td colspan="4" class="TituloMenor" background="http://200.204.67.89/imagens/pontilhado.gif">
+          <img src="http://200.204.67.89/imagens/transparente.gif" width="10" height="3"></td>
+        </tr>
+        <tr>
+          <td class="TituloMenor">&nbsp;</td>
+          <td class="texto">&nbsp;</td>
+          <td class="TituloMenor">&nbsp;</td>
+          <td class="texto">&nbsp;</td>
+        </tr>
+      </table>
+      <table border="0" cellspacing="2" width="100%" height="61">
+        <tr bgcolor="#E4E4E4" class="TituloMenor">
+          <td width="7%"  align="center" height="15"><b>Item</b></td>
+          <td width="10%" align="center" height="15"><b>C&oacute;digo</b></td>
+          <td width="28%" align="center" bgcolor="#E4E4E4" height="15"><b>Descri&ccedil;&atilde;o</b></td>
+          <td width="7%" align="center" height="15"><b>Um</b></td>
+          <td width="8%" align="center" height="15"><b>Quant</b></td>
+          <td width="10%" align="center" height="15"><b>Vl.Unit&aacute;rio</b></td>
+          <td width="12%" align="center" height="15"><b>Vl.Total</b></td>
+          <td width="11%" align="center" height="15"><b>Entrega em</b></td>
+        </tr>
+        <tbody>
+          <tr bgcolor="#FFFFFF" class="texto-layer">
+            <td width="7%" height="14" class="texto-layer"><div align="center">%t1.1%</div></td>
+            <td width="10%" height="14"><div align="center">%t1.2%</div></td>
+            <td width="28%" height="14"><div align="center">%t1.3%</div></td>
+            <td width="7%" height="14"><div align="center">%t1.4%</div></td>
+            <td width="8%" height="14"><div align="center">%t1.5%</div></td>
+            <td width="10%" height="14"><div align="center">%t1.6%</div></td>
+            <td width="12%" height="14"><div align="center">%t1.8%</div></td>
+            <td width="11%" height="14"><div align="center">%t1.9%</div></td>
+          </tr>
+          <tr>
+            <td colspan="8" class="texto-layer" background="http://200.204.67.89/imagens/pontilhado.gif" height="1">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+      <table border="0" width="853" height="248">
+        <tr height="21">
+          <td colspan="2" height="18" width="841"></td>
+        </tr>
+	<tr height="21">
+          <td width="139" height="20"><p align="center" class="TituloMenor">APROVA&Ccedil;&Atilde;O:</p></td>
+          <td width="698" height="20">            <input type="radio" checked name="OPC" value="%OPC%S">
+            <span class="texto">Sim.</span></td>
+        </tr>
+        <tr height="21">
+          <td width="139" height="20"></td>
+          <td width="698" height="20">            <input type="radio" name="OPC" value="%OPC%N">
+            <span class="texto">N&atilde;o. (Favor especificar motivo) </span></td>
+        </tr>
+        <tr>
+          <td width="139" height="96"></td>
+          <td width="698" height="96">
+          <textarea name="OBS" cols="61" rows="4" class="style5"
+                          >%OBS%</textarea>           </td>
+        </tr>
+	<tr height="27">
+          <td width="139" height="27"></td>
+          <td width="698" height="27">
+		  <p>
+		  <input type="submit" name="Submit" class="Botoes" value="Enviar">
+		 <input name="B2" type="reset" class="Botoes"  value="Limpar">          
+		  </p>
+	   </td>
+        </tr>
+        <input type="hidden" name="CHAVE" value="%CHAVE%">
+        <input type="hidden" name="CFILANT" value="%CFILANT%">
+        <input type="hidden" name="WF" value="%WF%">
+        <input type="hidden" name="WFID" value="%WFID%">
+      </table></td>
+  </tr>
+
+  <p>
+   
+  </p>
+</table>
+</form>
+<table width="96%"  border="0" align="center" cellpadding="0" cellspacing="3">
+  <tr>
+    <td><span class="titulo"><font size="3">»</font>Informações Adicionais </span></td>
+  </tr>
+</table>
+<table width="96%" border="1" align="center" cellpadding="6" cellspacing="0" bordercolor="#E5E5E5" bgcolor="#F7F7F7" >
+  <tr>
+    <td width="100%" bordercolor="#FFFFFF" class="titulo"><table width="100%" border="0" cellspacing="2">
+      <tr bgcolor="#E4E4E4" class="TituloMenor">
+        <td align="center" colspan="2">Valor Total do Pedido</td>
+        <td align="center" colspan="2">Valor Total do Frete</td>
+        <td align="center" colspan="2">Impostos (ICMS + IPI)</td>
+      </tr>
+      <tbody>
+        <tr bgcolor="#FFFFFF" class="texto-layer">
+          <td colspan="2" align="center">%t2.1%</td>
+          <td colspan="2" align="center">%t2.2%</td>
+          <td colspan="2" align="center">%t2.3%</td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td colspan="6" background="http://200.204.67.89/imagens/pontilhado.gif"><p class="texto-layer"><span class="TituloMenor">
+          <img src="http://200.204.67.89/imagens/transparente.gif" width="10" height="3"></span></p>
+            </td>
+          </tr>
+        <tr>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td colspan="6"><div align="center" class="TituloMenor"><b>Observações</b></div></td>
+          </tr>
+        <tr>
+          <td colspan="6">
+          <p align="center"><font face="Verdana" style="font-size: 7pt">%t3.1%</font></td>
+        </tr>
+      </tbody>
+    </table></td>
+  </tr>
+</table>
+<p>
+<br>
+</p>
+<table width="96%" border="1" align="center" cellpadding="0" cellspacing="0" bordercolor="#E5E5E5" bgcolor="#F7F7F7" >
+  <tr>
+    <td width="100%" bordercolor="#FFFFFF"><div align="right" class="texto-layer">PlayPiso - WorkFlow @ TOTVS12</div></td>
+  </tr>
+</table>
+
+</body>
+</html>

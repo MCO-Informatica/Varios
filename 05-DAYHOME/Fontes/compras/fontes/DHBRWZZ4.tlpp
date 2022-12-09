@@ -1,0 +1,35 @@
+#Include 'Protheus.ch'
+
+/*/{Protheus.doc} xCadSA2
+Rotina de manutenção da ZZ4 Endereçamentos Locais
+@type function
+@author Fernando Carvalho
+@since 01/04/2016
+/*/
+User Function DHBRWZZ4()
+	Local cAlias	:= "ZZ4"
+	Private cFiltro	:= ""
+	Private aRotina	:= MenuDef()
+	Private cCadastro := "Endereços Locais"
+	
+	DbSelectArea(cAlias)
+	DbSetOrder(1)
+	dbgotop() 
+	
+	mBrowse( 6,1,22,75,cAlias,/*acampos*/)
+              
+Return( Nil )
+
+
+//------------------------------------------¬
+//Tratamento do aRotina                 	|
+//-------------------------------------------	
+Static Function MenuDef()
+	Local aRotina := {}
+	AADD(aRotina,{"Pesquisar"   ,"AxPesqui",0,1})
+	AADD(aRotina,{"Visualisar"  ,"AxVisual",0,2})
+	AADD(aRotina,{"Incluir"     ,"AxInclui",0,3})
+	AADD(aRotina,{"Alterar" 	,"AxAltera",0,4})
+	AADD(aRotina,{"Excluir" 	,"AxDeleta",0,5}) 
+Return aRotina
+                          

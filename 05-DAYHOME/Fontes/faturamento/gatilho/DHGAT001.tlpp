@@ -1,0 +1,39 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#include "rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHGAT001  ºAutor  ³Felipe Valença      º Data ³  26/01/12   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Gatilho para retornar a TES CK_PRODUTO                     º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+
+User Function DHGAT001
+
+Local cEst		:= ""
+Local cGrpTrib  := ""
+Local cTes		:= ""
+Local cGrPrd	:=	TMP1->CK_GRPROD //aCols[n,aScan(aHeader,{|x| Alltrim(x[2])== "CK_GRPROD"})]
+
+cEst 		:= Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+CJ_LOJA,"A1_EST")
+cGrpTrib 	:= Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+CJ_LOJA,"A1_GRPTRIB")
+
+If(EMPTY(SFM->FM_TS),"",SFM->FM_TS)
+
+If Empty(SFM->FM_TS)
+	cTes := ""
+Else
+	cTes := Posicione("SFM",3,xFilial("SFM")+M->CJ_OPER+cGrPrd+cEst+cGrpTrib,"FM_TS")
+Endif
+
+Return (cTes)

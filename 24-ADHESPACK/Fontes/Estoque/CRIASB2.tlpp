@@ -1,0 +1,23 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | CRIASB2       | Autor | Lucas Baia          | Data |    28/01/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para criação de Registro na SB2.
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+
+
+User Function CRIASB2()
+
+Local aArrayRet     := {} //Array.
+Local cDesc         := Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_DESC") //Descrição de Produto.
+Local cCLiente      := Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_XCLIENT") //Descrição de Produto.
+Local cTipo         := Posicione("SB1",1,xFilial("SB1")+SB2->B2_COD,"B1_TIPO") //Descrição de Produto.
+
+aAdd(aArrayRet,{"B2_DESC",cDesc,Nil}) //Array com Descrição de Produto.
+aAdd(aArrayRet,{"B2_XCLIENT",cCliente,Nil}) //Array com Código do Cliente.
+aAdd(aArrayRet,{"B2_XTIPO",cTipo,Nil}) //Array com Tipo do Produto.
+
+Return aArrayRet

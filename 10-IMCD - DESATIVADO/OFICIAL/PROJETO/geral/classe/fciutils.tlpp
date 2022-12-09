@@ -1,0 +1,124 @@
+#include 'protheus.ch'
+
+/*/{Protheus.doc} FCIUTILS
+description
+@type class
+@version 
+@author marcio.katsumata
+@since 27/02/2020
+/*/
+CLASS FCIUTILS
+
+	static method validaFCI()
+	static method getFciCode()
+
+ENDCLASS
+
+/*/{Protheus.doc} FCIUTILS::validaFci
+Função para a validação do código FCI para
+determinados CST´s.
+@type method
+@version 
+@author marcio.katsumata
+@since 27/02/2020
+@param cCodST, character, código CST
+@param cCodFCI, character, código FCI
+@param cFuncao, character, função que está chamando a validação
+@return logical, retorno da validação.
+/*/
+method validaFci(cCodST, cCodFCI, cFuncao) class FCIUTILS
+	local lRet as logical
+
+	default cFuncao := ""
+
+	lRet := .T.
+
+	if substr(cCodST,1,1) $ "3/5/8"
+		if !(lRet := !empty(cCodFCI))
+			if !empty(cFuncao)
+				Aviso(cFuncao,"O código CST desse registro exige o preenchimento do campo Codigo FCI.",{"Ok"},1)
+			endif
+		endif
+
+	endif
+
+return lRet
+
+/*/{Protheus.doc} FCIUTILS::getFciCode
+Verifica o código do FCI
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 28/02/2020
+@param cCodProduto, character, código do produto
+@param cLote, character, código do lote
+@return return_type, return_description
+/*/
+method getFciCode(cCodProduto,cLote) class FCIUTILS
+	local cCodFCI as character
+	local cAliasSC2 as character
+	local cAliasG1 as character
+	local cAliasB8 as character
+
+	//----------------------------
+	//Inicialização de variáveis
+	//----------------------------
+	cCodFCI := ""
+	cAliasSC2 := getNextAlias()
+	cAliasG1  := getNextAlias()
+	cAliasB8  := getNextAlias()
+	cAliasD1  := getNextAlias()
+	cCodFCI    := ""
+
+	beginSql alias cAliasG1
+        SELECT SG1.G1_COMP
+        FROM %table:SG1% SG1
+        WHERE SG1.G1_COD = %exp:cCodProduto%    AND
+              SG1.G1_QUANT > 1                  AND
+              SG1.%notDel%
+	endSql
+
+	IF (cAliasG1)->(!eof())
+		cCodigoPrincipal := (cAliasG1)->G1_COMP
+	ENDIF
+
+	cCodigoPrincipal := IIF(EMPTY(cCodigoPrincipal),cCodProduto,cCodigoPrincipal)
+
+	beginSql alias cAliasB8
+            SELECT SB8.B8_DOC, SB8.B8_SERIE, SB8.B8_CLIFOR, SB8.B8_LOJA, SB8.B8_PRODUTO, SB8.B8_LOTECTL
+            FROM %table:SB8% SB8
+            WHERE SB8.B8_PRODUTO = %exp:cCodigoPrincipal% AND
+                  SB8.B8_LOTECTL = %exp:cLote%            AND
+                  TRIM(SB8.B8_DOC)   IS NOT NULL          AND
+                  TRIM(SB8.B8_SERIE) IS NOT NULL          AND
+                  TRIM(SB8.B8_CLIFOR) IS NOT NULL         AND
+                  TRIM(SB8.B8_LOJA)   IS NOT NULL         AND
+                  SB8.%notDel%
+	endSql
+    
+	if (cAliasB8)->(!eof())
+
+		beginSql alias cAliasD1
+                SELECT SD1.D1_FCICOD 
+                FROM %table:SD1% SD1
+                WHERE SD1.D1_FILIAL = %exp:xFilial("SD1")%         AND
+                      SD1.D1_DOC    = %exp:(cAliasB8)->B8_DOC%     AND   
+                      SD1.D1_SERIE  = %exp:(cAliasB8)->B8_SERIE%   AND
+                      SD1.D1_FORNECE= %exp:(cAliasB8)->B8_CLIFOR%  AND     
+                      SD1.D1_LOJA   = %exp:(cAliasB8)->B8_LOJA%    AND       
+                      SD1.D1_COD    = %exp:(cAliasB8)->B8_PRODUTO% AND  
+                      SD1.D1_LOTECTL= %exp:(cAliasB8)->B8_LOTECTL% AND
+                      SD1.%notDel%
+		endSql
+
+		if (cAliasD1)->(!eof())
+			cCodFCI:= (cAliasD1)->D1_FCICOD
+		endif
+
+		(cAliasD1)->(dbCloseArea())
+	EndIf
+	(cAliasB8)->(dbCloseArea())
+
+	(cAliasG1)->(dbCloseArea())
+
+return cCodFCI

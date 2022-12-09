@@ -1,0 +1,10 @@
+#include "protheus.ch"
+
+User Function MA461ROT()        
+
+Local _aRotina	:= {}
+
+AADD(_aRotina, {'Libera Financeiro', "U_LIBERAF()", 0, 0, 0, Nil} )
+AADD(_aRotina, {'TESTE', "U_LIBERAF()", 0, 0, 0, Nil} )
+
+Return(_aRotina)

@@ -1,0 +1,144 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ M460DEL  ºAutor  ³FONTANELLI          º Data ³  02/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Ponto de entrada para efetuar a gravacao da                º±±
+±±º          ³ Estorno do Pedido Venda (Origem MATA460 Nota Fiscal)       º±±                                                            
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function M460DEL()      
+
+
+_aArea:= GetArea()     
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+
+	if alltrim(cEmpAnt) == '99'
+		ALERT("(TRATAR PONTO DE ENTRADA M460DEL EXECUTADO NA FUNÇÃO "+FunName())
+	endif
+	
+	/*      
+	If FunName() == "MATA500" .OR. FunName() == "MATA410"
+	
+		cNUMERO := SC5->C5_NUM
+	
+		if alltrim(cEmpAnt) == '99'
+			ALERT("(SIM) - M460DEL")
+		endif
+		 
+		DbSelectArea("SC5")
+		DbsetOrder(1) // C5_FILIAL+C5_NUM
+		SC5->(DbGotop())
+		If DbSeek(xFilial("SC5")+cNUMERO)
+		   RecLock("SC5",.f.)
+	       SC5->C5_XSTATUS := "ENT"         
+		   SC5->C5_CONFST  := "R"   
+		   SC5->C5_COLST   := "R"   
+		   MsUnLock()
+		endif	
+	
+	endif
+	*/
+	
+	If FunName() == "MATA460A" 
+	
+		cNUMERO := SC5->C5_NUM
+	
+		if alltrim(cEmpAnt) == '99'
+			ALERT("(SIM) - M460DEL")
+		endif
+	
+		cQuery := "SELECT COUNT(*) QTD FROM "+RetSqlName("SC9")+"" 
+		cQuery += " WHERE C9_FILIAL = '"+xFilial("SC9")+"'"
+		cQuery += "  AND C9_PEDIDO = '"+SC5->C5_NUM+"'"
+		cQuery += "   AND D_E_L_E_T_ = ' '"
+		cQuery := ChangeQuery(cQuery)
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QrySC9",.T.,.T.)
+		dbSelectArea("QrySC9")
+		dbGoTop()
+		xQTD := QrySC9->QTD
+		QrySC9->(dbCloseArea())
+	
+		if xQTD == 0
+		
+			//Só apaga os campos do SC5 caso exista apenas 1 Nota Fiscal na Tabela ZZ2
+			cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+			cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+			cQuery += "   AND ZZ2_NUM = '"+cNUMERO+"' "
+			cQuery += "   AND ZZ2_NOTA <> ' ' "
+			cQuery += "   AND D_E_L_E_T_ = '' "
+			cQuery := ChangeQuery(cQuery)
+			dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+			dbSelectArea("QryZZ2")
+			dbGoTop()
+			nQTDNOTA := 0
+			While !QryZZ2->(Eof())
+				nQTDNOTA += 1
+				QryZZ2->(DbSkip())
+			EndDo
+			QryZZ2->(dbCloseArea())
+		
+		    if nQTDNOTA <= 1
+	
+				DbSelectArea("SC5")
+				DbsetOrder(1) // C5_FILIAL+C5_NUM
+				SC5->(DbGotop())
+				If DbSeek(xFilial("SC5")+cNUMERO)
+				   RecLock("SC5",.f.)
+			 
+			       SC5->C5_XSTATUS := "PED"         
+				   SC5->C5_CONFST  := "1"   
+				   SC5->C5_COLST   := "1"   
+					   
+				   SC5->C5_XSUSER  := SPACE(30)
+				   SC5->C5_XSDTINI := CTOD("  /  /    ")
+				   SC5->C5_XSHRINI := SPACE(5)
+				   SC5->C5_XSDTFIN := CTOD("  /  /    ")
+				   SC5->C5_XSHRFIN := SPACE(5)
+				
+				   SC5->C5_XCUSER  := SPACE(30)
+				   SC5->C5_XCDTINI := CTOD("  /  /    ")
+				   SC5->C5_XCHRINI := SPACE(5)
+				   SC5->C5_XCDTFIN := CTOD("  /  /    ")
+				   SC5->C5_XCHRFIN := SPACE(5)
+				
+				   SC5->C5_XLUSER  := SPACE(30)
+				   SC5->C5_XLDT    := CTOD("  /  /    ")
+				   SC5->C5_XLHR    := SPACE(5)
+				   SC5->C5_XLMOT   := SPACE(30)
+			       
+				   MsUnLock()
+				endif
+	
+				DbSelectArea("ZZ2")
+				ZZ2->(DbSetOrder(1))
+				If ZZ2->(DbSeek(xFilial("ZZ2") + "C" + SC5->C5_NUM  ))
+					While !ZZ2->(Eof()) .And. SC5->C5_NUM == ZZ2->ZZ2_NUM .And. "C" == ZZ2->ZZ2_TIPOSC
+						if EMPTY(ZZ2_NOTA)
+							RecLock("ZZ2",.F.)
+							ZZ2->(DbDelete())
+							ZZ2->(MsUnlock())
+						endif
+						ZZ2->(DbSkip())
+					EndDo
+				EndIf
+				
+			endif
+			
+		endif
+	endif
+endif
+
+RestArea(_aArea)
+
+Return
+

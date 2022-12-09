@@ -1,0 +1,237 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHFATR01ºAutor  ³Microsiga           º Data ³  11/18/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+/*****************************************************************************/
+User Function DHFATR01()
+
+Local oReport
+Private cPerg := "DHFATR01"
+
+AjustaSX1(cPerg)
+
+Pergunte(cPerg,.F.)
+oReport := ReportDef()
+oReport:PrintDialog()
+
+Return
+
+/*****************************************************************************/
+Static Function ReportDef()
+
+Local oReport
+Local oSection1
+Local oSection2
+Local oSection3
+Local oBreak 
+Local o
+
+//If mv_par10 = 1  // PARÂMETRO QUE ORDENA O RELATÓRIO POR CÓDIGO DO PRODUTO
+
+oReport  := TReport():New("DHFATR01","Relatório de Tabela de Preço Resumida-alfanumerica","DHFATR01",{|oReport| PrintReport(oReport, oSection1, oSection2, oSection3)},"Relatorio de Tabela de Preço Resumida-alfanumerica")
+
+oSection1 := TRSection():New(oReport,"aTabelas",{"DA0"},{"Codigo+Descricao","Descricao+Codigo"})
+TRCell():New(oSection1,"TABELA","")
+TRCell():New(oSection1,"DESCRICAO","") 
+    
+oSection2 := TRSection():New(oReport,"Preços",{"SB1"})
+TRCell():New(oSection2,"B1_COD", "SB1")
+TRCell():New(oSection2,"B1_DESC","SB1") 
+TRCell():New(oSection2,"B1_PRV1","SB1")      
+TRCell():New(oSection2,"B1_IPI","SB1") 
+//TRCell():New(oSection2,"DA1_CODTAB", "DA1")
+
+oSection3 := TRSection():New(oReport,"Preços",{"SB1"})
+TRCell():New(oSection3,"B1_COD", "SB1")
+TRCell():New(oSection3,"B1_DESC","SB1")  
+TRCell():New(oSection3,"B1_PRV1","SB1")
+TRCell():New(oSection3,"B1_IPI","SB1")
+//TRCell():New(oSection3,"DA1_CODTAB", "DA1")
+
+
+Return oReport
+
+/*****************************************************************************/
+Static Function PrintReport(oReport, oSection1, oSection2, oSection3)
+
+//Local oBreak         
+Local oSecao 
+Local cDesc    := "SEM PREVISAO"
+Local cEmpAtu  := DA0->DA0_CODTAB
+Local aTabelas := {}
+Local aAreaDA0 := {}
+Local nCount   := 0
+       
+Private lFilSB1
+Private lFilSB2
+Private lFilSC7
+
+/*dbSelectArea("DA0") 
+aAreaDA0 := GetArea()
+dbSetOrder(1)
+dbSeek(cEmpAtu+MV_PAR01, .T.)
+If !Eof()
+	While DA0->DA0_CODIGO+DA0->DA0_DESCRI >= cEmpAtu+MV_PAR01 .And. DA0->DA0_CODIGO+DA0->DA0_DESCRI <= cEmpAtu+MV_PAR02
+		AAdd(aTabelas, {DA0->DA0_CODIGO, DA0->DA0_DESCRI, {}})
+		dbSkip()
+	End
+EndIf                
+RestArea(aAreaDA0)
+  
+If Select("TMPSB1") > 0
+	TMPSB1->( dbCloseArea() )
+EndIf */
+
+cQuery := "SELECT SB1.B1_COD, SB1.B1_DESC, SB1.B1_IPI, SB1.B1_PRV1,DA1.DA1_CODTAB, DA0.DA0_CODTAB, DA0.DA0_DESCRI, DA1.DA1_PRCVEN, DA1.DA1_VLRDES "+CRLF
+cQuery += "FROM "+RETSQLNAME("DA0")+" DA0 " +CRLF
+
+cQuery += "INNER JOIN " +RETSQLNAME("DA1")+ " DA1 ON DA0.DA0_CODTAB = DA1.DA1_CODTAB AND DA1.DA1_FILIAL = '"+xFilial("DA1")+"'"+CRLF
+cQuery += " AND DA0.DA0_CODTAB BETWEEN '" + MV_PAR06 + "' AND '" + MV_PAR07 + "'AND DA1.D_E_L_E_T_ = ' ' "+CRLF
+
+
+cQuery += "INNER JOIN " +RETSQLNAME("SB1")+" SB1 ON DA1.DA1_CODPRO = SB1.B1_COD AND SB1.B1_FILIAL = '"+xFilial("SB1")+"' "+CRLF
+cQuery += " AND SB1.B1_GRUPO BETWEEN '" + MV_PAR03 + "' AND '" + MV_PAR04 + "'AND SB1.D_E_L_E_T_ = ' ' " +CRLF 
+cQuery += " AND SB1.B1_DHABSM = '" + IIF( MV_PAR05 == 1 , "T" , "F" ) + "' "+CRLF
+
+cQuery += "WHERE "+CRLF		
+cQuery += "DA0.DA0_FILIAL = '"+xFilial("DA0")+"'AND DA0.D_E_L_E_T_ = ' '  "+CRLF
+
+cQuery += "ORDER BY DA0.DA0_CODTAB "
+
+cQuery := ChangeQuery(cQuery)
+TcQuery cQuery NEW ALIAS "TMPSB1"
+ 
+dbSelectArea("TMPSB1")
+dbGoTop()
+
+nTReg := TMPSB1->(RecCount())
+ProcRegua(nTReg)
+
+//Monta Array com as contas SINTETICAS E ANALITICAS
+
+While !Eof()
+
+	nPos:= Ascan(aTabelas , {|x| x[1] == Alltrim(TMPSB1->DA1_CODTAB) })    
+	
+	IF nPos == 0
+		AAdd(aTabelas, {TMPSB1->DA0_CODTAB,;
+						TMPSB1->DA0_DESCRI,;
+						{}})    
+		nTabela := Len(aTabelas)		
+	EndIf
+	
+	
+	aAdd(aTabelas[nTabela,3],{TMPSB1->B1_COD,;
+							  TMPSB1->B1_DESC,;
+							  TMPSB1->B1_IPI,;
+    						  TMPSB1->DA1_PRCVEN,;
+    						  TMPSB1->DA1_VLRDES,;
+    						  TMPSB1->DA1_CODTAB })
+	 		
+							
+    dbSkip()
+
+End
+                                           
+TMPSB1->( dbCloseArea() )
+
+oReport:SetMeter(nCount)
+
+For nI := 1 To Len(aTabelas)    
+	If oReport:Cancel()
+		Exit
+	EndIf
+
+	oSection1:Init()
+
+	oSection1:Cell("TABELA"):SetValue(aTabelas[nI][01]) 
+	oSection1:Cell("DESCRICAO"):SetValue(aTabelas[nI][02])
+	
+	oSection2 := TRSection():New(oReport,"Preços",{"SB1"})
+    TRCell():New(oSection2,"B1_COD", "SB1")
+ 	TRCell():New(oSection2,"B1_DESC","SB1") 
+    TRCell():New(oSection2,"DA1_PRCVEN","DA1")
+    TRCell():New(oSection2,"DA1_VLRDES","DA1")
+	TRCell():New(oSection2,"B1_IPI","SB1") 
+   //	TRCell():New(oSection2,"DA1_CODTAB", "DA1")
+
+	oSection3 := TRSection():New(oReport,"Preços",{"SB1"})
+	TRCell():New(oSection3,"B1_COD", "SB1")
+	TRCell():New(oSection3,"B1_DESC","SB1") 
+    TRCell():New(oSection3,"DA1_PRCVEN","DA1")
+    TRCell():New(oSection3,"DA1_VLRDES","DA1")
+	TRCell():New(oSection3,"B1_IPI","SB1")      
+   //	TRCell():New(oSection3,"DA1_CODTAB", "DA1")	    
+
+	oSection1:Cell("TABELA"):show()
+   	oSection1:Cell("DESCRICAO"):show()  
+					 
+	oSection1:PrintLine()
+
+	If oReport:Section(1):nOrder == 1
+		oSecao := oSection2
+	Else
+		//aTabelas := aSort(aTabelas,,,{|x,y| x[2] < y[2]})			
+		oSecao := oSection3
+	EndIf
+                               
+	oSecao:Init()
+ 	
+ 	If oReport:Cancel()
+		Exit
+	EndIf 
+	
+	If Len(aTabelas[nI,3]) > 0
+		For nX := 1 To Len(aTabelas[nI,3])	
+			oSecao:Cell("B1_COD"):SetValue(aTabelas[nI][03][nX][1]) 
+			oSecao:Cell("B1_DESC"):SetValue(aTabelas[nI][03][nX][2])
+			oSecao:Cell("B1_IPI"):SetValue(aTabelas[nI][03][nX][3])
+			oSecao:Cell("DA1_PRCVEN"):SetValue(aTabelas[nI][03][nX][4])
+			oSecao:Cell("DA1_VLRDES"):SetValue(aTabelas[nI][03][nX][5])        
+		   //	oSecao:Cell("DA1_CODTAB"):SetValue(aTabelas[nI][03][nX][5])
+				
+			oSecao:Cell("B1_COD"):show()
+			oSecao:Cell("B1_DESC"):show()  
+			oSecao:Cell("B1_IPI"):show()  
+			oSecao:Cell("DA1_PRCVEN"):show()
+			oSecao:Cell("DA1_VLRDES"):show()
+		   //	oSecao:Cell("DA1_CODTAB"):show()
+						 
+			oSecao:PrintLine() 
+		Next nX 
+		oReport:EndPage()	
+	EndIf	
+	
+Next nI
+			 
+oReport:SkipLine()
+
+Return         
+ 
+/**************************************
+Static Function AjustaSX1(cPerg)
+**************************************/
+
+PutSx1( cPerg, "01", "Filial de ?",      "Filial de ?",      "Filial de ?",          "mv_ch1", "C", 02, 0, 0, "G", "","",    "", "", "mv_par01",,,,,,,,,,,,,,,,,{"Filial De",              "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "02", "Filial Até ?",     "Filial Até ?",     "Filial Até ?",         "mv_ch2", "C", 02, 0, 0, "G", "","",    "", "", "mv_par02",,,,,,,,,,,,,,,,,{"Filial Ate",             "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "03", "Grupo de ?",       "Grupo de ?",       "Grupo de ?",           "mv_ch3", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par03",,,,,,,,,,,,,,,,,{"Grupo De",               "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "04", "Grupo Até ?",      "Grupo Até ?",      "Grupo Até ?",          "mv_ch4", "C", 04, 0, 0, "G", "","SBM", "", "", "mv_par04",,,,,,,,,,,,,,,,,{"Grupo Ate",              "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "05", "Imprime Abismo ?", "Imprime Abismo ?", "Imprime Abismo ?",     "mv_ch5", "N", 01, 0, 1, "C", "","",    "", "", "mv_par05","Sim","Sim","Sim",,"Não","Não","Não",,,,,,,,,,{"Com ou Sem Abismo",      "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "06", "Tabela de ?",      "Tabela  de ?",     "Tabela de ?",          "mv_ch6", "C", 03, 0, 0, "G", "","DA0", "", "", "mv_par06",,,,,,,,,,,,,,,,,{"Tabela De",               "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "07", "Tabela Até ?",     "Tabela Até ?",     "Tabela Até ?",         "mv_ch7", "C", 03, 0, 0, "G", "","DA0", "", "", "mv_par07",,,,,,,,,,,,,,,,,{"Tabela Ate",              "para considerar na", "geração do relatório."},{},{} )
+
+Return .T.

@@ -1,0 +1,41 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | SD1100I        | Autor | Lucas Baia          | Data |    21/03/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de entrada é executado durante a inclusão do Documento de Entrada,
+//        | após a inclusão do item na tabela SD1.
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+
+
+User Function SD1100I()
+
+DbSelectArea("SD5")
+DbSetOrder(5) //D5_FILIAL + D5_PRODUTO + D5_LOCAL + D5_LOTECTL + DTOS(D5_DTVALID) + D5_DOC + D5_SERIE (INDICE CUSTOMIZADO)
+
+DbSelectArea("SB8")
+DbSetOrder(1) //B8_FILIAL + B8_PRODUTO + B8_LOCAL + DTOS(B8_DTVALID) + B8_LOTECTL + B8_NUMLOTE
+
+IF !EMPTY(Alltrim(SD1->D1_LOTECTL)) .AND. !EMPTY(SD1->D1_DTVALID)
+
+    IF SD5->(dbSeek(xFilial("SD5")+Alltrim(SD1->D1_COD)+Alltrim(SD1->D1_LOCAL)+SD1->D1_LOTECTL+DTOS(SD1->D1_DTVALID)+SD1->D1_DOC+SD1->D1_SERIE,.f.))
+
+        RecLock("SD5", .F.)
+            SD5->D5_XDENSID    :=  SD1->D1_XDENSID
+        SD5->(MsUnlock())
+
+    ENDIF
+
+    IF SB8->(dbSeek(xFilial("SB8")+Alltrim(SD1->D1_COD)+Alltrim(SD1->D1_LOCAL)+DTOS(SD1->D1_DTVALID)+SD1->D1_LOTECTL,.f.))
+
+        RecLock("SB8", .F.)
+            SB8->B8_XDENSID    :=  SD1->D1_XDENSID
+        SB8->(MsUnlock())
+
+    ENDIF
+
+ENDIF
+
+Return

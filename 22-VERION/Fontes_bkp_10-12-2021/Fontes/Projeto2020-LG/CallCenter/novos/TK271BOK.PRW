@@ -1,0 +1,85 @@
+#Include "Rwmake.ch"
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+/*
++------------+----------+--------+-----------------+-------+------------+
+| Programa:  | TM271BOK	| Autor: | Silverio Bastos | Data: | Março/2010 |
++------------+----------+--------+-----------------+-------+------------+
+| Descrição: | Ponto de Entrada para checar controle de limite na apro- |
+|            | vação do credito.                          				|
++------------+----------------------------------------------------------+
+| Uso:       | Verion Óleo Hidráulica Ltda.                             |
++------------+----------------------------------------------------------+
+*/
+User Function TK271BOK()
+
+// +-------------------------+
+// | Declaração de Variáveis |
+// +-------------------------+
+Local _aArea   := GetArea()
+Local _cDupli  := 0
+Local _NCompra := GETMV("MV_NCOMP") // Numero de Compras
+Local _MCompra := GETMV("MV_MCOMP") // Numero de compras ref controle de pagto, só libera prox faturamento, se o anterior estiver pago
+Local _CCompra := GETMV("MV_CCOMP") // Condicao Pagto a Vista
+Local _nPosTot := _nTotal := 0
+Local _lRet    := .T.
+
+// TRATAMENTO PARA EMPRESA AEM...
+//If SM0->M0_CODIGO == "02"
+//     return(_lRet)
+//Endif
+
+DbSelectArea("SA1")
+DbSetOrder(1)
+DbSeek(xFilial("SA1") + M->UA_CLIENTE + M->UA_LOJA,.f.)
+
+_cLimite := SA1->A1_LC
+_cVctLmt := SA1->A1_VENCLC
+_cPricom := SA1->A1_PRICOM
+_cUltcom := SA1->A1_ULTCOM
+_cNrocom := SA1->A1_NROCOM
+_cNropag := SA1->A1_NROPAG
+_cTitpro := SA1->A1_TITPROT
+
+if SA1->A1_X_RISCO <> "A" .AND. RetSqlName("SC5") == "SC5010"
+	
+	ndias := (ddatabase - _cUltcom)
+	
+	If (empty(_cPricom) .or. SA1->A1_X_RISCO = "F") .and. (INCLUI .or. ALTERA) .and. .not. (ALLTRIM(M->UA_CONDPG)$"050/051/096/097/098/091") //incluído condição de pagamento 091 - Alex Rodrigues - 22/07/2018
+		ALERT (" Para Clientes Novos ou Risco = F Condicao de Pagamento somente A Vista, favor contactar o financeiro ")
+		Alert (" Atenção não será gravado este atendimento ")
+		_lRet := .f.
+	Endif
+	
+	If  _cNroCom < _NCompra .and. _cPricom >= CTOD("01/04/2010") .and. (INCLUI .or. ALTERA) .and. .not. (ALLTRIM(M->UA_CONDPG)$"050/051/096/097/098/091") //incluído condição de pagamento 091 - Alex Rodrigues - 22/07/2018
+		ALERT (" Cliente nao atingiu " + alltrim(Str(_NCompra)) + " compras, favor contactar o financeiro ")
+		Alert (" Atenção não será gravado este atendimento ")
+		_lRet := .f.
+	Endif
+	
+	If  _cTitpro > 0  .and. INCLUI
+		CQUERY	:=	" SELECT E1_VALOR "
+		CQUERY	+=	" FROM " + retsqlname('SE1') + " E1 "
+		CQUERY	+=	" WHERE E1.D_E_L_E_T_ = '' AND E1_CLIENTE = '"+ M->UA_CLIENTE + "' AND E1_SALDO > 0 "
+		CQUERY	+=	" AND E1_VENCREA < '" + DtoS(ddatabase) +"' "
+		
+		TCQUERY CQUERY NEW ALIAS "MOX"
+		
+		Dbselectarea("MOX")
+		If !EOF()
+			ALERT (" Cliente possui titulos protestados e vencidos, favor contactar o financeiro ")
+
+            If !(ALLTRIM(M->UA_CONDPG)) $ "051/050/096/097/098/091"
+			   Alert (" Atenção não será gravado este atendimento ")
+			   _lRet := .f.
+			Endif
+
+		Endif
+		MOX->(DBCLOSEAREA())
+	Endif
+Endif
+// +----------------------------+
+// | Restaura Ambiente Original |
+// +----------------------------+
+RestArea(_aArea)
+Return(_lRet)

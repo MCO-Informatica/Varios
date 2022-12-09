@@ -1,0 +1,4 @@
+IGNORE_FILES_NOT_FOUND_IN_DEBUG=true
+SERVER_ID_TIMEOUT=10
+VARIABLES_VIEW_ORGANIZATION=organizeByCreationOrder
+eclipse.preferences.version=1

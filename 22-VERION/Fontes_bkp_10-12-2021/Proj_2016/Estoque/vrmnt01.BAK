@@ -1,0 +1,135 @@
+#Include "Rwmake.ch"
+/*
+* Manutencao na Tabela do SB2 - custo e almox 98
+* Ricardo Cavalini --> 08/11/2016
+*/
+User Function VRMNT01()
+
+Dbselectarea("SB2")
+DbsetOrder(1)
+
+aRotina:={	{"Pesquisar"     ,"AxPesqui"   ,0,1},;
+			{"Ajusta 98"     ,"U_VRSB2A()" ,0,4},;
+			{"Ajusta Custo"  ,"U_VRSB2B()" ,0,4}}
+
+mBrowse( 6,1,22,75,"SB2",,,,,,,,)
+
+Dbselectarea("SB2")
+DbSetOrder(1)
+return
+
+/*
+Função de ajuste de CUSTO NO SB2
+*/
+User Function VRSB2B()
+_cNumOP       := SPACE(13)
+
+@ 000,000 To 245,410 Dialog oDlg0 Title "Ordem de Producao"
+@ 010,005 SAY "OP:"
+@ 010,040 Get _cNumOP  F3 'SC2' SIZE 50,10
+@ 100,015 BmpButton Type 1 Action _AsDtOk()
+@ 100,130 BmpButton Type 2 Action _AsFech()
+Activate Dialog oDlg0 Centered
+return
+
+/*
+Função de sair da tela de ajuste de data limite.
+*/
+Static Function _AsDtOk()
+
+If Empty(_cNumOP)
+    MSGALERT("Campo Ordem de Producao, em branco !!!","Ordem de Producao")
+	Close(oDlg0)
+Else
+	
+	Dbselectarea("SD4")
+	DbSetOrder(2)
+	If DbSeek(xfilial("SD4")+_cNumOP)
+		While !Eof() .and. Substr(_cNumOP,1,6) == Substr(SD4->D4_OP,1,6)
+			_cRCProd := SD4->D4_COD
+			_cRCLoca := SD4->D4_LOCAL
+			
+			DbSelectarea("SB2")
+			DBSetOrder(1)
+			If DbSeek(xfilial("SB2")+_cRCProd+_cRCLoca)
+				DbSelectArea("SB2")
+				RecLock("SB2",.F.)
+				 SB2->B2_CM2   := 0
+				 SB2->B2_CM3   := 0
+				 SB2->B2_CM4   := 0
+				 SB2->B2_CM5   := 0
+				 SB2->B2_VATU2 := 0
+				 SB2->B2_VATU3 := 0
+				 SB2->B2_VATU4 := 0
+				 SB2->B2_VATU5 := 0
+				MsUnlock("SB2")
+			Endif
+			Dbselectarea("SD4")
+			DbSkip()
+			Loop
+		End
+	Else
+	  MSGALERT("Ordem de Producao, nao encontrado","Ordem de Producao")
+	Endif
+Endif
+Close(oDlg0)
+Return
+
+// BOTAO DE FECHAR
+Static function _AsFech()
+Close(oDlg0)
+Return
+
+
+/*
+Função de ajuste de ALMOX 98
+*/
+User Function VRSB2A()
+_cNumPr := SPACE(15)
+_nQtdPr := 0
+
+@ 000,000 To 245,410 Dialog oDlg0 Title "Amox 98"
+@ 010,005 SAY "Produto:"
+@ 010,040 Get _cNumPr  F3 'SB1' SIZE 50,10
+@ 030,005 SAY "Qtde :"
+@ 030,040 Get _nQtdPr  Picture "@E 999,999,999.99" Valid positivo() SIZE 55,10 When .T.
+
+@ 100,015 BmpButton Type 1 Action _ArDtOk()
+@ 100,130 BmpButton Type 2 Action _ArFech()
+Activate Dialog oDlg0 Centered
+return
+
+/*
+Função de sair da tela de ajuste de data limite.
+*/
+Static Function _ArDtOk()
+
+If Empty(_cNumPr)
+    MSGALERT("Campo Produto, em branco !!!","Local 98")
+	Close(oDlg0)
+Else
+
+	 If SM0->M0_CODIGO == "02"
+	    MSGALERT("Rotina desenvolvida para empresa Verion !!!","Local 98")
+		Close(oDlg0)
+	 Endif
+
+	DbSelectarea("SB2")
+	DBSetOrder(1)
+	If DbSeek(xfilial("SB2")+_cNumPr+"98")
+		DbSelectArea("SB2")
+		RecLock("SB2",.F.)
+		SB2->B2_QATU  := SB2->B2_QATU  + _nQtdPr
+		SB2->B2_VATU1 := SB2->B2_VATU1 + _nQtdPr
+		MsUnlock("SB2")
+	Else
+	  MSGALERT("Produto nao encontrado no almox 98 !!!","Local 98")
+	Endif
+Endif
+Close(oDlg0)
+Return
+
+// BOTAO DE FECHAR
+Static function _ArFech()
+Close(oDlg0)
+Return

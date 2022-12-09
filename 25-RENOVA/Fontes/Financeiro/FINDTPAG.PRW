@@ -1,0 +1,13 @@
+#include "rwmake.ch"
+
+User Function FINDTPAG()
+                             
+DDATA := " "
+
+If Empty(SE2->E2_XDTPAG)
+  DDATA :=STRZERO(DAY(SE2->E2_VENCREA),2) + STRZERO(MONTH(SE2->E2_VENCREA),2) + STRZERO(YEAR(SE2->E2_VENCREA),4)
+ ELSE
+  DDATA :=STRZERO(DAY(SE2->E2_XDTPAG),2) + STRZERO(MONTH(SE2->E2_XDTPAG),2) + STRZERO(YEAR(SE2->E2_XDTPAG),4)
+Endif
+
+Return(DDATA)

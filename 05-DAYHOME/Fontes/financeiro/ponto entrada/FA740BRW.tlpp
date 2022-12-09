@@ -1,0 +1,13 @@
+#include 'totvs.ch'
+
+/*
+Author Robert Santos
+Em 12 abr 2012
+Funcao para adicionar menu no browse do contas a receber
+*/                                                      
+user function FA740BRW()
+
+local arotina := {}
+aAdd( aRotina,	{ "Cham. Ocorrencias" , "u_dhfinx1" , 0 , 6})
+
+return arotina

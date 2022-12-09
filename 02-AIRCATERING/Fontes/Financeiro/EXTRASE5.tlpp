@@ -1,0 +1,274 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±º Programa  ³ EXTRASE5                                º Data ³ 12/09/2018 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Autor     ³ Adriano Sato                                                º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Descricao ³ Rotina para a Extração dos Movimentos Bancarios do ERP      º±±
+±±º           ³ Protheus.                                                   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Sintaxe   ³ EXTRASE5()                                                  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Retorno   ³ nil                                                         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Uso       ³                                                             º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/ 
+User Function EXTRASE5()
+
+Local aArea		:= GetArea()
+
+Local dData1    := date()-30
+Local dData2    := date()
+Local cDestino	:= Space(150)
+Local lConv     := .F.
+
+Private cArquivo := Space(150)
+Private lOk      := .F.
+Private bOk      := { || If(!EMPTY(ALLTRIM(cDestino)), (lOk:=.T.,oDlg:End()), (lOk:=.F.,oDlg:End())) }
+Private bCancel  := { || lOk:=.F.,oDlg:End() }
+Private lEnd     := .F.
+
+Define MsDialog oDlg Title "Extração dos Movimentos Bancarios" From 08,10 To 18,120 Of GetWndDefault()
+
+@ 035, 006 SAY "Data de : " 	 	SIZE 060, 008 OF oDlg COLORS 16711680, 16777215 PIXEL
+@ 035, 100 MSGET oData1 VAR dData1  SIZE 200, 009 OF oDlg COLORS 0, 16777215 PICTURE "@D" PIXEL 
+    
+@ 050, 006 SAY "Data até : " 	SIZE 060, 008 OF oDlg COLORS 16711680, 16777215 PIXEL
+@ 050, 100 MSGET oData2 VAR dData2  SIZE 200, 009 OF oDlg COLORS 0, 16777215 PICTURE "@D" PIXEL 
+
+@ 065, 006  Say 	"Diretorio de Destino arquivo :" Size 120,12 Of oDlg Pixel
+@ 065, 100  MsGet 	cDestino 		Size 230,10 Of oDlg Pixel
+@ 065, 355 Button "…" 			Size 010,10 Action Eval({|| cDestino:=u_SelectFile() }) Of oDlg Pixel
+
+Activate MsDialog oDlg Centered On Init (EnchoiceBar(oDlg,bOk,bCancel))
+
+If lOk
+	oProcess:=MsNewProcess():New( { |lEnd| lConv:=u_PROCSE5(dData1, dData2, ALLTRIM(cDestino), @lEnd)}, "Extração dos Movimentos Bancarios", "Processando...", .F. )
+	oProcess:Activate()
+	If lConv
+		MsgInfo("Arquivo gerado com sucesso.")
+	Else
+		MsgInfo("Extração de dados cancelada.")
+	EndIf
+EndIf
+
+RestArea(aArea)
+
+Return 
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±º Programa  ³ PROCSE5                                 º Data ³ 12/09/2018 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Autor     ³ Adriano Sato                                                º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Descricao ³ Rotina para a Extração dos Movimentos Bancarios do ERP      º±±
+±±º           ³ Protheus.                                                   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Sintaxe   ³ PROCSE5(dData1, dData2, cDirDest, lEnd)                     º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Retorno   ³ Logico                                                      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Uso       ³                                                             º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function PROCSE5(dData1, dData2, cDirDest, lEnd)
+
+	nH := fCreate(cDirDest)
+	nTot1 := 0
+	nTot2 := 0
+	If nH == -1
+	   MsgStop("Falha ao criar arquivo - erro "+ALLTRIM(STR(ferror())))
+	   Return .F.
+	Endif
+	
+	dbSelectArea("SE5")
+	SE5->( dbSetOrder(1) ) 		// E5_FILIAL+DTOS(E5_DATA)+E5_BANCO+E5_AGENCIA+E5_CONTA+E5_NUMCHEQ
+	SE5->( dbGotop() )
+	If SE5->( dbSeek(xFilial('SE5')+Dtos(dData1)) )
+		While SE5->( !EOF() .AND. E5_FILIAL = xFilial('SE5') .AND. (E5_DATA >= dData1 .AND. E5_DATA <= dData2) )
+			nTot1 += 1
+			nTot2 += 1
+			SE5->( dbSkip() )
+		EndDo
+	EndIf
+	
+	oProcess:SetRegua1( nTot1 )
+
+	// Monta Mascara
+	cMask1 := u_Maskara(nTot1)
+	
+	nCont1 := 1
+	
+	SE5->( dbSetOrder(1) ) 		// E5_FILIAL+DTOS(E5_DATA)+E5_BANCO+E5_AGENCIA+E5_CONTA+E5_NUMCHEQ
+	SE5->( dbGotop() )
+	If SE5->( dbSeek(xFilial('SE5')+Dtos(dData1)) )
+		While SE5->( !EOF() .AND. E5_FILIAL = xFilial('SE5') .AND. (E5_DATA >= dData1 .AND. E5_DATA <= dData2) )
+			
+			// Monta Mascara
+			cMask2 := u_Maskara(nTot2)
+			
+			oProcess:SetRegua2( ntot2 )
+			
+			nCont2 := 1
+			
+			If lEnd
+				MsgInfo("Extração cancelada!","Fim")
+				Return .F.
+			Endif
+			
+			oProcess:IncRegua1("Total de registros processados : " + TRANSFORM(nCont1, cMask1) + " / " + TRANSFORM(nTot1, cMask1) )
+			
+			If ALLTRIM(SE5->E5_SITUACA)$"C" .OR. ALLTRIM(SE5->E5_TIPODOC)$"ES"
+			
+				If !EMPTY(SE5->E5_DEBITO)
+					_cCrd := SE5->E5_DEBITO
+				ElseIf !EMPTY(POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_DEBITO'))
+					_cCrd := POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_DEBITO')
+				ElseIf !EMPTY(POSICIONE('SA2', 1, xFilial("SA2")+SE5->E5_CLIFOR+SE5->E5_LOJA, 'A2_CONTA'))
+					_cCrd := POSICIONE('SA2', 1, xFilial("SA2")+SE5->E5_CLIFOR+SE5->E5_LOJA, 'A2_CONTA')
+				Else
+					_cCrd := ""
+				EndIf
+				
+				_cRed2:= ALLTRIM(Posicione("CT1",1,XFILIAL("CT1")+_cCrd,'CT1_RES'))
+				
+			
+				If !Empty(SE5->E5_CREDITO)
+					_cDeb := SE5->E5_CREDITO
+				ElseIf !EMPTY(POSICIONE('SA6', 1, xFilial("SA6")+SE5->E5_BANCO+SE5->E5_AGENCIA+SE5->E5_CONTA, 'A6_CONTA'))
+					_cDeb := POSICIONE('SA6', 1, xFilial("SA6")+SE5->E5_BANCO+SE5->E5_AGENCIA+SE5->E5_CONTA, 'A6_CONTA')
+				Else
+					_cDeb := ""
+				EndIf
+				
+				_cRed1:= ALLTRIM(Posicione("CT1",1,XFILIAL("CT1")+_cDeb,'CT1_RES'))
+			Else
+				If !EMPTY(SE5->E5_DEBITO)
+					_cDeb := SE5->E5_DEBITO
+				ElseIf !EMPTY(POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_DEBITO'))
+					_cDeb := POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_DEBITO')
+				ElseIf !EMPTY(POSICIONE('SA2', 1, xFilial("SA2")+SE5->E5_CLIFOR+SE5->E5_LOJA, 'A2_CONTA'))
+					_cDeb := POSICIONE('SA2', 1, xFilial("SA2")+SE5->E5_CLIFOR+SE5->E5_LOJA, 'A2_CONTA')
+				Else
+					_cDeb := ""
+				EndIf
+				
+				_cRed1:= ALLTRIM(Posicione("CT1",1,XFILIAL("CT1")+_cDeb,'CT1_RES'))
+				
+			
+				If !Empty(SE5->E5_CREDITO)
+					_cCrd := SE5->E5_CREDITO
+				ElseIf !EMPTY(POSICIONE('SA6', 1, xFilial("SA6")+SE5->E5_BANCO+SE5->E5_AGENCIA+SE5->E5_CONTA, 'A6_CONTA'))
+					_cCrd := POSICIONE('SA6', 1, xFilial("SA6")+SE5->E5_BANCO+SE5->E5_AGENCIA+SE5->E5_CONTA, 'A6_CONTA')
+				Else
+					_cCrd := ""
+				EndIf
+				
+				_cRed2:= ALLTRIM(Posicione("CT1",1,XFILIAL("CT1")+_cCrd,'CT1_RES'))
+				
+			EndIf
+			
+			
+			cLinha := SUBS(DTOS(SE5->E5_DATA),7,2)+"/"+SUBS(DTOS(SE5->E5_DATA),5,2)+"/"+SUBS(DTOS(SE5->E5_DATA),1,4)+";"
+			cLinha += _cRed1+";"
+			cLinha += _cRed2+";" 
+			cLinha += ALLTRIM(Transform(SE5->E5_VALOR*100, "999999999,99"))+";"
+			cLinha += ""+";" 
+			cLinha += ALLTRIM(IIF(!EMPTY(POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_HIST')),POSICIONE('SE2', 1, SE5->E5_FILIAL+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR+SE5->E5_LOJA, 'E2_HIST'),ALLTRIM(SE5->E5_PREFIXO)+" "+ALLTRIM(SE5->E5_NUMERO)+" "+ALLTRIM(SE5->E5_PARCELA)+POSICIONE("SA2",1,XFILIAL("SA2")+SE5->E5_CLIFOR+SE5->E5_LOJA,"A2_NOME")))
+			
+			
+			fWrite(nH,cLinha+chr(13)+chr(10) )
+			
+			SE5->( dbSkip() )
+			nCont1++
+			nCont2++
+		EndDo
+	EndIf
+		
+	fClose(nH)
+	
+Return .t.
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±º Programa  ³ SELECTFILE                             º Data ³ 23/10/2017 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Autor     ³ Adriano Sato                                               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Descricao ³ Rotina para selecao de Arquivos para importação.           º±±
+±±º           ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Sintaxe   ³ SELECTFILE()                                               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Retorno   ³ cArquivo                                                   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±º Uso       ³ Vyttra                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function SelectFile()
+Local cMaskDir := "Arquivos .CSV (.CSV) |*.CSV|Arquivos .TXT (.TXT) |*.TXT|"
+Local cTitTela := "Arquivo para a integração"
+Local lInfoOpen := .T.
+Local lDirServidor := .T.
+Local cOldFile := cArquivo
+
+cArquivo := cGetFile(cMaskDir,cTitTela,,cArquivo,lInfoOpen, (GETF_LOCALHARD+GETF_NETWORKDRIVE) ,lDirServidor)
+
+If !Empty(ALLTRIM(cArquivo))
+ If !File(cArquivo)
+  MsgStop("Arquivo Não Existe!")
+  cArquivo := cOldFile
+  Return .F.
+ EndIf
+Else
+ cArquivo := cOldFile
+EndIf
+
+Return cArquivo
+
+
+User Function Maskara(nQtde)
+Local nZ := 0
+Local nW := 0
+Local cPicture := ""
+Local aPicture := {}
+
+For nZ:=1 To LEN( ALLTRIM(STR(nQtde)) )
+ If MOD(nZ, 3) == 0 .and. LEN( ALLTRIM(STR(nQtde)) )>3
+  cPicture += "9."
+ Else
+  cPicture += "9"
+ EndIf
+Next nZ
+
+aPicture := StrTokArr(cPicture, ".")
+cPicture := '@E '
+
+For nW:=LEN(aPicture) To 1 Step -1
+ If nW == 1
+  cPicture += aPicture[nW]
+ ELse
+  cPicture += aPicture[nW]+","
+ EndIf
+Next nW
+
+Return cPicture

@@ -1,0 +1,349 @@
+#Include "Protheus.ch"
+
+User Function FAETHX06(oObj, nOp, aDados)
+
+	Local aCabec            := {}
+	Local aLinha            := {}
+	Local aItens            := {}
+	Local aDadosC6          := {}
+	Local cData             := ""
+	Local cRet              := ""
+	Local nPos
+	Local nI
+	Local nJ
+	Local nLoop
+	Local oJson
+	Local aCbox             := {}
+	Local cItem				:= '00'
+	
+	Private lMsErroAuto     := .F. // variável de controle interno da rotina automatica que informa se houve erro durante o processamento
+	Private lMsHelpAuto     := .T.  // variável que define que o help deve ser gravado no arquivo de log e que as informações estão vindo à partir da rotina automática.
+	Private lAutoErrNoFile  := .T. // força a gravação das informações de erro em array para manipulação da gravação ao invés de gravar direto no arquivo temporário
+	Private __LOCALDRIVE    := "DBFCDX"
+	Private lPortalEthosx	:= .T.
+
+	Default aDados          := ClassDataArr(oObj[1])
+
+	DbSelectArea("SX3")
+	SX3->(DbSetOrder(1))
+	DbSelectArea("SCJ")
+	SCJ->(DbSetOrder(1))
+	If SX3->( MsSeek( "SCJ" ) )
+
+		While !( SX3->( EOF() ) ) .And. SX3->X3_ARQUIVO == "SCJ"
+						
+			nPos := aScan( aDados, { |x| AllTrim( x[1] ) == AllTrim(SX3->X3_CAMPO) })
+
+			If !(nPos == 0)
+				If AllTrim(SX3->X3_CAMPO) == "CJ_NUM"
+					If  "GETSX" $ UPPER(aDados[nPos, 2])
+						SX3->( DbSkip() )
+					
+						Loop
+					Else	//quando for alteração do pedido
+						If !nOp == 5
+							nOp := 4
+						EndIf
+					EndIf
+				EndIf
+				
+				If SX3->X3_TIPO $ "C|M"
+
+					If ValType(aDados[nPos, 2]) == "O"
+
+						aCbox := ClassDataArr(aDados[nPos, 2])
+
+						aAdd(aCabec, {AllTrim(SX3->X3_CAMPO), aCbox[1, 2], Nil })
+
+					Else
+
+						aAdd(aCabec, {AllTrim(SX3->X3_CAMPO), AllTrim(aDados[nPos, 2]), Nil })
+
+					EndIf
+
+				ElseIf SX3->X3_TIPO == "N"
+
+					If ValType(aDados[nPos, 2]) == "N"
+
+						aAdd(aCabec, {AllTrim(SX3->X3_CAMPO), aDados[nPos, 2], Nil })
+
+					Else
+
+						aAdd(aCabec, {AllTrim(SX3->X3_CAMPO), Val(aDados[nPos, 2]), Nil })
+					
+					EndIF
+
+				ElseIf SX3->X3_TIPO == "D"
+
+					cData := StrTran(aDados[nPos, 2], "-", "")
+					
+					cData := SubStr(cData, 1, 8)
+
+					aAdd(aCabec, {AllTrim(SX3->X3_CAMPO), StoD(cData), Nil })
+
+				EndIf
+
+			EndIf
+
+			SX3->( DbSkip() )
+
+		EndDo
+
+	EndIf
+	
+	If !nOp == 5
+		If SX3->( MsSeek( "SCK" ) )
+
+			For nI := 1 To Len(oObj[2])
+
+				aDadosC6 := oObj[2,nI]
+
+				aLinha := {}
+
+				For nJ := 1 To Len(aDadosC6)
+
+					SX3->(DbGoTop())
+	
+					If SX3->( MsSeek( "SCK" ) )
+
+						While !( SX3->( EOF() ) ) .And. SX3->X3_ARQUIVO == "SCK"
+	
+							If AllTrim(SX3->X3_CAMPO) == "CK_ITEM"
+								cItem := Soma1(cItem)
+								SX3->( DbSkip() )
+								Loop
+							Endif
+							If AllTrim(aDadosC6[nJ]:NOME) == AllTrim(SX3->X3_CAMPO)
+	
+								If SX3->X3_TIPO $ "C|M"
+									If AllTrim(SX3->X3_CAMPO) == "CK_TES" .And. "TRU" $ UPPER(aDadosC6[nJ]:CONTEUDO)
+				
+										SX3->( DbSkip() )
+									
+										Loop
+				
+									EndIf
+									If !AllTrim(SX3->X3_CAMPO) == 'CK_OPER'
+										aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), aDadosC6[nJ]:CONTEUDO, Nil })
+									Endif
+								ElseIf SX3->X3_TIPO == "N"
+								
+									If ValType(aDadosC6[nJ]:CONTEUDO) == "N"
+								
+										aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), aDadosC6[nJ]:CONTEUDO, Nil })
+								
+									Else
+								
+										aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), Val(aDadosC6[nJ]:CONTEUDO), Nil })
+									
+									EndIf
+	
+								ElseIf SX3->X3_TIPO == "D"
+	
+									cData := StrTran(aDadosC6[nJ]:CONTEUDO, "-", "")
+	
+									aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), StoD(cData), Nil })
+	
+								EndIf
+	
+							EndIf
+	
+							SX3->( DbSkip() )
+	
+						EndDo
+				
+					EndIf
+			
+				Next
+			
+				aadd(aItens,aLinha)
+			
+			Next
+
+		EndIf
+	Else
+		//exclusão do orçamento
+		SX3->(DbSetOrder(2))	
+		For nLoop := 1 To Len(oObj)
+			
+			if Len(ClassDataArr(oObj[nLoop])) == 2 //cabeçalho
+			
+				If SX3->( MsSeek( AllTrim(oObj[nLoop]:NOME) ) )
+				
+					If SX3->X3_TIPO $ "C|M"
+						
+						aAdd(aCabec, {AllTrim(oObj[nLoop]:NOME), AllTrim(oObj[nLoop]:CONTEUDO), Nil })
+
+					EndIf
+
+					If SX3->X3_TIPO == "N"
+
+						If ValType(oObj[nLoop]:CONTEUDO) == "N"
+
+							aAdd(aCabec, {AllTrim(oObj[nLoop]:NOME), oObj[nLoop]:CONTEUDO, Nil })
+
+						Else
+							aAdd(aCabec, {AllTrim(oObj[nLoop]:NOME), Val(oObj[nLoop]:CONTEUDO), Nil })
+						EndIF
+					EndIF
+					If SX3->X3_TIPO == "D"
+
+						cData := StrTran(oObj[nLoop]:CONTEUDO, "-", "")
+					
+						cData := SubStr(cData, 1, 8)
+						If "/" $ oObj[nLoop]:CONTEUDO
+							aAdd(aCabec, {AllTrim(oObj[nLoop]:NOME), CtoD(oObj[nLoop]:CONTEUDO), Nil })
+						Else
+							aAdd(aCabec, {AllTrim(oObj[nLoop]:NOME), StoD(oObj[nLoop]:CONTEUDO), Nil })		
+						Endif 
+						
+
+					EndIf
+
+				EndIf
+			Endif	
+		Next
+	
+		//tratamento para os Itens
+	For nLoop := 1 To Len(oObj)
+		aLinha := {}
+				
+		if Len(ClassDataArr(oObj[nLoop])) == 1 //itens
+			For nJ := 1 To Len(oObj[nLoop]:Itens)
+				SX3->(DbSetOrder(1))
+				SX3->(DbGoTop())
+	
+				If SX3->( MsSeek( "SCK" ) )
+
+					While !( SX3->( EOF() ) ) .And. SX3->X3_ARQUIVO == "SCK"
+	
+						If AllTrim(oObj[nLoop]:Itens[nJ]:NOME) == AllTrim(SX3->X3_CAMPO)
+	
+							If SX3->X3_TIPO $ "C|M"
+									
+								If !AllTrim(SX3->X3_CAMPO) == 'CK_OPER'
+									aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), oObj[nLoop]:Itens[nJ]:CONTEUDO, Nil })
+								Endif
+							ElseIf SX3->X3_TIPO == "N"
+								
+								If ValType(oObj[nLoop]:Itens[nJ]:CONTEUDO) == "N"
+								
+									aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), oObj[nLoop]:Itens[nJ]:CONTEUDO, Nil })
+								
+								Else
+								
+									aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), Val(oObj[nLoop]:Itens[nJ]:CONTEUDO), Nil })
+									
+								EndIf
+	
+							ElseIf SX3->X3_TIPO == "D"
+	
+								cData := StrTran(oObj[nLoop]:Itens[nJ]:CONTEUDO, "-", "")
+	
+								aAdd(aLinha, {AllTrim(SX3->X3_CAMPO), StoD(cData), Nil })
+	
+							EndIf
+	
+						EndIf
+	
+						SX3->( DbSkip() )
+	
+					EndDo
+				
+				EndIf
+			
+			Next
+			
+			aadd(aItens,aLinha)
+				
+		Endif
+	Next
+Endif
+	
+	
+If Findfunction("U_PEEPRORC")
+	If ValType(aRetPee :=  U_PEEPRORC(aCabec,aItens,nOp))  == "A"
+
+		aCabec  := aClone(aRetPee[1])
+		aItens	:= aClone(aRetPee[2])
+	EndIf
+EndIf
+
+MSExecAuto({|x,y,z| mata415(x,y,z)},aCabec,aItens,nOp)
+
+oJson   := Json():New()
+
+oJson:cObjeto := ""
+
+If !lMsErroAuto
+
+	If IsInCallStack("U_FAETHA03")
+		
+		Return "OK"
+		
+	EndIF
+	
+	oJson:setItem("status", "ok")
+		
+	If nOp == 4
+		
+		oJson:setItem("mensagem", "Orcamento alterado com sucesso!")
+		
+		CorrigeItem(aCabec,aItens)
+	
+	Elseif nOp == 5
+		oJson:setItem("mensagem", "Orcamento excluido com sucesso!")
+	Else
+		
+		oJson:setItem("mensagem", "Orcamento incluido com sucesso!")
+		
+	EndIf
+	
+	oJson:setObjeto()
+	
+Else
+
+	cMsgErro	:= u_FAETHX09(GETAUTOGRLOG())
+
+	If IsInCallStack("U_FAETHA03")
+		
+		Return cMsgErro
+		
+	EndIF
+
+	oJson:setItem("status", "erro")
+	
+	If nOp == 4
+		
+		oJson:setItem("mensagem", "Falha ao alterar orçamento - " + StrTran(cMsgErro, chr(13)+chr(10), ""))
+	
+	Else
+		
+		oJson:setItem("mensagem", "Falha ao incluir orçamento - " + StrTran(cMsgErro, chr(13)+chr(10), ""))
+		
+	EndIf
+		
+	oJson:setObjeto()
+	
+EndIf
+	
+Return oJson:cObjeto
+
+
+
+Static Function CorrigeItem(aCabec,aItens)
+	Local cNumOrc 	:= aCabec[ascan(aCabec,{|x| AllTrim(x[1]) == "CJ_NUM"}),2]
+	Local cItem 	:= '00'
+	Local cStatement:= ''
+	
+	
+	DbSelectArea("SCK")
+	SCK->(dbSetOrder(1))
+	SCK->(dbGoTop())
+	While ((SCK->(! EOF())) .AND. (SCK->(CK_FILIAL+CK_NUM) == xFilial("SCK")+cNumOrc))
+		cItem := Soma1(cItem)
+		cStatement := "UPDATE "+RetSqlName("SCK")+"  CK_ITEM = '"+cItem+"' WHERE CK_FILIAL = '"+xFilial("SCK")+"' AND CK_NUM = '"+cNumOrc+"' AND CK_PRODUTO = '"+SCK->CK_PRODUTO+"'"
+		TCSqlExec(cStatement)
+		SCK->(dbSkip())
+	EndDo
+REturn

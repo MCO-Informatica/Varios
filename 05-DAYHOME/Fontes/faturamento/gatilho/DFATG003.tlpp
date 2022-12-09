@@ -1,0 +1,19 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+#include "rwmake.ch"
+
+
+User Function DFATG003()
+
+Local _cRet		:= ""
+
+If M->C5_TIPO$"I"
+	_cRet	:=	MaFisGet("IT_VALSOL")  
+                                                                                
+Else
+	_cRet	:=	MaFisRef("IT_VALSOL","MT100",M->C6_ICMSRET)                                                                                     
+
+EndIf
+
+
+Return (_cRet)

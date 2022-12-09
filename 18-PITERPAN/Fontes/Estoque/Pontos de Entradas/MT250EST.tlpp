@@ -1,0 +1,92 @@
+#Include 'Protheus.ch'
+#Include "rwmake.ch"
+#Include "tbiconn.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | MT250EST          | Autor | Lucas Baia          | Data |    24/06/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Chamado apos confirmação de estorno de produções. Este ponto de entrada
+//        | permite validar algum campo especifico do usuario antes de se realizar o Estorno.
+//---------------------------------------------------------------------------------
+// Uso    | PITERPAN
+//---------------------------------------------------------------------------------
+
+
+User Function MT250EST()
+
+Local _aArea    := GetArea()
+Local _lRet     := .T.
+Local _aCab1    := {}
+Local _aItem    := {}
+Local _atotitem := {}
+Local cSvFilAnt := cFilAnt
+Private lMsHelpAuto := .t. // se .t. direciona as mensagens de help
+Private lMsErroAuto := .f. //necessario a criacao
+
+_cCodProd   := Alltrim(SD3->D3_COD)
+_cCodUM     := Alltrim(SD3->D3_UM)
+_nQuantProd := SD3->D3_QUANT
+_nLocalProd := Alltrim(SD3->D3_LOCAL)
+
+    
+    cFilAnt := "01"
+
+    _aCab1 := {{"D3_FILIAL"    ,cFilAnt, NIL},;
+            {"D3_DOC"    ,NextNumero("SD3",2,"D3_DOC",.T.), NIL},;
+            {"D3_TM"      ,"003"     , NIL},; //---> 003 - ENTRADA
+            {"D3_CC"      ,"        ", NIL},;
+            {"D3_EMISSAO" ,ddatabase , NIL}}
+
+
+    _aItem:= {{"D3_COD"    ,_cCodProd   ,NIL},;
+            {"D3_UM"       ,_cCodUM     ,NIL},; 
+            {"D3_QUANT"    ,_nQuantProd ,NIL},;
+            {"D3_LOCAL"    ,_nLocalProd ,NIL}}
+
+    aadd(_atotitem,_aitem) 
+
+    MSExecAuto({|x,y,z| MATA241(x,y,z)},_aCab1,_atotitem,3)
+
+    If lMsErroAuto 
+        Mostraerro()
+    EndIf
+
+//---> Incluir a Transferência de Estoque para Filial 90 e Armazém 01.
+    //PREPARE ENVIRONMENT EMPRESA "01" FILIAL "90" MODULO "EST"
+
+    _aCab1      := {}
+    _aItem      := {}
+    _atotitem   := {}
+
+    cFilAnt := "90"
+
+    _aCab1 := {{"D3_FILIAL"    ,cFilAnt, NIL},;
+            {"D3_DOC"    ,NextNumero("SD3",2,"D3_DOC",.T.), NIL},;
+            {"D3_TM"      ,"511"     , NIL},; //---> 511 - SAÍDA
+            {"D3_CC"      ,"        ", NIL},;
+            {"D3_EMISSAO" ,ddatabase, NIL}}
+
+
+    _aItem:= {{"D3_COD"     ,_cCodProd   ,NIL},;
+    {"D3_UM"              ,_cCodUM     ,NIL},; 
+    {"D3_QUANT"           ,_nQuantProd ,NIL},;
+    {"D3_LOCAL"           ,"01" ,NIL}}
+
+    aadd(_atotitem,_aitem) 
+
+    //ALERT(SD3->D3_NUMSEQ)
+    MSExecAuto({|x,y,z| MATA241(x,y,z)},_aCab1,_atotitem,3)
+
+    If lMsErroAuto 
+        Mostraerro()
+    else
+        MsgInfo("Foi feita a transferência de Estoque do Armazém 01 para 90 pela Filial PITERPAN!","ATENÇÃO")
+    EndIf
+
+    //RESET ENVIRONMENT
+
+cFilAnt := cSvFilAnt
+
+RestArea(_aArea)
+
+Return _lRet

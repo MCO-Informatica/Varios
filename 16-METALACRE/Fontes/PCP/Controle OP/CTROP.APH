@@ -1,0 +1,172 @@
+<%#include "tbiconn.ch"%>
+<%#include "topconn.ch"%>
+<html>
+<head>
+  <meta
+ content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>Processo Produtivo - METALACRE</title>
+  <meta http-equiv="refresh"
+ content="10;URL=http://192.168.0.13:8000/h_ctrop.apl">
+</head>
+<body>
+<%
+%>
+
+<table
+ style="text-align: left; margin-left: auto; margin-right: auto; font-family: Arial; width: 1205px; height: 232px;"
+ border="1" cellpadding="2" cellspacing="2">
+  <tbody>
+    <tr>
+       <td
+ style="text-align: center; font-weight: bold; width: 145px; background-color: rgb(153, 255, 153);"><img
+ style="width: 281px; height: 97px;" alt=""
+ src="http://www.metalacre.com.br/wp-content/uploads/2015/03/logotipometalacrepeq1.jpg"></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 264px; background-color: rgb(153, 255, 153);"
+ colspan="9" rowspan="1"><big><big><big><big>PROCESSO PRODUTIVO</big></big></big></big></td>
+      <td colspan="1" rowspan="1"
+ style="background-color: rgb(255, 204, 153); text-align: center;"><big><big><big><big><small><small><%= DtoC(Date()) %><br>
+<%= Left(Time(),5) %></small></small></big></big></big></big></td>
+    </tr>
+    <tr>
+      <td
+ style="text-align: center; font-weight: bold; width: 145px; background-color: rgb(192, 192, 192);"><big><big>Código</big></big></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 223px; background-color: rgb(192, 192, 192);"><big><big>Cliente Produção</big></big></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 111px; background-color: rgb(192, 192, 192);"><big><big>Qtde.</big></big></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 111px; background-color: rgb(192, 192, 192);"><big><big>Data Inicio</big></big></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 96px; background-color: rgb(192, 192, 192);"><big><big>Hora Inicio</big></big></td>
+      <td
+ style="text-align: center; font-weight: bold; width: 98px; background-color: rgb(192, 192, 192);"><big><big>Ordem Produção</big></big></td>
+      <td
+ style="font-weight: bold; width: 95px; background-color: rgb(192, 192, 192);"><big><big>Operador</big></big></td>
+      <td
+ style="background-color: rgb(192, 192, 192);"><big><big><span style="font-weight: bold;">Status</span></big></big></td>
+      <td
+ style="text-align: center; width: 264px; background-color: rgb(192, 192, 192);"><big><big><span style="font-weight: bold;">Decorrido</span></big></big></td>
+ <td colspan="1" rowspan="1"
+ style="text-align: center; width: 264px; background-color: rgb(192, 192, 192);"><big><big><span style="font-weight: bold;">Recurso</span></big></big></td>
+ <td colspan="1" rowspan="1"
+ style="text-align: center; width: 264px; background-color: rgb(192, 192, 192);"><big><big><span style="font-weight: bold;">Operacao</span></big></big></td>
+    </tr>
+<%        PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" MODULO "FAT"
+
+               cQuery := ""
+               cQuery += "SELECT PWU_PROD, PWU_LOTECT, PWU_NUMLOT, PWU_QUANT, PWU_STATUS, PWU_DTINI, PWU_HRINI, PWU_DTFIM, PWU_HRFIM, PWU_OP PWU_OP, RA_NOME, PWU_OPERAC, G2_DESCRI, PWU_RECURS, H1_DESCRI, PWU_HRATE, PWU_TEMPO "
+               cQuery += "FROM " + RetSqlName("PWU") + " PWU (NOLOCK), " + RetSqlName("SRA") + " SRA (NOLOCK) , " + RetSqlName("SG2") + " SG2 (NOLOCK) , " + RetSqlName("SH1") + " SH1 (NOLOCK) "
+               cQuery += "WHERE PWU_FILIAL = '" + xFilial("PWU") + "' "
+               cQuery += "AND RA_FILIAL = '" + xFilial("SRA") + "' "
+               cQuery += "AND H1_FILIAL = '" + xFilial("SH1") + "' "
+               cQuery += "AND G2_FILIAL = '" + xFilial("SG2") + "' "
+               cQuery += "AND PWU_IDOPER = RA_MAT "
+               cQuery += "AND H1_CODIGO = PWU.PWU_RECURS "
+               cQuery += "AND G2_OPERAC = PWU.PWU_OPERAC "
+               cQuery += "AND G2_RECURSO = PWU.PWU_RECURS "
+               cQuery += "AND G2_PRODUTO = PWU.PWU_PROD "
+               cQuery += "AND G2_CODIGO = PWU.PWU_ROTEIR "
+               cQuery += "AND PWU.D_E_L_E_T_ = '' "
+               cQuery += "AND SG2.D_E_L_E_T_ = '' "
+               cQuery += "AND SRA.D_E_L_E_T_ = '' "
+               cQuery += "AND SH1.D_E_L_E_T_ = '' "
+               cQuery += "AND PWU_STATUS IN('P','F','E') "
+               cQuery += "AND ((PWU_DTATE='' AND PWU_HRATE='') OR (PWU_DTATE = '" + DtoS(dDataBase) + "' AND PWU_HRATE > '" + Left('10:00:00',5) + "')) "
+               cQuery += "ORDER BY PWU.R_E_C_N_O_ DESC "
+               
+               If Select("FER") <> 0
+                    dbSelectArea("FER")
+                       dbCloseArea()
+               Endif
+
+               TCQuery cQuery NEW ALIAS "FER"                      
+               
+               TcSetField('FER','PWU_DTINI','D')
+               TcSetField('FER','PWU_DTFIM','D')
+
+               dbSelectArea("FER")
+               dbgotop()
+
+			    WHILE !EOF()   
+					nDias	:=	Date()-FER->PWU_DTINI
+
+					If nDias > 0
+						nHrInicio := Val(StrTran(FER->PWU_HRINI,':','.'))      
+						nHrAtual  := Val(StrTran(Left(Time(),5),':','.'))      
+						nTotHora  := SubHoras(24.0,nHrInicio)
+						
+						
+						nDias--
+						
+						For nHr := 1 To nDias-1
+							nTotHora := SomaHoras(nTotHora,24.00)
+						Next
+						
+						nTotHora := SomaHoras(nTotHora,nHrAtual)
+						cDecorrido := StrTran(Str(nTotHora),'.',':')
+					Else
+						cDecorrido := ELAPTIME(AllTrim(FER->PWU_HRINI)+':00',Time())
+					Endif					
+               		%>
+					    <tr>
+					      <td
+					 style="font-weight: bold; width: 145px; text-align: center;"> <%= FER->PWU_PROD %> </td>
+					      <td
+					 style="font-weight: bold; text-align: center; width: 223px; white-space: nowrap;"> <%= 'CLIENTE' %> </td>
+					      <td
+					 style="font-weight: bold; text-align: right; width: 111px;"> <%= TransForm(FER->PWU_QUANT,"@E 9,999,999.999") %> </td>
+					      <td
+					 style="font-weight: bold; text-align: center; width: 111px;"> <%= DtoC(FER->PWU_DTINI) %> </td>
+					      <td
+					 style="font-weight: bold; text-align: center; width: 96px;"> <%= FER->PWU_HRINI %> </td>
+					      <td
+					 style="font-weight: bold; text-align: center; width: 98px;"> <%= FER->PWU_OP %> </td>
+					      <td
+					 style="font-weight: bold; width: 95px;"> <%= Capital(FER->RA_NOME) %> </td>
+					      <td style="text-align: center;"><img
+					 style="width: 40px; height: 40px;" alt=""
+					 src= <%= Iif(FER->PWU_STATUS=='E',"http://192.168.1.102:8099/glpi/status/Status_Vermelho.jpeg",Iif(Empty(FER->PWU_HRATE),"http://192.168.1.102:8099/glpi/status/Status_Verde.jpeg","http://192.168.1.102:8099/glpi/status/Status_Azul.jpeg")) %> ></td>
+					      <td
+					 style="text-align: center; font-weight: bold; width: 264px; background-color: rgb(255, 255, 255);"> <%= Iif(Empty(FER->PWU_HRATE), cDecorrido, FER->PWU_TEMPO) %>					
+					 </td>
+						  <td
+					 style="font-weight: bold; text-align: center; width: 98px;"> <%= FER->H1_DESCRI %> </td>					 
+						  <td
+					 style="font-weight: bold; text-align: center; width: 98px;"> <%= FER->G2_DESCRI %> </td>					 
+				  	    </tr>
+		             <%
+                    
+                    FER->(dbSkip(1))
+				Enddo
+               	FER->(dbCloseArea())
+               
+               RESET ENVIRONMENT %>
+        </tr>
+    <tr>
+      <td
+ style="background-color: rgb(204, 204, 255); width: 264px;"
+ colspan="10" rowspan="1">Mensagens:</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;"
+ colspan="10" rowspan="1"><img
+ style="width: 40px; height: 40px;" alt=""
+ src="http://192.168.1.102:8099/glpi/status/Status_Verde.jpeg">
+ Iniciada
+Opera&ccedil;&atilde;o&nbsp;<img
+ style="width: 40px; height: 40px;" alt=""
+ src="http://192.168.1.102:8099/glpi/status/Status_Azul.jpeg">
+Opera&ccedil;&atilde;o Finalizada&nbsp;<img
+ style="width: 40px; height: 40px;" alt=""
+ src="http://192.168.1.102:8099/glpi/status/Status_Vermelho.jpeg">
+Opera&ccedil;&atilde;o Encerrada </td>
+    </tr>
+  </tbody>
+</table>
+<br style="font-family: Arial;">
+</body>
+</html>
+
+

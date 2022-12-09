@@ -1,0 +1,113 @@
+#include 'protheus.ch'
+
+
+/*/{Protheus.doc} ValidaShelfLife
+description
+@type function
+@version 
+@author marcio.katsumata
+@since 14/04/2020
+@param cCodigoCliente, character, param_description
+@param cCodigoLoja, character, param_description
+@param cDocumento, character, param_description
+@param cItem, character, param_description
+@param cProduto, character, param_description
+@param cArmazem, character, param_description
+@param cLote, character, param_description
+@param nQuantidade, numeric, param_description
+@param lExibe, logical, param_description
+@return return_type, return_description
+/*/
+user function ValidaShelfLife(cCodigoCliente, cCodigoLoja,cDocumento, cItem,cProduto,cArmazem, cLote, nQuantidade,lExibe)
+    local lRetorno as logical
+    Local cArqLog  as character
+    local cPathLog as character
+    local cUserName as character
+    local nI as numeric
+    local lGrvLog as logical
+    local nHandle as numeric
+    local nDataAtual as numeric
+    local nDiaShelf  as numeric
+    local nDiasVenc  as numeric
+    local nPerShelf  as numeric
+    local nPerShelf  as numeric
+	local cMsgShelf  as character
+	local aAreasRst  as array
+
+	default lExibe := .F.
+
+	aAreasRst := { SA1->(getArea()), SB8->(getArea())}
+    lRetorno  := .T.
+    cUserName := UsrRetName(__cUserId)
+    cPathLog  := "\shellife\"
+    lGrvLog   := SuperGetMV('ES_GRVLOG' , .F., .F.) //Habilita o gravacao do LOG
+    cMsgShelf := ""
+
+    if !file(cPathLog)
+        makeDir(cPathLog)
+    endif
+
+    cArqLog  := "LT_PEDIDO_"+Alltrim(cDocumento)+".LOG"
+    cPathLog += cArqLog
+
+	DBSelectArea("SA1")
+	SA1->(dbSetOrder(1))
+	SA1->(dbSeek(xFilial("SA1")+cCodigoCliente+cCodigoLoja))
+
+	//Calcula o Shelf Life do Lote
+	IF SA1->A1_FATVALI > 0
+		
+		IF lGrvLog
+			FWrite(nHandle,CRLF)
+			FWrite(nHandle,"Calculo do Shelf Life"+CRLF)
+		Endif
+		
+		DBSelectArea("SB8")
+		SB8->(DBSetOrder(3)) //B8_FILIAL+B8_PRODUTO+B8_LOCAL+B8_LOTECTL+B8_NUMLOTE+DTOS(B8_DTVALID)
+		SB8->(DBSeek(xFilial("SB8")+cProduto+cArmazem+cLote))
+
+		nDataAtual := MsDate()
+		nDiaShelf  := SB8->B8_DTVALID - SB8->B8_DFABRIC
+		nDiasVenc  := SB8->B8_DTVALID - nDataAtual
+		nPerShelf  := Round((nDiasVenc/nDiaShelf)*100,0)
+		nPerShelf  := 100 - nPerShelf
+
+		lRetorno := IIF(nPerShelf >= SA1->A1_FATVALI,.F.,.T.)
+
+		cMsgShelf += "Usa Lote: "+iif(lRetorno,"SI", "NO")+CRLF+;
+		             "Lote: "+cLote+CRLF+;
+					 "Fecha Fabr.: "+DTOC(SB8->B8_DFABRIC)+CRLF+;
+					 "Validez: "+DTOC(SB8->B8_DTVALID)+CRLF+;
+					 "Fecha Atual: "+DTOC(MsDate())+CRLF+;
+			         "Dias Shelf: "+alltrim(Trans(nDiaShelf,'@E 999,999'))+CRLF+;
+					 "Dias Venc.: "+alltrim(Trans(nDiasVenc,'@E 999,999'))+CRLF+;
+					 "Per Shelf: "+alltrim(Trans(nPerShelf,'@E 999 %'))+CRLF+;
+			         "Sld.Dispo: "+alltrim(trans(SB8->B8_SALDO,'@E 999,999.999'))+CRLF+CRLF		
+
+		IF lGrvLog
+			If File(cArqLog)
+				nHandle := FOpen(cArqLog, 1)
+				FSeek(nHandle,0,2)
+			Else
+				nHandle := FCreate(cArqLog, 0)
+			Endif
+			FWrite(nHandle,Repl('-',211)+CRLF)
+			FWrite(nHandle,"Usuario: "+cUserName+"   Data: "+Dtoc(Date())+"   Hora: "+Time()+CRLF)
+			FWrite(nHandle,CRLF)
+			FWrite(nHandle,"Produto: "+cProduto+"   Item: "+cItem+"   Local: "+cLocal+"   Lote: "+cLote+;
+                           "   Fator Validade: "+Trans(SA1->A1_FATVALI,'@E 999.99 %')+"   Qtde. Solicitada: "+Trans(nQuantidade,'@E 999,999.999')+CRLF)
+			FWrite(nHandle,cMsgShelf)
+		Endif
+		
+	Endif
+
+    if lExibe .and. !lRetorno
+
+		eecview("***LOTE BLOQUEADO EN LA REGLA DE SHELF LIFE***"+CRLF+cMsgShelf)
+
+	endif
+
+	aEval(aAreasRst, {|aArea|restArea(aArea)})
+	aSize(aAreasRst,0)
+
+return lRetorno

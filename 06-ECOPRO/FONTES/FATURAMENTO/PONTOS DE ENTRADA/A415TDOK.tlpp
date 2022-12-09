@@ -1,0 +1,217 @@
+#Include "Protheus.ch"
+
+#DEFINE cFONT   '<b><font size="6" color="red"><b><u>'
+#DEFINE cFONTOK '<font size="5" color="black">'
+#DEFINE cNOFONT '</b></font></u></b> '
+/*/{Protheus.doc} User Function A415TDOK
+    Ponto de Entrada que se refere a Validação da tudook.
+    @type  Function
+    @author Lucas Baia / Cairê Vieira - UPDUO
+    @since 26/05/2021
+    @version version
+    @param
+    @return lRet
+    @example
+    (examples)
+    @see https://tdn.totvs.com/pages/releaseview.action?pageId=6784039
+    /*/
+User Function A415TDOK()
+	Local lRet      := .T.
+	Local nTotal    := 0
+	Local nTotBru   := 0
+	Local nTotPli   := 0
+	Local n         := 0
+	Local cTipoCp   := "" 
+	Local cCondPag  := ""
+	Local nParc     := 1
+	Local nX        := 0
+    Local nEntra    := 0
+	Local aArea     := GetArea()
+	Local aAreaA1   := SA1->(GetArea())
+	Private nTot1   := 0  
+	Private nTot2   := 0   
+	Private nTot4   := 0  
+	//Private nIt     := 1
+	//Local aAreaB1   := SB1->(GetArea())
+
+	cTipoCp := Posicione("SE4",1,xFilial("SE4")+M->CJ_CONDPAG,"E4_TIPO")
+
+	If cTipoCp == '1'
+		cCondPag := AllTrim(Posicione("SE4",1,xFilial("SE4")+M->CJ_CONDPAG,"E4_COND"))
+		For nX := 1 to Len(cCondPag)
+			If SubStr(cCondPag,nX,1) == ","
+				nParc++
+			EndIf
+		Next
+
+	EndIf
+
+//-->Cenário abaixo é para quando clicar em Confirmar no Orçamento de Venda, precisa-se verificar se o Valor Total do Orçamento está dentro de acordo com Limite de Crédito do Cliente.
+
+	DbSelectArea('SA1')
+	SA1->(DbSetOrder(1))
+	SA1->(DbGoTop())
+
+	SB1->(DbSetOrder(1))
+ 
+	DbSelectArea("TMP1")
+	Count To n
+	TMP1->(DbGoTop())
+
+ 	While TMP1->(!Eof())
+		SB1->(DbSeek(FWxFilial('SB1')+TMP1->CK_PRODUTO)) 
+
+
+	    CALCTOTAL(M->CJ_FILIAL+M->CJ_NUM,.t.,M->CJ_CLIENTE,M->CJ_LOJA,1,Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA,"A1_TIPO") )
+
+		nTotBru += SB1->B1_PESBRU*TMP1->CK_QTDVEN  //B1_PESBRU - PESO BRUTO
+		nTotPli += SB1->B1_PESO*TMP1->CK_QTDVEN   //B1_PESO   - Peso Liquido
+		nTotal  += nTot1 + nTot2 + nTot4 //--> Gravará o valor total do Orçamento
+
+		TMP1->(DbSkip())
+	EndDo
+
+	M->CJ_XPBRUTO := nTotBru 
+	M->CJ_XPESOL  := nTotPli 
+
+	If (Left(AllTrim(cCondPag),1)  == "0" .OR. Left(AllTrim(cCondPag),2)  == "1,") .AND. cTipoCp == '1'
+        nEntra := Round(nTotal / nParc,2)
+	EndIF
+
+	IF cTipoCp == '9'
+	   nEntra := M->CJ_PARC1
+	EndIf
+	
+
+
+	IF SA1->(DbSeek(FWxFilial('SA1') +M->CJ_CLIENTE+M->CJ_LOJA))
+		IF nTotal > (SA1->A1_LC + nEntra) .AND. M->CJ_CONDPAG <> "001" .AND. !"CARTAO"$AllTrim(M->CJ_XDESCPG) //--> Verificará se o Valor Total é maior do que o Limite de Crédito do Cliente, se caso SIM, não deixará concluir o Orçamento.
+			lRet := .F.
+			Alert( cFONT+"ATENÇÃO" + cNOFONT + cFONTOK + "<br>Orçamento não pode ser gravado, pois o Limite de Crédito do Cliente é inferior!"+chr(13)+;
+				"<br>Limite de Crédito do Cliente: R$ "+Transform(SA1->A1_LC + nEntra,"@E 999,999,999.99")+chr(13)+;
+				"Valor do Orçamento: R$ "+Transform(nTotal,"@E 999,999,999.99")+cNOFONT)
+
+		ENDIF
+	ENDIF
+
+	If cTipoCp == '9'
+	
+
+		If Round(M->(CJ_PARC1+CJ_PARC2+CJ_PARC3+CJ_PARC4+CJ_PARC5+CJ_PARC6+CJ_PARC7+CJ_PARC8+CJ_PARC9+CJ_PARCA),2) <> ROUND(nTotal,2)
+			lRet := .F.
+			Alert("Parcelamento incorreto:"+chr(13)+chr(10)+chr(13)+chr(10)+"Valor de orçamento: R$"+Transform(nTotal,"@E 9,999,999.99") + CRLF + "Valor das Parcelas: R$"+Transform(Round(M->(CJ_PARC1+CJ_PARC2+CJ_PARC3+CJ_PARC4),2),"@E 9,999,999.99"))
+		EndIf
+
+		If Empty(M->CJ_DATA1)
+			lRet := .F.
+			Alert("Por favor, preencha ao menos um vencimento","Atenção")
+		EndIf
+
+		If M->CJ_PARC2 <> 0 .AND. Empty(M->CJ_DATA2)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 2","Atenção")
+		EndIF
+
+		If M->CJ_PARC3 <> 0 .AND. Empty(M->CJ_DATA3)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 3","Atenção")
+		EndIF
+
+		If M->CJ_PARC4 <> 0 .AND. Empty(M->CJ_DATA4)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 4","Atenção")
+		EndIF
+
+			If M->CJ_PARC5 <> 0 .AND. Empty(M->CJ_DATA5)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 5","Atenção")
+		EndIF
+
+		If M->CJ_PARC6 <> 0 .AND. Empty(M->CJ_DATA6)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 6","Atenção")
+		EndIF
+
+
+		If M->CJ_PARC7 <> 0 .AND. Empty(M->CJ_DATA7)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 7","Atenção")
+		EndIF
+
+
+		If M->CJ_PARC8 <> 0 .AND. Empty(M->CJ_DATA8)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 8","Atenção")
+		EndIF
+
+		If M->CJ_PARC9 <> 0 .AND. Empty(M->CJ_DATA9)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 9","Atenção")
+		EndIF
+
+		If M->CJ_PARCA <> 0 .AND. Empty(M->CJ_DATAA)
+			lRet := .F.
+			Alert("Por favor, preencha o vencimento da parcela 10","Atenção")
+		EndIF
+
+
+
+	EndIf
+
+
+
+	RestArea(aAreaA1)
+	RestArea(aArea)
+
+Return lRet
+
+
+Static Function CALCTOTAL(cChave,lCalc,cClie,cLojaCli,nIt,cTipo)
+
+If lCalc == .T.
+    nTot1 := 0
+    nTot2 := 0
+    nTot3 := 0
+    nTot4 := 0
+			   	 	
+			   	MaFisIni(cClie,;	// 01 Codigo Cliente/Fornecedor
+				cLojaCli			 ,;	        // 02 Loja do Cliente/Fornecedor 
+				"C"					,;			// 03 C:Cliente , F:Fornecedor
+				"S"					,; 			// 04 Tipo da NF
+				""				    ,;			// 05 Tipo do Cliente/Fornecedor 
+				Nil					,;			// 06 Relacao de Impostos que suportados no arquivo
+				Nil					,;			// 07 Tipo de complemento 
+				.F.			   		,;			// 08 Permite Incluir Impostos no Rodape .T./.F. 
+				"SB1"		   		,;			// 09 Alias do Cadastro de Produtos - ("SBI" P/ Front Loja) 
+				"DHFATR02"			)			// 10 Nome da rotina que esta utilizando a funcao
+				       
+				//-- ADICIONA
+				MaFisAdd(TMP1->CK_PRODUTO,;  // Produto
+						TMP1->CK_TES 	   ,;  // TES
+						TMP1->CK_QTDVEN  ,;  // Quantidade
+						TMP1->CK_PRCVEN  ,;  // Preco unitario
+						0 				,;  // Valor do desconto
+						""                 ,;  // Numero da NF original
+						""                 ,;  // Serie da NF original
+						0                  ,;  // Recno da NF original
+						0                  ,;  // Valor do frete do item
+						0                  ,;  // Valor da despesa do item
+						0                  ,;  // Valor do seguro do item
+						0				   ,;  // Valor do frete autonomo
+						TMP1->CK_VALOR     ,;  // Valor da mercadoria
+						0)  
+						
+				//nAliqIpi   := MaFisRet(nIT,"IT_ALIQIPI")
+				nTot1 += TMP1->CK_VALOR         
+				nTot2 += MaFisRet(nIt,"IT_VALIPI")	//*TMP1->CK_QTDVEN 
+				nTot3 += TMP1->CK_PRCVEN*TMP1->CK_QTDVEN   
+				nTot4 += MaFisRet(nIt,"IT_VALSOL")                                      
+				//nVlTot += TMP1->CK_PRUNIT*TMP1->CK_QTDVEN     
+		        nIt++ 
+Endif
+ 
+lCalc := .F.
+
+MaFisEnd()
+
+Return()

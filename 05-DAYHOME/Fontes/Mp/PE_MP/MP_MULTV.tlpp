@@ -1,0 +1,90 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³NOVO4     º Autor ³ Julio Cesar        º Data ³  11/01/2018 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Ponto de entrada para a inclusao automatica de um cliente  º±±
+±±º          ³ na carteira de todos os vendedores                         º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+/*
+User Function MP_MULTV
+	local cFilMp 	:= PARAMIXB[2]	// FILIAL DA CONTA MEUS PEDIDOS
+	local cCtaMp 	:= PARAMIXB[1]	// CODIGO DA CONTA MEUS PEDIDOS
+	local cCliente 	:= PARAMIXB[3]	// OBJETO RETORNO GET JSON MEUS PEDIDOS
+	local cVendedor	:= alltrim(PARAMIXB[4])	// TIPO DE OPERAÇÃO
+	
+	local cFilComp  := FWModeAccess("MPG",3)
+	local cFilEnt 	:= iif(cFilComp=='E',cFilMp,XFILIAL("MPG"))  
+	
+	local cCodVen	:= alltrim(SUPERGETMV('MP_MULTCAR', .F., '', cFilMp)) 
+	local cVenInt	:= integrados(cFilMp)
+	
+	conout('Entrou MP_MULTV')
+	if empty(cCodVen)   
+		conout('Parametro Vazio.')
+		return()
+	endif
+	 
+ 
+	
+	if MPG->(dbSeek(cFilEnt+cCliente))
+		if alltrim(MPG->MPG_VEND) == alltrim(cVenInt)  
+			conout('Cliente ja esta vinculado com todos os vendedores') 
+			return()
+		endif
+		RecLock('MPG', .F.)    
+		conout('Alterando MPG')
+	else
+		if cVendedor != cCodVen     
+			conout('Vendedor nao eh o'+cCodVen)
+			return()   //Não cria a entidade se o vendedor for diferente do 106
+		endif 
+		conout('Criando MPG')
+		RecLock('MPG', .T.)
+		MPG->MPG_FILIAL := cFilEnt
+		MPG->MPG_CLIENT := subStr(cCliente,1,tamSx3('A1_COD')[1])
+		MPG->MPG_LOJA	:= subStr(cCliente,tamSx3('A1_COD')[1]+1,tamSx3('A1_LOJA')[1])
+		MPG->MPG_NOME	:= POSICIONE('SA1', 1, cFilMp+cCliente, 'A1_NOME')
+	endif
+		MPG->MPG_XMPTRA	:= 'A'
+	
+	if cVendedor == cCodVen  
+		MPG->MPG_VEND	:= cVenInt
+		ConOut( dtoc( Date() )+" "+Time()+" Cliente: "+cCliente+' vinculado com todos os vendedores.' ) 
+	else
+		MPG->MPG_VEND	:= ""
+		ConOut( dtoc( Date() )+" "+Time()+" Cliente: "+cCliente+' desvinculado de todos os vendedores.' ) 
+	endif    
+	
+	msUnlock() 
+
+Return()
+
+static function integrados(cFil)
+	//Retorna os códigos dos vendedores integrados com a Meus Pedidos, separados por ';'
+	local cIntegrados 	:= ""
+	local cAlias1 		:= getNextAlias()   
+	local cFilComp  := FWModeAccess("SA3",3)
+	local cFilEnt 	:= iif(cFilComp=='E',cFil,XFILIAL("SA3")) 
+	
+	beginsql alias cAlias1
+		SELECT A3_COD AS COD FROM %table:SA3%
+		WHERE A3_FILIAL = %exp:cFilEnt%
+		AND A3_COD IN (SELECT MP1_IDPROT FROM %table:MP1% WHERE MP1_TPREG = 'VEND' AND MP1_IDPROT = A3_COD AND MP1_STATUS = 'I')
+	endsql
+	
+	while (cAlias1)->(!eof())
+		cIntegrados += (cAlias1)->COD
+		cIntegrados += ";"
+		(cAlias1)->(dbSkip())
+	enddo
+	(cAlias1)->(dbCloseArea())
+return(cIntegrados)

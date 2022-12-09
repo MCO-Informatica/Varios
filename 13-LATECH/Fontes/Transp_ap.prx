@@ -1,0 +1,54 @@
+#include "rwmake.ch"        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+#IFNDEF WINDOWS
+        #DEFINE PSAY SAY
+#ENDIF
+
+User Function Transp()        // incluido pelo assistente de conversao do AP6 IDE em 12/02/05
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de variaveis utilizadas no programa atraves da funcao    ³
+//³ SetPrvt, que criara somente as variaveis definidas pelo usuario,    ³
+//³ identificando as variaveis publicas do sistema utilizadas no codigo ³
+//³ Incluido pelo assistente de conversao do AP6 IDE                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+SetPrvt("_CPREFIXO,_CTITULO,_CCHAVE,_PATH,_RECNO,")
+
+#IFNDEF WINDOWS
+// Movido para o inicio do arquivo pelo assistente de conversao do AP5 IDE em 12/02/05 ==>         #DEFINE PSAY SAY
+#ENDIF
+
+//-------------------------
+
+  DbUseArea( .T. , , _PATH, "NSE1", .T., .F. )  // Abre arquivo Kenia - Filial
+  DbSetIndex("SE1030.CDX")
+  DbSetOrder(0)
+  
+  DbSelecArea("SE1")  // le arquivo Kenia matriz
+  DbSetOrder(1)
+  
+  _cPREFIXO   := SE1->E1_PREFIXO
+  _cTITULO    := SE1->E1_NUM
+  _cCHAVE     :=  _cPREFIXO + _cTITULO
+  _PATH       := "C:\DADOSADV\SE1030.DBF"
+
+
+  While SE1->( E1_PREFIXO + E1_NUM ) ==  _cCHAVE
+         
+         _RECNO      := RECNO()
+
+         DbAppend()
+         Rlock() 
+           Append  FROM SE1 FOR RECNO() == _RECNO
+         MsUnLock()
+         
+         DbSelectArea("SE1")
+         DbSkip()
+  EndDo
+  RETURN
+
+
+
+ 
+
+

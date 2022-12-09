@@ -1,0 +1,73 @@
+#include "totvs.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออออออออออัออออออออออออออออออออออหอออออออออออออัออออออออออออออออออออออออออออออออออออออออหออออออออัอออออออออออออออออปฑฑ
+ฑฑบPrograma          ณ APCPA001             บ Analista    ณ Luiz Suguiura                          บ  Data  ณ     18/09/18    บฑฑ
+ฑฑฬออออออออออออออออออุออออออออออออออออออออออสอออออออออออออฯออออออออออออออออออออออออออออออออออออออออสออออออออฯอออออออออออออออออนฑฑ
+ฑฑบDescricao         ณ RDMake para cadastro SZ2 - SubGrupo                                                                    บฑฑ
+ฑฑบ                  ณ                                                                                                        บฑฑ   
+ฑฑบ                  ณ                                                                                                        บฑฑ 
+ฑฑฬออออออออออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso               ณ Exclusivo : Air Catering                                                                               บฑฑ  
+ฑฑบ                  ณ                                                                                                        บฑฑ  
+ฑฑศออออออออออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Definicao da Funcao de gatilho APCPA001                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+User Function APCPA001()
+
+
+Return()   
+
+// AxCadastro - Tela padrใo da mBrowse ( [ cAlias ] [ cTitle ] [ cDel ] [ cOk ] [ aRotAdic ] [ bPre ] [ bOK ] [ bTTS ] [ bNoTTS ] [ aAuto ] [ nOpcAuto ] [ aButtons ] [ aACS ] [ cTela ] )
+
+//User Function TesteCad()   
+//  Local aRotAdic :={} 
+//  Local bPre := {||MsgAlert('Chamada antes da fun็ใo')}
+//  Local bOK  := {||MsgAlert('Chamada ao clicar em OK'), .T.}
+//  Local bTTS  := {||MsgAlert('Chamada durante transacao')}
+//  Local bNoTTS  := {||MsgAlert('Chamada ap๓s transacao')}    
+//  Local aButtons := {}//adiciona bot๕es na tela de inclusใo, altera็ใo, visualiza็ใo e exclusao
+//  aadd(aButtons,{ "PRODUTO", {|| MsgAlert("Teste")}, "Teste", "Botใo Teste" }  ) //adiciona chamada no aRotina
+//  aadd(aRotAdic,{ "Adicional","U_Adic", 0 , 6 })
+//  AxCadastro("SA1", "Clientes", "U_DelOk()", "U_COK()", aRotAdic, bPre, bOK, bTTS, bNoTTS, , , aButtons, , )  
+//Return(.T.)                        
+//
+//User Function DelOk()  
+//  MsgAlert("Chamada antes do delete") 
+//Return 
+//
+//User Function COK()    
+//  MsgAlert("Clicou botao OK") 
+//Return .t.      
+
+//User Function Adic()   
+//  MsgAlert("Rotina adicional") 
+//Return
+
+//Nome		Tipo		  Descri็ใo
+//cAlias	Caracter	  Alias da Tabela cadastrada no dicionแrio (SX2) que serแ baseada a mBrowse.
+//cTitle	Array of Record	  Tํtulo da janela.
+//cDel		Array of Record	  Fun็ใo a ser executada ao deletar o registro.
+//cOk		Array of Record	  Fun็ใo a ser executada ao clicar no botใo OK para gravar o registro(inclusใo e altera็ใo).
+//aRotAdic	Array of Record	  Array contendo as rotinas adicionais para ser acrescentado ao array aRotina.
+//bPre		Array of Record	  Codeblock a ser executado antes da abertura do diแlogo de inclusใo, altera็ใo ou exclusใo.
+//bOK		Array of Record	  Codeblock a ser executado ao clicar no botใo OK do diแlogo de inclusใo, altera็ใo ou exclusใo.
+//bTTS		Array of Record	  Codeblock a ser executado durante a transa็ใo de inclusใo, altera็ใo ou exclusใo.
+//bNoTTS	Array of Record	  Codeblock a ser executado ap๓s a transa็ใo de inclusใo, altera็ใo ou exclusใo.
+//aAuto		Array of Record	  Array com os campos a serem considerados pela rotina automแtica.
+//nOpcAuto	Array of Record	  Numero da op็ใo selecionada (Inclusใo, Altera็ใo, Exclusใo, Visualiza็ใo) para a rotina automแtica.
+//aButtons	Array of Record	  Array contendo os bot๕es da EnchoiceBar com a seguinte estrutura: aButtons[1][1] – Nome do arquivo da imagem do botใo.aButtons[1][2] – Bloco de execu็ใo.aButtons[1][3] – Mensagem de exibi็ใo no ToolTip.aButtons[1][4] – Nome do botใo.
+//aACS		Array of Record	  Array que substituํ o controle de acessos das fun็๕es bแsicas do aRotina (Pesquisar, Visualizar, Incluir, Alterar, Excluir).
+//				  Ex: aACS := { , , , ,3  }
+//				  No exemplo acima a op็ใo de excluir irแ respeitar o 3บ acesso da lista de acessos do usuแrio conforme link abaixo:
+//				  Rela็ใo de Acessos x Rotina
+//cTela				  Array of Record	Nome da variแvel tipo "private" que a enchoice utilizarแ no lugar da variแvel aTela.
+		

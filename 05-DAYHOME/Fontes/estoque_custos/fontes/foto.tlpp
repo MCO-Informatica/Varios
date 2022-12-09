@@ -1,0 +1,51 @@
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "font.ch"
+#include "colors.ch"
+#Include "topconn.ch"
+#INCLUDE "JPEG.CH"
+
+/*
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFun??o    ³BTNOk     º Autor ³FRene         º Data ³ 22/02/2011  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri??o ³Funcao Confirma                                             º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User function FOTO()
+
+
+Local oDlg2
+
+Local oBmp
+
+Local _cNomeImg := ""
+
+	
+//	_cNomeImg := "X:\"+ Alltrim(SB1->B1_COD)+".JPG"  //"\Imagens\"+ Alltrim(aListProd[nI][1])+".JPG"//
+	_cNomeImg := "\system\imagens em bx\"+ Alltrim(SB1->B1_COD)+".JPG"
+	If !File( _cNomeImg )
+		MsgAlert("Não existe imagem deste produto, verifique !","Info")
+		Return nil
+	Endif
+
+	DEFINE MSDIALOG oDlg2 FROM 0,0 TO 440,521 PIXEL TITLE "Imagem"
+
+	
+
+	oTBitmap := TBitmap():Create(oDlg2,02,02,260,184,,_cNomeImg,.T., /* {||Alert("Clique em TBitmap1")} */,,.F.,.T. /*Stretch*/,,,.F.,,.T.,,.F.)
+
+
+
+	@ 200,222 Button "&Sair" Size 037,012 ACTION oDlg2:End() PIXEL OF oDlg2
+
+
+
+	ACTIVATE MSDIALOG oDlg2 CENTERED
+
+	
+
+Return nil

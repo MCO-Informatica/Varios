@@ -1,0 +1,854 @@
+#INCLUDE "protheus.ch"
+#INCLUDE "fwbrowse.ch"
+
+#DEFINE ENTER CHR(13)+CHR(10)
+#DEFINE COL_A "col_a"
+#DEFINE COL_B "col_b"
+#DEFINE COL_C "col_c"
+
+#DEFINE LIM_A "lim_a"
+#DEFINE LIM_B "lim_b"
+
+#define WND_MEUS		"wnd_menus"
+#define WND_IMAGEM		"wnd_Imagem"
+#define WND_SINCRON   	"wnd_sincron"
+#define WND_CONTAS   	"wnd_contas"
+#define WND_ENTRADA    	"wnd_entrada"
+#define WND_SAIDA    	"wnd_saida"
+
+
+/************************************************************************************************************/
+// ROTINA PARA CONSULTA GERAL DAS OPวีES DE INTEGRAวรO                                                    /
+/************************************************************************************************************/
+
+
+USER FUNCTION MPMENU1()
+	private oMenu1 := MpMenu1():New()
+	
+	oMenu1:Dados()
+	oMenu1:init()
+	oMenu1:show()
+RETURN()
+
+class MpMenu1
+	Data oDlg As Object
+	Data oLayer As Object
+	Data oBrowse As Object
+	
+	Data oMenuMain as Object
+	
+	Data oPanMenu	 As Object	
+	Data oPanSincton As Object
+	Data oPanContas As Object
+	Data oPanEntrada As Object
+	Data oPanSaida   As Object
+	Data oPanImg	As Object
+
+	Data oListContas  As Object	
+	Data oListSincron As Object	
+	
+	Data oGrafSaida As Object	
+	Data oGrafEntrada As Object
+	
+	Data oPedido 	As Object
+	Data oCadastro	 As Object
+	Data oStop 		As Object
+	Data oPlay		As Object
+	Data oSinc		 As Object 
+	Data oClosed	 As Objec	
+	Data oPause		 As Object
+	
+	Data oFont1 As Object
+	Data oFont2 As Object
+	Data oFont3 As Object
+
+	Data oVerde As Object		
+	Data oVerme As Object
+	
+	Data oTimer1	As Object
+	Data n1MiliSsec
+	
+	Data oTimer2	As Object
+	Data n2MiliSsec
+	
+	Data oDlgMonitor as object
+	Data cTxtMonitor
+	Data nIdEntrada 
+	Data nIdSaida
+	
+	Data oDlgDisableJob as Object
+
+
+	Data lPauseMonitor
+	Data aMenu
+					
+	Data aSize 
+	
+	
+	Data aContas
+	Data aSincron
+	Data aDataSaida
+	Data aDataEntra
+	
+	
+	Method New() Constructor
+	Method Init()
+	Method Dados()
+	Method Show()
+	Method refresh() 
+	Method Monitor() 
+	Method DataMonitor() 	
+	Method DisableJob()	
+	Method ExecManual()
+	Method RefreshMonitor()
+
+endclass
+
+Method New() Class MpMenu1
+	
+	self:oDlg 	 		:= nil
+	self:oLayer  		:= nil
+	self:oBrowse 		:= nil
+	self:aSize  		:= MsAdvSize()  
+
+
+	//Fontes
+	self:oFont1  		:= TFont():New("MS Sans Serif",,016,,.F.,,,,,.F.,.F.)
+	self:oFont2  		:= TFont():New("Goudy Old Style",,022,,.T.,,,,,.F.,.F.)  
+	self:oFont3  		:= TFont():New("Goudy Old Style",,032,,.T.,,,,,.F.,.F.)  
+		
+	Self:oVerde 		:= LoadBitmap(GetResources(), "BR_VERDE")
+	Self:oVerme 		:= LoadBitmap(GetResources(), "BR_VERMELHO")    
+
+	Self:oPedido 		:= LoadBitmap(, "pedidos.png")
+	Self:oCadastro 		:= LoadBitmap(, "cadastros.png")    
+
+	Self:oStop			:= LoadBitmap(, "stop_red.png")
+	Self:oPlay			:= LoadBitmap(, "play1.png")
+	Self:oSinc			:= LoadBitmap(, "sinc.png")    
+	Self:oClosed		:= LoadBitmap(, "close1.png")
+	Self:oPause			:= LoadBitmap(, "pause.png")
+	
+	Self:aContas		:= {}
+	Self:aSincron		:= {}
+	Self:aDataSaida		:= {}
+	Self:aDataEntra		:= {}
+	
+	Self:aMenu := {}
+	
+	Self:cTxtMonitor 	:= ""
+	
+	Self:lPauseMonitor	:= .F.
+	
+	Self:n1MiliSsec		:= 1000 // Disparo serแ de 10 em 10 segundos
+	Self:n2MiliSsec		:= 300000 // Disparo serแ de 180 em 180 segundos
+	
+return
+
+
+Method Init() Class MpMenu1
+	Local lCloseButt 	:= !(oAPP:lMdi)
+	local oWindow 		:= Self
+	local aFiles 		:= {"ImgPar01.png","mercos.png","suporte.png"}
+	local x
+	
+	private nTamBut , nPosBut
+	
+	If FlatMode()
+		nTop := 40
+		nLeft := 30 
+		nBottom := oMainWnd:nBottom + 10
+		nRight := oMainWnd:nRight + 20
+	Else
+		nTop := oMainWnd:nTop + 125
+		nLeft := oMainWnd:nLeft + 5
+		nBottom := oMainWnd:nBottom - 60
+		nRight := oMainWnd:nRight - 13
+	EndIf
+	
+	DEFINE MSDIALOG Self:oDlg TITLE "Partners Integrador Mercos";
+	FROM nTop, nLeft TO nBottom, nRight ;
+	OF oMainWnd COLOR "W+/W" STYLE nOR(WS_VISIBLE, WS_POPUP) PIXEL
+	Self:oDlg:lMaximized := .T.
+
+
+//MONTA LAYER
+	Self:oLayer := FWLayer():New()
+	Self:oLayer:Init(Self:oDlg, lCloseButt)
+	Self:oLayer:addCollumn(COL_A , 20, .F.)
+	Self:oLayer:addCollumn(COL_B , 40, .F.)
+	Self:oLayer:addCollumn(COL_C , 40, .F.)
+
+	
+	Self:oLayer:AddWindow(COL_A,WND_IMAGEM , "Integra็ใo Mercos",  50  , .T., .T.)	
+	Self:oPanImg := Self:oLayer:GetWinPanel(COL_A, WND_IMAGEM)		
+		
+	Self:oLayer:AddWindow(COL_A, WND_MEUS, "Menu",  45  , .T., .T.)
+
+		
+
+		
+	Self:oLayer:AddWindow(COL_B, WND_CONTAS, "Contas",   50  , .T., .T.)
+	Self:oLayer:AddWindow(COL_C, WND_SINCRON, "Sincroniza็ใo",   50  , .T., .T.)
+	Self:oLayer:AddWindow(COL_B, WND_SAIDA, "Entidades de Saida",   45  , .T., .T.)
+	Self:oLayer:AddWindow(COL_C, WND_ENTRADA, "Entidades Entrada",   45  , .T., .T.)
+	
+
+
+
+	// ******************************   PAINEL IMAGENS ********************************************************
+	
+	
+	
+	Self:oPanMenu := TScrollBox():New(Self:oLayer:GetWinPanel(COL_A, WND_MEUS),01,01,92,260,.T.,.f.,.F.)
+	Self:oPanMenu:Align := CONTROL_ALIGN_ALLCLIENT
+
+	/*
+	aadd(Self:aMenu, { 'Processos' 		,'Entidades de Saida'	,'U_MPINT10()' 	,nil })
+	aadd(Self:aMenu, { 'Processos' 		,'Entidades de Entrada'	,'U_MPINT15()' 	,nil })
+
+	aadd(Self:aMenu, { 'Cadastros' 		,'Tags de Clientes'		,'U_MPINT140()' ,nil })
+	aadd(Self:aMenu, { 'Cadastros' 		,'Clientes / Tab.Pre็o'	,'U_MPINT20()' 	,nil })
+	aadd(Self:aMenu, { 'Cadastros' 		,'Clientes / Cond.Pag'	,'U_MPINT30()' 	,nil })
+	aadd(Self:aMenu, { 'Cadastros' 		,'Clientes / Vendedor'	,'U_MPINT120()' ,nil })
+	aadd(Self:aMenu, { 'Cadastros' 		,'Clientes / Tags'		,'U_MPINT150()' ,nil })
+	aadd(Self:aMenu, { 'Cadastros' 		,'ICMS-ST'				,'U_MPINT40()' 	,nil })	
+
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Contas'				,'U_MPINT00()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Formas de Pagamento'	,'U_MPINT50()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Produtos Especificos'	,'U_MPINT60()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Tipos de Pedido'		,'U_MPINT80()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Status de Pedido'		,'U_MPINT90()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Config. Campos'		,'U_MPINT95()' 	,nil })
+	aadd(Self:aMenu, { 'Configura็๕es' 	,'Cargas de Pedidos'	,'U_MPINT110()' ,nil })
+	
+	
+	Self:oMenuMain := TMenu():New( 0,0,0,0,.f., ,Self:oPanMenu )   
+	  	
+	
+	oMenuProc := TMenuItem():New2( Self:oMenuMain:Owner(),'Processos','',,,,, CLR_BLACK, CLR_GRAY)   
+	Self:oMenuMain:Add( oMenuProc )	  	
+	oMenuCad := TMenuItem():New2( Self:oMenuMain:Owner(),'Cadastros','',,,,, CLR_BLACK, CLR_GRAY)   
+	Self:oMenuMain:Add( oMenuCad )	
+	oMenuConf := TMenuItem():New2( Self:oMenuMain:Owner(),'Configura็๕es','',,,,, CLR_BLACK, CLR_GRAY)   
+	Self:oMenuMain:Add( oMenuConf )	
+
+	  	
+	Self:oMenuMain:SetImageName( "logo2.png" )
+
+	for mnu:=1 to len(Self:aMenu)
+		Self:aMenu[mnu,4] := TMenuItem():New2( Self:oMenuMain:Owner(),  Self:aMenu[mnu,2]   ,,, &( '{||'+ Self:aMenu[mnu,3] + ' }'), ,, CLR_BLACK, CLR_GRAY) 
+		
+		if Self:aMenu[mnu,1] == 'Processos'
+			oMenuProc:Add( Self:aMenu[mnu,4] )   
+		elseif Self:aMenu[mnu,1] == 'Cadastros'
+			oMenuCad:Add( Self:aMenu[mnu,4] ) 
+		elseif Self:aMenu[mnu,1] == 'Configura็๕es'
+			oMenuConf:Add( Self:aMenu[mnu,4] ) 
+		endif
+	next mnu
+	*/
+    
+	nTamBut := (Self:aSize[5]*0.09)	
+	nPosBut	:= 0 //(Self:aSize[6]*0.5) - (9 *19)
+		
+	oTButton1 	:= TButton():New( (9*00), 02, "Contas"					,Self:oPanMenu ,{||U_MPINT00()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*01), 02, "Entidades de Saida"		,Self:oPanMenu ,{||U_MPINT10()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*02), 02, "Entidades de Entrada"	,Self:oPanMenu ,{||U_MPINT15()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*03), 02, "Clientes / Tab.Pre็o"	,Self:oPanMenu ,{||U_MPINT20()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*04), 02, "Clientes / Cond.Pag"	,Self:oPanMenu ,{||U_MPINT30()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*05), 02, "Clientes / Vendedor"	,Self:oPanMenu ,{||U_MPINT120()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*06), 02, "Clientes / Tags"		,Self:oPanMenu ,{||U_MPINT150()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*07), 02, "Config. ICMS-ST"		,Self:oPanMenu ,{||U_MPINT40()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*08), 02, "Formas de Pagamento"	,Self:oPanMenu ,{||U_MPINT50()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*09), 02, "Produtos Especificos"	,Self:oPanMenu ,{||U_MPINT60()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*10), 02, "Tipos de Pedido"		,Self:oPanMenu ,{||U_MPINT80()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*11), 02, "Status de Pedido"		,Self:oPanMenu ,{||U_MPINT90()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*12), 02, "Tags de Clientes"		,Self:oPanMenu ,{||U_MPINT140()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*13), 02, "Config. Campos"			,Self:oPanMenu ,{||U_MPINT95()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( (9*14), 02, "Cargas de Pedidos"		,Self:oPanMenu ,{||U_MPINT110()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )							
+	
+
+	// ******************************   PAINEL MENU ********************************************************
+	oTBitmap 	:= TBitmap():New(00, (Self:aSize[5]*0.04) - 40	, 100, 043, NIL, aFiles[1] , .T., Self:oPanImg,{|| navegar("http://www.partnersrl.com.br")}, NIL, .F., .T., NIL, NIL, .F., NIL, .T., NIL, .F.)
+    
+	oSay1		:= TSay():New(48, (Self:aSize[5]*0.04) - 52  	,{||'Partners RL Solu็๕es Em Informatica LTDA'}	,Self:oPanImg,,Self:oFont1,,,,.T.,8421504,,500,15)
+    oSay2		:= TSay():New(56, (Self:aSize[5]*0.04) - 34  	,{||'(37) 4101-1234 / (37) 3112-2503 '}			,Self:oPanImg,,Self:oFont1,,,,.T.,8421504,,500,15)
+    oSay3		:= TSay():New(64, (Self:aSize[5]*0.04) - 20 	,{||'www.partnersrl.com.br'}					,Self:oPanImg,,Self:oFont1,,,,.T.,8421504,,500,15)    
+
+    oTBitmap 	:= TBitmap():New(068, (Self:aSize[5]*0.04) 	, 25, 25, NIL, aFiles[3] , .T., Self:oPanImg,{|| navegar("http://suporte.partnersrl.com.br")}, NIL, .F., .T., NIL, NIL, .F., NIL, .T., NIL, .F.)
+    
+    	 
+    oTBitmap 	:= TBitmap():New(090, (Self:aSize[5]*0.04) - 48	, 110, 031, NIL, aFiles[2] , .T., Self:oPanImg,{|| navegar("http://www.mercos.com")}, NIL, .F., .T., NIL, NIL, .F., NIL, .T., NIL, .F.)
+    
+    /*
+	nTamBut := (Self:aSize[5]*0.09)	
+	nPosBut	:= (Self:aSize[6]*0.5) - (9 *19)
+		
+	oTButton1 	:= TButton():New( nPosBut+(9*01), 02, "Contas"					,Self:oPanMenu ,{||U_MPINT00()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+		oTButton1 	:= TButton():New( nPosBut+(9*02), 02, "Entidades de Saida"		,Self:oPanMenu ,{||U_MPINT10()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+		oTButton1 	:= TButton():New( nPosBut+(9*03), 02, "Entidades de Entrada"	,Self:oPanMenu ,{||U_MPINT15()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*04), 02, "Clientes / Tab.Pre็o"	,Self:oPanMenu ,{||U_MPINT20()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*05), 02, "Clientes / Cond.Pag"	,Self:oPanMenu ,{||U_MPINT30()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*06), 02, "Clientes / Vendedor"	,Self:oPanMenu ,{||U_MPINT120()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*07), 02, "Clientes / Tags"		,Self:oPanMenu ,{||U_MPINT150()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*08), 02, "Config. ICMS-ST"		,Self:oPanMenu ,{||U_MPINT40()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*09), 02, "Formas de Pagamento"	,Self:oPanMenu ,{||U_MPINT50()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*10), 02, "Produtos Especificos"	,Self:oPanMenu ,{||U_MPINT60()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*11), 02, "Tipos de Pedido"		,Self:oPanMenu ,{||U_MPINT80()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*12), 02, "Status de Pedido"		,Self:oPanMenu ,{||U_MPINT90()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*13), 02, "Tags de Clientes"		,Self:oPanMenu ,{||U_MPINT140()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*14), 02, "Config. Campos"			,Self:oPanMenu ,{||U_MPINT95()}		, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )
+	oTButton1 	:= TButton():New( nPosBut+(9*15), 02, "Cargas de Pedidos"		,Self:oPanMenu ,{||U_MPINT110()}	, nTamBut,9,,,.F.,.T.,.F.,,.F.,,,.F. )							
+	*/
+	
+	
+
+
+	// ******************************   PAINEL DE GRID CONTAS  ********************************************************
+
+
+	Self:oPanContas := TPanel():New(0, 0, "", ;
+	                           Self:oLayer:GetWinPanel(COL_B, WND_CONTAS), ;
+	                                  Nil, .T., .T., Nil, Nil, 50, 50)
+	Self:oPanContas:Align := CONTROL_ALIGN_ALLCLIENT
+
+	Self:oListContas := TCBrowse():New( 000 , 000, Self:aSize[5]* 0.194, Self:aSize[6] * 0.231,, {'','Codigo','Descricao','Ativa','Licenciado At้'},{10,20,60,20,30}, self:oPanContas,,,,,{|| /*double clik*/ },,,,,,,.F.,,.T.,,.F.,,, )
+	Self:oListContas:SetArray(self:aContas)
+	Self:oListContas:lHScroll := .f. // NoScroll
+	if !empty(self:aContas)
+		Self:oListContas:bLine := {|| {IIF(self:aContas[Self:oListContas:nAt,1],Self:oVerde,Self:oVerme) ,;
+		 							self:aContas[Self:oListContas:nAt,2] , ;
+		 							self:aContas[Self:oListContas:nAt,3] , ;
+		 							self:aContas[Self:oListContas:nAt,4] , ;
+		 							self:aContas[Self:oListContas:nAt,5] }}
+	else
+		Self:oListContas:bLine := {|| {'', ;
+		 							'', ;
+		 							'', ;
+		 							'', ;
+		 							'' }}
+	endif		
+	
+	// ******************************   PAINEL sincroniza็ใo ********************************************************
+
+	
+	Self:oPanSincton := TPanel():New(0, 0, "", ;
+	                           Self:oLayer:GetWinPanel(COL_C,  WND_SINCRON ), ;
+	                                  Nil, .T., .T., Nil, Nil, 50, 50)
+	Self:oPanSincton:Align := CONTROL_ALIGN_ALLCLIENT
+
+	Self:oListSincron:= TCBrowse():New( 000 , 000, Self:aSize[5]* 0.194, Self:aSize[6] * 0.185,, {'Exec?','Ativo?','Job','Descricao','Inicio Exec','Fim Exec'},{10,10,10,20,30,30}, self:oPanSincton,,,,,{|| Self:Monitor(Self:oListSincron:nAt) },,,,,,,.F.,,.T.,,.F.,,, )
+	Self:oListSincron:SetArray(self:aSincron)
+	Self:oListSincron:lHScroll := .f. // NoScroll
+	Self:oListSincron:bLine := {||{ if(  self:aSincron[Self:oListSincron:nAt,1] == 'NAO', Self:oStop, if(  ALLTRIM( self:aSincron[Self:oListSincron:nAt,5]) =='--:--:--',Self:oPlay,Self:oPause )),; 
+	 								self:aSincron[Self:oListSincron:nAt,1] ,;
+	 								self:aSincron[Self:oListSincron:nAt,2] , ;
+	 								self:aSincron[Self:oListSincron:nAt,3] , ;
+	 								self:aSincron[Self:oListSincron:nAt,4] ,;
+	 								self:aSincron[Self:oListSincron:nAt,5]  }}
+	 									 								
+	 								
+	 								
+	oTButFilt	:= TBtnBmp2():New( Self:aSize[6] * 0.370, 05   ,55,55,'sinc.png'		,,,,{||self:refresh() },Self:oPanSincton ,,,.T. )	
+	//oTButFilt	:= TBtnBmp2():New( Self:aSize[6] * 0.370, 65   ,55,55,'user_monitor.png',,,,{||self:Monitor() },Self:oPanSincton ,,,.T. )	 								
+	
+	
+	// ******************************   PAINEL ENTIDDADES DE SAIDA  ********************************************************
+	self:oPanSaida:= tPanel():New(000,000	,"", Self:oLayer:GetWinPanel(COL_B, WND_SAIDA) ,,.T.,,,,Self:aSize[5]* 0.194, Self:aSize[6] * 0.215,,.T.)
+	
+
+	self:oGrafSaida := FWChartFactory():New()
+	self:oGrafSaida:SetOwner(Self:oPanSaida)
+    for x:=1 to len(Self:aDataSaida)
+    	 self:oGrafSaida:addSerie( Self:aDataSaida[x,1]	,Self:aDataSaida[x,2]) 
+    next x 			
+   	self:oGrafSaida:setPicture("@E 999,999,999.99")
+	self:oGrafSaida:setMask(" *@*")
+	self:oGrafSaida:SetLegend(CONTROL_ALIGN_LEFT)
+	self:oGrafSaida:setTitle("Entidades de Saida", CONTROL_ALIGN_LEFT)
+	self:oGrafSaida:SetAlignSerieLabel(CONTROL_ALIGN_RIGHT)
+	self:oGrafSaida:SetChartDefault(FUNNELCHART )
+	self:oGrafSaida:Activate()
+	
+	// ******************************   PAINEL ENTIDDADES DE ENTRADA  ********************************************************
+	self:oPanEntrada:= tPanel():New(000,000	,"", Self:oLayer:GetWinPanel(COL_C, WND_ENTRADA) ,,.T.,,,,Self:aSize[5]* 0.194, Self:aSize[6] * 0.215,,.T.)
+	
+
+	self:oGrafEntrada := FWChartFactory():New()
+	self:oGrafEntrada:SetOwner(Self:oPanEntrada)
+    for x:=1 to len(Self:aDataEntra)
+    	 self:oGrafEntrada:addSerie( Self:aDataEntra[x,1]	,Self:aDataEntra[x,2]) 
+    next x 			
+   	self:oGrafEntrada:setPicture("@E 999,999,999.99")
+	self:oGrafEntrada:setMask(" *@*")
+	self:oGrafEntrada:SetLegend(CONTROL_ALIGN_LEFT)
+	self:oGrafEntrada:setTitle("Entidades de Entrada", CONTROL_ALIGN_LEFT)
+	self:oGrafEntrada:SetAlignSerieLabel(CONTROL_ALIGN_RIGHT)
+	self:oGrafEntrada:SetChartDefault(FUNNELCHART )
+	self:oGrafEntrada:Activate()
+	
+	// ******************************   inclusao do Timer  ********************************************************
+	Self:oTimer1 := TTimer():New(Self:n1MiliSsec, {|| Self:Refresh(1) }, Self:oDlg )
+    Self:oTimer1:Activate()
+
+    Self:oTimer2 := TTimer():New(Self:n2MiliSsec, {|| Self:Refresh() }, Self:oDlg )
+    Self:oTimer2:Activate()
+    
+
+return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+
+Method Show() Class MpMenu1
+	Self:oDlg:Activate()
+Return 
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+
+Method Dados() Class MpMenu1
+	local cTabContas := GetNextAlias()
+	local cTabEntSaida := GetNextAlias()
+	local cTabEntEntra := GetNextAlias()
+	local cTabEntSincron:= GetNextAlias()
+		
+	local aTotEntra := {0,0,0,0}
+	local aTotSaida := {0,0,0,0}	
+	
+	//************************************ dados painel contas ***************************************
+	BEGINSQL alias cTabContas
+		SELECT * FROM %table:MP0% WHERE %notdel%
+		ORDER BY MP0_CODIGO
+	ENDSQL
+	WHILE (cTabContas)->(!EOF())
+		lAtivo 	:= .T.
+		//aVetLic := STRTOKARR( U_DeCrypRc4( (cTabContas)->( ALLTRIM( MP0->MP0_CHVLIC ) )    ) , "/" )	
+		aVetLic:= {}
+			
+		IF (cTabContas)->MP0_STATUS == '1'
+			lAtivo := .F.
+		ENDIF
+		
+		if empty(aVetLic) .or.  date() - stod(aVetLic[4]) > 5 
+			lAtivo := .F.
+		endif
+		
+		AADD(Self:aContas,{	lAtivo,;
+						(cTabContas)->MP0_CODIGO,;
+		 				(cTabContas)->MP0_DESCRI,;
+		 				if(lAtivo,'Sim','Nao'),;
+		 				IF(!EMPTY(aVetLic), dtoc(stod(aVetLic[4])),'')	})
+		
+		(cTabContas)->(DBSKIP())
+	ENDDO
+	(cTabContas)->(dbclosearea())
+	
+	
+	
+	//************************************ dados painel Entidades de Saida ***************************************
+	BEGINSQL alias cTabEntSaida
+		SELECT MP1_STATUS, COUNT(*) AS QTD FROM %table:MP1% WHERE %notdel%
+		GROUP BY MP1_STATUS
+	ENDSQL
+	WHILE (cTabEntSaida)->(!EOF())	
+		
+		IF (cTabEntSaida)->MP1_STATUS == 'I'
+			aTotSaida[1] := (cTabEntSaida)->QTD 
+		ELSEIF (cTabEntSaida)->MP1_STATUS == 'A'
+			aTotSaida[2] := (cTabEntSaida)->QTD 	
+		ELSEIF (cTabEntSaida)->MP1_STATUS == 'E'
+			aTotSaida[3] := (cTabEntSaida)->QTD 
+		ELSEIF (cTabEntSaida)->MP1_STATUS == 'Z'
+			aTotSaida[4] := (cTabEntSaida)->QTD 
+		ENDIF
+	
+		(cTabEntSaida)->(DBSKIP())
+	ENDDO
+	(cTabEntSaida)->(dbclosearea())	
+	AADD(Self:aDataSaida,{   'Aguardando Envio' 		,aTotSaida[2]  })
+	AADD(Self:aDataSaida,{   'Erros de Integra็ใo' 	    ,aTotSaida[3]  })	
+	AADD(Self:aDataSaida,{   'Entidades Integradas' 	,aTotSaida[1] })
+	AADD(Self:aDataSaida,{   'Ignorada Manualmente' 	,aTotSaida[4] })
+		
+		
+		
+
+	//************************************ dados painel entidades de entrada ***************************************
+	BEGINSQL alias cTabEntEntra
+		SELECT MP3_STATUS, COUNT(*) AS QTD FROM %table:MP3% WHERE %notdel%
+		GROUP BY MP3_STATUS
+	ENDSQL
+	WHILE (cTabEntEntra)->(!EOF())	
+		
+		IF (cTabEntEntra)->MP3_STATUS == 'I'
+			aTotEntra[1] := (cTabEntEntra)->QTD 
+		ELSEIF (cTabEntEntra)->MP3_STATUS == 'A'
+			aTotEntra[2] := (cTabEntEntra)->QTD 	
+		ELSEIF (cTabEntEntra)->MP3_STATUS == 'E'
+			aTotEntra[3] := (cTabEntEntra)->QTD 
+		ELSEIF (cTabEntEntra)->MP3_STATUS == 'Z'
+			aTotEntra[4] := (cTabEntEntra)->QTD 
+		ENDIF
+	
+		(cTabEntEntra)->(DBSKIP())
+	ENDDO
+	(cTabEntEntra)->(dbclosearea())	
+	AADD(Self:aDataEntra,{   'Aguardando Envio' 		,aTotEntra[2]  })
+	AADD(Self:aDataEntra,{   'Erros de Integra็ใo' 		,aTotEntra[3]  })
+	AADD(Self:aDataEntra,{   'Entidades Integradas' 	,aTotEntra[1] })
+	AADD(Self:aDataEntra,{   'Ignorada Manualmente' 	,aTotEntra[4] })
+		
+
+
+	//************************************ dados painel sincroniza็ใo ***************************************
+
+	cQuery := " SELECT * FROM PAR_SINC"+FWGrpCompany()
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cTabEntSincron,.T.,.T.) 	
+	WHILE (cTabEntSincron)->(!EOF())	
+		AADD(Self:aSincron,{ (cTabEntSincron)->ATIVO,;
+							 (cTabEntSincron)->JOB,;
+							 (cTabEntSincron)->DESCRICAO,;
+							 (cTabEntSincron)->INI_EXEC, ;
+							 (cTabEntSincron)->FIN_EXEC  })	
+		(cTabEntSincron)->(DBSKIP())
+	ENDDO
+	(cTabEntSincron)->(dbclosearea())		
+	
+
+		
+Return 
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+
+Method refresh(nOpc) Class MpMenu1
+
+	
+	
+	Self:aContas		:= {}
+	Self:aSincron		:= {}
+	Self:aDataSaida		:= {}
+	Self:aDataEntra		:= {}
+	
+	
+	Self:Dados()
+
+	//atualiza list contas
+	Self:oListContas:refresh()
+	
+	//atualiza list Sincrioniza็ใo	
+	Self:oListSincron:refresh()
+	
+	
+	if nOpc <> 1
+		//atualiza grafico de entidades de saida
+		self:oGrafSaida:DeActivate()
+	    for x:=1 to len(Self:aDataSaida)
+	    	 self:oGrafSaida:addSerie( Self:aDataSaida[x,1]	,Self:aDataSaida[x,2]) 
+	    next x 	
+	    self:oGrafSaida:Activate()	
+		
+		self:oGrafEntrada:DeActivate()
+		//atualiza grafico de entidades de entrada
+	    for x:=1 to len(Self:aDataEntra)
+	    	 self:oGrafEntrada:addSerie( Self:aDataEntra[x,1]	,Self:aDataEntra[x,2]) 
+	    next x 		
+	    self:oGrafEntrada:Activate()	
+    endif
+return()
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+
+Method Monitor(nPos) Class MpMenu1
+	local nRefresh 		:= 10000
+	local lTransparent	:= .F.	
+	local cJobAlter		:= Self:aSincron[nPos,2]
+	local cCmbAtivo		:= Self:aSincron[nPos,1]
+	local aCmbAtivo		:= {"SIM","NAO"}
+
+	private nMeter1 		:= 0
+	Private oMeter1
+	Private oSayMeter
+	Private cDescProc		:= "Status: Parado"
+
+	//monta tela
+	Self:oDlgMonitor 	:= MSDialog():New(0,0,475, 1000,'Monitor',,,,nOr(WS_VISIBLE,WS_POPUP),CLR_BLACK,CLR_WHITE,,,.T.,,,,lTransparent)
+   
+    oTButClose	:= TBtnBmp2():New( 00, 980   ,30,30,'close1.png',,,,{||Self:oDlgMonitor:end() },Self:oDlgMonitor ,,,.T. )
+    
+
+	oSay4		:= TSay():New(  005		, 160	,{||"Configura็ใo - "+self:aSincron[nPos,3]}	, Self:oDlgMonitor,,Self:oFont2,,,,.T.,8421504,,500,15) 	
+	//oSay4:SetTextAlign( 2, 2 )
+	
+	//oCheck1 	:= TCheckBox():New(022,005,'Pause',{ |u|if(Pcount()>0,Self:lPauseMonitor :=u,Self:lPauseMonitor) },Self:oDlgMonitor,100,210,,,,,,,,.T.,,,)	  
+	
+	
+	
+	oGroup1:= TGroup():New(25,05,80,160,'Execu็ใo Manual',Self:oDlgMonitor,,,.T.)
+	oTButplay	:= TBtnBmp2():New( 82 , 15   ,55,55,'play2.png'		,,,,{|| Self:ExecManual(self:aSincron[nPos,2])  },Self:oDlgMonitor ,,,.T. )	
+	oMeter1 	:= TMeter():New(47,40,{|u|if(Pcount()>0,nMeter1:=u,nMeter1)},100,Self:oDlgMonitor ,115,16,,.T.)
+	oSayMeter	:= TSay():New(  80		, 40	,{|| cDescProc }	, Self:oDlgMonitor,,   /*Fonte*/  ,,,,.T.,,,500,15) 
+	
+	
+	oGroup1:= TGroup():New(90,05,155,160,'Ativo',Self:oDlgMonitor,,,.T.)
+	oCombVisoes := TComboBox():New(100,015,{|u|if(PCount()>0,cCmbAtivo:=u,cCmbAtivo)},aCmbAtivo,;
+			   		130, 15  ,Self:oDlgMonitor,,{|| Self:DisableJob(cCmbAtivo,cJobAlter) /*bloco de execu็ใo*/ };
+			   		,,8421504,16777215,.T.,Self:oFont2,,,,,,,,'cCmbAtivo',"Servi็o Ativo? ",1,Self:oFont1,8421504)
+	
+	
+	oGroup1:= TGroup():New(165,05,240,160,'Refresh',Self:oDlgMonitor,,,.T.)
+	oTButRefr	:= TBtnBmp2():New( 340 , 15   ,55,55,'refresh2.png'		,,,,{||Self:DataMonitor(self:aSincron[nPos,2])  },Self:oDlgMonitor ,,,.T. )	
+	
+	
+	
+	oGroup1:= TGroup():New(25,165,240,495,'Monitor',Self:oDlgMonitor,,,.T.)
+	oTMget1 	:= TMultiget():New(35,170,{|u|if(Pcount()>0,Self:cTxtMonitor :=u,Self:cTxtMonitor)},  Self:oDlgMonitor,320,195,,,,,,.T.)
+	
+	
+	
+
+	// timer de atualiza็ใo
+	//oTimer := TTimer():New(nRefresh, {|| Self:DataMonitor(self:aSincron[nPos,2]) }, Self:oDlgMonitor )
+    //oTimer:Activate()
+
+
+    //atuializa dados para exibi็ใo
+	Self:DataMonitor(self:aSincron[nPos,2])
+	Self:oDlgMonitor:Activate(,,,.T.,{||.T.},,{||} )
+return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+Method ExecManual(cJobRec) Class MpMenu1
+
+	Private nTotMeter  	:= 0
+	Private nCountMte	:= 0
+	Private cJob 		:= cJobRec
+	
+	if alltrim(cJob) == 'JOBMPED1'
+		nTotMeter := 22
+		nCountMte := 1
+		
+		oMeter1:SetTotal(nTotMeter)
+		oMeter1:Set(nCountMte)
+		
+		u_JOBMPED1(FWGrpCompany(),FWCodFil())
+		
+		oMeter1:Set(nTotMeter)
+	else
+		nTotMeter := 3
+		nCountMte := 1
+		
+		oMeter1:SetTotal(nTotMeter)
+		oMeter1:Set(nCountMte)
+		
+		u_JOBMPED2(FWGrpCompany(),FWCodFil())
+		
+		oMeter1:Set(nTotMeter)
+		
+	endif
+	
+	Self:DataMonitor(cJob)
+	
+return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+Method RefreshMonitor() Class MpMenu1
+
+    	nCountMte += 1 
+    	oMeter1:Set(nCountMte)
+    	
+    	oSayMeter:refresh()
+    	
+    	Self:DataMonitor(cJob)
+    	Self:oDlgMonitor:refresh()
+
+return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+Method DataMonitor(cJob) Class MpMenu1
+	local cTbLogEntra	:= GetNextAlias()
+	local cTbLogSaida	:= GetNextAlias()
+	local cQuery
+		
+	//if !Self:lPauseMonitor
+	
+		//************************************ DATA ENTRADA ***************************************
+		Self:cTxtMonitor := ""
+	
+		cQuery := " SELECT RTRIM( DATA_LOG) DATA_LOG ,ID FROM PAR_LOGMERCOS"+FWGrpCompany()
+		cQuery += " WHERE JOB = '"+cJob+"' "
+		cQuery += " AND ID > ( SELECT MAX(ID) - 500 FROM PAR_LOGMERCOS"+FWGrpCompany()+ ")"
+	
+	
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cTbLogEntra,.T.,.T.) 	
+		WHILE (cTbLogEntra)->(!EOF())	
+			Self:cTxtMonitor += (cTbLogEntra)->DATA_LOG + ENTER
+			(cTbLogEntra)->(DBSKIP())
+		ENDDO
+		(cTbLogEntra)->(dbclosearea())		
+	
+		oTMget1:GoEnd()
+		oTMget1:refresh()
+	
+	//endif		
+
+return()
+
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+Method DisableJob(cCmbAtivo,cJobAlter) Class MpMenu1
+
+	cSql := " UPDATE  PAR_SINC"+SM0->M0_CODIGO+" SET ATIVO = '"+cCmbAtivo+"' WHERE JOB = '"+cJobAlter+"'"
+	nStatus := TCSqlExec(cSql)
+	if (nStatus < 0)
+		Alert( "DisableJob - "+ TCSQLError())
+		return()
+	endif
+	Self:Dados()
+	Self:Refresh()
+
+	
+return()
+
+
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณNOVO4     บ Autor ณ Lucas Pereira      บ Data ณ  12/03/17   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ tipos de patrimonio                       	              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP6 IDE                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+static function navegar(cEndereco)
+local nVersion := GetRemoteType(  )
+	if nVersion == 1
+		ShellExecute( "Open", "%PROGRAMFILES%\Internet Explorer\iexplore.exe", cEndereco, "C:\", 1 )
+	else
+		shellExecute("Browser", "/usr/bin/firefox", cEndereco, "/", 1 )
+	endif
+
+return()
+

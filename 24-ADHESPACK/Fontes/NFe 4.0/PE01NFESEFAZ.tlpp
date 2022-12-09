@@ -1,0 +1,128 @@
+#include 'protheus.ch'
+#include 'tbiconn.ch'
+#include 'topconn.ch'
+#include 'fileio.ch'
+#INCLUDE "rwmake.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | PE01NFESEFAZ  | Autor | Lucas Baia - UPDUO         | Data | 08/11/2021
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada utilizado na Rotina de Nfe-Sefaz, serve para todos os 
+//        | fatores assim como Mensagens, Dados de Produtos, Duplicatas e etc...
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+// Links  | https://tdn.totvs.com/pages/releaseview.action?pageId=274327446
+//---------------------------------------------------------------------------------
+
+USER FUNCTION PE01NFESEFAZ()
+Local aArea     := GetArea()
+Local aProd     := PARAMIXB[1] //array com dados do Produto (Código produto, descrição de prod, quantidade, lote, unidade de medida....)
+Local cMensCli  := PARAMIXB[2] //mensagem do cliente na nota
+Local cMensFis  := PARAMIXB[3] //mensagem fiscal da nota
+Local aDest     := PARAMIXB[4] //array com dados do destinatario (cnpj, nome, endereço,....)
+Local aNota     := PARAMIXB[5] //array com dados da nota (numero da nota, serie, data emissao ....)
+Local aInfoItem := PARAMIXB[6] //array com as informações dos itens (numero do pedido, numero item pedido....)
+Local aDupl     := PARAMIXB[7] //array com dados das duplicatas (prefixo, numero, parcela, vencimento.....)
+Local aTransp   := PARAMIXB[8] //array com dados do transportador (cnpj, nome, ins. estadual, endereço....)
+Local aEntrega  := PARAMIXB[9] //array com dados da entrega (cnpj, endereco, municipio, bairro, email,.....)
+Local aRetirada := PARAMIXB[10] //array com dados do local de retirada (cnpj, endereço, municipio, bairro, email....)
+Local aVeiculo  := PARAMIXB[11] //array com dados do veiculo transporte (placa, estado, ....)
+Local aReboque  := PARAMIXB[12] //array com dados do segundo veiculo transporte (placa, estado, ....)
+Local aNfVincRur:= PARAMIXB[13] //array com dados da Nota Fiscal de Produtor rural referenciada (nota, serie, emissao da nota, ...)
+Local aEspVol   := PARAMIXB[14] //array com dados do volume da nota (peso liquido, peso bruto,....)
+Local aNfVinc   := PARAMIXB[15] //array com dados do cupom fiscal (numero da nota, serie, emissao, chave da nota,....)
+Local AdetPag   := PARAMIXB[16] //array com detalhes do pagamento (forma pagamento, valor .....)
+Local aObsCont  := PARAMIXB[17] //array com observação do contribuinte
+Local aProcRef  := PARAMIXB[18]
+Local aMed      := PARAMIXB[19]
+Local aLote     := PARAMIXB[20]
+Local aRetorno  := {}
+
+faProd(@aProd,@aNota,@aInfoItem)
+
+//O retorno deve ser exatamente nesta ordem e passando o conteúdo completo dos arrays
+//pois no rdmake nfesefaz é atribuido o retorno completo para as respectivas variáveis
+//Ordem:
+//      aRetorno[1] -> aProd
+//      aRetorno[2] -> cMensCli
+//      aRetorno[3] -> cMensFis
+//      aRetorno[4] -> aDest
+//      aRetorno[5] -> aNota
+//      aRetorno[6] -> aInfoItem
+//      aRetorno[7] -> aDupl
+//      aRetorno[8] -> aTransp
+//      aRetorno[9] -> aEntrega
+//      aRetorno[10] -> aRetirada
+//      aRetorno[11] -> aVeiculo
+//      aRetorno[12] -> aReboque
+//      aRetorno[13] -> aNfVincRur
+//      aRetorno[14] -> aEspVol
+//      aRetorno[15] -> aNfVinc
+//      aRetorno[16] -> AdetPag
+//      aRetorno[17] -> aObsCont 
+//      aRetorno[18] -> aProcRef
+//      aRetorno[19] -> aMed
+//      aRetorno[20] -> aLote
+ 
+aadd(aRetorno,aProd)
+aadd(aRetorno,cMensCli)
+aadd(aRetorno,cMensFis)
+aadd(aRetorno,aDest)
+aadd(aRetorno,aNota)
+aadd(aRetorno,aInfoItem)
+aadd(aRetorno,aDupl)
+aadd(aRetorno,aTransp)
+aadd(aRetorno,aEntrega)
+aadd(aRetorno,aRetirada)
+aadd(aRetorno,aVeiculo)
+aadd(aRetorno,aReboque)
+aadd(aRetorno,aNfVincRur)
+aadd(aRetorno,aEspVol)
+aadd(aRetorno,aNfVinc)
+aadd(aRetorno,AdetPag)
+aadd(aRetorno,aObsCont)
+aadd(aRetorno,aProcRef)
+aadd(aRetorno,aMed)
+aadd(aRetorno,aLote)
+ 
+RestArea(aArea)
+
+RETURN aRetorno
+
+
+//*****************************************************/
+
+//---------------------------------------------------------------------------------
+// Rotina | faProd      | Autor | Lucas Baia - UPDUO        | Data | 28/03/2022
+//---------------------------------------------------------------------------------
+// Descr. | Foi criado para registrar o Lote e Data de Validade em cada Item.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+Static Function faProd(aProd,aNota,aInfoItem)
+
+Local I
+
+//Tratar o Lote e Data de Validade através dos campos Customizados da SD2.
+
+IF aNota[4] == "1" //1 - NF de Saída e 0 - NF de Entrada.
+
+    For I := 1 To Len(aProd)
+        IF !Empty(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_XLOTE"))
+            
+            aProd[I][4] := ALLTRIM(aProd[I][4])+" - LOTE: "+ALLTRIM(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_XLOTE"))+" - VAL.: "+DTOC(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_XDTLOT"))
+
+        ELSEIF !Empty(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_LOTECTL"))
+
+            aProd[I][4] := ALLTRIM(aProd[I][4])+" - LOTE: "+ALLTRIM(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_LOTECTL"))+" - VAL.: "+DTOC(POSICIONE("SD2",3,xFilial("SD2")+aNota[2]+aNota[1]+SF2->F2_CLIENTE+SF2->F2_LOJA+aProd[I][2]+aInfoItem[I][4],"D2_DTVALID"))
+
+        ENDIF
+    Next
+
+ENDIF
+
+Return aProd
+
+//*****************************************************/

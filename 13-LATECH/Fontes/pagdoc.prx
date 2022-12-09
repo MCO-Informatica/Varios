@@ -1,0 +1,42 @@
+#include "rwmake.ch"        
+
+User Function Pagdoc()      
+
+SetPrvt("_DOC,_TPAG")
+
+/////  PROGRAMA GRAVAR AS POSICOES DE 374 A 413
+
+_DOC  := ""        
+_TPAG := ""
+
+IF SUBSTR(SEA->EA_MODELO,1,2) $ "01/30"
+   _Doc  := Space(40)
+
+Elseif SUBSTR(SEA->EA_MODELO,1,2) $ "03/07/08"
+ 
+   Do case
+   Case SEA->EA_TIPOPAG $ "15/50/60/80/90"
+        _TPAG := "03" // Pagamento de Duplicatas/Titulo                   ***
+   Case SEA->EA_TIPOPAG == "10"
+        _TPAG := "04" // Pagamento de Dividendos                          ***   
+   Case SEA->EA_TIPOPAG == "30"
+        _TPAG := "06" // Pagamento de Salario                             ***     
+   Case SEA->EA_TIPOPAG == "20"
+        _TPAG := "07" // Pagamento de Fornecedores/Honorarios             ***   
+   Case SEA->EA_TIPOPAG == "40"
+        _TPAG := "08" // Operacoess de Cambio/Fundos/Bolsa de Valores     ***
+   Case SEA->EA_TIPOPAG == "22"
+        _TPAG := "09" // Repasse de Arrrec./Pagamento de Tributos         ***       
+   Case SEA->EA_TIPOPAG == "98"
+        _TPAG := "99" // Outros                                           ***
+   Endcase        
+        
+   _Doc  := "C000000" + _TPAG + "01" + SPACE(29)                                  
+
+Elseif SUBSTR(SEA->EA_MODELO,1,2) == "31"
+   _Doc:=SUBSTR(SE2->E2_CODBAR,20,25)+SUBSTR(SE2->E2_CODBAR,5,1);
+         +SUBSTR(SE2->E2_CODBAR,4,1)+SPACE(13)
+
+EndIf
+
+Return(_DOC)

@@ -1,0 +1,106 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "Topconn.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | RFAT01            | Autor | Lucas Baia          | Data | 14/07/2021
+//---------------------------------------------------------------------------------
+// Descr. | Relatório Customizado para trazer os Produtos mais vendidos com o
+//        | Periodo Filtrado pelo Usuário.
+//---------------------------------------------------------------------------------
+// Uso    | PiterPan Ind. e Com. LTDA
+//---------------------------------------------------------------------------------
+User Function RFAT01()
+
+//VARIAVEIS 
+Private oReport    := Nil
+Private oSecCab    := Nil
+Private cData01    := ""
+Private cData02    := ""
+
+Private cPerg 	 := "DTCUSTOMIZ"
+
+//Função que cria as perguntas/filtros que iremos usar no relatório, na SX1
+//ValidPerg()
+
+//Função responsável por chamar a pergunta criada na função ValidaPerg, a variável PRIVATE cPerg, é passada.
+Pergunte(cPerg,.T.)
+
+//CHAMAMOS AS FUNÇÕES QUE CONSTRUIRÃO O RELATÓRIO
+ReportDef()
+oReport:PrintDialog()
+
+Return 
+
+Static Function ReportDef()
+
+cData01 := DTOC(MV_PAR02) //--->Convertendo o conteúdo do campo Data Inicial de DATA para Caracter.
+cData02 := DTOC(MV_PAR03) //--->Convertendo o conteúdo do campo Data Final de DATA para Caracter.
+
+Private cTitulo    := "Relatório - Produtos mais vendidos entre "+cData01+" até "+cData02+" pela Filial "+MV_PAR01
+Private cDescr     := "Este Relatório tem a finalidade de trazer os Produtos mais vendidos dentro de um Periodo realizado pelo Filtro." 
+
+oReport := TReport():New("RFAT01",cTitulo,cPerg,{|oReport| PrintReport(oReport)},cDescr)
+oReport:SetLandscape(.T.) // SIGNIFICA QUE O RELATÓRIO SERÁ EM PAISAGEM
+
+
+//TrSection serve para constrole da seção do relatório, neste caso, teremos somente uma
+oSecCab := TRSection():New( oReport , "PRODUTOS MAIS VENDIDOS POR PERIODO"  )
+
+/*
+TrCell serve para inserir os campos/colunas que você quer no relatório, lembrando que devem ser os mesmos campos que contém na QUERIE
+Um detalhe importante, todos os campos contidos nas linhas abaixo, devem estar na querie, mas.. 
+você pode colocar campos na querie e adcionar aqui embaixo, conforme a sua necessidade.
+*/ //B1_COD CODIGO_PRODUTO, B1_DESC NOME_PRODUTO, D2_LOCAL ARMAZEN_PRODUTO, SUM(D2_QUANT) QUANTIDADE_VENDIDA
+TRCell():New( oSecCab, "B1_COD"    , "SB1", "Cod. Produto")
+TRCell():New( oSecCab, "B1_DESC"     , "SB1", "Desc. Produto")
+TRCell():New( oSecCab, "D2_LOCAL"    , "SD2", "Armazen do Produto")
+TRCell():New( oSecCab, "QUANTIDADE_VENDIDA" , , "Quantidade Vendida", "@E 999,999,999.9999")
+
+
+//oBreak := TRBreak():New(oSecCab,oSecCab:Cell("B1_COD"),"Sub Total de Produtos")
+//ESTA LINHA IRÁ CONTAR A QUANTIDADE DE REGISTROS LISTADOS NO RELATÓRIO PARA A ÚNICA SEÇÃO QUE TEMOS
+//TRFunction():New(oSecCab:Cell("QUANTIDADE_VENDIDA"),NIL,"SUM",NIL)
+
+TRFunction():New(oSecCab:Cell("B1_COD"),,"COUNT")
+
+Return 
+
+Static Function PrintReport(oReport)
+Local cAlias := GetNextAlias()
+
+
+oSecCab:BeginQuery() //Relatório começa a ser estruturado
+//INICIO DA QUERY
+BeginSql Alias cAlias 
+
+    SELECT B1_COD, B1_DESC, D2_LOCAL,
+    SUM(D2_QUANT) QUANTIDADE_VENDIDA
+    FROM SB1010 SB1,
+    SD2010 SD2,
+    SF4010 SF4
+    WHERE SB1.B1_COD = SD2.D2_COD
+    AND D2_TES = F4_CODIGO
+    AND F4_DUPLIC = 'S'
+    AND SF4.D_E_L_E_T_<>'*'
+    AND SB1.D_E_L_E_T_<>'*'
+    AND SD2.D_E_L_E_T_<>'*'
+    AND SD2.D2_FILIAL= %exp:(MV_PAR01)%
+    AND D2_EMISSAO BETWEEN %exp:(MV_PAR02)% AND %exp:(MV_PAR03)%
+    GROUP BY SB1.B1_COD,
+    SD2.D2_LOCAL,
+    SB1.B1_DESC
+    ORDER BY SUM(SD2.D2_QUANT) DESC,
+    SB1.B1_COD,
+    SD2.D2_LOCAL,
+    SB1.B1_DESC;
+
+//FIM DA QUERY
+EndSql
+
+oSecCab:EndQuery() //Fim da Query
+oSecCab:Print() //É dada a ordem de impressão, visto os filtros selecionados
+
+//O Alias utilizado para execução da querie é fechado.
+(cAlias)->(DbCloseArea())
+
+Return 

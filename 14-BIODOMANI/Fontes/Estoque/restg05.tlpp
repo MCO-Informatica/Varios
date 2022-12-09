@@ -1,0 +1,66 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RESTG05       | Autor | Lucas Baia          | Data |    12/08/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte desenvolvido para Gatilho, quando o Saldo Atual do Produto for
+//        | menor do que o Conteúdo digitado no campo Quantidade, precisa barrar.
+//---------------------------------------------------------------------------------
+// OBS    | Colocar no Gatilho CP_QUANT para CP_QUANT e também CP_LOCAL para CP_QUANT.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI
+//---------------------------------------------------------------------------------
+
+
+User Function RESTG05()
+
+Local _nCodProd := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_PRODUTO" })]
+Local _nQuant   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_QUANT" })]
+Local _nLocal   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_LOCAL" })]
+Local _nSaldo   := 0
+
+DbSelectArea("SB2")
+DbSetOrder(1)
+
+IF SB2->(Dbseek(xFilial("SB2")+_nCodProd+_nLocal))
+    _nSaldo := SaldoSB2()
+    IF _nQuant > _nSaldo .OR. _nSaldo <= 0
+
+        FWAlertError("Não será permitido a quantidade digitada, pois o Estoque do Produto é Menor ou Zerado!", "ATENÇÃO")
+        SaldoLocal(_nCodProd)
+        IF _nSaldo < 0
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_QUANT" })] := 0
+        ELSE
+            aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_QUANT" })] := _nSaldo
+        ENDIF
+
+    ENDIF
+
+ENDIF
+
+Return (aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "CP_QUANT" })])
+
+
+
+
+Static Function SaldoLocal(Cod)
+
+Local _cMsg := ""
+
+DbSelectArea("SB2")
+DbSetOrder(1)
+
+IF SB2->(Dbseek(xFilial("SB2")+Cod))
+
+    While Eof() == .f. .and. SB2->B2_COD == Cod
+                                                
+        _cMsg += "Arm.: "+SB2->B2_LOCAL+" "+Posicione("NNR",1,xFilial("NNR")+SB2->B2_LOCAL,"NNR_DESCRI")+  "Disp.: "+Transform(SB2->B2_QATU,"@E 999,999.999999")+CHR(13)+CHR(10)
+                            
+        SB2->(dbSkip())
+    EndDo
+
+ENDIF
+
+MessageBox(_cMsg, "Disponibilidade",16)
+
+Return

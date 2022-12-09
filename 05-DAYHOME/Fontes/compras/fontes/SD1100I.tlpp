@@ -1,0 +1,75 @@
+#include "rwmake.ch"
+
+//------------------------------------------------------------------------------------
+/*/{Protheus.doc} SD1100I
+Ponto de Entrada para automatizar o preenchimento de informacoes referentes a
+   Imposto ST no documento de entrada, utilizados para rotinas de Ressarcimento Cat17
+
+@author		DayHome
+@since		25/09/2015
+@version	P11
+@obs		Parametros: Nenhum
+/*/
+//-----------------------------------------------------------------------------------
+
+User Function SD1100I()
+
+LOCAL _aArea    := GetArea()
+LOCAL _aAreaSB1 := SB1->( GetArea() )
+LOCAL _aAreaSF4 := SF4->( GetArea() )
+LOCAL _aAreaSF7 := SF7->( GetArea() )
+
+LOCAL _nBASNDES := 0
+LOCAL _nICMNDES := 0
+LOCAL _cGRTRIB  := ""
+LOCAL _nXIPICOM := 0
+LOCAL _nMargem  := 0
+LOCAL _nIcmPad  := ( GetMv("MV_ICMPAD") / 100 )
+
+If SD1->D1_BASNDES == 0  // So atualizara se o campo nao foi informado pelo usuario na inclusao da nota
+	
+	dbSelectArea("SF4")  // TES
+	dbSetOrder(1)        // Codigo
+	dbSeek( xFilial("SF4") + SD1->D1_TES , .F. )
+	
+	If SF4->F4_CRICMS == "1"  .AND. Trim( SF4->F4_SITTRIB ) == "60" .AND. Trim( SA2->A2_GRPTRIB ) == "NAC" // Verifica se a TES trata o Credito de ST para ressarcimento e SITTRIB
+		
+		dbSelectArea("SB1")  // Produtos
+		dbSetOrder(1)        // Cod
+		dbSeek( xFilial("SB1") + SD1->D1_COD , .F. )
+		
+		_cGRTRIB  := SB1->B1_GRTRIB
+		_nXIPICOM := SB1->B1_XIPICOM
+		
+		dbSelectArea("SF7")  // Excecoes Fiscais
+		dbSetOrder(1)        // GrTrib + GrpCli + Sequen
+		dbSeek( xFilial("SF7") + _cGRTRIB , .T. )
+		
+		Do While SF7->F7_GRTRIB == _cGRTRIB .AND. !Eof()
+			//If ( SF7->F7_EST == SA2->A2_EST .AND. SF7->F7_GRPCLI == "NAC" ) .OR. ( "*" $ TRIM(SF7->F7_EST) .AND. SF7->F7_GRPCLI == "NAC" )
+			If SF7->F7_GRPCLI == "NAC"  // Por solicitacao do cliente, buscar o primeiro GRPCLI = NAC para considerar a Margem, independente do ESTADO
+				_nMargem := SF7->F7_MARGEM
+				Exit
+			EndIf
+			dbSkip()
+		EndDo
+		
+		_nBASNDES := ( SD1->D1_QUANT * ( SD1->D1_VUNIT * ( 1 + Iif(_nXIPICOM==0,0,(_nXIPICOM/100)) ) ) ) * ( 1 + ( _nMargem/100 ) )  // Base
+		
+		_nICMNDES := ( _nBASNDES * _nIcmPad ) - ( ( SD1->D1_QUANT * SD1->D1_VUNIT ) * _nIcmPad )                         // Valor
+		
+		RecLock("SD1",.F.)
+		SD1->D1_BASNDES := _nBASNDES
+		SD1->D1_ICMNDES := _nICMNDES
+		MsUnLock()
+		
+	Endif
+	
+EndIf
+
+RestArea( _aAreaSF7 )
+RestArea( _aAreaSF4 )
+RestArea( _aAreaSB1 )
+RestArea( _aArea )
+
+Return( .T. )

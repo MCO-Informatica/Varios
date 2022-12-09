@@ -1,0 +1,38 @@
+//-------------------------------------------------------------------
+/*/{Protheus.doc} MA650PBAT
+
+@author		Ricardo Souza 
+@since		02/09/2022
+@version	1.0
+@obs		Rotina Especifica
+/*/
+//-------------------------------------------------------------------
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+#Define STR_PULA		Chr(13)+Chr(10)
+
+User Function MA650PBAT()
+
+  
+Local _cQuery := ""
+
+
+_cQuery += "update "+RetSqlName("SC2")+" as a set c2_itempv = "+STR_PULA
+_cQuery += "coalesce( "+STR_PULA
+_cQuery += "( "+STR_PULA
+_cQuery += "select b.c2_itempv from "+RetSqlName("SC2")+" as b  "+STR_PULA
+_cQuery += "where b.c2_filial = a.c2_filial  and b.c2_num = a.c2_num and b.c2_item = a.c2_item and b.c2_sequen = '001' and b.d_e_l_e_t_= ' ' "+STR_PULA
+_cQuery += "), "+STR_PULA
+_cQuery += "'   ') "+STR_PULA
+_cQuery += "where a.c2_filial = '"+xFilial("SC2")+"' and a.c2_sequen <> '001' and a.c2_quje < a.c2_quant and a.d_e_l_e_t_ = ' ' "+STR_PULA
+_cQuery += "and a.c2_num in "+STR_PULA
+_cQuery += "( "+STR_PULA
+_cQuery += "select s.c2_num from "+RetSqlName("SC2")+" as s where s.c2_filial = '"+xFilial("SC2")+"' and s.c2_quje < s.c2_quant and s.d_e_l_e_t_ = ' ' and s.c2_sequen = '001' "+STR_PULA
+_cQuery += ") "+STR_PULA
+
+alert(_cQuery)
+
+TcSqlExec(_cQuery)
+
+
+Return

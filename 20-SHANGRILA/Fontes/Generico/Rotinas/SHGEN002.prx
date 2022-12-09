@@ -1,0 +1,26 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE 'FWMVCDEF.CH'
+
+Static aIndSZ6
+Static lCopia
+
+User Function SHGEN002(cTipo)
+Local lRet := .F.
+
+Default cTipo := ''
+
+If cTipo == 'C'
+	If SX5->X5_TABELA = '21' .And. Substr(SX5->X5+CHAVE,1,1) == 'C'
+		lRet := .T.
+	EndIf
+ElseIf cTipo == 'F'
+	If SX5->X5_TABELA = '21' .And. Substr(SX5->X5+CHAVE,1,1) == 'F'
+		lRet := .T.
+	EndIf	
+ElseIf cTipo == 'P'
+	If SX5->X5_TABELA = '21' .And. !Substr(SX5->X5+CHAVE,1,1) $'C|F'
+		lRet := .T.
+	EndIf	
+EndIf
+
+Return lRet

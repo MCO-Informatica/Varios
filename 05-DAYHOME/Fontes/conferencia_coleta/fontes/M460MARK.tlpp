@@ -1,0 +1,271 @@
+#include "protheus.ch" 
+#include "topconn.ch"
+
+Static aTesOriginal := {}
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³M460MARK  ºAutor  ³Bruno Parreira      º Data ³  01/08/13   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de Entrada utilizado para validar itens selecionados  º±±
+±±º          ³na tela Documento de Saida para emissao de NF.              º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ MATA460                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+                    
+User Function M460MARK()
+
+Local lRet := .F.
+
+Local aArea		:= SC9->(GetArea())
+Local aAreaSC9  := GetArea()
+Local cMarca 	:= PARAMIXB[1]
+Local lInverte  := PARAMIXB[2]  
+Local pedibloq	:= {}
+
+c_query := ""  
+c_qry   := ""
+
+Pergunte("MT461A",.F.)               
+
+/*
+Parametros do MT461A:
+mv_par01 := Filtra ja Emitid. ?           
+mv_par02 := Estorno da Liberc. ?          
+mv_par03 := Cons. Param. Abaixo ?         
+mv_par04 := Trazer Ped. Marc. ?           
+mv_par05 := Pedido De ?                   
+mv_par06 := Pedido Ate ?                  
+mv_par07 := Cliente De ?                  
+mv_par08 := Cliente Ate ?                 
+mv_par09 := Loja Cliente De ?             
+mv_par10 := Loja Cliente Ate ?            
+mv_par11 := Data Liberacao De ?           
+mv_par12 := Data Liberacao Ate ?          
+*/             
+mv_par01 := 1 //obriga a filtrar e respeitar os parametros
+mv_par03 := 1
+
+If mv_par01 = 1 .and. mv_par03 = 1
+	
+	c_query :=        " select C9_PEDIDO,C9_ITEM,C9_PRODUTO "
+	c_query += CRLF + "   from "+RetSqlName("SC9")+" SC9 "
+	c_query += CRLF + "   where C9_FILIAL = '"+xFilial("SC9")+"' "
+	c_query += CRLF + "     and C9_PEDIDO  BETWEEN '"+mv_par05+"' and '"+mv_par06+"' "
+	c_query += CRLF + "     and C9_CLIENTE BETWEEN '"+mv_par07+"' and '"+mv_par08+"' "
+	c_query += CRLF + "     and C9_LOJA    BETWEEN '"+mv_par09+"' and '"+mv_par10+"' "
+	c_query += CRLF + "     and C9_DATALIB BETWEEN '"+DtoS(mv_par11)+"' and '"+DtoS(mv_par12)+"' "
+	c_query += CRLF + "     and "+IIf(lInverte,"C9_OK <> '","C9_OK = '")+cMarca+"' "
+	c_query += CRLF + "     and C9_NFISCAL = ' ' "
+	c_query += CRLF + "     and D_E_L_E_T_ = ' ' "
+	MemoWrite("M460MARK.txt",c_query)
+	If Select("QRY") > 0
+		DbSelectArea("QRY")
+		DbCloseArea()
+	EndIf
+	TcQuery c_query New Alias "QRY"
+	 
+	If QRY->(!Eof())
+		QRY->(DbGoTop())
+		While QRY->(!Eof())	   
+			DbSelectArea("SC5")
+			DbsetOrder(1) // C5_FILIAL+C5_NUM
+			SC5->(DbGotop())
+			DbSeek(xFilial("SC5")+QRY->C9_PEDIDO)
+			
+			If  SC5->C5_OPER == "04" 	
+				DbSelectArea("SC6")
+				If DbSeek(xFilial("SC6")+QRY->C9_PEDIDO+QRY->C9_ITEM+QRY->C9_PRODUTO)
+					dbSelectArea("SF4")  
+					dbSetOrder(1)        
+					dbSeek( xFilial("SF4") + SC6->C6_TES )// TES DE TRANSFERENCIA (NAO ATUALIZA ESTOQUE)		
+						If !Empty(SF4->F4_TESTRAN)
+							RecLock("SC6",.F.)                  
+								aAdd(aTesOriginal,{SC6->C6_PRODUTO,SC6->C6_TES})
+								SC6->C6_TES := SF4->F4_TESTRAN	// TES DE TRANSFERENCIA (ATUALIZA ESTOQUE)
+							MsUnLock()					
+						EndIf	
+				 /*	If SC6->C6_TES=="620"	// TES DE TRANSFERENCIA (NAO ATUALIZA ESTOQUE)		
+						RecLock("SC6",.F.)
+						SC6->C6_TES := "502"	// TES DE TRANSFERENCIA (ATUALIZA ESTOQUE)
+						MsUnLock()
+					EndIf
+					If SC6->C6_TES=="626"	// TES DE TRANSFERENCIA (NAO ATUALIZA ESTOQUE)		
+						RecLock("SC6",.F.)
+						SC6->C6_TES := "623"	// TES DE TRANSFERENCIA (ATUALIZA ESTOQUE)
+						MsUnLock()
+					EndIf
+	               */
+				EndIf
+		    EndIf
+		    QRY->(DbSkip())
+		EndDo
+	EndIf	
+EndIf 
+                      
+
+// FONTANELLI INICIO
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	
+	if alltrim(cEmpAnt) == '99'
+		alert("(SIM) - M460MARK")
+	endif 
+	
+	cQuery := " SELECT DISTINCT C9_PEDIDO "
+	cQuery += "   FROM "+RetSqlName("SC9")+" "
+	cQuery += "  WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+	cQuery += "    AND C9_PEDIDO  BETWEEN '"+mv_par05+"' and '"+mv_par06+"' "
+	cQuery += "    AND C9_CLIENTE BETWEEN '"+mv_par07+"' and '"+mv_par08+"' "
+	cQuery += "    AND C9_LOJA    BETWEEN '"+mv_par09+"' and '"+mv_par10+"' "
+	cQuery += "    AND C9_DATALIB BETWEEN '"+DtoS(mv_par11)+"' and '"+DtoS(mv_par12)+"' "
+	cQuery += "    AND "+IIf(lInverte,"C9_OK <> '","C9_OK = '")+cMarca+"' "
+	cQuery += "    AND C9_NFISCAL = ' ' "
+	cQuery += "    AND C9_BLEST = ' ' "
+	cQuery += "    AND C9_BLCRED = ' ' "
+	cQuery += "    AND D_E_L_E_T_ = ' ' "
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QrySC9",.T.,.T.)
+	dbSelectArea("QrySC9")
+	dbGoTop()
+	nQTDPED := 0  
+	nPED    := ""
+	While !QrySC9->(Eof())
+		lRet := .T.
+		nQTDPED += 1    
+		nPED := QrySC9->C9_PEDIDO
+		QrySC9->(DbSkip())
+	EndDo
+	QrySC9->(dbCloseArea())
+	
+	//if nQTDPED > 1 
+	//	ALERT(" Permitido faturar (UM) pedido por vez!")
+	//	Return(.F.)
+	//endif	
+	
+	if nQTDPED < 1 
+		ALERT(" Obrigatório selecionar (UM) pedido!")
+		Return(.F.)
+	endif	
+
+	// Posiciona o pedido, para realizar a validacao C5_XCONF - 30/10/2017
+	DbSelectArea("SC5")
+	DbsetOrder(1) // C5_FILIAL+C5_NUM
+	SC5->(DbGotop())
+	DbSeek(xFilial("SC5")+nPED)
+	
+	DbSelectArea("SC6")
+	DbsetOrder(1) // C6_FILIAL+C6_NUM
+	SC6->(DbGotop())
+	DbSeek(xFilial("SC6")+nPED)
+	cTES := SC6->C6_TES
+
+	DbSelectArea("SF4")
+	DbsetOrder(1) // F4_FILIAL+F4_CODIGO
+	SF4->(DbGotop())
+	DbSeek(xFilial("SF4")+cTES)
+	cVALCONF := SF4->F4_CONF
+	
+	IF ( cVALCONF == "S" .OR. cVALCONF = "" ) .AND. SC5->C5_XCONF $ "S"  // Validacao do C5_XCONF realizada em 30/10/2017
+	
+		cQuery := " SELECT FILIAL, PEDIDO, PRODUTO, SUM(QTDBIP) QTDBIP, SUM(QTDLIB) QTDLIB "
+		cQuery += "   FROM "
+		cQuery += " 		( "
+		cQuery += " 			   SELECT ZZ2_FILIAL FILIAL, ZZ2_NUM PEDIDO, ZZ2_PRODUT PRODUTO, SUM(ZZ2_QTDLID) QTDBIP, 0 QTDLIB " 
+		cQuery += "                  FROM "+RetSqlName("ZZ2")+" "
+		cQuery += " 				WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+		cQuery += " 				  AND ZZ2_NUM IN  ( "
+		cQuery += " 									SELECT DISTINCT C9_PEDIDO "
+		cQuery += " 									  FROM "+RetSqlName("SC9")+" "
+		cQuery += " 									 WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+		cQuery += "                                        AND C9_PEDIDO  BETWEEN '"+mv_par05+"' and '"+mv_par06+"' "
+		cQuery += "                                        AND C9_CLIENTE BETWEEN '"+mv_par07+"' and '"+mv_par08+"' "
+		cQuery += "                                        AND C9_LOJA    BETWEEN '"+mv_par09+"' and '"+mv_par10+"' "
+		cQuery += "                                        AND C9_DATALIB BETWEEN '"+DtoS(mv_par11)+"' and '"+DtoS(mv_par12)+"' "
+		cQuery += "                                        AND "+IIf(lInverte,"C9_OK <> '","C9_OK = '")+cMarca+"' "
+		cQuery += "                                        AND C9_NFISCAL = ' ' "
+		cQuery += " 									   AND C9_BLEST = ' ' "
+		cQuery += " 									   AND C9_BLCRED = ' ' "
+		cQuery += " 									   AND D_E_L_E_T_ = ' ' "
+		cQuery += " 								) "
+		cQuery += " 				  AND ZZ2_TIPOSC = 'C' "
+		cQuery += " 				  AND ZZ2_NOTA = ' ' "
+		cQuery += " 				  AND D_E_L_E_T_ = ' ' " 
+		cQuery += " 		  	    GROUP BY ZZ2_FILIAL, ZZ2_NUM, ZZ2_PRODUT "
+		cQuery += " "
+		cQuery += " 			UNION ALL "
+		cQuery += " "
+		cQuery += " 			  SELECT C9_FILIAL FILIAL, C9_PEDIDO PEDIDO, C9_PRODUTO PRODUTO, 0 QTDBIP, SUM(C9_QTDLIB) QTDLIB "
+		cQuery += " 			    FROM "+RetSqlName("SC9")+" "
+		cQuery += " 			   WHERE C9_FILIAL = '"+xFilial("SC9")+"' "
+		cQuery += "                  AND C9_PEDIDO  BETWEEN '"+mv_par05+"' and '"+mv_par06+"' "
+		cQuery += "                  AND C9_CLIENTE BETWEEN '"+mv_par07+"' and '"+mv_par08+"' "
+		cQuery += "                  AND C9_LOJA    BETWEEN '"+mv_par09+"' and '"+mv_par10+"' "
+		cQuery += "                  AND C9_DATALIB BETWEEN '"+DtoS(mv_par11)+"' and '"+DtoS(mv_par12)+"' "
+		cQuery += "                  AND "+IIf(lInverte,"C9_OK <> '","C9_OK = '")+cMarca+"' "
+		cQuery += "                  AND C9_NFISCAL = ' ' "
+		cQuery += "                  AND C9_BLEST = ' ' "
+		cQuery += "                  AND C9_BLCRED = ' ' "
+		cQuery += "                  AND D_E_L_E_T_ = ' ' "
+		cQuery += " 			   GROUP BY C9_FILIAL, C9_PEDIDO, C9_PRODUTO "
+		cQuery += " 		) TMP " 
+		cQuery += " GROUP BY FILIAL, PEDIDO, PRODUTO "
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryTMP",.T.,.T.)
+		dbSelectArea("QryTMP")
+		dbGoTop()
+		While !QryTMP->(Eof())
+		
+			DbSelectArea("SB1")
+			SB1->(DbSetOrder(1))// B1_FILIAL+B1_COD
+			SB1->(DbSeek(xFilial("SB1") + QryTMP->PRODUTO ))
+			cDescProd := SB1->B1_DESC
+		
+			if (QryTMP->QTDBIP <> QryTMP->QTDLIB)   
+			
+			        ALERT("QUANTIDADES DIVERGENTES")
+	
+					ALERT("(((  D I V E R G Ê N C I A  ))) ";
+						  +Chr(13)+Chr(13)+"- Pedido: "+ALLTRIM(QryTMP->PEDIDO);
+						          +Chr(13)+"- Produto: "+ALLTRIM(QryTMP->PRODUTO);
+						          +Chr(13)+"- Descrição: "+ALLTRIM(cDescProd);
+						  +Chr(13)+Chr(13)+"- Quantidade FATURADA: "+ALLTRIM(STR(QryTMP->QTDLIB));
+						  +Chr(13)+Chr(13)+"- Quantidade CONFERIDA: "+ALLTRIM(STR(QryTMP->QTDBIP)))
+					lRet := .F.
+
+					DbSelectArea("SC5")
+					If DbSeek(xFilial("SC5")+ALLTRIM(QryTMP->PEDIDO))
+						RecLock("SC5",.F.)                  
+						SC5->C5_XDIVERG := 'S'
+						MsUnLock()					
+					EndIf	
+
+			endif
+			
+			QryTMP->(DbSkip())
+		EndDo
+		QryTMP->(dbCloseArea())	
+	
+	endif	
+
+ELSE
+
+	lRet:= .T.
+
+endif
+// FONTANELLI FIM
+
+Pergunte("MT460A",.f.)
+
+RestArea(aAreaSC9)
+
+RestArea(aArea)
+
+Return lRet
+
+
+User Function GetTesOri()
+Return aTesOriginal

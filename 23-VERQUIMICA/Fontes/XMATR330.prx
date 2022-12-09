@@ -1,0 +1,3485 @@
+#INCLUDE "MATR330.CH"
+#INCLUDE "PROTHEUS.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ MATR330  ³ Autor ³ Marcos V. Ferreira    ³ Data ³ 22/06/06 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±       
+±±³Descri‡…o ³ Mapa das Movimentacoes                                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³         ATUALIZACOES SOFRIDAS DESDE A CONSTRU€AO INICIAL.             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador ³ Data   ³ BOPS ³  Motivo da Alteracao                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³            ³        ³      ³                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function XMATR330()
+
+Local oReport
+
+If TRepInUse()
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿                             
+	//³Interface de impressao                                                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:= ReportDef()
+	oReport:PrintDialog()                      
+	
+Else
+	XMTR3R3()
+EndIf
+
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportDef ³ Autor ³Marcos V. Ferreira     ³ Data ³22/06/06  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³A funcao estatica ReportDef devera ser criada para todos os ³±±
+±±³          ³relatorios que poderao ser agendados pelo usuario.          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ XMATR330			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportDef()
+
+Local aOrdem    := { "tipo"     ," grupo    "}	//" Tipo     "###" Grupo    "
+Local nTamQAtu  := TamSX3("B2_QATU"  )[1]
+Local nTamVIni  := TamSX3("B9_VINI1" )[1]
+Local nTamCusD1 := TamSX3("D1_CUSTO" )[1]
+Local nTamCusD2 := TamSX3("D2_CUSTO1")[1]
+Local nTamCusD3 := TamSX3("D3_CUSTO1")[1]
+Local oProduto
+Local oLinha
+Local cAliasTop := GetNextAlias()    
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao do componente de impressao                                      ³
+//³                                                                        ³
+//³TReport():New                                                           ³
+//³ExpC1 : Nome do relatorio                                               ³
+//³ExpC2 : Titulo                                                          ³
+//³ExpC3 : Pergunte                                                        ³
+//³ExpB4 : Bloco de codigo que sera executado na confirmacao da impressao  ³
+//³ExpC5 : Descricao                                                       ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oReport:= TReport():New("XMATR330","Mapa Das Movimentações","MTR330", {|oReport| ReportPrint(oReport,aOrdem,cAliasTop)},"Este programa irá emitir um resumo da relação de"+" "+"Quantidades do stock. será emitido em forma de"+" "+"Colunas, Com Filial,armazém,código E Quantidade.") //"Mapa das Movimentacoes"
+oReport:DisableOrientation()
+oReport:SetLandscape() 
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01     // Almox. de                                    ³
+//³ mv_par02     // Almox. ate                                   ³
+//³ mv_par03     // Produto de                                   ³
+//³ mv_par04     // Produto ate                                  ³
+//³ mv_par05     // tipo de                                      ³
+//³ mv_par06     // tipo ate                                     ³
+//³ mv_par07     // grupo de                                     ³
+//³ mv_par08     // grupo ate                                    ³
+//³ mv_par09     // data inicial                                 ³
+//³ mv_par10     // data final                                   ³
+//³ mv_par11     // moeda selecionada ( 1 a 5 )                  ³
+//³ mv_par12     // Saldo a considerar : Atual/Fechamento/Movim. ³
+//³ mv_par13     // Rem/Dev Poder 3 Compras - Sim/Nao            ³
+//³ mv_par14     // Rem/Dev Poder 3 Vendas  - Sim/Nao            ³
+//³ mv_par15     // Impr. Vlr. Medio  - Sim/Nao                  ³
+//³ mv_par16     // Imprime OPs geradas pelo SIGAMNT? Sim / Nao  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Pergunte(oReport:uParam,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Criacao da Sessao 1 - (Detalhes do Produto)                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oProduto:= TRSection():New(oReport,STR0050,{"SB1"},aOrdem) //"Produto"
+oProduto:SetTotalInLine(.F.)
+
+TRCell():New(oProduto,'B1_TIPO'		,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'B1_GRUPO'	,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'B1_UM'		,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'B1_CODITE'	,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'B1_COD'		,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'B1_DESC'		,'SB1',,/*Picture*/,/*Tamanho*/	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'txtQuant'	,'   ',,/*Picture*/,13			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'nQuant'		,'   ',,/*Picture*/,nTamQAtu	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'txtValor1'	,'   ',,/*Picture*/,12			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'nValor01'	,'   ',,/*Picture*/,nTamQAtu	,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'txtValor2'	,'   ',,/*Picture*/,18			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oProduto,'nValor02'	,'   ',,/*Picture*/,nTamQAtu	,/*lPixel*/,/*{|| code-block de impressao }*/)
+
+oProduto:Cell("B1_TIPO"):HideHeader()
+oProduto:Cell("B1_GRUPO"):HideHeader()
+oProduto:Cell("B1_UM"):HideHeader()
+oProduto:Cell("B1_CODITE"):HideHeader()
+oProduto:Cell("B1_COD"):HideHeader()
+oProduto:Cell("B1_DESC"):HideHeader()
+oProduto:Cell("txtQuant"):HideHeader()
+oProduto:Cell("nQuant"):HideHeader()
+oProduto:Cell("txtValor1"):HideHeader()
+oProduto:Cell("nValor01"):HideHeader()
+oProduto:Cell("txtValor2"):HideHeader()
+oProduto:Cell("nValor02"):HideHeader()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Criacao da Sessao 2 - (Linha de Quantidade/Valor)            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oLinha:= TRSection():New(oProduto,STR0051,{"SB1"},aOrdem,/*lLoadCells*/,/*lLoadOrder*/,,,,,,,,,,.F. /*AutoSize*/) //"Movimentacao dos produtos"
+oLinha:SetTotalInLine(.F.)
+
+TRCell():New(oLinha,'cTexto'	,'',STR0022+CRLF+STR0023	,"@!"/*Picture*/,6      ,/*lPixel*/,{|| Space(6) },/*cAlign*/,/*lLineBreak*/,/*cHeaderAlign*/,/*lCellBreak*/,/*nColSpace*/,/*lAutoSize*/,/*nClrBack*/,/*nClrFore*/)
+TRCell():New(oLinha,'Compra'	,'',STR0024					,/*Picture*/,nTamCusD1	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'DevVen'	,'',STR0025+CRLF+STR0026	,/*Picture*/,nTamCusD1	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'ReqSOP'	,'',STR0027+CRLF+STR0028	,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'ReqCOP'	,'',STR0029+CRLF+STR0030	,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'RE3DE3'	,'',STR0029+CRLF+STR0031	,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'IniPrc'	,'',STR0032+CRLF+STR0033	,/*Picture*/,nTamVIni	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'RE2DE2'	,'',STR0034+CRLF+STR0035	,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'FimPrc'	,'',STR0036+CRLF+STR0033	,/*Picture*/,nTamVIni 	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'RE4DE4'	,'',STR0037+CRLF+STR0028	,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'Produc'	,'',STR0038					,/*Picture*/,nTamCusD3	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'Transf'	,'',STR0037+CRLF+STR0039	,/*Picture*/,nTamCusD2	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'Vendas'	,'',STR0040					,/*Picture*/,nTamCusD2	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'Entrad'	,'',STR0041+CRLF+STR0042	,/*Picture*/,nTamCusD2	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oLinha,'Saidas'	,'',STR0041+CRLF+STR0043	,/*Picture*/,nTamCusD2	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+
+oLinha:SetHeaderPage()
+oLinha:SetReadOnly()
+
+Return(oReport)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportPrint ³ Autor ³Marcos V. Ferreira   ³ Data ³22/06/06  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³A funcao estatica ReportPrint devera ser criada para todos  ³±±
+±±³          ³os relatorios que poderao ser agendados pelo usuario.       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ExpO1: Objeto Report do Relatorio                           ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ XMATR330			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportPrint(oReport,aOrdem,cAliasTop)
+
+Local oLinha 	:= oReport:Section(1):Section(1)
+Local oProduto	:= oReport:Section(1)
+Local nOrdem   	:= oProduto:GetOrder()
+Local nTvIniAlm := nTvCompra := nTvDevVen := nTvReqSOP := nTvReqCOP := nTvRE3DE3 := nTvIniPrc := nTvRE2DE2 := nTvFimPrc := nTvRE4DE4 := nTvProduc := nTvTransf := nTvVendas := nTvFimAlm := 0
+Local nTqQtdIni := nTqCompra := nTqDevVen := nTqReqSOP := nTqReqCOP := nTqRE3DE3 := nTqIniPrc := nTqRE2DE2 := nTqFimPrc := nTqRE4DE4 := nTqProduc := nTqTransf := nTqVendas := nTqQtdFim := 0
+Local nGvIniAlm := nGvCompra := nGvDevVen := nGvReqSOP := nGvReqCOP := nGvRE3DE3 := nGvIniPrc := nGvRE2DE2 := nGvFimPrc := nGvRE4DE4 := nGvProduc := nGvTransf := nGvVendas := nGvFimAlm := 0
+Local nGqQtdIni := nGqCompra := nGqDevVen := nGqReqSOP := nGqReqCOP := nGqRE3DE3 := nGqIniPrc := nGqRE2DE2 := nGqFimPrc := nGqRE4DE4 := nGqProduc := nGqTransf := nGqVendas := nGqQtdFim := 0
+Local nAqIniAlm := nAqCompra := nAqDevVen := nAqReqSOP := nAqReqCOP := nAqRE3DE3 := nAqIniPrc := nAqRE2DE2 := nAqFimPrc := nAqRE4DE4 := nAqProduc := nAqTransf := nAqVendas := nAqFimAlm := 0
+Local nAvIniAlm := nAvCompra := nAvDevVen := nAvReqSOP := nAvReqCOP := nAvRE3DE3 := nAvIniPrc := nAvRE2DE2 := nAvFimPrc := nAvRE4DE4 := nAvProduc := nAvTransf := nAvVendas := nAvFimAlm := 0
+Local nAqEntrad := nAvEntrad := nTqEntrad := nTvEntrad := nGqEntrad := nGvEntrad := 0
+Local nAqSaidas := nAvSaidas := nTqSaidas := nTvSaidas := nGqSaidas := nGvSaidas := 0
+Local xSD3		:= xSD1 := xSD2 := xSF4 := xSB1 := xSB2 := ''
+Local lPassou   := .F. 
+Local lTeveItem := .F. 
+Local lTotal	:= .F.
+Local lRetPE	:= .F.
+Local lR330Trans:= ExistBlock('R330TRANS')
+Local cCodAux   := ''
+Local cLocalAux := '  '
+Local bBloco    := { |nV,nX| Trim(nV)+Str(nX,1) }
+Local nVUnit    := 0
+Local cCondWhile:= ''
+Local cAnt      := ''
+Local cVar      := ''
+Local cTrbSB1 	:= CriaTrab('',.F.)
+Local cTrbSB2 	:= Subs(cTRBSB1,1,7)+'A'
+Local cTrbSD1 	:= Subs(cTRBSB1,1,7)+'B'
+Local cTrbSD2 	:= Subs(cTRBSB1,1,7)+'C'
+Local cTrbSD3 	:= Subs(cTRBSB1,1,7)+'D'
+Local nIndex	:= 0
+Local nIndB2    := 0
+Local nCusto    := 0
+Local lVeic		:= Upper(GetMV('MV_VEICULO'))=='S'
+Local cLocProc  := GetMV('MV_LOCPROC')
+Local lLocProc :=  cLocProc >= mv_par01 .And. cLocProc <= mv_par02
+Local cAliasSB1 := 'SB1'
+Local cAliasSB2 := 'SB2'
+Local cAliasSD1 := 'SD1'
+Local cAliasSD2 := 'SD2'
+Local cAliasSD3 := 'SD3'
+Local aSldFimPrc:= {0,0}
+Local cOrderBy  := ''
+Local cB1_COD   := ''
+Local cFilUser  := oReport:Section(1):GetAdvplExp()
+Local cIndexkey	:= ''
+Local cTipant   := ''
+Local cFiliant  := ''
+Local cPictQIni := PesqPict(IIf(mv_par12==1,'SB2','SB9'),IIf(mv_par12==1,'B2_QATU','B9_QINI'))
+Local cPictQaB2 := PesqPict('SB2',IIf(mv_par12==1,'B2_QATU','B2_QFIM'))
+Local cPictQtD1 := PesqPict('SD1','D1_QUANT')
+Local cPictQtD2 := PesqPict('SD2','D2_QUANT')
+Local cPictQtD3 := PesqPict('SD3','D3_QUANT')
+Local cPictQfB2 := PesqPict('SB2','B2_QFIM' )
+Local cPictVIni := PesqPict('SB9','B9_VINI1' )
+Local cPictFim  := PesqPict('SB2','B2_VFIM1' )
+Local cPictIni  := PesqPict('SB9','B9_QINI'  )
+Local cPictCusD1:= PesqPict('SD1','D1_CUSTO' )
+Local cPictCusD2:= PesqPict('SD2','D2_CUSTO1')
+Local cPictCusD3:= PesqPict('SD3','D3_CUSTO1')
+Local cSelectD1 := cWhereD1  := ''
+Local cSelectD2 := cWhereD2  := ''
+Local cSelectD3 := cWhereD3  := ''
+Local cSelectB2 := cWhereB2  := ''
+
+dbSelectArea("SD2")
+dbSetOrder(1)
+nRegs := SD2->(LastRec())
+xSD2  := xFilial("SD2")
+
+dbSelectArea("SD3")
+dbSetOrder(1)
+nRegs += SD3->(LastRec())
+xSD3  := xFilial("SD3")
+
+dbSelectArea("SD1")
+dbSetOrder(1)
+nRegs += SD1->(LastRec())
+xSD1  := xFilial("SD1")
+
+dbSelectArea("SF4")
+dbSetOrder(1)
+xSF4  := xFilial("SF4")
+
+dbSelectArea("SB2")
+dbSetOrder(1)
+xSB2  := xFilial("SB2")
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+xSB1  := xFilial("SB1")
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Adiciona a ordem escolhida ao titulo do relatorio          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oReport:SetTitle(oReport:Title() + " ("+AllTrim(aOrdem[nOrdem])+") ")
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Desabilita colunas nao utilizadas no relatorio               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If !lVeic
+	oProduto:Cell("B1_CODITE"):Disable()
+EndIf
+//-- Valor Inicial/Final Medio
+If !(mv_par15 == 1)
+	oProduto:Cell('txtValor2' ):Disable()
+	oProduto:Cell('nValor02'  ):Disable()
+EndIf
+
+
+//oReport:NoUserFilter()  // Desabilita a aplicacao do filtro do usuario no filtro/query das secoes
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do SELECT da tabela SB2                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cSelectB2 := "%"
+If lVeic
+	cSelectB2 +=	", SB1.B1_CODITE CODITE "
+EndIf
+cSelectB2 += ",%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do WHERE da tabela SB2                                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cWhereB2 := "%"
+If !lVeic
+	cWhereB2 += " SB1.B1_COD >= '" + mv_par03 + "'"
+	cWhereB2 += " AND SB1.B1_COD <= '" + mv_par04 + "'"
+Else
+	cWhereB2 += " SB1.B1_CODITE >= '" + mv_par03 + "'"
+	cWhereB2 += " AND SB1.B1_CODITE <= '" + mv_par04 + "'"
+EndIf
+cWhereB2 += "%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do SELECT da tabela SD1                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cSelectD1 := "% D1_CUSTO"
+If mv_par11 > 1
+	cSelectD1 += Str(mv_par11,1,0) // Coloca a Moeda do Custo
+EndIf
+cSelectD1 += " CUSTO"
+If lVeic
+	cSelectD1	+=	", SB1.B1_CODITE CODITE"
+EndIf
+cSelectD1 += ",%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do WHERE da tabela SD1                                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cWhereD1 := "%"
+If cPaisLoc <> "BRA"
+	cWhereD1 += " AND D1_REMITO = '" + Space(TamSx3("D1_REMITO")[1]) + "' "
+EndIf
+cWhereD1 += "%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do SELECT da tabela SD2                                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+    cSelectD2 := "% D2_CUSTO"
+cSelectD2 += Str(mv_par11,1,0) // Coloca a Moeda do Custo
+cSelectD2 += " CUSTO"
+If lVeic
+	cSelectD2	+=	", SB1.B1_CODITE CODITE"
+EndIf
+    cSelectD2 += ",%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do WHERE da tabela SD2                                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cWhereD2 := "%"
+If cPaisLoc <> "BRA"
+	cWhereD2 += " AND D2_REMITO = '" + Space(TamSx3("D2_REMITO")[1]) + "' "
+EndIf
+cWhereD2 += "%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do SELECT da tabelas SD3                                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cSelectD3 := "% D3_CUSTO"
+cSelectD3 += Str(mv_par11,1,0) // Coloca a Moeda do Custo
+cSelectD3 +=	" CUSTO" 
+If lVeic
+	cSelectD3 +=	", SB1.B1_CODITE CODITE" 
+EndIf
+cSelectD3 += ",%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Complemento do WHERE da tabela SD3                                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+    cWhereD3 := "%"
+If SuperGetMV('MV_D3ESTOR', .F., 'N') == 'N'
+	cWhereD3 += " AND D3_ESTORNO <> 'S'"
+EndIf
+If SuperGetMV('MV_D3SERVI', .F., 'N') == 'N' .And. IntDL()
+	cWhereD3 += " AND ( (D3_SERVIC = '   ') OR (D3_SERVIC <> '   ' AND D3_TM <= '500')  "
+	cWhereD3 += " OR  (D3_SERVIC <> '   ' AND D3_TM > '500' AND D3_LOCAL ='"+SuperGetMV('MV_CQ', .F., '98')+"') )"
+EndIf
+cWhereD3 += "%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Montagem do ORDER BY                                                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cOrderBy := "%"
+If !lVeic
+	If nOrdem == 1
+		cOrderBy += "TIPO,PRODUTO,ARQ" //3-TIPO/2-PRODUTO/1-ARQ
+	Else
+		cOrderBy += "GRUPO,PRODUTO,ARQ" //5-GRUPO/2-PRODUTO/1-ARQ
+	EndIf
+Else
+	If nOrdem == 1
+		cOrderBy += "TIPO,CODITE,PRODUTO,ARQ" //3-TIPO/21-CODITE/2-PRODUTO/1-ARQ
+	Else
+		cOrderBy += "GRUPO,CODITE,PRODUTO,ARQ" //5-GRUPO/21-CODITE/2-PRODUTO/1-ARQ
+	EndIf
+EndIf	
+cOrderBy += "%"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Transforma parametros Range em expressao SQL                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+MakeSqlExpr(oReport:uParam)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Query do relatorio da Secao 1                                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oLinha:BeginQuery()	
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Inicio do Embedded SQL                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+BeginSql Alias cAliasTop
+
+	SELECT 	'SD1' ARQ, 				//-- 01 ARQ
+			 SB1.B1_COD PRODUTO, 	//-- 02 PRODUTO
+			 SB1.B1_TIPO TIPO, 		//-- 03 TIPO
+			 SB1.B1_UM UM,			//-- 04 UM
+			 SB1.B1_GRUPO GRUPO,	//-- 05 GRUPO
+			 SB1.B1_DESC DESCR,		//-- 06 DESCR
+			 D1_DTDIGIT DATA,		//-- 07 DATA
+			 D1_TES TES,			//-- 08 TES
+			 D1_CF CF,				//-- 09 CF
+			 D1_NUMSEQ SEQUENCIA,	//-- 10 SEQUENCIA
+			 D1_DOC DOCUMENTO,		//-- 11 DOCUMENTO
+			 D1_SERIE SERIE,		//-- 12 SERIE
+			 D1_QUANT QUANTIDADE,	//-- 13 QUANTIDADE
+			 D1_QTSEGUM QUANT2UM,	//-- 14 QUANT2UM
+			 D1_LOCAL ARMAZEM,		//-- 15 ARMAZEM
+			 ' ' OP,				//-- 16 OP
+			 D1_FORNECE FORNECEDOR,	//-- 17 FORNECEDOR
+			 D1_LOJA LOJA,			//-- 18 LOJA
+			 D1_TIPO TIPONF,		//-- 19 TIPO NF
+			 %Exp:cSelectD1%		//-- 20 CUSTO / 21 B1_CODITE	
+			 SD1.R_E_C_N_O_ NRECNO  //-- 22 RECNO
+
+	FROM %table:SB1% SB1,%table:SD1% SD1,%table:SF4% SF4
+
+	WHERE SB1.B1_COD     =  SD1.D1_COD		AND  	SD1.D1_FILIAL  =  %xFilial:SD1%		AND  
+		  SB1.B1_COD NOT LIKE '%01VS%'		AND
+		  SF4.F4_FILIAL  =  %xFilial:SF4%  	AND 	SD1.D1_TES     =  SF4.F4_CODIGO		AND
+		  SF4.F4_ESTOQUE =  'S'				AND 	SD1.D1_DTDIGIT >= %Exp:mv_par09%   AND
+		  SD1.D1_DTDIGIT <= %Exp:mv_par10%	AND		SD1.D1_ORIGLAN <> 'LF'				AND
+		  SD1.D1_LOCAL   >= %Exp:mv_par01%	AND		SD1.D1_LOCAL   <= %Exp:mv_par02%	AND
+		  SB1.B1_FILIAL  =  %xFilial:SB1%	AND		SB1.B1_TIPO    >= %Exp:mv_par05%	AND
+		  SB1.B1_TIPO    <= %Exp:mv_par06%	AND		SB1.B1_GRUPO   >= %Exp:mv_par07%	AND
+		  SB1.B1_GRUPO   <= %Exp:mv_par08%	AND		SB1.%NotDel%						AND    
+		  SD1.%NotDel%						AND 	SF4.%NotDel%
+		  %Exp:cWhereD1%					AND		%Exp:cWhereB2%                
+
+	UNION
+	
+	SELECT 'SD2' ARQ,				//-- 01 ARQ
+			SB1.B1_COD PRODUTO,		//-- 02 PRODUTO
+			SB1.B1_TIPO TIPO,		//-- 03 TIPO
+			SB1.B1_UM,				//-- 04 UM
+			SB1.B1_GRUPO GRUPO,		//-- 05 GRUPO
+			SB1.B1_DESC DESCR,		//-- 06 DESCR
+			D2_EMISSAO,				//-- 07 DATA
+			D2_TES,					//-- 08 TES
+			D2_CF,					//-- 09 CF
+			D2_NUMSEQ,				//-- 10 SEQUENCIA
+			D2_DOC,					//-- 11 DOCUMENTO
+			D2_SERIE,				//-- 12 SERIE
+			D2_QUANT,				//-- 13 QUANTIDADE
+			D2_QTSEGUM,				//-- 14 QUANT2UM
+			D2_LOCAL,				//-- 15 ARMAZEM
+			' ',					//-- 16 OP
+			D2_CLIENTE,				//-- 17 FORNECEDOR
+			D2_LOJA,				//-- 18 LOJA
+			D2_TIPO,				//-- 19 TIPO NF
+			%Exp:cSelectD2%			//-- 20 CUSTO / 21 B1_CODITE	
+			SD2.R_E_C_N_O_ SD2RECNO //-- 22 RECNO
+
+	FROM %table:SB1% SB1,%table:SD2% SD2,%table:SF4% SF4
+	
+	WHERE	SB1.B1_COD     =  SD2.D2_COD		AND	SD2.D2_FILIAL  = %xFilial:SD2%		AND 
+			SB1.B1_COD NOT LIKE '%01VS%'		AND
+			SF4.F4_FILIAL  = %xFilial:SF4% 		AND	SD2.D2_TES     =  SF4.F4_CODIGO		AND
+			SF4.F4_ESTOQUE =  'S'				AND	SD2.D2_EMISSAO >= %Exp:mv_par09%	AND
+			SD2.D2_EMISSAO <= %Exp:mv_par10%	AND	SD2.D2_ORIGLAN <> 'LF'				AND
+			SD2.D2_LOCAL   >= %Exp:mv_par01%	AND	SD2.D2_LOCAL   <= %Exp:mv_par02%	AND
+			SD2.%NotDel%						AND SF4.%NotDel%						AND
+			SB1.B1_FILIAL  = %xFilial:SB1%		AND SB1.B1_TIPO    >= %Exp:mv_par05%	AND
+			SB1.B1_TIPO    <= %Exp:mv_par06%	AND SB1.B1_GRUPO   >= %Exp:mv_par07%	AND
+			SB1.B1_GRUPO   <= %Exp:mv_par08%	AND SB1.%NotDel%
+		    %Exp:cWhereD2%						AND %Exp:cWhereB2%
+
+	UNION
+	
+	SELECT 	'SD3' ARQ,				//-- 01 ARQ
+			SB1.B1_COD PRODUTO,		//-- 02 PRODUTO
+			SB1.B1_TIPO TIPO,		//-- 03 TIPO
+			SB1.B1_UM,				//-- 04 UM
+			SB1.B1_GRUPO GRUPO,		//-- 05 GRUPO
+			SB1.B1_DESC DESCR,		//-- 06 DESCR
+			D3_EMISSAO,				//-- 07 DATA
+			D3_TM,					//-- 08 TES
+			D3_CF,					//-- 09 CF
+			D3_NUMSEQ,				//-- 10 SEQUENCIA
+			D3_DOC,					//-- 11 DOCUMENTO
+			' ',					//-- 12 SERIE
+			D3_QUANT,				//-- 13 QUANTIDADE
+			D3_QTSEGUM,				//-- 14 QUANT2UM
+			D3_LOCAL,				//-- 15 ARMAZEM
+			D3_OP,					//-- 16 OP
+			' ',					//-- 17 FORNECEDOR
+			' ',					//-- 18 LOJA
+			' ',					//-- 19 TIPO NF
+			%Exp:cSelectD3%			//-- 20 CUSTO / 21 B1_CODITE	
+			SD3.R_E_C_N_O_ SD3RECNO //-- 22 RECNO
+
+	FROM %table:SB1% SB1,%table:SD3% SD3
+
+	WHERE	SB1.B1_COD     =  SD3.D3_COD 		AND SD3.D3_FILIAL  =  %xFilial:SD3%		AND  
+			SB1.B1_COD NOT LIKE '%01VS%'		AND
+			SD3.D3_EMISSAO >= %Exp:mv_par09%	AND	SD3.D3_EMISSAO <= %Exp:mv_par10%	AND
+			SD3.D3_LOCAL   >= %Exp:mv_par01%	AND	SD3.D3_LOCAL   <= %Exp:mv_par02%	AND
+			SD3.%NotDel%						AND SB1.B1_FILIAL  =  %xFilial:SB1%		AND
+			SB1.B1_TIPO    >= %Exp:mv_par05%	AND SB1.B1_TIPO    <= %Exp:mv_par06%	AND
+			SB1.B1_GRUPO   >= %Exp:mv_par07%	AND SB1.B1_GRUPO   <= %Exp:mv_par08%	AND
+			SB1.%NotDel%
+			%Exp:cWhereD3%						AND %Exp:cWhereB2%
+
+				UNION
+		
+		SELECT 	'SD3S' ARQ,				//-- 01 ARQ
+				SB1.B1_COD PRODUTO,		//-- 02 PRODUTO
+				SB1.B1_TIPO TIPO,		//-- 03 TIPO
+				SB1.B1_UM,				//-- 04 UM
+				SB1.B1_GRUPO GRUPO,		//-- 05 GRUPO
+				SB1.B1_DESC DESCR,		//-- 06 DESCR
+				D3_EMISSAO,				//-- 07 DATA
+				D3_TM,					//-- 08 TES
+				D3_CF,					//-- 09 CF
+				D3_NUMSEQ,				//-- 10 SEQUENCIA
+				D3_DOC,					//-- 11 DOCUMENTO
+				' ',					//-- 12 SERIE
+				D3_QUANT,				//-- 13 QUANTIDADE
+				D3_QTSEGUM,				//-- 14 QUANT2UM
+				D3_LOCAL,				//-- 15 ARMAZEM
+				D3_OP,					//-- 16 OP
+				' ',					//-- 17 FORNECEDOR
+				' ',					//-- 18 LOJA
+				' ',					//-- 19 TIPO NF
+				%Exp:cSelectD3%			//-- 20 CUSTO / 21 B1_CODITE	
+				SD3.R_E_C_N_O_ SD3RECNO //-- 22 RECNO
+
+		FROM %table:SB1% SB1,%table:SD3% SD3
+	
+		WHERE	SB1.B1_COD     =  SD3.D3_COD 		AND SD3.D3_FILIAL  =  %xFilial:SD3%		AND 
+				SB1.B1_COD NOT LIKE '%01VS%'		AND
+				SD3.D3_EMISSAO >= %Exp:mv_par09%	AND	SD3.D3_EMISSAO <= %Exp:mv_par10%	AND
+				(SD3.D3_CF = 'RE3'	OR	SD3.D3_CF = 'DE3')									AND
+				SD3.%NotDel%						AND SB1.B1_FILIAL  =  %xFilial:SB1%		AND
+				SB1.B1_TIPO    >= %Exp:mv_par05%	AND SB1.B1_TIPO    <= %Exp:mv_par06%	AND
+				SB1.B1_GRUPO   >= %Exp:mv_par07%	AND SB1.B1_GRUPO   <= %Exp:mv_par08%	AND
+				SB1.%NotDel%
+				%Exp:cWhereD3%						AND %Exp:cWhereB2%
+	UNION
+	
+	SELECT 	'SB2' ARQ,				//-- 01 ARQ
+			SB1.B1_COD PRODUTO,		//-- 02 PRODUTO
+			SB1.B1_TIPO TIPO,		//-- 03 TIPO
+			SB1.B1_UM,				//-- 04 UM
+			SB1.B1_GRUPO GRUPO,		//-- 05 GRUPO
+			SB1.B1_DESC DESCR,		//-- 06 DESCR
+			' ',					//-- 07 DATA
+			' ',					//-- 08 TES
+			' ',					//-- 09 CF
+			' ',					//-- 10 SEQUENCIA	
+			' ',					//-- 11 DOCUMENTO
+			' ',					//-- 12 SERIE
+			0,						//-- 13 QUANTIDADE
+			0,						//-- 14 QUANT2UM
+			B2_LOCAL,				//-- 15 ARMAZEM
+			' ',					//-- 16 OP
+			' ',					//-- 17 FORNECEDOR
+			' ',					//-- 18 LOJA
+			' ',					//-- 19 TIPO NF
+			0						//-- 20 CUSTO 
+			%Exp:cSelectB2%			//-- 21 B1_CODITE	
+			0						//-- 22 RECNO
+
+	FROM %table:SB1% SB1,%table:SB2% SB2
+
+	WHERE SB1.B1_COD    = SB2.B2_COD		AND	SB2.B2_FILIAL  =  %xFilial:SB2%		AND
+	      SB1.B1_COD NOT LIKE '%01VS%'		AND
+		  SB2.B2_LOCAL  >= %Exp:mv_par01%  AND 	SB2.B2_LOCAL   <= %Exp:mv_par02%	AND
+		  SB2.%NotDel%						AND	SB1.B1_FILIAL  =  %xFilial:SB1% 	AND
+		  SB1.B1_TIPO   >= %Exp:mv_par05%	AND SB1.B1_TIPO    <= %Exp:mv_par06%	AND
+		  SB1.B1_GRUPO  >= %Exp:mv_par07%	AND	SB1.B1_GRUPO   <= %Exp:mv_par08%	AND
+		  SB1.%NotDel%						AND %Exp:cWhereB2%	
+
+	ORDER BY %Exp:cOrderBy%
+
+EndSql 
+
+oLinha:EndQuery()
+
+dbSelectArea(cAliasTop)
+oReport:SetMeter(nRegs)
+dbGoTop()
+
+oProduto:Init(.F.)
+oLinha:Init()
+Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof())
+
+	oReport:IncMeter()
+
+	cAnt := (cAliasTop)->(If(nOrdem==1,"TIPO","GRUPO"))
+	cAnt := (cAliasTop)->(If(nOrdem==1,"TIPO","GRUPO"))
+	cVar := (cAliasTop)->(If(nOrdem==1, TIPO , GRUPO ))
+	nTvIniAlm := nTvCompra := nTvDevVen := nTvReqSOP := nTvReqCOP := 0
+	nTvRE3DE3 := nTvIniPrc := nTvRE2DE2 := nTvFimPrc := nTvRE4DE4 := 0
+	nTvProduc := nTvTransf := nTvVendas := nTvFimAlm := 0
+
+	nTqQtdIni := nTqCompra := nTqDevVen := nTqReqSOP := nTqReqCOP := 0
+	nTqRE3DE3 := nTqIniPrc := nTqRE2DE2 := nTqFimPrc := nTqRE4DE4 := 0
+	nTqProduc := nTqTransf := nTqVendas := nTqQtdFim := 0
+	nTqEntrad := nTvEntrad := nTqSaidas := nTvSaidas := 0
+
+	Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof()) .And. (cAliasTop)->(&(cAnt)) == cVar
+
+		oReport:IncMeter()
+
+		nAqIniAlm := nAqCompra := nAqDevVen := nAqReqSOP := nAqReqCOP := 0
+		nAqRE3DE3 := nAqIniPrc := nAqRE2DE2 := nAqFimPrc := nAqRE4DE4 := 0
+		nAqProduc := nAqTransf := nAqVendas := nAqFimAlm := 0
+
+		nAvIniAlm := nAvCompra := nAvDevVen := nAvReqSOP := nAvReqCOP := 0
+		nAvRE3DE3 := nAvIniPrc := nAvRE2DE2 := nAvFimPrc := nAvRE4DE4 := 0
+		nAvProduc := nAvTransf := nAvVendas := nAvFimAlm := 0
+
+		nAqEntrad := nAvEntrad := nAqSaidas := nAvSaidas := 0
+
+		cB1_COD  := (cAliasTop)->PRODUTO
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Considera filtro escolhido                                   ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If !Empty(cFilUser)
+		    SB1->(MsSeek( xFilial("SB1") + cB1_COD ))
+		    If !SB1->(&(cFilUser))
+		       dbSkip()
+	    	   Loop
+	    	EndIf   
+		EndIf
+
+		oProduto:Cell('B1_TIPO'	 	):SetValue((cAliasTop)->TIPO)
+		oProduto:Cell('B1_GRUPO' 	):SetValue((cAliasTop)->GRUPO)
+		oProduto:Cell('B1_UM'    	):SetValue((cAliasTop)->UM)
+		If lVeic
+			oProduto:Cell('B1_CODITE'	):SetValue((cAliasTop)->CODITE)
+		EndIf
+		oProduto:Cell('B1_COD'   	):SetValue(cB1_COD)
+		oProduto:Cell('B1_DESC'		):SetValue((cAliasTop)->DESCR)
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo final e inicial dos almoxarifados               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasSB2)
+		dbSetOrder(1)
+		dbSeek(xSB2 + cB1_COD)
+		While !oReport:Cancel() .And. !(cAliasSB2)->(Eof()) .And. ((cAliasSB2)->B2_COD == cB1_COD) .And. ((cAliasSB2)->B2_FILIAL == xSB2)
+
+			oReport:IncMeter()
+
+			dbSelectArea(cAliasSB2)
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Nao permite listar os produtos com Armazem em Processo       |
+				//| caso a variavel lLocProc nao esteja ativa                    ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If !lLocProc
+					If B2_LOCAL == cLocProc
+						dbSkip()
+						Loop
+					EndIf
+	
+					If B2_LOCAL < mv_par01 .Or. B2_LOCAL > mv_par02
+						dbSkip()
+						Loop
+					EndIf
+				EndIF
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totaliza o saldo final ou atual de cada almoxarifado         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If	mv_par12 == 1
+				nAqFimAlm += B2_QATU
+				nAvFimAlm +=&(Eval(bBloco,"B2_VATU",mv_par11))
+			Elseif mv_par12 == 2
+				nAqFimAlm += B2_QFIM
+				nAvFimAlm +=&(Eval(bBloco,"B2_VFIM",mv_par11))
+			Else
+				aSaldoFim := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par10+1)
+				nAqFimAlm += aSaldoFim[1]
+				nAvFimAlm += aSaldoFim[1+mv_par11]
+			EndIf
+
+			aSaldoIni := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par09)
+			nAqIniAlm += aSaldoIni[1]
+
+			nVUnit    := aSaldoIni[mv_par11+1]/If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1)
+			nAvIniAlm += If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1) * nVUnit
+			dbSelectArea(cAliasSB2)
+			dbSkip()
+
+		EndDo
+
+		If nAqIniAlm != 0 .Or. nAvIniAlm != 0 .Or. nAqFimAlm != 0 .Or. nAvFimAlm != 0
+			lPassou := .T.
+		EndIf
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo em processo (B2_LOCAL = cLocProc)               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		aSaldoIni := CalcEst(cB1_COD,cLocProc,mv_par09)
+		nAqIniPrc += aSaldoIni[1]
+		nAvIniPrc += aSaldoIni[mv_par11+1]
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo final em processo (B2_LOCAL = cLocProc)         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		aSldFimPrc := SldFimPrc(cB1_COD,cLocProc)
+		nAqFimPrc  := aSldFimPrc[1]
+		nAvFimPrc  += aSldFimPrc[2]
+
+		If nAqIniPrc != 0 .Or. nAvIniPrc != 0 .Or. nAqFimPrc != 0 .Or. nAvFimPrc != 0
+			lPassou := .T.
+		EndIf
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ SB2 - Verifica Produtos Sem Movimento						 ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasTop)
+		Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof()) .And. ( (cAliasTop)->PRODUTO == cB1_COD) .And. (UPPER(Alltrim((cAliasTop)->ARQ)) == "SB2")
+			oReport:IncMeter()
+			dbSkip()
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ SD1 - Verifica as Entradas                                   ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasTop)
+
+		Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof())	.And. ((cAliasTop)->PRODUTO == cB1_COD ) .And. (UPPER(Alltrim((cAliasTop)->ARQ)) == "SD1")
+
+			oReport:IncMeter()
+
+			SF4->(MsSeek(xSF4 + (cAliasTop)->TES))
+
+			If SF4->F4_ESTOQUE == "S"
+
+				nCusto := (cAliasTop)->CUSTO
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Verifica o ponto de entrada para considerar Transferencia ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ (cAliasTop)->CF }) ) =='L', lRetPE, .F.)
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Separa as transferencias das compras                         ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If lRetPE .Or. ( (;
+						( Len( allTrim( (cAliasTop)->CF) ) == 3 );
+						.And.;
+						(SubStr( allTrim( (cAliasTop)->CF),1,3)$"121/122/126/192/221/222/226/292");
+					);
+					.Or.;
+					(;
+						( Len( allTrim( (cAliasTop)->CF) ) > 3 ) ;
+						.And.;
+						(SubStr( allTrim( (cAliasTop)->CF ),1,4)$"1151/1152/1552/2151/2152/2552");
+					) )
+					nAqTransf += (cAliasTop)->QUANTIDADE
+					nAvTransf += nCusto
+				ElseIf (cAliasTop)->TIPONF == "D"
+					nAqDevVen += (cAliasTop)->QUANTIDADE
+					nAvDevVen += nCusto
+				ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par13 == 1
+					nAqEntrad += (cAliasTop)->QUANTIDADE
+					nAvEntrad += nCusto
+				Else
+					nAqCompra += (cAliasTop)->QUANTIDADE
+					nAvCompra += nCusto
+				EndIf
+				lPassou := .T.
+			EndIf
+				
+			dbSelectArea(cAliasTop)
+			dbSkip()
+			
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ SD2 - Verifica as Saidas                                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasTop)
+
+		Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof()) .And. ( (cAliasTop)->PRODUTO == cB1_COD ) 	.And. ( UPPER(Alltrim((cAliasTop)->ARQ)) == "SD2" )
+
+			oReport:IncMeter()
+
+			SF4->(MsSeek(xSF4 + (cAliasTop)->TES))
+
+			If SF4->F4_ESTOQUE == "S"
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Verifica o ponto de entrada para considerar Transferencia ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ (cAliasTop)->CF }) ) =='L', lRetPE, .F.)
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Separa as transferencias das vendas                          ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If lRetPE .Or. ( (;
+						( Len(allTrim((cAliasTop)->CF)) == 3);
+						.And.;
+						(SubStr(allTrim((cAliasTop)->CF),1,3)$"521/522/526/592/621/622/626/692");
+					);
+					.Or.;
+					(;
+						(Len(allTrim((cAliasTop)->CF)) >3);
+						.And.;
+						(SubStr(allTrim((cAliasTop)->CF),1,4)$"5151/5152/5156/5552/6151/6152/6156/6552");
+					) )
+
+					nAqTransf -= (cAliasTop)->QUANTIDADE
+					nAvTransf -= (cAliasTop)->CUSTO
+				ElseIf (cAliasTop)->TIPONF == "D"
+					nAqCompra -= (cAliasTop)->QUANTIDADE
+					nAvCompra -= (cAliasTop)->CUSTO
+				ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par14 == 1
+					nAqSaidas += (cAliasTop)->QUANTIDADE
+					nAvSaidas += (cAliasTop)->CUSTO
+				Else
+					nAqVendas += (cAliasTop)->QUANTIDADE
+					nAvVendas += (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			dbSelectArea(cAliasTop)
+			dbSkip()
+
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ SD3 -  Verifica as Movimentacoes Internas                    ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasTop)
+
+		Do While !oReport:Cancel() .And. !(cAliasTop)->(Eof())	.And. ((cAliasTop)->PRODUTO == cB1_COD) .And. (upper(Alltrim((cAliasTop)->ARQ)) == "SD3")
+
+			oReport:IncMeter()
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais requisitados para consumo proprio         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If ( (allTrim( (cAliasTop)->CF )  $ "RE0/DE0" ) .And. Empty( (cAliasTop)->OP ));
+				.Or. ((allTrim( (cAliasTop)->CF ) $"RE6/DE6" ) .And. Empty( (cAliasTop)->OP ))
+
+				If (cAliasTop)->TES <= "500"
+					nAqReqSOP += (cAliasTop)->QUANTIDADE
+					nAvReqSOP += (cAliasTop)->CUSTO
+				Else
+					nAqReqSOP -= (cAliasTop)->QUANTIDADE
+					nAvReqSOP -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais diretos utilizados em ordens de producao  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If	(;
+					( allTrim( (cAliasTop)->CF ) $"RE0/DE0" );
+					.And.;
+					( !Empty( (cAliasTop)->OP ) );
+				);
+				.Or.;
+				( allTrim( (cAliasTop)->CF ) $"RE1/DE1/RE5/DE5" );
+				.Or.;
+				(;
+					( allTrim( (cAliasTop)->CF ) $ "RE6/DE6" );
+					.And.;
+					( !Empty( (cAliasTop)->OP ) );
+				)
+
+				If (cAliasTop)->TES <= "500"
+					nAqReqCOP += (cAliasTop)->QUANTIDADE
+					nAvReqCOP += (cAliasTop)->CUSTO
+				Else
+					nAqReqCOP -= (cAliasTop)->QUANTIDADE
+					nAvReqCOP -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf      
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais indiretos enviados para o processo        ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"RE3/DE3"
+					If !(cAliasTop)->ARQ == "SD3S"
+						If (cAliasTop)->TES <= "500"
+							nAqRE3DE3 += (cAliasTop)->QUANTIDADE
+							nAvRE3DE3 += (cAliasTop)->CUSTO
+						Else
+							nAqRE3DE3 -= (cAliasTop)->QUANTIDADE
+							nAvRE3DE3 -= (cAliasTop)->CUSTO
+						EndIf
+					Else
+						If lLocProc
+							If (cAliasTop)->TES <= "500"
+								nAqRE3DE3 -= (cAliasTop)->QUANTIDADE
+								nAvRE3DE3 -= (cAliasTop)->CUSTO	
+							Else
+								nAqRE3DE3 += (cAliasTop)->QUANTIDADE
+								nAvRE3DE3 += (cAliasTop)->CUSTO		
+							EndIf
+						EndIf		
+					EndIf	
+					lPassou := .T.
+				EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais indiretos apropriados `a producao         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If allTrim((cAliasTop)->CF)$"RE2/DE2"
+				If (cAliasTop)->TES <= "500"
+					nAqRE2DE2 += (cAliasTop)->QUANTIDADE
+					nAvRE2DE2 += (cAliasTop)->CUSTO
+				Else
+					nAqRE2DE2 -= (cAliasTop)->QUANTIDADE
+					nAvRE2DE2 -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as transferencias internas                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If allTrim((cAliasTop)->CF)$"RE4/DE4/RE7/DE7"
+				If (cAliasTop)->TES <= "500"
+					nAqRE4DE4 += (cAliasTop)->QUANTIDADE
+					nAvRE4DE4 += (cAliasTop)->CUSTO
+				Else
+					nAqRE4DE4 -= (cAliasTop)->QUANTIDADE
+					nAvRE4DE4 -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as entradas de produtos importados                  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If allTrim((cAliasTop)->CF)$"RE8/DE8"
+				If (cAliasTop)->TES <= "500"
+					nAqCompra += (cAliasTop)->QUANTIDADE
+					nAvCompra += (cAliasTop)->CUSTO
+				Else
+					nAqCompra -= (cAliasTop)->QUANTIDADE
+					nAvCompra -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as producoes e subtrai os estornos                  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If allTrim((cAliasTop)->CF)$"PR0/ER0/PR1/ER1"
+				If (cAliasTop)->TES <= "500"
+					nAqProduc += (cAliasTop)->QUANTIDADE
+					nAvProduc += (cAliasTop)->CUSTO
+				Else
+					nAqProduc -= (cAliasTop)->QUANTIDADE
+					nAvProduc -= (cAliasTop)->CUSTO
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			dbSelectArea(cAliasTop)
+			dbSkip()
+
+		EndDo
+
+		dbSelectArea(cAliasTop)
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Rotina de Impressao                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If lPassou
+
+			oProduto:Cell('B1_TIPO'	 	):Show()
+			oProduto:Cell('B1_GRUPO' 	):Show()
+			oProduto:Cell('B1_UM'    	):Show()
+			oProduto:Cell('B1_COD'   	):Show()
+			oProduto:Cell('B1_CODITE'	):Show()
+			oProduto:Cell('B1_DESC'		):Show()
+
+			//-- Quantidade Inicial
+			oProduto:Cell('txtQuant'):SetValue(STR0044)
+			oProduto:Cell('nQuant'  ):SetPicture(cPictQIni)
+			oProduto:Cell('nQuant'  ):SetValue(nAqIniAlm)
+
+			//-- Valor Inicial
+			oProduto:Cell('txtValor1'):SetValue(STR0045)
+			oProduto:Cell('nValor01' ):SetPicture(cPictVIni)
+			oProduto:Cell('nValor01' ):SetValue(nAvIniAlm)
+
+			//-- Valor Inicial Medio
+			oProduto:Cell('txtValor2'):SetValue(STR0046)
+			oProduto:Cell('nValor02' ):SetPicture(cPictVIni)
+			oProduto:Cell('nValor02' ):SetValue(nAvIniAlm/IIf(nAqIniAlm==0,1,nAqIniAlm))
+
+                oProduto:PrintLine()
+                                                         
+			//-- Ajusta Picture da linha de quantidades
+			oLinha:Cell('Compra'):SetPicture(cPictQtD1)
+			oLinha:Cell('DevVen'):SetPicture(cPictQtD1)
+			oLinha:Cell('ReqSOP'):SetPicture(cPictQtD3)
+			oLinha:Cell('ReqCOP'):SetPicture(cPictQtD3)
+			oLinha:Cell('RE3DE3'):SetPicture(cPictQtD3)
+			oLinha:Cell('IniPrc'):SetPicture(cPictQfB2)
+			oLinha:Cell('RE2DE2'):SetPicture(cPictQtD3)
+			oLinha:Cell('FimPrc'):SetPicture(cPictQaB2)
+			oLinha:Cell('RE4DE4'):SetPicture(cPictQtD3)
+			oLinha:Cell('Produc'):SetPicture(cPictQtD3)
+			oLinha:Cell('Transf'):SetPicture(cPictQtD2)
+			oLinha:Cell('Vendas'):SetPicture(cPictQtD2)
+			oLinha:Cell('Entrad'):SetPicture(cPictQtD2)
+			oLinha:Cell('Saidas'):SetPicture(cPictQtD2)
+
+			//-- Impressao da linha de quantidade				
+			oLinha:Cell('Compra'):SetValue(nAqCompra)
+			oLinha:Cell('DevVen'):SetValue(nAqDevVen)
+			oLinha:Cell('ReqSOP'):SetValue(nAqReqSOP)
+			oLinha:Cell('ReqCOP'):SetValue(nAqReqCOP)
+			oLinha:Cell('RE3DE3'):SetValue(nAqRE3DE3)
+			oLinha:Cell('IniPrc'):SetValue(nAqIniPrc)
+			oLinha:Cell('RE2DE2'):SetValue(nAqRE2DE2)
+			oLinha:Cell('FimPrc'):SetValue(nAqFimPrc)
+			oLinha:Cell('RE4DE4'):SetValue(nAqRE4DE4)
+			oLinha:Cell('Produc'):SetValue(nAqProduc)
+			oLinha:Cell('Transf'):SetValue(nAqTransf)
+			oLinha:Cell('Vendas'):SetValue(nAqVendas)
+			oLinha:Cell('Entrad'):SetValue(nAqEntrad)
+			oLinha:Cell('Saidas'):SetValue(nAqSaidas)
+                
+                oLinha:PrintLine()
+
+			/*-- Ajusta Picture da linha de valores
+		 	//oLinha:Cell('Compra'):SetPicture(cPictCusD1)
+			oLinha:Cell('DevVen'):SetPicture(cPictCusD1)
+			oLinha:Cell('ReqSOP'):SetPicture(cPictCusD3)
+			oLinha:Cell('ReqCOP'):SetPicture(cPictCusD3)
+			oLinha:Cell('RE3DE3'):SetPicture(cPictCusD3)
+			oLinha:Cell('IniPrc'):SetPicture(cPictVIni)
+			oLinha:Cell('RE2DE2'):SetPicture(cPictCusD3)
+			oLinha:Cell('FimPrc'):SetPicture(cPictFim)
+			oLinha:Cell('RE4DE4'):SetPicture(cPictCusD3)
+			oLinha:Cell('Produc'):SetPicture(cPictCusD3)
+			oLinha:Cell('Transf'):SetPicture(cPictCusD2)
+			oLinha:Cell('Vendas'):SetPicture(cPictCusD2)
+			oLinha:Cell('Entrad'):SetPicture(cPictCusD2)
+			oLinha:Cell('Saidas'):SetPicture(cPictCusD2)
+
+                //-- Impressao da Linha de Valores
+			oLinha:Cell('Compra'):SetValue(nAvCompra)
+			oLinha:Cell('DevVen'):SetValue(nAvDevVen)
+			oLinha:Cell('ReqSOP'):SetValue(nAvReqSOP)
+			oLinha:Cell('ReqCOP'):SetValue(nAvReqCOP)
+			oLinha:Cell('RE3DE3'):SetValue(nAvRE3DE3)
+			oLinha:Cell('IniPrc'):SetValue(nAvIniPrc)
+			oLinha:Cell('RE2DE2'):SetValue(nAvRE2DE2)
+			oLinha:Cell('FimPrc'):SetValue(nAvFimPrc)
+			oLinha:Cell('RE4DE4'):SetValue(nAvRE4DE4)
+			oLinha:Cell('Produc'):SetValue(nAvProduc)
+			oLinha:Cell('Transf'):SetValue(nAvTransf)
+			oLinha:Cell('Vendas'):SetValue(nAvVendas)
+			oLinha:Cell('Entrad'):SetValue(nAvEntrad)
+			oLinha:Cell('Saidas'):SetValue(nAvSaidas)
+
+                oLinha:PrintLine()
+           */
+			oProduto:Cell('B1_TIPO'	 	):Hide()
+			oProduto:Cell('B1_GRUPO' 	):Hide()
+			oProduto:Cell('B1_UM'    	):Hide()
+			oProduto:Cell('B1_COD'   	):Hide()
+			oProduto:Cell('B1_CODITE'	):Hide()
+			oProduto:Cell('B1_DESC'		):Hide()
+
+                //-- Quantidade Final
+			oProduto:Cell('txtQuant'):SetValue(STR0047)
+			oProduto:Cell('nQuant'  ):SetPicture(cPictQaB2)
+			oProduto:Cell('nQuant'  ):SetValue(nAqFimAlm)
+
+			//-- Valor Final
+			oProduto:Cell('txtValor1'):SetValue(STR0048)
+			oProduto:Cell('nValor01' ):SetPicture(cPictFim)
+			oProduto:Cell('nValor01' ):SetValue(nAvFimAlm)
+
+			//-- Valor Final Medio
+			oProduto:Cell('txtValor2'):SetValue(STR0049)
+			oProduto:Cell('nValor02' ):SetPicture(cPictFim)
+			oProduto:Cell('nValor02' ):SetValue(nAvFimAlm/IIf(nAqFimAlm==0,1,nAqFimAlm))
+
+                oProduto:PrintLine()
+
+                oReport:SkipLine() //-- Salta Linha
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totalizacao de Quantidades                                   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nTqQtdIni += nAqIniAlm
+			nTqCompra += nAqCompra
+			nTqDevVen += nAqDevVen
+			nTqReqSOP += nAqReqSOP
+			nTqReqCOP += nAqReqCOP
+			nTqRE3DE3 += nAqRE3DE3
+			nTqIniPrc += nAqIniPrc
+			nTqRE2DE2 += nAqRE2DE2
+			nTqFimPrc += nAqFimPrc
+			nTqRE4DE4 += nAqRE4DE4
+			nTqProduc += nAqProduc
+			nTqTransf += nAqTransf
+			nTqVendas += nAqVendas
+			nTqQtdFim += nAqFimAlm
+			nTqEntrad += nAqEntrad
+			nTqSaidas += nAqSaidas
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totalizacao de Valores                                       ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nTvIniAlm += nAvIniAlm
+			nTvCompra += nAvCompra
+			nTvDevVen += nAvDevVen
+			nTvReqSOP += nAvReqSOP
+			nTvReqCOP += nAvReqCOP
+			nTvRE3DE3 += nAvRE3DE3
+			nTvIniPrc += nAvIniPrc
+			nTvRE2DE2 += nAvRE2DE2
+			nTvFimPrc += nAvFimPrc
+			nTvRE4DE4 += nAvRE4DE4
+			nTvProduc += nAvProduc
+			nTvTransf += nAvTransf
+			nTvVendas += nAvVendas
+			nTvFimAlm += nAvFimAlm
+			nTvEntrad += nAvEntrad
+			nTvSaidas += nAvSaidas
+			lTeveItem := .T.
+			lPassou   := .F.
+			lTotal	  := .T.
+		EndIf
+	EndDo
+
+	If lTeveItem
+
+		If nOrdem == 1
+			oReport:PrintText(STR0016 + cVar)		//"Total Tipo : "
+		Else
+			oReport:PrintText(STR0017 + cVar)		//"Total Grupo: "
+		EndIf
+
+		//-- Ajusta a picture da linha de quantidades
+		oLinha:Cell('Compra'):SetPicture(cPictQtD1)
+		oLinha:Cell('DevVen'):SetPicture(cPictQtD1)
+		oLinha:Cell('ReqSOP'):SetPicture(cPictQtD3)
+		oLinha:Cell('ReqCOP'):SetPicture(cPictQtD3)
+		oLinha:Cell('RE3DE3'):SetPicture(cPictQtD3)
+		oLinha:Cell('IniPrc'):SetPicture(cPictQfB2)
+		oLinha:Cell('RE2DE2'):SetPicture(cPictQtD3)
+		oLinha:Cell('FimPrc'):SetPicture(cPictQaB2)
+		oLinha:Cell('RE4DE4'):SetPicture(cPictQtD3)
+		oLinha:Cell('Produc'):SetPicture(cPictQtD3)
+		oLinha:Cell('Transf'):SetPicture(cPictQtD2)
+		oLinha:Cell('Vendas'):SetPicture(cPictQtD2)
+		oLinha:Cell('Entrad'):SetPicture(cPictQtD2)
+		oLinha:Cell('Saidas'):SetPicture(cPictQtD2)
+
+		//-- Impressao da linha de quantidade (SubTotal)
+		oLinha:Cell('Compra'):SetValue(nTqCompra)
+		oLinha:Cell('DevVen'):SetValue(nTqDevVen)
+		oLinha:Cell('ReqSOP'):SetValue(nTqReqSOP)
+		oLinha:Cell('ReqCOP'):SetValue(nTqReqCOP)
+		oLinha:Cell('RE3DE3'):SetValue(nTqRE3DE3)
+		oLinha:Cell('IniPrc'):SetValue(nTqIniPrc)
+		oLinha:Cell('RE2DE2'):SetValue(nTqRE2DE2)
+		oLinha:Cell('FimPrc'):SetValue(nTqFimPrc)
+		oLinha:Cell('RE4DE4'):SetValue(nTqRE4DE4)
+		oLinha:Cell('Produc'):SetValue(nTqProduc)
+		oLinha:Cell('Transf'):SetValue(nTqTransf)
+		oLinha:Cell('Vendas'):SetValue(nTqVendas)
+		oLinha:Cell('Entrad'):SetValue(nTqEntrad)
+		oLinha:Cell('Saidas'):SetValue(nTqSaidas)
+               
+		oLinha:PrintLine()
+
+		//-- Ajusta Picture da linha de valores
+		oLinha:Cell('Compra'):SetPicture(cPictCusD1)
+		oLinha:Cell('DevVen'):SetPicture(cPictCusD1)
+		oLinha:Cell('ReqSOP'):SetPicture(cPictCusD3)
+		oLinha:Cell('ReqCOP'):SetPicture(cPictCusD3)
+		oLinha:Cell('RE3DE3'):SetPicture(cPictCusD3)
+		oLinha:Cell('IniPrc'):SetPicture(cPictVIni)
+		oLinha:Cell('RE2DE2'):SetPicture(cPictCusD3)
+		oLinha:Cell('FimPrc'):SetPicture(cPictFim)
+		oLinha:Cell('RE4DE4'):SetPicture(cPictCusD3)
+		oLinha:Cell('Produc'):SetPicture(cPictCusD3)
+		oLinha:Cell('Transf'):SetPicture(cPictCusD2)
+		oLinha:Cell('Vendas'):SetPicture(cPictCusD2)
+		oLinha:Cell('Entrad'):SetPicture(cPictCusD2)
+		oLinha:Cell('Saidas'):SetPicture(cPictCusD2)
+
+		//-- Impressao da Linha de Valores
+		oLinha:Cell('Compra'):SetValue(nTvCompra)
+		oLinha:Cell('DevVen'):SetValue(nTvDevVen)
+		oLinha:Cell('ReqSOP'):SetValue(nTvReqSOP)
+		oLinha:Cell('ReqCOP'):SetValue(nTvReqCOP)
+		oLinha:Cell('RE3DE3'):SetValue(nTvRE3DE3)
+		oLinha:Cell('IniPrc'):SetValue(nTvIniPrc)
+		oLinha:Cell('RE2DE2'):SetValue(nTvRE2DE2)
+		oLinha:Cell('FimPrc'):SetValue(nTvFimPrc)
+		oLinha:Cell('RE4DE4'):SetValue(nTvRE4DE4)
+		oLinha:Cell('Produc'):SetValue(nTvProduc)
+		oLinha:Cell('Transf'):SetValue(nTvTransf)
+		oLinha:Cell('Vendas'):SetValue(nTvVendas)
+		oLinha:Cell('Entrad'):SetValue(nTvEntrad)
+		oLinha:Cell('Saidas'):SetValue(nTvSaidas)
+
+		oLinha:PrintLine()
+
+		//-- Quantidade Inicial
+		oReport:PrintText(Space(13),oReport:Row() )
+		oReport:PrintText(STR0044,oReport:Row() )
+		oReport:PrintText(Transform(nTqQtdIni,cPictQIni),oReport:Row() )
+		
+		//-- Valor Inicial
+		oReport:PrintText(Space(1),oReport:Row() )
+		oReport:PrintText(STR0045,oReport:Row() )
+		oReport:PrintText(Transform(nTvIniAlm,cPictIni),oReport:Row() )
+		
+		//-- Valor Medio Inicial
+		If mv_par15 == 1
+			oReport:PrintText(Space(1),oReport:Row() )
+			oReport:PrintText(STR0046,oReport:Row())
+			oReport:PrintText(Transform(nTvIniAlm/IIf(nTqQtdIni==0,1,nTqQtdIni), cPictIni ),oReport:Row())
+		EndIf
+		
+		//-- Quantidade Final
+		oReport:PrintText(Space(1),oReport:Row() )
+		oReport:PrintText(STR0047,oReport:Row())
+		oReport:PrintText(Transform(nTqQtdFim,cPictQaB2),oReport:Row())
+		
+		//-- Valor Final
+		oReport:PrintText(Space(1),oReport:Row() )
+		oReport:PrintText(STR0048,oReport:Row())
+		oReport:PrintText(Transform(nTvFimAlm,cPictFim)	, oReport:Row())
+    		
+    		//-- Valor Medio Final
+		If mv_par15 == 1
+			oReport:PrintText(Space(1),oReport:Row() )
+			oReport:PrintText(STR0049,oReport:Row())
+			oReport:PrintText(Transform(nTvFimAlm/IIf(nTqQtdFim==0,1,nTqQtdFim),cPictFim),oReport:Row())
+		EndIf
+            
+       oReport:SkipLine() //-- Salta Linha  
+       
+		oReport:ThinLine() //-- Impressao de Linha Simples
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Total Geral das Quantidades                                  ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nGqQtdIni += nTqQtdIni
+		nGqCompra += nTqCompra
+		nGqDevVen += nTqDevVen
+		nGqReqSOP += nTqReqSOP
+		nGqReqCOP += nTqReqCOP
+		nGqRE3DE3 += nTqRE3DE3
+		nGqIniPrc += nTqIniPrc
+		nGqRE2DE2 += nTqRE2DE2
+		nGqFimPrc += nTqFimPrc
+		nGqRE4DE4 += nTqRE4DE4
+		nGqProduc += nTqProduc
+		nGqTransf += nTqTransf
+		nGqVendas += nTqVendas
+		nGqQtdFim += nTqQtdFim
+		nGqEntrad += nTqEntrad
+		nGqSaidas += nTqSaidas
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Total Geral dos Valores                                      ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nGvIniAlm += nTvIniAlm
+		nGvCompra += nTvCompra
+		nGvDevVen += nTvDevVen
+		nGvReqSOP += nTvReqSOP
+		nGvReqCOP += nTvReqCOP
+		nGvRE3DE3 += nTvRE3DE3
+		nGvIniPrc += nTvIniPrc
+		nGvRE2DE2 += nTvRE2DE2
+		nGvFimPrc += nTvFimPrc
+		nGvRE4DE4 += nTvRE4DE4
+		nGvProduc += nTvProduc
+		nGvTransf += nTvTransf
+		nGvVendas += nTvVendas
+		nGvFimAlm += nTvFimAlm
+		nGvEntrad += nTvEntrad
+		nGvSaidas += nTvSaidas
+		lTeveItem  := .F.
+	EndIf
+	dbSelectArea(cAliasTop)
+EndDo
+
+If lTotal
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Total Geral                                    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:PrintText(STR0018)	//"TOTAL GERAL : "
+	
+	//-- Ajusta a picture da linha de quantidades
+	oLinha:Cell('Compra'):SetPicture(cPictQtD1)
+	oLinha:Cell('DevVen'):SetPicture(cPictQtD1)
+	oLinha:Cell('ReqSOP'):SetPicture(cPictQtD3)
+	oLinha:Cell('ReqCOP'):SetPicture(cPictQtD3)
+	oLinha:Cell('RE3DE3'):SetPicture(cPictQtD3)
+	oLinha:Cell('IniPrc'):SetPicture(cPictQfB2)
+	oLinha:Cell('RE2DE2'):SetPicture(cPictQtD3)
+	oLinha:Cell('FimPrc'):SetPicture(cPictQaB2)
+	oLinha:Cell('RE4DE4'):SetPicture(cPictQtD3)
+	oLinha:Cell('Produc'):SetPicture(cPictQtD3)
+	oLinha:Cell('Transf'):SetPicture(cPictQtD2)
+	oLinha:Cell('Vendas'):SetPicture(cPictQtD2)
+	oLinha:Cell('Entrad'):SetPicture(cPictQtD2)
+	oLinha:Cell('Saidas'):SetPicture(cPictQtD2)
+	
+	//-- Impressao da linha de quantidade (SubTotal)
+	oLinha:Cell('Compra'):SetValue(nGqCompra)
+	oLinha:Cell('DevVen'):SetValue(nGqDevVen)
+	oLinha:Cell('ReqSOP'):SetValue(nGqReqSOP)
+	oLinha:Cell('ReqCOP'):SetValue(nGqReqCOP)
+	oLinha:Cell('RE3DE3'):SetValue(nGqRE3DE3)
+	oLinha:Cell('IniPrc'):SetValue(nGqIniPrc)
+	oLinha:Cell('RE2DE2'):SetValue(nGqRE2DE2)
+	oLinha:Cell('FimPrc'):SetValue(nGqFimPrc)
+	oLinha:Cell('RE4DE4'):SetValue(nGqRE4DE4)
+	oLinha:Cell('Produc'):SetValue(nGqProduc)
+	oLinha:Cell('Transf'):SetValue(nGqTransf)
+	oLinha:Cell('Vendas'):SetValue(nGqVendas)
+	oLinha:Cell('Entrad'):SetValue(nGqEntrad)
+	oLinha:Cell('Saidas'):SetValue(nGqSaidas)
+	
+	oLinha:PrintLine()
+	
+	//-- Ajusta Picture da linha de valores
+	oLinha:Cell('Compra'):SetPicture(cPictCusD1)
+	oLinha:Cell('DevVen'):SetPicture(cPictCusD1)
+	oLinha:Cell('ReqSOP'):SetPicture(cPictCusD3)
+	oLinha:Cell('ReqCOP'):SetPicture(cPictCusD3)
+	oLinha:Cell('RE3DE3'):SetPicture(cPictCusD3)
+	oLinha:Cell('IniPrc'):SetPicture(cPictVIni)
+	oLinha:Cell('RE2DE2'):SetPicture(cPictCusD3)
+	oLinha:Cell('FimPrc'):SetPicture(cPictFim)
+	oLinha:Cell('RE4DE4'):SetPicture(cPictCusD3)
+	oLinha:Cell('Produc'):SetPicture(cPictCusD3)
+	oLinha:Cell('Transf'):SetPicture(cPictCusD2)
+	oLinha:Cell('Vendas'):SetPicture(cPictCusD2)
+	oLinha:Cell('Entrad'):SetPicture(cPictCusD2)
+	oLinha:Cell('Saidas'):SetPicture(cPictCusD2)
+	
+	//-- Impressao da Linha de Valores
+	oLinha:Cell('Compra'):SetValue(nGvCompra)
+	oLinha:Cell('DevVen'):SetValue(nGvDevVen)
+	oLinha:Cell('ReqSOP'):SetValue(nGvReqSOP)
+	oLinha:Cell('ReqCOP'):SetValue(nGvReqCOP)
+	oLinha:Cell('RE3DE3'):SetValue(nGvRE3DE3)
+	oLinha:Cell('IniPrc'):SetValue(nGvIniPrc)
+	oLinha:Cell('RE2DE2'):SetValue(nGvRE2DE2)
+	oLinha:Cell('FimPrc'):SetValue(nGvFimPrc)
+	oLinha:Cell('RE4DE4'):SetValue(nGvRE4DE4)
+	oLinha:Cell('Produc'):SetValue(nGvProduc)
+	oLinha:Cell('Transf'):SetValue(nGvTransf)
+	oLinha:Cell('Vendas'):SetValue(nGvVendas)
+	oLinha:Cell('Entrad'):SetValue(nGvEntrad)
+	oLinha:Cell('Saidas'):SetValue(nGvSaidas)
+	
+	oLinha:PrintLine()
+	
+	//-- Quantidade Inicial
+	oReport:PrintText(Space(13),oReport:Row() )
+	oReport:PrintText(STR0044,oReport:Row() )
+	oReport:PrintText(Transform(nGqQtdIni,cPictQIni),oReport:Row() )
+				
+	//-- Valor Inicial
+	oReport:PrintText(Space(1),oReport:Row() )
+	oReport:PrintText(STR0045,oReport:Row() )
+	oReport:PrintText(Transform(nGvIniAlm,cPictIni),oReport:Row() )
+				
+	//-- Valor Medio Inicial
+	If mv_par15 == 1
+		oReport:PrintText(Space(1),oReport:Row() )
+		oReport:PrintText(STR0046,oReport:Row())
+		oReport:PrintText(Transform(nGvIniAlm/IIf(nGqQtdIni==0,1,nGqQtdIni), cPictIni ),oReport:Row())
+	EndIf
+				
+	//-- Quantidade Final
+	oReport:PrintText(Space(1),oReport:Row() )
+	oReport:PrintText(STR0047,oReport:Row())
+	oReport:PrintText(Transform(nGqQtdFim,cPictQaB2),oReport:Row())
+				
+	//-- Valor Final
+	oReport:PrintText(Space(1),oReport:Row() )
+	oReport:PrintText(STR0048,oReport:Row())
+	oReport:PrintText(Transform(nGvFimAlm,cPictFim)	,oReport:Row())
+	    		
+	//-- Valor Medio Final
+	If mv_par15 == 1
+		oReport:PrintText(Space(1),oReport:Row() )
+		oReport:PrintText(STR0049,oReport:Row())
+		oReport:PrintText(Transform(nGvFimAlm/IIF(nGqQtdFim==0,1,nGqQtdFim),cPictFim),oReport:Row())
+	EndIf
+	            
+	oReport:SkipLine() //-- Salta Linha  
+	
+	oReport:ThinLine() //-- Impressao de Linha Simples
+	
+EndIf
+
+oLinha:Finish()
+oProduto:Finish()
+		
+Return Nil
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ XMATR330  ³ Autor ³ Wagner Xavier         ³ Data ³ 05.03.93 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Mapa das Movimentacoes                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³         ATUALIZACOES SOFRIDAS DESDE A CONSTRU€AO INICIAL.             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador ³ Data   ³ BOPS ³  Motivo da Alteracao                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Rodrigo Sart³02/02/98³10810A³ Inclusao da UM na impressao do relatorio ³±±
+±±³Rodrigo Sart³13/07/99³22412A³ Acerto Pictures conf. MATR910/MATR460    ³±±
+±±³Fernando J. ³04/08/99³23014A³Utilizar o Nr de Casas Decimais do B2_CM1 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Marcos Hirak³31/03/05³XXXXXX³Imprimir B1_CODITE quando for gestao de   ³±±
+±±³            ³        ³      ³Concessionarias ( MV_VEICULO = "S")       ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Descri‡…o ³ PLANO DE MELHORIA CONTINUA        ³Programa   XMATR330.PRX  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ITEM PMC  ³ Responsavel              ³ Data                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³      01  ³                          ³                                 ³±±
+±±³      02  ³Flavio Luiz Vicco         ³ 23/02/2006 - BOPS 00000093763   ³±±
+±±³      03  ³                          ³                                 ³±±
+±±³      04  ³                          ³                                 ³±±
+±±³      05  ³                          ³                                 ³±±
+±±³      06  ³                          ³                                 ³±±
+±±³      07  ³                          ³                                 ³±±
+±±³      08  ³                          ³                                 ³±±
+±±³      09  ³                          ³                                 ³±±
+±±³      10  ³Flavio Luiz Vicco         ³ 23/02/2006 - BOPS 00000093763   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+*/
+User Function XMTR3R3()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo LOCAL padrao de todos os relatorios           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL Tamanho  := "G"
+LOCAL titulo   := "Mapa Das Movimentações"	//"Mapa das Movimentacoes"
+LOCAL cDesc1   := "Este programa irá emitir um resumo da relação de"	//"Este programa ira emitir um resumo da relacao de"
+LOCAL cDesc2   := "Quantidades do stock. será emitido em forma de"	//"quantidades do estoque. Sera emitido em forma de"
+LOCAL cDesc3   := "Colunas, Com Filial,armazém,código E Quantidade."	//"colunas, com Filial,LOCAL,Codigo e Quantidade."
+LOCAL cString  := "SB1"
+LOCAL aOrd     := { tipo     ," grupo    "}	//" Tipo     "###" Grupo    "
+LOCAL wnrel    := "XMATR330"
+LOCAL nTamSX1  := Len(SX1->X1_GRUPO)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Local para SIGAVEI, SIGAPEC e SIGAOFI         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local aArea1	:= Getarea()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private para SIGAVEI, SIGAPEC e SIGAOFI       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private lVEIC		:= UPPER(GETMV("MV_VEICULO"))=="S"
+Private aSB1Cod	:= {}
+Private aSB1Ite	:= {}
+Private nCOL1		:= 0
+Private XSB1, xSB2, xSD1, xSD2, xSD3, xSF4
+PRIVATE cLocProc := GetMV("MV_LOCPROC")
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private padrao de todos os relatorios         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+PRIVATE aReturn  := {"Código de barras", 1,"Administração", 1, 2, 1, "",1 }	//"Zebrado"###"Administracao"
+PRIVATE nLastKey := 0 ,cPerg := "MTR330"
+PRIVATE nRegs    := 0
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ mv_par01     // Almox. de                                    ³
+//³ mv_par02     // Almox. ate                                   ³
+//³ mv_par03     // Produto de                                   ³
+//³ mv_par04     // Produto ate                                  ³
+//³ mv_par05     // tipo de                                      ³
+//³ mv_par06     // tipo ate                                     ³
+//³ mv_par07     // grupo de                                     ³
+//³ mv_par08     // grupo ate                                    ³
+//³ mv_par09     // data inicial                                 ³
+//³ mv_par10     // data final                                   ³
+//³ mv_par11     // moeda selecionada ( 1 a 5 )                  ³
+//³ mv_par12     // Saldo a considerar : Atual / Fechamento      ³
+//³ mv_par13     // Rem/Dev Poder 3 Compras - Sim/Nao            ³
+//³ mv_par14     // Rem/Dev Poder 3 Vendas  - Sim/Nao            ³
+//³ mv_par15     // Impr. Vlr. Medio  - Sim/Nao                  ³
+//³ mv_par16     // Imprime OPs geradas pelo SIGAMNT? Sim / Nao  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+DBSELECTAREA("SD2")
+DBSETORDER(1)
+nRegs := SD2->(RecCount())
+XSD2  := XFILIAL("SD2")
+
+DBSELECTAREA("SD3")
+DBSETORDER(1)
+nRegs += SD3->(RecCount())
+XSD3  := XFILIAL("SD3")
+
+DBSELECTAREA("SD1")
+DBSETORDER(1)
+nRegs += SD1->(RecCount())
+XSD1  := XFILIAL("SD1")
+
+DBSELECTAREA("SF4")
+DBSETORDER(1)
+XSF4  := XFILIAL("SF4")
+
+DBSELECTAREA("SB2")
+DBSETORDER(1)
+XSB2  := XFILIAL("SB2")
+
+DBSELECTAREA("SB1")
+DBSETORDER(1)
+XSB1  := XFILIAL("SB1")
+
+Pergunte(cPerg,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnrel:=SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.F.,aOrd,.F.,Tamanho)
+
+If nLastKey == 27
+	DBSELECTAREA("SB1")
+	dbClearFilter()
+	Return
+EndIf
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	DBSELECTAREA("SB1")
+	dbClearFilter()
+	Return
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Adiciona a ordem escolhida ao titulo do relatorio          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If Type("NewHead")#"U"
+	NewHead += " ("+AllTrim(aOrd[aReturn[8]])+")"
+Else
+	Titulo += " ("+AllTrim(aOrd[aReturn[8]])+")"
+EndIf
+RptStatus({|lEnd| C330Imp(@lEnd,wnRel,cString,tamanho,titulo)},titulo)
+
+Return NIL
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ C330IMP  ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 12.12.95 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Chamada do Relatorio                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ XMATR330			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function C330Imp(lEnd,WnRel,cString,tamanho,titulo)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis especificas deste relatorio                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL lPassou := .F. ,lTeveItem := .F. ,cTipant ,cFiliant ,nCusto
+LOCAL nTvIniAlm,nTvCompra,nTvDevVen,nTvReqSOP,nTvReqCOP,nTvRE3DE3,nTvIniPrc,nTvRE2DE2,nTvFimPrc,nTvRE4DE4,nTvProduc,nTvTransf,nTvVendas,nTvFimAlm
+LOCAL nTqQtdIni,nTqCompra,nTqDevVen,nTqReqSOP,nTqReqCOP,nTqRE3DE3,	nTqIniPrc,nTqRE2DE2,nTqFimPrc,nTqRE4DE4,nTqProduc,nTqTransf,nTqVendas,nTqQtdFim
+LOCAL nGvIniAlm,nGvCompra,nGvDevVen,nGvReqSOP,nGvReqCOP,nGvRE3DE3,nGvIniPrc,nGvRE2DE2,nGvFimPrc,nGvRE4DE4,nGvProduc,nGvTransf,nGvVendas,nGvFimAlm
+LOCAL nGqQtdIni,nGqCompra,nGqDevVen,nGqReqSOP,nGqReqCOP,nGqRE3DE3,nGqIniPrc,nGqRE2DE2,nGqFimPrc,nGqRE4DE4,nGqProduc,nGqTransf,nGqVendas,nGqQtdFim
+LOCAL nAqIniAlm,nAqCompra,nAqDevVen,nAqReqSOP,nAqReqCOP,nAqRE3DE3,nAqIniPrc,nAqRE2DE2,nAqFimPrc,nAqRE4DE4,nAqProduc,nAqTransf,nAqVendas,nAqFimAlm
+LOCAL nAvIniAlm,nAvCompra,nAvDevVen,nAvReqSOP,nAvReqCOP,nAvRE3DE3,nAvIniPrc,nAvRE2DE2,nAvFimPrc,nAvRE4DE4,nAvProduc,nAvTransf,nAvVendas,nAvFimAlm
+LOCAL nAqEntrad,nAvEntrad,nTqEntrad,nTvEntrad,nGqEntrad,nGvEntrad
+LOCAL nAqSaidas,nAvSaidas,nTqSaidas,nTvSaidas,nGqSaidas,nGvSaidas
+LOCAL cCodAux := "", cLOCALAux := "  "
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis para determinar as pictures usadas na impressao    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL cPictSD115 := PesqPict("SD1","D1_CUSTO"+If(mv_par11>1,Strzero(mv_par11,1,0),""),15,mv_par11)
+LOCAL cPictSD113 := PesqPict("SD1","D1_CUSTO"+If(mv_par11>1,Strzero(mv_par11,1,0),""),13,mv_par11)
+LOCAL cPictSD313 := PesqPict("SD3","D3_CUSTO"+Strzero(mv_par11,1,0),13,mv_par11)
+LOCAL cPictSD314 := PesqPict("SD3","D3_CUSTO"+Strzero(mv_par11,1,0),14,mv_par11)
+LOCAL cPictSD315 := PesqPict("SD3","D3_CUSTO"+Strzero(mv_par11,1,0),15,mv_par11)
+LOCAL cPictSD316 := PesqPict("SD3","D3_CUSTO"+Strzero(mv_par11,1,0),16,mv_par11)
+LOCAL cPictSD213 := PesqPict("SD2","D2_CUSTO"+Strzero(mv_par11,1,0),13,mv_par11)
+LOCAL cPictSD216 := PesqPict("SD2","D2_CUSTO"+Strzero(mv_par11,1,0),16,mv_par11)
+LOCAL cPictFim13 := PesqPict("SB2","B2_VFIM"+Str(mv_par11,1),13,mv_par11)
+LOCAL cPictFim16 := PesqPict("SB2","B2_VFIM"+Str(mv_par11,1),16,mv_par11)
+LOCAL cPictIni13 := PesqPict("SB9","B9_VINI"+Str(mv_par11,1),13,mv_par11)
+LOCAL cPictIni16 := PesqPict("SB9","B9_VINI"+Str(mv_par11,1),16,mv_par11)
+LOCAL bBloco     := { |nV,nX| Trim(nV)+Str(nX,1) }
+LOCAL nVUnit     := 0
+LOCAL cCondWhile, cAnt, cVar
+LOCAL cTrbSB1 	 := CriaTrab("",.F.)
+LOCAL cTrbSB2 	 := Subs(cTRBSB1,1,7)+"A"
+LOCAL cTrbSD1 	 := Subs(cTRBSB1,1,7)+"B"
+LOCAL cTrbSD2 	 := Subs(cTRBSB1,1,7)+"C"
+LOCAL cTrbSD3 	 := Subs(cTRBSB1,1,7)+"D"
+LOCAL nIndex	 := 0
+LOCAL nIndB2     := 0
+LOCAL aSldFimPrc := {0,0}
+LOCAL lQuery     := .F.
+LOCAL cQuery     := ""
+LOCAL cQueryD1   := ""
+LOCAL cQueryD2   := ""
+LOCAL cQueryD3   := ""
+LOCAL cQueryB1 := ""
+LOCAL cQueryB1A  := ""
+LOCAL cQueryB1C  := ""
+LOCAL cAliasSB1  := "SB1"
+LOCAL cAliasSB2  := "SB2"
+LOCAL cAliasSD1  := "SD1"
+LOCAL cAliasSD2  := "SD2"
+LOCAL cAliasSD3  := "SD3"
+LOCAL cAliasTop  := CriaTrab("",.F.)
+LOCAL cB1_COD    := ""
+LOCAL cB1_DESC   := ""
+LOCAL cB1_UM     := ""
+LOCAL nCol       := IIF(mv_par15==1,0,41)
+LOCAL lRetPE	 := .F.
+LOCAL lR330Trans := ExistBlock('R330TRANS')
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Local para SIGAVEI, SIGAPEC e SIGAOFI         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL cB1_CODITE	:= ""
+LOCAL cIndexkey	:= ""
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para Impressao do Cabecalho e Rodape    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cbtxt  := SPACE(10)
+cbcont := 0
+li     := 80
+m_pag  := 1
+nTipo  := IIF(aReturn[4]==1,15,18)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta os Cabecalhos                                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Cabec1 := "Qtd          Compras    Devoluções     Movimentações      Requisições     Requisições  Saldo Inicial    Apropriação   Saldo Final   Tranferências        Produção Transferência           Vendas        Outras        Outras" // 'QTD          COMPRAS    DEVOLUCOES     MOVIMENTACOES      REQUISICOES     REQUISICOES  SALDO INICIAL    APROPRIACAO   SALDO FINAL   TRANFERENCIAS        PRODUCAO TRANSFERENCIA           VENDAS        OUTRAS       OUTRAS'
+Cabec2 := "Valor                     De Venda          Internas      P/ Produção     P/ Processo    Em Processo   Mat.indirecto   Em Processo        Internas                 Entre Filiais                       Entradas        Saídas" // 'VALOR                     DE VENDA          INTERNAS      P/ PRODUCAO     P/ PROCESSO    EM PROCESSO   MAT.INDIRETO   EM PROCESSO        INTERNAS                 ENTRE FILIAIS                       ENTRADAS       SAIDAS'
+//                         123456789012345 1234567890123  1234567890123456  124356789012356  12345678901234  1234567890123  1234567890123 1234567890123  12345678901234 123456789012345 1234567890123 1234567890123456 1234567890123 1234567890123
+//                              1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20        21        22
+//                    01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+Store 0 To nGvIniAlm,nGvCompra,nGvDevVen,nGvReqSOP,nGvReqCOP
+Store 0 To nGvRE3DE3,nGvIniPrc,nGvRE2DE2,nGvFimPrc,nGvRE4DE4
+Store 0 To nGvProduc,nGvTransf,nGvVendas,nGvFimAlm
+
+Store 0 To nGqQtdIni,nGqCompra,nGqDevVen,nGqReqSOP,nGqReqCOP
+Store 0 To nGqRE3DE3,nGqIniPrc,nGqRE2DE2,nGqFimPrc,nGqRE4DE4
+Store 0 To nGqProduc,nGqTransf,nGqVendas,nGqQtdFim
+
+Store 0 To nGqEntrad,nGqSaidas,nGvEntrad,nGvSaidas
+
+dbSelectArea("SB1")
+if ! lVEIC
+	If aReturn[8] == 1
+		dbSetOrder(2)
+	Else
+		dbSetOrder(4)
+	EndIf
+	cIndexkey	:= indexkey()
+else
+	If aReturn[8] == 1
+		dbSetOrder(2)
+		cIndexkey	:= "B1_FILIAL + B1_TIPO + B1_CODITE"
+	Else
+		dbSetOrder(7) // B1_FILIAL+B1_GRUPO+B1_CODITE
+		cIndexkey	:= indexkey()
+	EndIf
+EndIf
+cIndexkey := ALLTRIM(cIndexkey)
+
+If !(TcSrvType()=="AS/400") .And. !("POSTGRES" $ TCGetDB())
+	// **** ATENCAO - O ORDER BY UTILIZA AS POSICOES DO SELECT, SE ALGUM CAMPO
+	// **** FOR INCLUIDO NA QUERY OU ALTERADO DE LUGAR DEVE SER REVISTA A SINTAXE
+	// **** DO ORDER BY
+	// 1 ARQ
+	// 2 PRODUTO
+	// 3 TIPO
+	// 4 UM
+	// 5 GRUPO
+	// 6 DESCR
+	// 7 DATA
+	// 8 TES
+	// 9 CF
+	// 10 SEQUENCIA
+	// 11 DOCUMENTO
+	// 12 SERIE
+	// 13 QUANTIDADE
+	// 14 QUANT2UM
+	// 15 ARMAZEM
+	// 16 OP
+	// 17 FORNECEDOR
+	// 18 LOJA
+	// 19 TIPO NF
+	// 20 CUSTO
+	// 21 B1_CODITE	// PARA GESTÃO DE CONCESSIONÁRIAS.
+	// 22 RECNO
+
+	lQuery 	  := .T.
+
+	cQueryD1	:= "SELECT 'SD1' ARQ"	// 01
+	cQueryD1	+=	", SB1.B1_COD PRODUTO"	// 02
+	cQueryD1	+=	", SB1.B1_TIPO TIPO"	// 03
+	cQueryD1	+=	", SB1.B1_UM UM"	// 04
+	cQueryD1	+=	", SB1.B1_GRUPO GRUPO"	// 05
+	cQueryD1	+=	", SB1.B1_DESC DESCR"	// 06
+	cQueryD1	+=	", D1_DTDIGIT DATA"	// 07
+	cQueryD1	+=	", D1_TES TES"	// 08
+	cQueryD1	+=	", D1_CF CF"	// 09
+	cQueryD1	+=	", D1_NUMSEQ SEQUENCIA"	// 10
+	cQueryD1	+=	", D1_DOC DOCUMENTO"	// 11
+	cQueryD1	+=	", D1_SERIE SERIE"	// 12
+	cQueryD1	+=	", D1_QUANT QUANTIDADE"	// 13
+	cQueryD1	+=	", D1_QTSEGUM QUANT2UM"	// 14
+	cQueryD1	+=	", D1_LOCAL ARMAZEM"	// 15
+	cQueryD1	+=	", '' OP"	// 16
+	cQueryD1	+=	", D1_FORNECE FORNECEDOR"	// 17
+	cQueryD1	+=	", D1_LOJA LOJA"	// 18
+	cQueryD1	+=	", D1_TIPO TIPONF"	// 19
+	cQueryD1	+=	", D1_CUSTO"	// 20
+
+	// COLOCA A MOEDA DO CUSTO
+	If mv_par11 > 1
+		cQueryD1+= Str(mv_par11,1,0)	// 20
+	EndIf
+	cQueryD1 += " CUSTO"	// 20
+
+	If lVEIC
+		cQueryD1	+=	", SB1.B1_CODITE CODITE" // 21
+	EndIf
+
+	cQueryD1 += ",SD1.R_E_C_N_O_ NRECNO"  // 22
+	cQueryD1 += " FROM "
+
+	cQueryD1 += RetSqlName("SB1") + " SB1"
+	cQueryD1 += ", " + RetSqlName("SD1") + " SD1"
+	cQueryD1 +=	", " + RetSqlName("SF4") + " SF4"
+	cQueryD1 += " WHERE"
+	cQueryD1 += " SB1.B1_COD = D1_COD"
+	cQueryD1 += " AND D1_FILIAL = '" + xSD1 + "'"
+	cQueryD1 += " AND F4_FILIAL = '" + xSF4 + "'"
+	cQueryD1 += " AND SD1.D1_TES = F4_CODIGO"
+	cQueryD1 += " AND F4_ESTOQUE = 'S'"
+	cQueryD1 += " AND D1_DTDIGIT >= '" + DTOS(mv_par09) + "'"
+	cQueryD1 += " AND D1_DTDIGIT <= '" + DTOS(mv_par10) + "'"
+	cQueryD1 += " AND D1_ORIGLAN <> 'LF'"
+	cQueryD1 += " AND D1_LOCAL >= '" + mv_par01 + "'"
+	cQueryD1 += " AND D1_LOCAL <= '" + mv_par02 + "'"
+
+	If cPaisLoc <> "BRA"
+		cQueryD1 += " AND D1_REMITO = '" + Space(TamSx3("D1_REMITO")[1]) + "' "
+	EndIf
+
+	cQueryD1 += " AND SD1.D_E_L_E_T_ <> '*'"
+	cQueryD1 += " AND SF4.D_E_L_E_T_ <> '*'"
+
+	cQueryD2 := "SELECT 'SD2'"	// 01
+	cQueryD2 += ", SB1.B1_COD"	// 02
+	cQueryD2 += ", SB1.B1_TIPO"	// 03
+	cQueryD2 += ", SB1.B1_UM"	// 04
+	cQueryD2 += ", SB1.B1_GRUPO GRUPO"	// 05
+	cQueryD2 += ", SB1.B1_DESC DESCR"	// 06
+	cQueryD2 += ", D2_EMISSAO"	// 07
+	cQueryD2 += ", D2_TES"	// 08
+	cQueryD2 += ", D2_CF"	// 09
+	cQueryD2 += ", D2_NUMSEQ"	// 10
+	cQueryD2 += ", D2_DOC"	// 11
+	cQueryD2 += ", D2_SERIE"	// 12
+	cQueryD2 += ", D2_QUANT"	// 13
+	cQueryD2 += ", D2_QTSEGUM"	// 14
+	cQueryD2 += ", D2_LOCAL"	// 15
+	cQueryD2 += ", ''"	// 16
+	cQueryD2 += ", D2_CLIENTE"	// 17
+	cQueryD2 += ", D2_LOJA"	// 18
+	cQueryD2 += ", D2_TIPO"	// 19
+	cQueryD2 += ", D2_CUSTO"	// 20
+	// COLOCA A MOEDA DO CUSTO
+	cQueryD2 += Str(mv_par11,1,0)	// 20
+	cQueryD2 += " CUSTO"	// 20
+
+	If lVEIC
+		cQueryD2	+=	", SB1.B1_CODITE CODITE" // 21
+	EndIf
+
+	cQueryD2 += ",SD2.R_E_C_N_O_ SD2RECNO" // 22
+	cQueryD2 += " FROM "
+
+	cQueryD2 += RetSqlName("SB1") + " SB1"
+	cQueryD2 += ", " + RetSqlName("SD2") + " SD2"
+	cQueryD2 += ", " + RetSqlName("SF4") + " SF4"
+	cQueryD2 += " WHERE"
+	cQueryD2 += " SB1.B1_COD = D2_COD"
+	cQueryD2 += " AND D2_FILIAL = '" + xSD2 + "'"
+	cQueryD2 += " AND F4_FILIAL = '" + xSF4 + "'"
+	cQueryD2 += " AND SD2.D2_TES = F4_CODIGO"
+	cQueryD2 += " AND F4_ESTOQUE = 'S'"
+	cQueryD2 += " AND D2_EMISSAO >= '" + DTOS(mv_par09) + "'"
+	cQueryD2 += " AND D2_EMISSAO <= '" + DTOS(mv_par10) + "'"
+	cQueryD2 += " AND D2_ORIGLAN <> 'LF'"
+	cQueryD2 += " AND D2_LOCAL >= '" + mv_par01 + "'"
+	cQueryD2 += " AND D2_LOCAL <= '" + mv_par02 + "'"
+
+	If cPaisLoc <> "BRA"
+		cQueryD2+= " AND D2_REMITO = '" + Space(TamSx3("D2_REMITO")[1]) + "' "
+	EndIf
+
+	cQueryD2 += " AND SD2.D_E_L_E_T_ <> '*'"
+	cQueryD2 += " AND SF4.D_E_L_E_T_ <> '*'"
+	cQueryD3 := " SELECT 'SD3'"	// 01
+	cQueryD3 += ", SB1.B1_COD"	// 02
+	cQueryD3 += ", SB1.B1_TIPO"	// 03
+	cQueryD3 += ", SB1.B1_UM"	// 04
+	cQueryD3 += ", SB1.B1_GRUPO GRUPO"	// 05
+	cQueryD3 += ", SB1.B1_DESC DESCR"	// 06
+	cQueryD3 += ", D3_EMISSAO"	// 07
+	cQueryD3 += ", D3_TM"	// 08
+	cQueryD3 += ", D3_CF"	// 09
+	cQueryD3 += ", D3_NUMSEQ"	// 10
+	cQueryD3 += ", D3_DOC"	// 11
+	cQueryD3 += ", ''"	// 12
+	cQueryD3 += ", D3_QUANT"	// 13
+	cQueryD3 += ", D3_QTSEGUM"	// 14
+	cQueryD3 += ", D3_LOCAL"	// 15
+	cQueryD3 += ", D3_OP"	// 16
+	cQueryD3 += ", ''"	// 17
+	cQueryD3 += ", ''"	// 18
+	cQueryD3 += ", ''"	// 19
+	cQueryD3 += ", D3_CUSTO"	// 20
+	// COLOCA A MOEDA DO CUSTO
+	cQueryD3 += Str(mv_par11,1,0)	// 20
+	cQueryD3 += " CUSTO"	// 20
+
+	If lVEIC
+		cQueryD3	+=	", SB1.B1_CODITE CODITE" // 21
+	EndIf
+
+	cQueryD3 += ",SD3.R_E_C_N_O_ SD3RECNO" // 22 RECNO
+	cQueryD3 += " FROM "
+	cQueryD3 += RetSqlName("SB1") + " SB1"
+	cQueryD3 += ", " + RetSqlName("SD3") + " SD3"
+
+	cQueryD3 += " WHERE "
+
+	cQueryD3 += " SB1.B1_COD = D3_COD"
+	cQueryD3 += " AND D3_FILIAL = '" + xSD3 + "'"
+	cQueryD3 += " AND D3_EMISSAO >= '" + DTOS(mv_par09) + "'"
+	cQueryD3 += " AND D3_EMISSAO <= '" + DTOS(mv_par10) + "'"
+
+	If SuperGetMV('MV_D3ESTOR', .F., 'N') == 'N'
+		cQueryD3 += " AND D3_ESTORNO <> 'S'"
+	EndIf
+	If SuperGetMV('MV_D3SERVI', .F., 'N') == 'N' .And. IntDL()
+		cQueryD3 += " AND ( (D3_SERVIC = '   ') OR (D3_SERVIC <> '   ' AND D3_TM <= '500')  "
+		cQueryD3 += " OR  (D3_SERVIC <> '   ' AND D3_TM > '500' AND D3_LOCAL ='"+SuperGetMV('MV_CQ', .F., '98')+"') )"
+	EndIf
+
+	cQueryD3 += " AND D3_LOCAL >= '" + mv_par01 + "'"
+	cQueryD3 += " AND D3_LOCAL <= '" + mv_par02 + "'"
+	cQueryD3 += " AND SD3.D_E_L_E_T_ <> '*'"
+
+	cQueryB2 := "SELECT 'SB2'"	// 01
+	cQueryB2 += ", SB1.B1_COD"	// 02
+	cQueryB2 += ", SB1.B1_TIPO"	// 03
+	cQueryB2 += ", SB1.B1_UM"	// 04
+	cQueryB2 += ", SB1.B1_GRUPO"	// 05
+	cQueryB2 += ", SB1.B1_DESC"	// 06
+	cQueryB2 += ", ''"	// 07
+	cQueryB2 += ", ''"	// 08
+	cQueryB2 += ", ''"	// 09
+	cQueryB2 += ", ''"	// 10
+	cQueryB2 += ", ''"	// 11
+	cQueryB2 += ", ''"	// 12
+	cQueryB2 += ", 0"	// 13
+	cQueryB2 += ", 0"	// 14
+	cQueryB2 += ", B2_LOCAL"	// 15
+	cQueryB2 += ", ''"	// 16
+	cQueryB2 += ", ''"	// 17
+	cQueryB2 += ", ''"	// 18
+	cQueryB2 += ", ''"	// 19
+	cQueryB2 += ", 0"	// 20
+	cQueryB2 += " CUSTO "	// 20
+
+	If lVEIC
+		cQueryB2	+=	", SB1.B1_CODITE CODITE " // 21
+	EndIf
+
+	cQueryB2 += ", 0"	// 22 RECNO
+	cQueryB2 += " FROM "
+
+	cQueryB2 += RetSqlName("SB1") + " SB1"
+	cQueryB2 += ", " + RetSqlName("SB2") + " SB2"
+
+	cQueryB2 += " WHERE "
+
+	cQueryB2 += " SB1.B1_COD = B2_COD"
+	cQueryB2 += " AND B2_FILIAL = '" + xSB2 + "'"
+	cQueryB2 += " AND B2_LOCAL >= '" + mv_par01 + "'"
+	cQueryB2 += " AND B2_LOCAL <= '" + mv_par02 + "'"
+	cQueryB2 += " AND SB2.D_E_L_E_T_ <> '*'"
+
+	If ! lVEIC
+		cQueryB1A	:= " AND SB1.B1_COD >= '" + mv_par03 + "'"
+		cQueryB1A	+= " AND SB1.B1_COD <= '" + mv_par04 + "'"
+	Else
+		cQueryB1A	:= " AND SB1.B1_CODITE >= '" + mv_par03 + "'"
+		cQueryB1A	+= " AND SB1.B1_CODITE <= '" + mv_par04 + "'"
+	EndIf
+
+	cQueryB1C:= " SB1.B1_FILIAL = '" + xSB1 + "'"
+	cQueryB1C+= " AND SB1.B1_TIPO >= '" + mv_par05 + "'"
+	cQueryB1C+= " AND SB1.B1_TIPO <= '" + mv_par06 + "'"
+	cQueryB1C+= " AND SB1.B1_GRUPO >= '" + mv_par07 + "'"
+	cQueryB1C+= " AND SB1.B1_GRUPO <= '" + mv_par08 + "'"
+	cQueryB1C+= " AND SB1.D_E_L_E_T_ <> '*'"
+
+
+	cQuery := ( cQueryD1 + cQueryB1A + " AND " + cQueryB1C )
+	cQuery += " UNION ALL "
+	cQuery += ( cQueryD2 + cQueryB1A + " AND " + cQueryB1C )
+	cQuery += " UNION ALL "
+	cQuery += ( cQueryD3 + cQueryB1A + " AND " + cQueryB1C )
+	cQuery += " UNION ALL "
+	cQuery += ( cQueryB2 + cQueryB1A + " AND " + cQueryB1C )
+
+	If ! lVEIC
+		If aReturn[8] == 1
+			cQuery += " ORDER BY 3, 2, 1" //3-TIPO/2-PRODUTO/1-ARQ
+		Else
+			cQuery += " ORDER BY 5, 2, 1" //5-GRUPO/2-PRODUTO/1-ARQ
+		EndIf
+	Else
+		If aReturn[8] == 1
+			cQuery += " ORDER BY 3, 21, 2, 1" //3-TIPO/21-CODITE/2-PRODUTO/1-ARQ
+		Else
+			cQuery += " ORDER BY 5, 21, 2, 1" //5-GRUPO/21-CODITE/2-PRODUTO/1-ARQ
+		EndIf
+	EndIf	
+
+	cQuery:=ChangeQuery(cQuery)
+	MsAguarde({|| dbUseArea(.T.,"TOPCONN",TCGenQry(,,cQuery),cAliasTOP,.F.,.T.)},STR0021)
+	dbSelectArea(cAliasTop)
+	SetRegua(nRegs)
+	dbGoTop()
+	Do While !(cAliasTop)->( Eof() )
+
+		If lEnd
+			@PROW()+1,001 PSay "Cancelado Pelo Operador"	//"CANCELADO PELO OPERADOR"
+			Exit
+		EndIf
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Filtra Registros de Acordo com a Pasta  Filtro da Janela de Impressao  ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+		If !Empty(aReturn[7])
+			dbSelectArea("SB1")
+			dbSetOrder(1)
+			If MsSeek( xSB1 + (cAliasTop)->PRODUTO )
+				If !&(aReturn[7])
+					dbSelectArea(cAliasTop)
+					dbSkip()
+					Loop
+				EndIf
+			Else
+				dbSelectArea(cAliasTop)
+				dbSkip()
+				Loop
+			EndIf
+		EndIf
+		dbSelectArea(cAliasTop)
+
+		cAnt := If(aReturn[8]==1,"TIPO","GRUPO")
+		cVar := If(aReturn[8]==1, TIPO , GRUPO )
+
+		Store 0 To nTvIniAlm,nTvCompra,nTvDevVen,nTvReqSOP,nTvReqCOP
+		Store 0 To nTvRE3DE3,nTvIniPrc,nTvRE2DE2,nTvFimPrc,nTvRE4DE4
+		Store 0 To nTvProduc,nTvTransf,nTvVendas,nTvFimAlm
+		Store 0 To nTqQtdIni,nTqCompra,nTqDevVen,nTqReqSOP,nTqReqCOP
+		Store 0 To nTqRE3DE3,nTqIniPrc,nTqRE2DE2,nTqFimPrc,nTqRE4DE4
+		Store 0 To nTqProduc,nTqTransf,nTqVendas,nTqQtdFim
+		Store 0 To nTqEntrad,nTvEntrad,nTqSaidas,nTvSaidas
+
+		Do While !(cAliasTop)->( Eof() ) .And. &(cAnt) == cVar
+
+			Store 0 To nAqIniAlm,nAqCompra,nAqDevVen,nAqReqSOP,nAqReqCOP
+			Store 0 To nAqRE3DE3,nAqIniPrc,nAqRE2DE2,nAqFimPrc,nAqRE4DE4
+			Store 0 To nAqProduc,nAqTransf,nAqVendas,nAqFimAlm
+
+			Store 0 To nAvIniAlm,nAvCompra,nAvDevVen,nAvReqSOP,nAvReqCOP
+			Store 0 To nAvRE3DE3,nAvIniPrc,nAvRE2DE2,nAvFimPrc,nAvRE4DE4
+			Store 0 To nAvProduc,nAvTransf,nAvVendas,nAvFimAlm
+
+			Store 0 To nAqEntrad,nAvEntrad,nAqSaidas,nAvSaidas
+
+			If lEnd
+				@PROW()+1,001 PSay "Cancelado Pelo Operador"	//"CANCELADO PELO OPERADOR"
+				Exit
+			EndIf
+
+			IncRegua()
+
+			cB1_COD  := (cAliasTop)->PRODUTO
+			cB1_DESC := (cAliasTop)->DESCR
+			cB1_UM   := (cAliasTop)->UM
+			If lVEIC
+				cB1_CODITE	:= (cAliasTop)->CODITE
+			EndIf
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Filtra Registros de Acordo com a Pasta  Filtro da Janela de Impressao  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If !Empty(aReturn[7])
+				dbSelectArea("SB1")
+				dbSetOrder(1)
+				If MsSeek(xSB1 + cB1_COD)
+					If !&(aReturn[7])
+						dbSelectArea(cAliasTop)
+						dbSkip()
+						Loop
+					EndIf
+				Else
+					dbSelectArea(cAliasTop)
+					dbSkip()
+					Loop
+				EndIf
+			EndIf
+			dbSelectArea(cAliasTop)
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Pega o saldo final e inicial dos almoxarifados               ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasSB2)
+			dbSetOrder(1)
+			dbSeek(xSB2 + cB1_COD)
+			While (!(cAliasSB2)->( Eof() ) );
+			.And. ((cAliasSB2)->B2_COD == cB1_COD) ;
+			.And. ((cAliasSB2)->B2_FILIAL == xSB2)
+
+				If lEnd
+					@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+					loper:=.F.
+					Exit
+				EndIf
+
+				dbSelectArea(cAliasSB2)
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Nao permite listar os produtos com Armazem em Processo       ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If B2_LOCAL == cLocProc
+					dbSkip()
+					Loop
+				EndIf
+
+				If B2_LOCAL < mv_par01 .Or. B2_LOCAL > mv_par02
+					dbSkip()
+					Loop
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Totaliza o saldo final ou atual de cada almoxarifado         ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If	mv_par12 == 1
+					nAqFimAlm += B2_QATU
+					nAvFimAlm +=&(Eval(bBloco,"B2_VATU",mv_par11))
+				Elseif mv_par12 == 2
+					nAqFimAlm += B2_QFIM
+					nAvFimAlm +=&(Eval(bBloco,"B2_VFIM",mv_par11))
+				Else
+					aSaldoFim := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par10+1)
+					nAqFimAlm += aSaldoFim[1]
+					nAvFimAlm += aSaldoFim[1+mv_par11]
+				EndIf
+
+				aSaldoIni := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par09)
+				nAqIniAlm += aSaldoIni[1]	
+				nVUnit    := aSaldoIni[mv_par11+1]/If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1)
+				nAvIniAlm += If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1) * nVUnit
+				dbSelectArea(cAliasSB2)
+				dbSkip()
+			EndDo
+			If nAqIniAlm != 0 .Or. nAvIniAlm != 0 .Or. nAqFimAlm != 0 .Or. nAvFimAlm != 0
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Pega o saldo em processo (B2_LOCAL = cLocProc)               ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			aSaldoIni := CalcEst(cB1_COD,cLocProc,mv_par09)
+			nAqIniPrc += aSaldoIni[1]
+			nAvIniPrc += aSaldoIni[mv_par11+1]
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Pega o saldo final em processo (B2_LOCAL = cLocProc)         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			aSldFimPrc := SldFimPrc(cB1_COD,cLocProc)
+			nAqFimPrc  := aSldFimPrc[1]
+			nAvFimPrc  += aSldFimPrc[2]
+
+			If nAqIniPrc != 0 .Or. nAvIniPrc != 0 .Or. nAqFimPrc != 0 .Or. nAvFimPrc != 0
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ SB2 - Verifica Produtos Sem Movimento						 ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasTop)
+			Do While (!(cAliasTop)->(Eof()));
+			.And. ( (cAliasTop)->PRODUTO == cB1_COD) ;
+			.And. (UPPER(Alltrim((cAliasTop)->ARQ)) == "SB2")
+				dbSkip()
+			EndDo
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ SD1 - Verifica as Entradas                                   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasTop)
+			Do While ( ! (cAliasTop)->( Eof() ) );
+			.And. ((cAliasTop)->PRODUTO == cB1_COD );
+			.And. (UPPER(Alltrim((cAliasTop)->ARQ)) == "SD1")
+
+				If lEnd
+					@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+					loper:=.F.
+					Exit
+				EndIf
+
+				IncRegua()		// Incrementa a regua
+
+				SF4->(MsSeek(xSF4 + (cAliasTop)->TES))
+
+				If SF4->F4_ESTOQUE == "S"
+
+					nCusto := (cAliasTop)->CUSTO
+
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Verifica o ponto de entrada para considerar Transferencia ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ (cAliasTop)->CF }) ) =='L', lRetPE, .F.)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Separa as transferencias das compras                         ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If lRetPE .Or. ( (;
+							( Len( allTrim( (cAliasTop)->CF) ) == 3 );
+							.And.;
+							(SubStr( allTrim( (cAliasTop)->CF),1,3)$"121/122/126/192/221/222/226/292");
+							);
+							.Or.;
+							(;
+							( Len( allTrim( (cAliasTop)->CF) ) > 3 ) ;
+							.And.;
+							(SubStr( allTrim( (cAliasTop)->CF ),1,4)$"1151/1152/1552/2151/2152/2552");
+							) )
+						nAqTransf += (cAliasTop)->QUANTIDADE
+						nAvTransf += nCusto
+					ElseIf (cAliasTop)->TIPONF == "D"
+						nAqDevVen += (cAliasTop)->QUANTIDADE
+						nAvDevVen += nCusto
+					ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par13 == 1
+						nAqEntrad += (cAliasTop)->QUANTIDADE
+						nAvEntrad += nCusto
+					Else
+						nAqCompra += (cAliasTop)->QUANTIDADE
+						nAvCompra += nCusto
+					EndIf
+					lPassou := .T.
+				EndIf
+				dbSelectArea(cAliasTop)
+				dbSkip()
+			EndDo
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ SD2 - Verifica as Saidas                                     ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasTop)
+
+			Do While (! (cAliasTop)->(Eof()) ) ;
+			.And. ( (cAliasTop)->PRODUTO == cB1_COD ) ; 
+			.And. ( UPPER(Alltrim((cAliasTop)->ARQ)) == "SD2" )
+
+				If lEnd
+					@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+					loper:=.F.
+					Exit
+				EndIf
+
+				IncRegua()		// Incrementa a regua
+
+				SF4->(MsSeek(xSF4 + (cAliasTop)->TES))
+
+				If SF4->F4_ESTOQUE == "S"
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³Verifica o ponto de entrada para considerar Transferencia ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ (cAliasTop)->CF }) ) =='L', lRetPE, .F.)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Separa as transferencias das vendas                          ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If lRetPE .Or. ( (;
+						( Len(allTrim((cAliasTop)->CF)) == 3);
+							.And.;
+							(SubStr(allTrim((cAliasTop)->CF),1,3)$"521/522/526/592/621/622/626/692");
+						);
+						.Or.;
+						(;
+							(Len(allTrim((cAliasTop)->CF)) >3);
+							.And.;
+							(SubStr(allTrim((cAliasTop)->CF),1,4)$"5151/5152/5156/5552/6151/6152/6156/6552");
+						) )
+						nAqTransf -= (cAliasTop)->QUANTIDADE
+						nAvTransf -= (cAliasTop)->CUSTO
+					ElseIf (cAliasTop)->TIPONF == "D"
+						nAqCompra -= (cAliasTop)->QUANTIDADE
+						nAvCompra -= (cAliasTop)->CUSTO
+					ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par14 == 1
+						nAqSaidas += (cAliasTop)->QUANTIDADE
+						nAvSaidas += (cAliasTop)->CUSTO
+					Else
+						nAqVendas += (cAliasTop)->QUANTIDADE
+						nAvVendas += (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				dbSelectArea(cAliasTop)
+				dbSkip()
+
+			EndDo
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ SD3 -  Verifica as Movimentacoes Internas                    ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasTop)
+
+			Do While (!(cAliasTop)->(Eof()));
+			.And. ((cAliasTop)->PRODUTO == cB1_COD) ;
+			.And. (upper(Alltrim((cAliasTop)->ARQ)) == "SD3")
+
+				If lEnd
+					@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+					loper:=.F.
+					Exit
+				EndIf
+
+				IncRegua()		// Incrementa a regua
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina materiais requisitados para consumo proprio         ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If ( (allTrim( (cAliasTop)->CF )  $ "RE0/DE0" ) .And. Empty( (cAliasTop)->OP ));
+				.Or. ((allTrim( (cAliasTop)->CF ) $"RE6/DE6" ) .And. Empty( (cAliasTop)->OP ))
+
+					If (cAliasTop)->TES <= "500"
+						nAqReqSOP += (cAliasTop)->QUANTIDADE
+						nAvReqSOP += (cAliasTop)->CUSTO
+					Else
+						nAqReqSOP -= (cAliasTop)->QUANTIDADE
+						nAvReqSOP -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina materiais diretos utilizados em ordens de producao  ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If	(;
+						( allTrim( (cAliasTop)->CF ) $"RE0/DE0" );
+						.And.;
+						( !Empty( (cAliasTop)->OP ) );
+					);
+					.Or.;
+					( allTrim( (cAliasTop)->CF ) $"RE1/DE1/RE5/DE5" );
+					.OR.;
+					(;
+						( allTrim( (cAliasTop)->CF ) $ "RE6/DE6" );
+						.And.;
+						( !Empty( (cAliasTop)->OP ) );
+					)
+
+					If (cAliasTop)->TES <= "500"
+						nAqReqCOP += (cAliasTop)->QUANTIDADE
+						nAvReqCOP += (cAliasTop)->CUSTO
+					Else
+						nAqReqCOP -= (cAliasTop)->QUANTIDADE
+						nAvReqCOP -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina materiais indiretos enviados para o processo        ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"RE3/DE3"
+					If (cAliasTop)->TES <= "500"
+						nAqRE3DE3 += (cAliasTop)->QUANTIDADE
+						nAvRE3DE3 += (cAliasTop)->CUSTO
+					Else
+						nAqRE3DE3 -= (cAliasTop)->QUANTIDADE
+						nAvRE3DE3 -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIF
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina materiais indiretos apropriados `a producao         ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"RE2/DE2"
+					If (cAliasTop)->TES <= "500"
+						nAqRE2DE2 += (cAliasTop)->QUANTIDADE
+						nAvRE2DE2 += (cAliasTop)->CUSTO
+					Else
+						nAqRE2DE2 -= (cAliasTop)->QUANTIDADE
+						nAvRE2DE2 -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina as transferencias internas                          ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"RE4/DE4/RE7/DE7"
+					If (cAliasTop)->TES <= "500"
+						nAqRE4DE4 += (cAliasTop)->QUANTIDADE
+						nAvRE4DE4 += (cAliasTop)->CUSTO
+					Else
+						nAqRE4DE4 -= (cAliasTop)->QUANTIDADE
+						nAvRE4DE4 -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina as entradas de produtos importados                  ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"RE8/DE8"
+					If (cAliasTop)->TES <= "500"
+						nAqCompra += (cAliasTop)->QUANTIDADE
+						nAvCompra += (cAliasTop)->CUSTO
+					Else
+						nAqCompra -= (cAliasTop)->QUANTIDADE
+						nAvCompra -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Aglutina as producoes e subtrai os estornos                  ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If allTrim((cAliasTop)->CF)$"PR0/ER0/PR1/ER1"
+					If (cAliasTop)->TES <= "500"
+						nAqProduc += (cAliasTop)->QUANTIDADE
+						nAvProduc += (cAliasTop)->CUSTO
+					Else
+						nAqProduc -= (cAliasTop)->QUANTIDADE
+						nAvProduc -= (cAliasTop)->CUSTO
+					EndIf
+					lPassou := .T.
+				EndIf
+
+				dbSelectArea(cAliasTop)
+				dbSkip()
+
+			EndDo
+
+			dbSelectArea(cAliasTop)
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Rotina de Impressao                                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If lPassou
+				If Li > 55
+					Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+				EndIf
+
+				//           1         2         3         4         5         6         7         8         9        10        11
+				// 012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456
+				// 1234 123456789012345 123456789012345678901234567890 12 Quantidade Inicial 1234567890123456 Valor inicial    1234567890123456
+
+				@ li,000 PSay cVar
+
+				IF ! lVEIC
+					@ LI,005 PSay cB1_COD
+				ELSE
+					@ LI,005 PSay cB1_CODITE + ' ' + cB1_COD
+				EndIf	
+
+				@ li,021 + nCOL1 PSay SubStr(cB1_DESC,1,30)
+				@ li,052 + nCOL1 PSay cB1_UM
+
+				@ li,118 PSay STR0012	//"Quantidade Inicial"
+				@ li,136 PSay nAqIniAlm Picture PesqPict(Iif(mv_par12==1,"SB2","SB9"),Iif(mv_par12==1,"B2_QATU","B9_QINI"),16)
+				@ li,153 PSay STR0013	//"Valor Inicial"
+				@ li,166 PSay nAvIniAlm Picture cPictIni16
+				If mv_par15 == 1
+					@ li,184 PSay STR0019 //"Vlr. Inicial Medio
+					@ li,204 Psay nAvIniAlm/IIF(nAqIniAlm==0,1,nAqIniAlm) Picture cPictIni16
+				EndIf
+
+				li++
+				@ li,005 PSay nAqCompra Picture PesqPict("SD1","D1_QUANT",15)
+				@ li,021 PSay nAqDevVen Picture PesqPict("SD1","D1_QUANT",13)
+				@ li,036 PSay nAqReqSOP Picture PesqPict("SD3","D3_QUANT",16)
+				@ li,054 PSay nAqReqCOP Picture PesqPict("SD3","D3_QUANT",16)
+				@ li,071 PSay nAqRE3DE3 Picture PesqPict("SD3","D3_QUANT",14)
+				@ li,087 PSay nAqIniPrc Picture PesqPict("SB2","B2_QFIM",13)
+				@ li,102 PSay nAqRE2DE2 Picture PesqPict("SD3","D3_QUANT",13)
+				@ li,116 PSay nAqFimPrc Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),13)
+				@ li,131 PSay nAqRE4DE4 Picture PesqPict("SD3","D3_QUANT",14)
+				@ li,146 PSay nAqProduc Picture PesqPict("SD3","D3_QUANT",15)
+				@ li,162 PSay nAqTransf Picture PesqPict("SD2","D2_QUANT",13)
+				@ li,176 PSay nAqVendas Picture PesqPict("SD2","D2_QUANT",16)
+				@ li,193 PSay nAqEntrad Picture PesqPict("SD2","D2_QUANT",13)
+				@ li,207 PSay nAqSaidas Picture PesqPict("SD2","D2_QUANT",13)
+				li++
+				@ li,005 PSay nAvCompra Picture cPictSD115
+				@ li,021 PSay nAvDevVen Picture cPictSD113
+				@ li,036 PSay nAvReqSOP Picture cPictSD316
+				@ li,054 PSay nAvReqCOP Picture cPictSD316
+				@ li,071 PSay nAvRE3DE3 Picture cPictSD314
+				@ li,087 PSay nAvIniPrc Picture cPictIni13
+				@ li,102 PSay nAvRE2DE2 Picture cPictSD313
+				@ li,116 PSay nAvFimPrc Picture cPictFim13
+				@ li,131 PSay nAvRE4DE4 Picture cPictSD314
+				@ li,146 PSay nAvProduc Picture cPictSD315
+				@ li,162 PSay nAvTransf Picture cPictSD213
+				@ li,176 PSay nAvVendas Picture cPictSD216
+				@ li,193 PSay nAvEntrad Picture cPictSD213
+				@ li,207 PSay nAvSaidas Picture cPictSD213
+				li++
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Considera as Req. p/ Processo e o Saldo Inicial em Processo  ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				nAqFimAlm += nAqIniPrc - nAqRE3DE3 + nAqRE2DE2
+				nAvFimAlm += nAvIniPrc - nAvRE3DE3 + nAvRE2DE2
+				
+				@ li,119 PSay STR0014	//"Qtd. Final"
+				@ li,136 PSay nAqFimAlm Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),16)
+				@ li,154 PSay STR0015	//"Vlr. Final"
+				@ li,166 PSay nAvFimAlm Picture cPictFim16
+				If mv_par15 == 1
+					@ li,184 PSay STR0020
+					@ li,204 Psay nAvFimAlm/IIF(nAqFimAlm==0,1,nAqFimAlm) Picture cPictFim16
+				EndIf
+				li++
+				li++
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Totalizacao de Quantidades                                   ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				nTqQtdIni += nAqIniAlm
+				nTqCompra += nAqCompra
+				nTqDevVen += nAqDevVen
+				nTqReqSOP += nAqReqSOP
+				nTqReqCOP += nAqReqCOP
+				nTqRE3DE3 += nAqRE3DE3
+				nTqIniPrc += nAqIniPrc
+				nTqRE2DE2 += nAqRE2DE2
+				nTqFimPrc += nAqFimPrc
+				nTqRE4DE4 += nAqRE4DE4
+				nTqProduc += nAqProduc
+				nTqTransf += nAqTransf
+				nTqVendas += nAqVendas
+				nTqQtdFim += nAqFimAlm
+				nTqEntrad += nAqEntrad
+				nTqSaidas += nAqSaidas
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Totalizacao de Valores                                       ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				nTvIniAlm += nAvIniAlm
+				nTvCompra += nAvCompra
+				nTvDevVen += nAvDevVen
+				nTvReqSOP += nAvReqSOP
+				nTvReqCOP += nAvReqCOP
+				nTvRE3DE3 += nAvRE3DE3
+				nTvIniPrc += nAvIniPrc
+				nTvRE2DE2 += nAvRE2DE2
+				nTvFimPrc += nAvFimPrc
+				nTvRE4DE4 += nAvRE4DE4
+				nTvProduc += nAvProduc
+				nTvTransf += nAvTransf
+				nTvVendas += nAvVendas
+				nTvFimAlm += nAvFimAlm
+				nTvEntrad += nAvEntrad
+				nTvSaidas += nAvSaidas
+				lTeveItem := .T.
+				lPassou   := .F.
+			EndIf
+		EndDo
+
+		If Li > 55
+			Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+		EndIf
+
+		If lTeveItem
+			If aReturn[8] == 1
+				@ li,000 PSay STR0016 + cVar		//"Total Tipo : "
+			Else
+				@ li,000 PSay STR0017 + cVar		//"Total Grupo: "
+			EndIf
+			li++
+			@ li,005 PSay nTqCompra Picture PesqPict("SD1","D1_QUANT",15)
+			@ li,021 PSay nTqDevVen Picture PesqPict("SD1","D1_QUANT",13)
+			@ li,036 PSay nTqReqSOP Picture PesqPict("SD3","D3_QUANT",16)
+			@ li,054 PSay nTqReqCOP Picture PesqPict("SD3","D3_QUANT",16)
+			@ li,071 PSay nTqRE3DE3 Picture PesqPict("SD3","D3_QUANT",14)
+			@ li,087 PSay nTqIniPrc Picture PesqPict("SB2","B2_QFIM" ,13)
+			@ li,102 PSay nTqRE2DE2 Picture PesqPict("SD3","D3_QUANT",13)
+			@ li,116 PSay nTqFimPrc Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),13)
+			@ li,131 PSay nTqRE4DE4 Picture PesqPict("SD3","D3_QUANT",14)
+			@ li,146 PSay nTqProduc Picture PesqPict("SD3","D3_QUANT",15)
+			@ li,162 PSay nTqTransf Picture PesqPict("SD2","D2_QUANT",13)
+			@ li,176 PSay nTqVendas Picture PesqPict("SD2","D2_QUANT",16)
+			@ li,193 PSay nTqEntrad Picture PesqPict("SD2","D2_QUANT",13)
+			@ li,207 PSay nTqSaidas Picture PesqPict("SD2","D2_QUANT",13)
+			li++
+			@ li,005 PSay nTvCompra Picture cPictSD115
+			@ li,021 PSay nTvDevVen Picture cPictSD113
+			@ li,036 PSay nTvReqSOP Picture cPictSD316
+			@ li,054 PSay nTvReqCOP Picture cPictSD316
+			@ li,071 PSay nTvRE3DE3 Picture cPictSD314
+			@ li,087 PSay nTvIniPrc Picture cPictIni13
+			@ li,102 PSay nTvRE2DE2 Picture cPictSD313
+			@ li,116 PSay nTvFimPrc Picture cPictFim13
+			@ li,131 PSay nTvRE4DE4 Picture cPictSD314
+			@ li,146 PSay nTvProduc Picture cPictSD315
+			@ li,162 PSay nTvTransf Picture cPictSD213
+			@ li,176 PSay nTvVendas Picture cPictSD216
+			@ li,193 PSay nTvEntrad Picture cPictSD213
+			@ li,207 PSay nTvSaidas Picture cPictSD213
+			li++
+
+			@ li,nCol+008 PSay STR0012	//"Quantidade Inicial"
+			@ li,nCol+028 PSay nTqQtdIni Picture PesqPict(Iif(mv_par12==1,"SB2","SB9"),Iif(mv_par12==1,"B2_QATU","B9_QINI"),16)
+			@ li,nCol+046 PSay STR0013	//"Valor inicial"
+			@ li,nCol+061 PSay nTvIniAlm Picture cPictIni16
+			If mv_par15 == 1
+				@ li,081 PSay STR0019
+				@ li,102 PSay nTvIniAlm/IIF(nTqQtdIni==0,1,nTqQtdIni) Picture cPictIni16
+			EndIf
+			@ li,119 PSay STR0014	//"Quantidade Final"
+			@ li,136 PSay nTqQtdFim Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),16)
+			@ li,154 PSay STR0015   //"Valor Final"
+			@ li,166 PSay nTvFimAlm Picture cPictFim16
+			If mv_par15 == 1
+				@ li,184 PSay STR0020
+				@ li,204 PSay nTvFimAlm/IIF(nTqQtdFim==0,1,nTqQtdFim) Picture cPictFim16
+			EndIf
+			li++
+			@ li,000 PSay __PrtThinLine()
+			li++
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Total Geral das Quantidades                                  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nGqQtdIni += nTqQtdIni
+			nGqCompra += nTqCompra
+			nGqDevVen += nTqDevVen
+			nGqReqSOP += nTqReqSOP
+			nGqReqCOP += nTqReqCOP
+			nGqRE3DE3 += nTqRE3DE3
+			nGqIniPrc += nTqIniPrc
+			nGqRE2DE2 += nTqRE2DE2
+			nGqFimPrc += nTqFimPrc
+			nGqRE4DE4 += nTqRE4DE4
+			nGqProduc += nTqProduc
+			nGqTransf += nTqTransf
+			nGqVendas += nTqVendas
+			nGqQtdFim += nTqQtdFim
+			nGqEntrad += nTqEntrad
+			nGqSaidas += nTqSaidas
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Total Geral dos Valores                                      ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nGvIniAlm += nTvIniAlm
+			nGvCompra += nTvCompra
+			nGvDevVen += nTvDevVen
+			nGvReqSOP += nTvReqSOP
+			nGvReqCOP += nTvReqCOP
+			nGvRE3DE3 += nTvRE3DE3
+			nGvIniPrc += nTvIniPrc
+			nGvRE2DE2 += nTvRE2DE2
+			nGvFimPrc += nTvFimPrc
+			nGvRE4DE4 += nTvRE4DE4
+			nGvProduc += nTvProduc
+			nGvTransf += nTvTransf
+			nGvVendas += nTvVendas
+			nGvFimAlm += nTvFimAlm
+			nGvEntrad += nTvEntrad
+			nGvSaidas += nTvSaidas
+			lTeveItem  := .F.
+		EndIf
+		dbSelectArea(cAliasTop)
+	EndDo
+	// --- Forca preenchimento da barra de progresso
+	SetRegua(1)
+	IncRegua()
+Else
+
+dbSelectArea("SB1")
+cCondWhile := IIF(!Empty(aReturn[7]), aReturn[7] + ".And." ,"")
+cCondWhile += "B1_FILIAL =='" + xSB1 + "'"
+If ! lVEIC
+	cCondWhile += " .And. B1_COD  >='" + mv_par03 + "'"
+	cCondWhile += " .And. B1_COD  <='" + mv_par04 + "'"
+Else
+	cCondWhile += " .And. B1_CODITE  >='" + mv_par03 + "'"
+	cCondWhile += " .And. B1_CODITE  <='" + mv_par04 + "'"
+EndIf
+cCondWhile += " .And. B1_TIPO >='" + mv_par05 + "'"
+cCondWhile += " .And. B1_TIPO <='" + mv_par06 + "'"
+cCondWhile += " .And. B1_GRUPO >='" + mv_par07 + "'"
+cCondWhile += " .And. B1_GRUPO <='" + mv_par08 + "'"
+If "" <> cIndexkey
+	IndRegua("SB1", cTrbSB1,  cIndexkey, , cCondWhile)
+Else
+	IndRegua("SB1", cTrbSB1, IndexKey(), , cCondWhile)
+EndIf
+nIndex := RetIndex("SB1")
+
+dbSetOrder(nIndex+1)
+SetRegua(RecCount())		// Total de Elementos da regua
+
+dbSelectArea("SB2")
+dbSetOrder(1)
+
+cCondWhile := "B2_FILIAL=='" + xSB2 + "'"
+cCondWhile += " .And. B2_LOCAL >='" + mv_par01 + "'"
+cCondWhile += " .And. B2_LOCAL <='" + mv_par02 + "'"
+
+IndRegua("SB2", cTrbSB2, IndexKey(), , cCondWhile)
+nIndex := RetIndex("SB2")
+nIndB2 := nIndex+1
+dbSetOrder(nIndB2)
+dbGoTop()
+
+dbSelectArea("SD1")
+dbSetOrder(2)
+
+cCondWhile := "D1_FILIAL=='" + xSD1 + "'"
+cCondWhile += " .And. D1_LOCAL >= '" + mv_par01 + "'"
+cCondWhile += " .And. D1_LOCAL <= '" + mv_par02 + "'"
+cCondWhile += " .And. DTOS(D1_DTDIGIT) >= '" + DTOS(mv_par09) + "'"
+cCondWhile += " .And. DTOS(D1_DTDIGIT) <= '" + DTOS(mv_par10) + "'"
+
+If cPaisLoc <> "BRA"
+	cCondWhile	+= " .And. D1_REMITO = '" + Space(TamSx3("D1_REMITO")[1]) + "' "
+EndIf
+
+IndRegua("SD1", cTrbSD1, IndexKey(), , cCondWhile)
+nIndex := RetIndex("SD1")
+dbSetOrder( nIndex+1 )
+SetRegua( RecCount() )		// Total de Elementos da regua
+dbGoTop()
+
+dbSelectArea("SD2")
+cCondWhile := "D2_FILIAL=='" + xSD2 + "'"
+cCondWhile += " .And. D2_LOCAL >='" + mv_par01 + "'"
+cCondWhile += " .And. D2_LOCAL <='" + mv_par02 + "'"
+cCondWhile += " .And. DTOS(D2_EMISSAO) >='" + DTOS(mv_par09) + "'"
+cCondWhile += " .And. DTOS(D2_EMISSAO) <='" + DTOS(mv_par10) + "'"
+
+If cPaisLoc <> "BRA"
+	cCondWhile	+= " .And. D2_REMITO = '" + Space(TamSx3("D2_REMITO")[1]) + "' "
+EndIf
+IndRegua("SD2",cTrbSD2,IndexKey(),,cCondWhile)
+nIndex := RetIndex("SD2")
+
+dbSetOrder(nIndex+1)
+dbGoTop()
+
+dbSelectArea("SD3")
+dbSetOrder(3)
+
+cCondWhile := "D3_FILIAL == '" + xSD3 + "'"
+cCondWhile += " .And. D3_LOCAL >= '" + mv_par01 + "'"
+cCondWhile += " .And. D3_LOCAL <= '" + mv_par02 + "'"
+cCondWhile += " .And. DTOS(D3_EMISSAO) >= '" + DTOS(mv_par09) + "'"
+cCondWhile += " .And. DTOS(D3_EMISSAO) <= '" + DTOS(mv_par10) + "'"	
+
+IndRegua("SD3",cTrbSD3,IndexKey(),,cCondWhile)
+nIndex := RetIndex("SD3")
+
+dbSetOrder(nIndex+1)
+
+dbSelectArea(cAliasSB1)
+SetRegua(RecCount())		// Total de Elementos da regua
+dbGoTop()
+
+Do While ( !(cAliasSB1)->(Eof()) )
+
+	If lEnd
+		@PROW()+1,001 PSay "Cancelado Pelo Operador"	//"CANCELADO PELO OPERADOR"
+		Exit
+	EndIf
+
+	cAnt := If(aReturn[8]==1,"B1_TIPO","B1_GRUPO")
+	cVar := If(aReturn[8]==1, B1_TIPO , B1_GRUPO )
+
+	Store 0 To nTvIniAlm,nTvCompra,nTvDevVen,nTvReqSOP,nTvReqCOP
+	Store 0 To nTvRE3DE3,nTvIniPrc,nTvRE2DE2,nTvFimPrc,nTvRE4DE4
+	Store 0 To nTvProduc,nTvTransf,nTvVendas,nTvFimAlm
+
+	Store 0 To nTqQtdIni,nTqCompra,nTqDevVen,nTqReqSOP,nTqReqCOP
+	Store 0 To nTqRE3DE3,nTqIniPrc,nTqRE2DE2,nTqFimPrc,nTqRE4DE4
+	Store 0 To nTqProduc,nTqTransf,nTqVendas,nTqQtdFim
+
+	Store 0 To nTqEntrad,nTvEntrad,nTqSaidas,nTvSaidas
+
+	dbSelectArea(cAliasSB1)
+	While (!(cAliasSB1)->( Eof() ) ) ;
+	.And. ( &(cAnt) == cVar ) ;
+	.And. ( (cAliasSB1)->B1_FILIAL == xSB1 )
+
+		Store 0 To nAqIniAlm,nAqCompra,nAqDevVen,nAqReqSOP,nAqReqCOP
+		Store 0 To nAqRE3DE3,nAqIniPrc,nAqRE2DE2,nAqFimPrc,nAqRE4DE4
+		Store 0 To nAqProduc,nAqTransf,nAqVendas,nAqFimAlm
+
+		Store 0 To nAvIniAlm,nAvCompra,nAvDevVen,nAvReqSOP,nAvReqCOP
+		Store 0 To nAvRE3DE3,nAvIniPrc,nAvRE2DE2,nAvFimPrc,nAvRE4DE4
+		Store 0 To nAvProduc,nAvTransf,nAvVendas,nAvFimAlm
+
+		Store 0 To nAqEntrad,nAvEntrad,nAqSaidas,nAvSaidas
+
+		If lEnd
+			@PROW()+1,001 PSay "Cancelado Pelo Operador"	//"CANCELADO PELO OPERADOR"
+			Exit
+		EndIf
+
+		IncRegua()
+
+		cB1_COD  := (cAliasSB1)->B1_COD
+		cB1_DESC := (cAliasSB1)->B1_DESC
+		cB1_UM   := (cAliasSB1)->B1_UM
+		If lVEIC
+			cB1_CODITE	:= (cAliasSB1)->B1_CODITE
+		EndIf
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo final e inicial dos almoxarifados               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea(cAliasSB2)
+		dbSetOrder(nIndB2)
+		dbSeek( xSB2 + cB1_COD)
+		DO While ( !(cAliasSB2)->( Eof() ) );
+		.And. ((cAliasSB2)->B2_COD == cB1_COD) ;
+		.And. ((cAliasSB2)->B2_FILIAL == xSB2)
+
+			If lEnd
+				@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+				loper:=.F.
+				Exit
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Nao permite listar os produtos com Armazem em Processo       ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea(cAliasSB2)
+			If B2_LOCAL == cLocProc
+				dbSkip()
+				Loop
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totaliza o saldo final ou atual de cada almoxarifado         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If	mv_par12 == 1
+				nAqFimAlm += B2_QATU
+				nAvFimAlm +=&(Eval(bBloco,"B2_VATU",mv_par11))
+			Elseif mv_par12 == 2
+				nAqFimAlm += B2_QFIM
+				nAvFimAlm +=&(Eval(bBloco,"B2_VFIM",mv_par11))
+			Else
+				aSaldoFim := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par10+1)
+				nAqFimAlm += aSaldoFim[1]
+				nAvFimAlm += aSaldoFim[1+mv_par11]
+			EndIf
+
+			aSaldoIni := CalcEst((cAliasSB2)->B2_COD,(cAliasSB2)->B2_LOCAL,mv_par09)
+			nAqIniAlm += aSaldoIni[1]
+
+			nVUnit    := aSaldoIni[mv_par11+1]/If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1)
+			nAvIniAlm += If(QtdComp(nAqIniAlm)>QtdComp(0),nAqIniAlm,1) * nVUnit
+			dbSelectArea(cAliasSB2)
+			dbSkip()
+		EndDo
+		If nAqIniAlm != 0 .Or. nAvIniAlm != 0 .Or. nAqFimAlm != 0 .Or. nAvFimAlm != 0
+			lPassou := .T.
+		EndIf
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo em processo (B2_LOCAL = cLocProc)               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		aSaldoIni := CalcEst(cB1_COD,cLocProc,mv_par09)
+		nAqIniPrc += aSaldoIni[1]
+		nAvIniPrc += aSaldoIni[mv_par11+1]
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Pega o saldo final em processo (B2_LOCAL = cLocProc)         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		aSldFimPrc := SldFimPrc(cB1_COD,cLocProc) 
+		nAqFimPrc  := aSldFimPrc[1]
+		nAvFimPrc  += aSldFimPrc[2]
+
+		If nAqIniPrc != 0 .Or. nAvIniPrc != 0 .Or. nAqFimPrc != 0 .Or. nAvFimPrc != 0
+			lPassou := .T.
+		EndIf
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica as Entradas                                         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("SD1")
+		dbSeek( xSD1 + cB1_COD )
+		SetRegua(RecCount())
+
+		Do While (!SD1->( Eof() )) ;
+		.And. (SD1->(D1_FILIAL+D1_COD) == xSD1 + cB1_COD)
+
+			If lEnd
+				@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+				loper:=.F.
+				Exit
+			EndIf
+
+			IncRegua()		// Incrementa a regua
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea("SD1")
+			If D1_ORIGLAN $ "LF"
+				dbSkip()
+				Loop
+			EndIf
+			If cPaisLoc <> "BRA" .And. !Empty(D1_REMITO)
+				dbSkip()
+				Loop
+			EndIf
+
+			SF4->(MsSeek(xSF4 + (cAliasSD1)->D1_TES))
+
+			If SF4->F4_ESTOQUE == "S"
+
+				nCusto := &("D1_CUSTO"+If(mv_par11==1,"",StrZero(mv_par11,1)))
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Verifica o ponto de entrada para considerar Transferencia ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ D1_CF }) ) =='L', lRetPE, .F.)
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Separa as transferencias das compras                         ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If lRetPE .Or. ( (Len(D1_CF) == 3 .And. SubStr(D1_CF,1,3)$"121/122/126/192/221/222/226/292") .Or. (Len(D1_CF) > 3 .And. SubStr(D1_CF,1,4)$"1151/1152/1552/2151/2152/2552") )
+					nAqTransf += D1_QUANT
+					nAvTransf += nCusto
+				ElseIf D1_TIPO == "D"
+					nAqDevVen += D1_QUANT
+					nAvDevVen += nCusto
+				ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par13 == 1
+					nAqEntrad += D1_QUANT
+					nAvEntrad += nCusto
+				Else
+					nAqCompra += D1_QUANT
+					nAvCompra += nCusto
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			dbSelectArea("SD1")
+			dbSkip()
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica as Movimentacoes Internas                           ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("SD3")
+		dbSeek( xSD3 + cB1_COD )
+		SetRegua( RecCount() )
+
+		Do While (!SD3->(Eof())) ;
+		.And. (SD3->(D3_FILIAL+D3_COD) == xSD3 + cB1_COD)
+
+			If lEnd
+				@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+				loper:=.F.
+				Exit
+			EndIf
+
+			IncRegua()		// Incrementa a regua
+
+			//-- Filtro para Nao imprimir OPs referentes ao SIGAMNT
+			If !Empty(SD3->D3_OP) .And. MV_PAR16 == 2 .And. !__lPyme
+				SC2->(dbSetOrder(1)) //-- C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD
+				If SC2->(dbSeek(xFilial('SC2')+SD3->D3_OP, .F.))
+					If AllTrim(SC2->C2_ITEM) == 'OS' .AND. SC2->C2_SEQUEN == '001'
+						dbSkip()
+						Loop
+					EndIf
+				EndIf
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais requisitados para consumo proprio         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea("SD3")
+			If (D3_CF$"RE0/DE0" .And. Empty(D3_OP)) .Or. (D3_CF$"RE6/DE6" .And. Empty(D3_OP))
+				If D3_TM <= "500"
+					nAqReqSOP += D3_QUANT
+					nAvReqSOP += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqReqSOP -= D3_QUANT
+					nAvReqSOP -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais diretos utilizados em ordens de producao  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If (D3_CF$"RE0/DE0" .And. !Empty(D3_OP)) .Or. (D3_CF$"RE1/DE1/RE5/DE5") .OR. (D3_CF$"RE6/DE6" .And. !Empty(D3_OP))
+				If D3_TM <= "500"
+					nAqReqCOP += D3_QUANT
+					nAvReqCOP += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqReqCOP -= D3_QUANT
+					nAvReqCOP -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais indiretos enviados para o processo        ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If D3_CF$"RE3/DE3"
+				If D3_TM <= "500"
+					nAqRE3DE3 += D3_QUANT
+					nAvRE3DE3 += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqRE3DE3 -= D3_QUANT
+					nAvRE3DE3 -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIF
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina materiais indiretos apropriados `a producao         ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If D3_CF$"RE2/DE2"
+				If D3_TM <= "500"
+					nAqRE2DE2 += D3_QUANT
+					nAvRE2DE2 += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqRE2DE2 -= D3_QUANT
+					nAvRE2DE2 -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as transferencias internas                          ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If D3_CF$"RE4/DE4/RE7/DE7"
+				If D3_TM <= "500"
+					nAqRE4DE4 += D3_QUANT
+					nAvRE4DE4 += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqRE4DE4 -= D3_QUANT
+					nAvRE4DE4 -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as entradas de produtos importados                  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If D3_CF$"RE8/DE8"
+				If D3_TM <= "500"
+					nAqCompra += D3_QUANT
+					nAvCompra += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqCompra -= D3_QUANT
+					nAvCompra -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Aglutina as producoes e subtrai os estornos                  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If D3_CF$"PR0/ER0/PR1/ER1"
+				If D3_TM <= "500"
+					nAqProduc += D3_QUANT
+					nAvProduc += &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				Else
+					nAqProduc -= D3_QUANT
+					nAvProduc -= &(Eval(bBloco,"D3_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+
+			dbSelectArea("SD3")
+			dbSkip()
+
+		EndDo
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica as Saidas                                           ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("SD2")
+		dbSeek(xSD2 + cB1_COD)
+		SetRegua(RecCount())
+
+		Do While (!SD2->(Eof())) ;
+		.And. (SD2->(D2_FILIAL+D2_COD) == xSD2 + cB1_COD)
+
+			If lEnd
+				@PROW()+1,001 PSAY "CANCELADO PELO OPERADOR"	//"CANCELADO PELO OPERADOR"
+				loper:=.F.
+				Exit
+			EndIf
+
+			IncRegua()		// Incrementa a regua
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			dbSelectArea("SD2")
+			If D2_ORIGLAN == "LF"
+				dbSkip()
+				Loop
+			EndIf
+			If cPaisLoc <> "BRA" .And. !Empty(D2_REMITO)
+				dbSkip()
+				Loop
+			EndIf
+
+			SF4->(MsSeek(xSF4 + (cAliasSD2)->D2_TES))
+
+			If SF4->F4_ESTOQUE == "S"
+
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³Verifica o ponto de entrada para considerar Transferencia ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				lRetPE := If(lR330Trans .And. ValType(lRetPE := ExecBlock("R330TRANS",.F.,.F.,{ D2_CF }) ) =='L', lRetPE, .F.)
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Separa as transferencias das vendas                          ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If lRetPE .Or. ( (Len(D2_CF) == 3 .And. SubStr(D2_CF,1,3)$"521/522/526/592/621/622/626/692") .Or. (Len(D2_CF) >3 .And. SubStr(D2_CF,1,4)$"5151/5152/5156/5552/6151/6152/6156/6552") )
+					nAqTransf -= D2_QUANT
+					nAvTransf -= &(Eval(bBloco,"D2_CUSTO",mv_par11))
+				ElseIf D2_TIPO == "D"
+					nAqCompra -= D2_QUANT
+					nAvCompra -= &(Eval(bBloco,"D2_CUSTO",mv_par11))
+				ElseIf SF4->F4_PODER3 $ "RD" .And. mv_par14 == 1
+					nAqSaidas += D2_QUANT
+					nAvSaidas += &(Eval(bBloco,"D2_CUSTO",mv_par11))
+				Else
+					nAqVendas += D2_QUANT
+					nAvVendas += &(Eval(bBloco,"D2_CUSTO",mv_par11))
+				EndIf
+				lPassou := .T.
+			EndIf
+			
+			dbSelectArea("SD2")
+			dbSkip()
+			
+		EndDo
+		dbSelectArea(cAliasSB1)
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Rotina de Impressao                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If lPassou
+			If Li > 55
+				Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+			EndIf
+
+			//           1         2         3         4         5         6         7         8         9        10        11
+			// 012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456
+			// 1234 123456789012345 123456789012345678901234567890 12 Quantidade Inicial 1234567890123456 Valor inicial    1234567890123456
+
+			@ li,000 PSay cVar
+
+			If ! lVEIC
+				@ LI,005 PSay cB1_COD
+			Else
+				@ LI,005 PSay cB1_CODITE + ' ' + cB1_COD
+			EndIf
+
+			@ li,021 + nCOL1 PSay SubStr(cB1_DESC,1,30)
+			@ li,052 + nCOL1 PSay cB1_UM
+			@ li,118 PSay STR0012	//"Quantidade Inicial"
+			@ li,136 PSay nAqIniAlm Picture PesqPict(Iif(mv_par12==1,"SB2","SB9"),Iif(mv_par12==1,"B2_QATU","B9_QINI"),16)
+			@ li,153 PSay STR0013	//"Valor inicial"
+			@ li,166 PSay nAvIniAlm Picture cPictIni16
+			If mv_par15 == 1
+				@ li,184 PSay STR0019 // "Valor Inicial Medio"
+				@ li,204 Psay nAvIniAlm/IIF(nAqIniAlm==0,1,nAqIniAlm) Picture cPictIni16
+			EndIf
+			li++
+			@ li,005 PSay nAqCompra Picture PesqPict("SD1","D1_QUANT",15)
+			@ li,021 PSay nAqDevVen Picture PesqPict("SD1","D1_QUANT",13)
+			@ li,036 PSay nAqReqSOP Picture PesqPict("SD3","D3_QUANT",16)
+			@ li,054 PSay nAqReqCOP Picture PesqPict("SD3","D3_QUANT",16)
+			@ li,071 PSay nAqRE3DE3 Picture PesqPict("SD3","D3_QUANT",14)
+			@ li,087 PSay nAqIniPrc Picture PesqPict("SB2","B2_QFIM",13)
+			@ li,102 PSay nAqRE2DE2 Picture PesqPict("SD3","D3_QUANT",13)
+			@ li,116 PSay nAqFimPrc Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),13)
+			@ li,131 PSay nAqRE4DE4 Picture PesqPict("SD3","D3_QUANT",14)
+			@ li,146 PSay nAqProduc Picture PesqPict("SD3","D3_QUANT",15)
+			@ li,162 PSay nAqTransf Picture PesqPict("SD2","D2_QUANT",13)
+			@ li,176 PSay nAqVendas Picture PesqPict("SD2","D2_QUANT",16)
+			@ li,193 PSay nAqEntrad Picture PesqPict("SD2","D2_QUANT",13)
+			@ li,207 PSay nAqSaidas Picture PesqPict("SD2","D2_QUANT",13)
+			li++
+			@ li,005 PSay nAvCompra Picture cPictSD115
+			@ li,021 PSay nAvDevVen Picture cPictSD113
+			@ li,036 PSay nAvReqSOP Picture cPictSD316
+			@ li,054 PSay nAvReqCOP Picture cPictSD316
+			@ li,071 PSay nAvRE3DE3 Picture cPictSD314
+			@ li,087 PSay nAvIniPrc Picture cPictIni13
+			@ li,102 PSay nAvRE2DE2 Picture cPictSD313
+			@ li,116 PSay nAvFimPrc Picture cPictFim13
+			@ li,131 PSay nAvRE4DE4 Picture cPictSD314
+			@ li,146 PSay nAvProduc Picture cPictSD315
+			@ li,162 PSay nAvTransf Picture cPictSD213
+			@ li,176 PSay nAvVendas Picture cPictSD216
+			@ li,193 PSay nAvEntrad Picture cPictSD213
+			@ li,207 PSay nAvSaidas Picture cPictSD213
+			li++
+
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Considera as Req. p/ Processo e o Saldo Inicial em Processo  ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nAqFimAlm += nAqIniPrc - nAqRE3DE3 + nAqRE2DE2
+			nAvFimAlm += nAvIniPrc - nAvRE3DE3 + nAvRE2DE2
+
+			@ li,119 PSay STR0014	//"Qtd. Final"
+			@ li,136 PSay nAqFimAlm Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),16)
+			@ li,154 PSay STR0015	//"Vlr. Final"
+			@ li,166 PSay nAvFimAlm Picture cPictFim16
+			If mv_par15 == 1
+				@ li,184 PSay STR0020
+				@ li,204 Psay nAvFimAlm/IIF(nAqFimAlm==0,1,nAqFimAlm) Picture cPictFim16
+			EndIf
+			li++
+			li++
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totalizacao de Quantidades                                   ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nTqQtdIni += nAqIniAlm
+			nTqCompra += nAqCompra
+			nTqDevVen += nAqDevVen
+			nTqReqSOP += nAqReqSOP
+			nTqReqCOP += nAqReqCOP
+			nTqRE3DE3 += nAqRE3DE3
+			nTqIniPrc += nAqIniPrc
+			nTqRE2DE2 += nAqRE2DE2
+			nTqFimPrc += nAqFimPrc
+			nTqRE4DE4 += nAqRE4DE4
+			nTqProduc += nAqProduc
+			nTqTransf += nAqTransf
+			nTqVendas += nAqVendas
+			nTqQtdFim += nAqFimAlm
+			nTqEntrad += nAqEntrad
+			nTqSaidas += nAqSaidas
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Totalizacao de Valores                                       ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			nTvIniAlm += nAvIniAlm
+			nTvCompra += nAvCompra
+			nTvDevVen += nAvDevVen
+			nTvReqSOP += nAvReqSOP
+			nTvReqCOP += nAvReqCOP
+			nTvRE3DE3 += nAvRE3DE3
+			nTvIniPrc += nAvIniPrc
+			nTvRE2DE2 += nAvRE2DE2
+			nTvFimPrc += nAvFimPrc
+			nTvRE4DE4 += nAvRE4DE4
+			nTvProduc += nAvProduc
+			nTvTransf += nAvTransf
+			nTvVendas += nAvVendas
+			nTvFimAlm += nAvFimAlm
+			nTvEntrad += nAvEntrad
+			nTvSaidas += nAvSaidas
+			lTeveItem := .T.
+			lPassou   := .F.
+		EndIf
+		dbSelectArea(cAliasSB1)
+		dbSkip()
+	EndDo
+
+	If Li > 55
+		Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+	EndIf
+
+	If lTeveItem
+		If aReturn[8] == 1
+			@ li,000 PSay STR0016 + cVar		//"Total Tipo : "
+		Else
+			@ li,000 PSay STR0017 + cVar		//"Total Grupo: "
+		EndIf
+		li++
+		@ li,005 PSay nTqCompra Picture PesqPict("SD1","D1_QUANT",15)
+		@ li,021 PSay nTqDevVen Picture PesqPict("SD1","D1_QUANT",13)
+		@ li,036 PSay nTqReqSOP Picture PesqPict("SD3","D3_QUANT",16)
+		@ li,054 PSay nTqReqCOP Picture PesqPict("SD3","D3_QUANT",16)
+		@ li,071 PSay nTqRE3DE3 Picture PesqPict("SD3","D3_QUANT",14)
+		@ li,087 PSay nTqIniPrc Picture PesqPict("SB2","B2_QFIM" ,13)
+		@ li,102 PSay nTqRE2DE2 Picture PesqPict("SD3","D3_QUANT",13)
+		@ li,116 PSay nTqFimPrc Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),13)
+		@ li,131 PSay nTqRE4DE4 Picture PesqPict("SD3","D3_QUANT",14)
+		@ li,146 PSay nTqProduc Picture PesqPict("SD3","D3_QUANT",15)
+		@ li,162 PSay nTqTransf Picture PesqPict("SD2","D2_QUANT",13)
+		@ li,176 PSay nTqVendas Picture PesqPict("SD2","D2_QUANT",16)
+		@ li,193 PSay nTqEntrad Picture PesqPict("SD2","D2_QUANT",13)
+		@ li,207 PSay nTqSaidas Picture PesqPict("SD2","D2_QUANT",13)
+		li++
+		@ li,005 PSay nTvCompra Picture cPictSD115
+		@ li,021 PSay nTvDevVen Picture cPictSD113
+		@ li,036 PSay nTvReqSOP Picture cPictSD316
+		@ li,054 PSay nTvReqCOP Picture cPictSD316
+		@ li,071 PSay nTvRE3DE3 Picture cPictSD314
+		@ li,087 PSay nTvIniPrc Picture cPictIni13
+		@ li,102 PSay nTvRE2DE2 Picture cPictSD313
+		@ li,116 PSay nTvFimPrc Picture cPictFim13
+		@ li,131 PSay nTvRE4DE4 Picture cPictSD314
+		@ li,146 PSay nTvProduc Picture cPictSD315
+		@ li,162 PSay nTvTransf Picture cPictSD213
+		@ li,176 PSay nTvVendas Picture cPictSD216
+		@ li,193 PSay nTvEntrad Picture cPictSD213
+		@ li,207 PSay nTvSaidas Picture cPictSD213
+		li++
+
+		@ li,nCol+009 PSay STR0012	//"Quantidade Inicial"
+		@ li,nCol+028 PSay nTqQtdIni Picture PesqPict(Iif(mv_par12==1,"SB2","SB9"),Iif(mv_par12==1,"B2_QATU","B9_QINI"),16)
+		@ li,nCol+046 PSay STR0013	//"Valor inicial"
+		@ li,nCol+061 PSay nTvIniAlm Picture cPictIni16
+		If mv_par15 == 1
+			@ li,081 PSay STR0019
+			@ li,102 PSay nTvIniAlm/IIF(nTqQtdIni==0,1,nTqQtdIni) Picture cPictIni16
+		EndIf
+		@ li,119 PSay STR0014	//"Qtd. Final"
+		@ li,136 PSay nTqQtdFim Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),16)
+		@ li,154 PSay STR0015   //"Valor Final"
+		@ li,166 PSay nTvFimAlm Picture cPictFim16
+		If mv_par15 == 1
+			@ li,184 PSay STR0020
+			@ li,204 PSay nTvFimAlm/IIF(nTqQtdFim==0,1,nTqQtdFim) Picture cPictFim16
+		EndIf
+
+		li++
+		@ li,000 PSay __PrtThinLine()
+		li++
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Total Geral das Quantidades                                  ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nGqQtdIni += nTqQtdIni
+		nGqCompra += nTqCompra
+		nGqDevVen += nTqDevVen
+		nGqReqSOP += nTqReqSOP
+		nGqReqCOP += nTqReqCOP
+		nGqRE3DE3 += nTqRE3DE3
+		nGqIniPrc += nTqIniPrc
+		nGqRE2DE2 += nTqRE2DE2
+		nGqFimPrc += nTqFimPrc
+		nGqRE4DE4 += nTqRE4DE4
+		nGqProduc += nTqProduc
+		nGqTransf += nTqTransf
+		nGqVendas += nTqVendas
+		nGqQtdFim += nTqQtdFim
+		nGqEntrad += nTqEntrad
+		nGqSaidas += nTqSaidas
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Total Geral dos Valores                                      ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nGvIniAlm += nTvIniAlm
+		nGvCompra += nTvCompra
+		nGvDevVen += nTvDevVen
+		nGvReqSOP += nTvReqSOP
+		nGvReqCOP += nTvReqCOP
+		nGvRE3DE3 += nTvRE3DE3
+		nGvIniPrc += nTvIniPrc
+		nGvRE2DE2 += nTvRE2DE2
+		nGvFimPrc += nTvFimPrc
+		nGvRE4DE4 += nTvRE4DE4
+		nGvProduc += nTvProduc
+		nGvTransf += nTvTransf
+		nGvVendas += nTvVendas
+		nGvFimAlm += nTvFimAlm
+		nGvEntrad += nTvEntrad
+		nGvSaidas += nTvSaidas
+		lTeveItem  := .F.
+	EndIf
+	dbSelectArea(cAliasSB1)
+EndDo
+
+EndIf
+
+
+If li != 80
+	Li++;Li++
+	If Li > 55
+		Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+	EndIf
+	@ li,000 PSay STR0018	//"TOTAL GERAL : "
+	Li++
+	@ li,005 PSay nGqCompra Picture PesqPict("SD1","D1_QUANT",15)
+	@ li,021 PSay nGqDevVen Picture PesqPict("SD1","D1_QUANT",13)
+	@ li,036 PSay nGqReqSOP Picture PesqPict("SD3","D3_QUANT",16)
+	@ li,054 PSay nGqReqCOP Picture PesqPict("SD3","D3_QUANT",16)
+	@ li,071 PSay nGqRE3DE3 Picture PesqPict("SD3","D3_QUANT",14)
+	@ li,087 PSay nGqIniPrc Picture PesqPict("SB2","B2_QFIM" ,13)
+	@ li,102 PSay nGqRE2DE2 Picture PesqPict("SD3","D3_QUANT",13)
+	@ li,116 PSay nGqFimPrc Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),13)
+	@ li,131 PSay nGqRE4DE4 Picture PesqPict("SD3","D3_QUANT",14)
+	@ li,146 PSay nGqProduc Picture PesqPict("SD3","D3_QUANT",15)
+	@ li,162 PSay nGqTransf Picture PesqPict("SD2","D2_QUANT",13)
+	@ li,176 PSay nGqVendas Picture PesqPict("SD2","D2_QUANT",16)
+	@ li,193 PSay nGqEntrad Picture PesqPict("SD2","D2_QUANT",13)
+	@ li,207 PSay nGqSaidas Picture PesqPict("SD2","D2_QUANT",13)
+	Li++
+	@ li,005 PSay nGvCompra Picture cPictSD115
+	@ li,021 PSay nGvDevVen Picture cPictSD113
+	@ li,036 PSay nGvReqSOP Picture cPictSD316
+	@ li,054 PSay nGvReqCOP Picture cPictSD316
+	@ li,071 PSay nGvRE3DE3 Picture cPictSD314
+	@ li,087 PSay nGvIniPrc Picture cPictIni13
+	@ li,102 PSay nGvRE2DE2 Picture cPictSD313
+	@ li,116 PSay nGvFimPrc Picture cPictFim13
+	@ li,131 PSay nGvRE4DE4 Picture cPictSD314
+	@ li,146 PSay nGvProduc Picture cPictSD315
+	@ li,162 PSay nGvTransf Picture cPictSD213
+	@ li,176 PSay nGvVendas Picture cPictSD216
+	@ li,193 PSay nGvEntrad Picture cPictSD213
+	@ li,207 PSay nGvSaidas Picture cPictSD213
+	Li++
+
+	@ li,nCol+009 PSay STR0012	//"Quantidade Inicial"
+	@ li,nCol+028 PSay nGqQtdIni Picture PesqPict(Iif(mv_par12==1,"SB2","SB9"),Iif(mv_par12==1,"B2_QATU","B9_QINI"),16)
+	@ li,nCol+046 PSay STR0013	//"Valor inicial"
+	@ li,nCol+061 PSay nGvIniAlm Picture cPictIni16
+
+	If mv_par15 == 1
+		@ li,081 PSay STR0019
+		@ li,102 PSay nGvIniAlm/IIF(nGqQtdIni==0,1,nGqQtdIni) Picture cPictIni16
+	EndIf
+
+	@ li,119 PSay STR0014	//"Quantidade Final"
+	@ li,136 PSay nGqQtdFim Picture PesqPict("SB2",Iif(mv_par12==1,"B2_QATU","B2_QFIM"),16)
+	@ li,154 PSay STR0015	//"Valor Final"
+	@ li,166 PSay nGvFimAlm Picture cPictFim16
+	If mv_par15 == 1
+		@ li,184 PSay STR0020
+		@ li,204 PSay nGvFimAlm/IIF(nGqQtdFim==0,1,nGqQtdFim) Picture cPictFim16
+	EndIf
+
+	Roda(cbcont,cbtxt,Tamanho)
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Apaga Arquivos Temporarios                     ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If lQuery
+	dbSelectArea(cAliasSB1)
+	dbCloseArea()
+Else
+	FERASE(cTrbSB1+OrdbagExt())
+	FERASE(cTrbSB2+GetDBExtension())
+	FERASE(cTrbSB2+OrdbagExt())
+	FERASE(cTrbSD1+GetDBExtension())
+	FERASE(cTrbSD1+OrdbagExt())
+	FERASE(cTrbSD2+GetDBExtension())
+	FERASE(cTrbSD2+OrdbagExt())
+	FERASE(cTrbSD3+GetDBExtension())
+	FERASE(cTrbSD3+OrdbagExt())
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Recupera a Ordem Original dos arquivos                       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SB1")
+dbClearFilter()
+dbSetOrder(1)
+dbSelectArea("SB2")
+dbSetOrder(1)
+dbSelectArea("SD1")
+dbSetOrder(1)
+dbSelectArea("SD2")
+dbSetOrder(1)
+dbSelectArea("SD3")
+dbSetOrder(1)
+
+If aReturn[5] = 1
+	Set Printer TO
+	Commit
+	OurSpool(wnrel)
+EndIf
+
+MS_FLUSH()
+
+Return Nil
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³SldFimPrc ³ Autor ³ Larson Zordan         ³ Data ³ 25.04.02 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Pega o saldo final em processo                             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ XMATR330			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function SldFimPrc(cProduto,cLocProc)
+Local aAreaAnt := GetArea()
+Local bBloco   := { |nV,nX| Trim(nV)+Str(nX,1) }
+Local aSldFim  := {}
+Local nSldQtd  := 0
+Local nSldVlr  := 0
+
+dbSelectArea("SB2")
+dbSetOrder(1)
+If MsSeek( xFilial("SB2") + cProduto + cLocProc )
+	If	mv_par12 == 1
+		nSldQtd += B2_QATU
+	Elseif mv_par12 == 2
+		nSldQtd += B2_QFIM
+	Else
+		aSldFim := CalcEst(cProduto,cLocProc,mv_par10+1)
+		nSldQtd += aSldFim[1]
+	EndIf
+	nSldVlr += If(mv_par12<3,&(Eval(bBloco,Iif(mv_par12 == 1,"B2_VATU","B2_VFIM"),mv_par11)),aSldFim[mv_par11+1])
+EndIf
+
+RestArea(aAreaAnt)
+Return({nSldQtd,nSldVlr})

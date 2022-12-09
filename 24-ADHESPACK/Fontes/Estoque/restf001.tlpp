@@ -1,0 +1,132 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RESTF001         | Autor | Lucas Baia          | Data |    30/08/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para realizar o ExecAuto após Apontamento de Produção.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function RESTF001()
+
+Local Area
+Local AreaSC5
+Local AreaSC6
+Local nOpc          := 3
+Local cQuery        := ""
+Local cAliasSD1     := GetNextAlias()
+Local cCliente
+Local cLoja
+Local cNumPV
+Local nX
+Local _nCount
+Local _nNumOP       := PARAMIXB[1]
+Private aCabec      := {}
+Private aCabPV      := {}
+Private aItens      := {}
+Private aLinha      := {}
+Private lMsErroAuto := .F.
+
+DbSelectArea('SD1')
+SD1->(DbSetOrder(1)) //D1_FILIAL + D1_DOC + D1_SERIE + D1_FORNECE + D1_LOJA + D1_COD + D1_ITEM
+
+DbSelectArea('SD4')
+SD4->(DbSetOrder(2)) //D4_FILIAL + D4_OP + D4_COD + D4_LOCAL
+
+Area    := GetArea()
+AreaSC5 := SC5->(GetArea())
+AreaSC6 := SC6->(GetArea())
+
+//---> Inicia-se a Consulta Query SQL para que o ExecAuto execute de forma correta.
+//dbSelectArea("SF2")
+
+	cQuery := "SELECT D1_FORNECE, D1_LOJA, D1_COD, D1_QUANT, D1_VUNIT, D1_TOTAL, D1_DOC, D1_SERIE, D1_ITEM, D4_LOTECTL, D4_DTVALID "
+	cQuery += "FROM "+RetSqlName("SD4")+" SD4 "
+	cQuery += "INNER JOIN "+RetSqlName("SD1")+" SD1 ON SD1.D1_COD = SD4.D4_COD AND SD1.D1_LOCAL = SD4.D4_LOCAL AND SD1.D1_DOC = SD4.D4_XNUMDOC AND SD1.D1_SERIE = SD4.D4_XNUMSER "
+    cQuery += "INNER JOIN "+RetSqlName("SB8")+" SB8 ON SD1.D1_LOTECTL = SB8.B8_LOTECTL AND SD1.D1_DTVALID = SB8.B8_DTVALID AND SD1.D1_DOC = SB8.B8_DOC AND SD1.D1_SERIE = SB8.B8_SERIE "
+	cQuery += "WHERE "
+    cQuery += "SD4.D4_OP = '"+_nNumOP+"' "
+    //cQuery += "AND SD1.D1_CF IN ('5124', '6124') "
+	cQuery += "AND SD1.D_E_L_E_T_ = '' "
+	cQuery += "AND SD4.D_E_L_E_T_ = '' "
+    cQuery += "AND SB8.D_E_L_E_T_ = '' "
+	cQuery += "ORDER BY D1_ITEM, D1_DOC, D1_SERIE "
+
+	cQuery := ChangeQuery(cQuery)
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAliasSD1,.T.,.T.)
+
+    (cAliasSD1)->(dbGoTop())
+
+    cCliente    := (cAliasSD1)->D1_FORNECE
+    cLoja       := (cAliasSD1)->D1_LOJA
+    cNumPV      := GetSXENum("SC5","C5_NUM")
+    _nCount      := 1
+    
+    
+    While (cAliasSD1)->(!EOF())
+
+        If _nCount == 1
+            aAdd(aCabec,{cNumPV, cCliente, cLoja})
+        EndIf
+        
+        aAdd(aItens,{(cAliasSD1)->D1_COD, (cAliasSD1)->D1_QUANT, (cAliasSD1)->D1_VUNIT, (cAliasSD1)->D1_TOTAL, (cAliasSD1)->D1_DOC, (cAliasSD1)->D1_SERIE, (cAliasSD1)->D1_ITEM,;
+                    (cAliasSD1)->D4_LOTECTL, (cAliasSD1)->D4_DTVALID})
+
+        _nCount ++
+
+        (cAliasSD1)->(DBSKIP())
+
+    ENDDO
+
+    FOR nX := 1 To LEN(aCabec)
+
+            aAdd(aCabPV,{{'C5_NUM'   ,aCabec[nX][1],NIL},;
+                {'C5_TIPO'      ,'D',NIL},;
+                {'C5_CLIENTE'   ,aCabec[nX][2],NIL},;
+                {'C5_LOJACLI'   ,aCabec[nX][3],NIL},;
+                {"C5_LOJAENT"   ,aCabec[nX][3],NIL},;
+                {"C5_CONDPAG"   ,"001",NIL},;
+                {'C5_TRANSP'    ,"",NIL},;
+                {'C5_TPFRETE'   ,'01',NIL},;
+                {'C5_MENNOTA'   ,'NF DE RETORNO REF. '+(cAliasSD1)->D1_DOC+" / "+(cAliasSD1)->D1_SERIE,NIL}};
+                )
+    NEXT nX
+
+    FOR nX := 1 To LEN(aItens)
+            
+            //aAdd(aItens,{'D1_ITEM'      ,"00"+SC6->C6_ITEM,NIL})
+            AAdd(aLinha, {{"C6_NUM"  , cNumPV, NIL},;
+                {"C6_PRODUTO"  , aItens[nX][1], NIL},;
+                {"C6_QTDVEN"   , aItens[nX][2], NIL},;
+                {"C6_PRUNIT"   , aItens[nX][3], NIL},;
+                {"C6_PRCVEN"   , aItens[nX][3], NIL},;
+                {"C6_VALOR"    , aItens[nX][4], NIL},;
+                {"C6_TES"      , "501", NIL},;
+                {"C6_NFORI"    , aItens[nX][5], NIL},;
+                {"C6_SERIORI"  , aItens[nX][6], NIL},;
+                {"C6_ITEMORI"  , aItens[nX][7], NIL},;
+                {"C6_LOTECTL"  , aItens[nX][8], NIL},;
+                {"C6_DTVALID"  , aItens[nX][9], NIL}})
+    NEXT nX
+        
+            MsExecAuto({|x,y,z| MATA410(x,y,z)},aCabPV,aLinha,nOpc)
+
+            If lMsErroAuto
+                mostraerro()
+            Else
+                Alert("Pedido de Venda "+cNumPV+" inserida com sucesso!")
+            EndIf        
+
+        lMsErroAuto := .F.
+
+
+(cAliasSD1)->(DbCloseArea())
+
+MsgInfo("Execauto MATA410 executado com sucesso!","EXECAUTO")
+
+RestArea(_Area)
+
+Return(cNumPV)

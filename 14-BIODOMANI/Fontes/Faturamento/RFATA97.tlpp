@@ -1,0 +1,69 @@
+#include "totvs.ch"
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+#define CTRF Chr(13) + Chr(10) 
+
+User Function RFATA97()
+
+Local oDlg1
+Local oSay1
+Local oButton1
+Local oButton2
+
+//Começamos aqui á criar o Tget
+Local cGet1 := Space(6) //variável que irá capturar o que for digitado
+Local oGet1  //variável responsável por receber a Classe/construtor Tget
+
+
+oDlg1     := TDialog():New(0,0,200,500,"Ajuste Itens dos Produtos de Pedidos de Vendas",,,,,CLR_BLACK,CLR_WHITE,,,.T.)
+oSay1     := TSay():New(10,10,{||'Pedido'},oDlg1,,,,,,.T.,CLR_BLUE,CLR_WHITE,300,20)
+oGet1     := TGet():New(25,10,{|u| IIF( Pcount()>0,cGet1:=u,cGet1)},oDlg1,40,10,"@!",,0,,,.F.,,.T.,,.F.,,.F.,.F.,,.F.,.F.,,cGet1,,,, )
+oGet1:cF3 := "SC5"
+
+oButton1 := TButton():New(60,10, "Ajustar",oDlg1, {||RunProc(cGet1)}, 60,15,,,.F.,.T.,.F.,,.F.,,,.F.) //Chama tela de Clientes
+
+oButton2 := TButton():New(60,110, "Cancelar",oDlg1, {||oDlg1:End()}, 60,15,,,.F.,.T.,.F.,,.F.,,,.F.) //Chama tela de Clientes
+
+oDlg1:Activate(,,,.T.)
+
+return
+
+Static Function RunProc(NumPed)
+
+Local cSequen   := "00"
+
+cQuery := " SELECT "                                        + CTRF
+cQuery += " C6_ITEM, "                                      + CTRF
+cQuery += " R_E_C_N_O_ "                                    + CTRF
+cQuery += " FROM "     + RetSQLName("SC6") + " SC6"         + CTRF
+cQuery += " WHERE "                                         + CTRF
+cQuery += " SC6.C6_NUM = '" + NumPed + "' AND"              + CTRF
+cQuery += " SC6.D_E_L_E_T_ = '' "                           + CTRF  
+cQuery := ChangeQuery(cQuery)
+
+// Executando consulta.
+TCQuery cQuery New Alias "SQL_SC6"
+
+DbSelectArea("SQL_SC6")
+SQL_SC6->(DbGoTop())
+
+// Percorrendo os registros.
+While !SQL_SC6->(EOF())
+    DbSelectArea("SC6")
+    DbGoto(SQL_SC6->R_E_C_N_O_)
+    cSequen := Soma1(cSequen)
+    RecLock("SC6", .F.)
+    C6_ITEM := cSequen
+    SC6->(MsUnlock())
+    SC6->(DbCloseArea())
+    SQL_SC6-> (dbSkip())          
+EndDo
+SQL_SC6->(DbCloseArea())
+     
+MsgAlert("Atualização realizada com sucesso!!!")
+
+Return nil

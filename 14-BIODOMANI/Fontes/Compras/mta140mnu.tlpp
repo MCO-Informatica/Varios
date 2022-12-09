@@ -1,0 +1,17 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MTA140MNU       | Autor | Lucas Baia          | Data |    09/10/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada para adicionar o botões ao Menu Principal através
+//        | do array aRotina.
+//---------------------------------------------------------------------------------
+// Uso    | BIODOMANI COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MTA140MNU()
+
+aAdd( aRotina, { 'Impr.Romaneio' , 'u_docgrf(SF1->F1_DOC,SF1->F1_SERIE,SF1->F1_FORNECE,SF1->F1_LOJA)'    , 0, 2 } )
+
+Return

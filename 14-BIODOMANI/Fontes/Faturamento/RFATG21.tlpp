@@ -1,0 +1,45 @@
+#Include 'Protheus.ch'
+ 
+//---------------------------------------------------------------------------------
+// Rotina | RFATG21              | Autor | Lucas Baia          | Data |	20/08/2021		
+//---------------------------------------------------------------------------------
+// Descr. | Gatilho responsável para gravar o Código de Vendedor caso que ele
+//        | não for cadastrado como Vend. Samana ou Vend. Cosmobeauty no Cadastro  
+//        |	de Cliente.											
+//---------------------------------------------------------------------------------
+// Uso    | Protheus 12.1.27														
+//---------------------------------------------------------------------------------
+// Links  | 																		
+//---------------------------------------------------------------------------------
+User Function RFATG21()
+
+Local _aArea    := GetArea()
+Local _nVend    := ""
+Local _cCliente := M->C5_CLIENT
+Local _cLoja    := IIF(!Empty(M->C5_LOJACLI),M->C5_LOJACLI,"01")
+Local _cTipo    :=  M->C5_TIPO
+
+IF _cTipo$"NICP"
+    DbSelectArea("SA1")
+    SA1->(DbSetOrder(1))
+
+    IF SA1->(DbSeek(xFilial("SA1")+_cCliente+_cLoja))
+        IF !EMPTY(M->C5_VEND1) .OR. !EMPTY(M->C5_VEND2)
+            IF Posicione("SA3",1,xFilial("SA3")+M->C5_VEND1,"A3_CODUSR") == RETCODUSR() .OR. Posicione("SA3",1,xFilial("SA3")+M->C5_VEND2,"A3_CODUSR") == RETCODUSR()
+                Return (_nVend)
+            ELSE
+                _nVend := Posicione("SA3",7,xFilial("SA3")+RETCODUSR(),"A3_COD")
+            ENDIF
+        ELSEIF EMPTY(M->C5_VEND1) .AND. EMPTY(M->C5_VEND2) .AND. !EMPTY(Posicione("SA3",7,xFilial("SA3")+RETCODUSR(),"A3_COD")) //EMPTY(M->C5_VEND1) .OR. EMPTY(M->C5_VEND2)
+                _nVend := Posicione("SA3",7,xFilial("SA3")+RETCODUSR(),"A3_COD")
+                Return (_nVend)
+        ELSEIF EMPTY(M->C5_VEND1) .AND. EMPTY(M->C5_VEND2) .AND. EMPTY(Posicione("SA3",7,xFilial("SA3")+RETCODUSR(),"A3_COD"))
+                Alert("Não foi encontrado Código de Vendedor, por favor Revise os Cadastros!","ATENÇÃO")
+                Return (_nVend)
+        ENDIF
+    ENDIF
+ENDIF
+
+RestArea(_aArea)
+ 
+Return (_nVend)

@@ -1,0 +1,16 @@
+#include 'totvs.ch'
+#include 'protheus.ch'
+#include 'rwmake.ch'
+
+
+
+User Function DHFINX3()
+
+
+Local _cNumRA :=	GetMv("DH_NUMRA")
+
+_cNumRA := 	Soma1(_cNumRA)
+
+PutMv("DH_NUMRA",_cNumRA)
+
+Return(_cNumRA)

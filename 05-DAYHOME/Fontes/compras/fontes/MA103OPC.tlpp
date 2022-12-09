@@ -1,0 +1,582 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "JPEG.CH"
+#INCLUDE "Vkey.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ Ma103Opc ³ Autor ³ Eduardo Alberti       ³ Data ³ 21/Dec/09³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³ Programa Para Inclusao de Botao No Browse Principal Da Nota³±±
+±±³          ³ Fiscal De Entrada.                                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ Especifico Demape.                                         ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function Ma103Opc()
+
+Local _aArea	:= GetArea()
+Local _aArSF1	:= SF1->(GetArea())
+Local _aRotAux	:= {}
+
+//alert("teste")
+
+aAdd(_aRotAux,{"Dados Importacao"		,"U_TCNFE001('SF1',SF1->(Recno()),3)" 	,3,05,0,Nil})  
+Aadd(_aRotAux,{"CTE Incluir NF Origem"	,"U_DHOME_CTE()"						,3,20,0,Nil})
+Aadd(_aRotAux,{"CTE Pesquisar NF Origem","U_DHOME_PCTE()"						,3,21,0,Nil})
+Aadd(_aRotAux,{"CTE Excluir NF Origem"	,"U_DHOME_ECTE()"						,3,22,0,Nil})
+
+//Aadd(_aRotAux,{"Inf.Adic<F10> *"	,"U_fInfSF1()"		,03,20})
+//Aadd(_aRotAux,{"Inclusao XML"	,"U_IXML()"		,03,20})
+//Aadd(_aRotAux,{"placa"	,"U_SF1PL()"		,03,20})
+//aAdd(_aRotAux,{"Exclusao SIGAEIC"	,"U_M103EEIC()" 	,03,20})  
+
+
+                                                                                   
+Set Key VK_F10 To U_fInfSF1() //F10
+
+RestArea(_aArSF1)
+RestArea(_aArea)
+
+Return(_aRotAux)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ IXML     ³ Autor ³ Joni Lima             ³ Data ³ 18/07/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³ Inclui XML na Nota Fiscal de Entrada                       ³±±
+±±³          ³                                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function IXML()
+
+
+//nOpcao    := PARAMIXB[1]   // Opção Escolhida pelo usuario no aRotina
+//nConfirma := PARAMIXB[2]   // Se o usuario confirmou a operação de gravação da NFE
+
+
+/*If nOpcao==3 .And. nConfirma==1
+	If FunName()=="ENTXML" .OR. FunName()=="ENTCTE"
+	
+	ElseIF ALLTRIM(SF1->F1_ESPECIE)=="SPED".or.ALLTRIM(SF1->F1_ESPECIE)=="CTE"
+  */		_grvXML()
+	/*EndIf
+EndIf */
+
+Return
+
+Static Function _grvXML()
+
+local lrt:=.t.
+IF ALLTRIM(SF1->F1_ESPECIE)=="SPED"
+	cFile:= cGetFile( "Arquivo NFe (*.xml) | *.xml", "Selecione o Arquivo de Nota Fiscal XML",,'SERVIDOR\XMLNFE\',.T.,GETF_NOCHANGEDIR )
+ELSEIF ALLTRIM(SF1->F1_ESPECIE)=="CTE"
+	cFile:= cGetFile( "Arquivo Cte (*.xml) | *.xml", "Selecione o Arquivo de Nota Fiscal XML",,'SERVIDOR\XMLCTE\',.T.,GETF_NOCHANGEDIR )
+EndIf
+
+If !File(cFile) .and. !Empty(cFile)
+		MsgAlert("Arquivo Não Encontrado no Local de Origem Indicado!")
+		lrt:=.f.
+		Return lrt
+Endif
+
+	nHdl    := fOpen(cFile,0)
+
+	If nHdl == -1
+		If !Empty(cFile)
+			MsgAlert("O arquivo de nome "+cFile+" nao pode ser aberto! Verifique os parametros.","Atencao!")
+			lrt:=.f.
+		Endif
+		Return lrt
+	Endif
+	
+	nTamFile := fSeek(nHdl,0,2)
+	fSeek(nHdl,0,0)
+	cBuffer  := Space(nTamFile)                // Variavel para criacao da linha do registro para leitura
+	nBtLidos := fRead(nHdl,@cBuffer,nTamFile)  // Leitura  do arquivo XML
+	fClose(nHdl)
+	
+	RECLOCK("SF1", .F.)	
+		SF1->F1_XXML := cBuffer
+	MSUNLOCK()
+	
+	xFile := STRTRAN(Upper(cFile),"XMLNFE\", "XMLNFE\PROCESSADAS\")
+	xFile := STRTRAN(Upper(cFile),"XMLCTE\", "XMLCTE\PROCESSADAS\")
+				
+	COPY FILE &cFile TO &xFile
+								
+	FErase(cFile)
+
+Return()
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ SF1PL    ³ Autor ³ Joni Lima             ³ Data ³ 14/07/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³ Monta Dialog Para incluscao de Placa do veiculo.           ³±±
+±±³          ³                                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function SF1PL()
+
+Local _aArea	:= GetArea()
+Local _lDmp		:= .f.
+
+/*For i := 1 To 10
+	If "GQREENTR" $ Upper(Alltrim(ProcName(i)))
+			_lDmp := .t.
+	EndIf
+Next i
+
+
+// Nao Permite Utilizar a Rotina Durante a Digitacao da NF
+If Type('aCols') == 'U' .Or. _lDmp
+*/	
+	DbSelectArea("SF1")
+	
+	/*cEdit1	 := IIf(FieldPos("F1_TRANSP")	> 0,SF1->F1_TRANSP		,Space(TamSx3("A4_COD")[1]))
+	cEdit2	 := IIf(FieldPos("F1_TRANSP") 	> 0,Posicione("SA4",1,xFilial("SA4") + SF1->F1_TRANSP,"A4_NOME"),Space(TamSx3("A4_NOME")[1]))
+	*/
+	cEdit3	 := IIf(FieldPos("F1_XPLACA") 	> 0,F1_XPLACA		,Space(TamSx3("F1_XPLACA")[1])								)		// Qtd Volumes
+	/*cEdit4	 := IIf(FieldPos("F1_ESPECI1") 	> 0,SF1->F1_ESPECI1		,Space(TamSx3("F2_ESPECI1")[1])	)		// Especie Volumes
+	cEdit5	 := IIf(FieldPos("F1_DMMAR") 	> 0,SF1->F1_DMMAR		,Space(15)						)		// Marca
+	cEdit6	 := IIf(FieldPos("F1_DMNUM") 	> 0,SF1->F1_DMNUM		,Space(15)						)		// Numero
+	cEdit7	 := IIf(FieldPos("F1_PBRUTO") 	> 0,SF1->F1_PBRUTO		,0								)		// P. Bruto
+	cEdit8	 := IIf(FieldPos("F1_PLIQUI") 	> 0,SF1->F1_PLIQUI		,0								)		// P. Liq
+	cEdit9	 := IIf(FieldPos("F1_DMDI")  	> 0,SF1->F1_DMDI 		,Space(25)						)		// Num. DI
+	_xOpc	 := 0
+	*/
+	// Carrega Variavel Para Utilizada No Programa GQREENTR
+	/*If Type("_cDocImp") <> "U"
+		If Empty(cEdit9)
+			cEdit9 := _cDocImp
+		EndIf
+	EndIf*/		
+	
+	// Variaveis Objeto
+	Private oEdit1
+	Private oEdit2
+	Private oEdit3
+	Private oEdit4
+	Private oEdit5
+	Private oEdit6
+	Private oEdit7
+	Private oEdit8
+	Private oEdit9
+	
+	// Variaveis Private da Funcao
+	Private _oDlg				// Dialog Principal
+	Private INCLUI := .F.	// (na Enchoice) .T. Traz registro para Inclusao / .F. Traz registro para Alteracao/Visualizacao
+	Private _cLeg	:= Alltrim(ProcName()) + " - Especifico Demape"
+	
+	DEFINE MSDIALOG _oDlg TITLE OemtoAnsi(FunName()) FROM C(246),C(347) TO C(470),C(883) PIXEL
+	
+	// Cria as Groups do Sistema
+	@ C(004),C(006) TO C(095),C(266) LABEL "  Dados Para Transporte  " PIXEL OF _oDlg
+	
+	// Cria Componentes Padroes do Sistema
+	//@ C(017),C(013) Say "Transportadora: "		Size C(041),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	//@ C(017),C(054) MsGet oEdit1 Var cEdit1 	Size C(027),C(009) COLOR CLR_BLACK PIXEL OF _oDlg F3 "SA4" Valid(_fVlTrp(cEdit1))
+	//@ C(017),C(089) MsGet oEdit2 Var cEdit2 	Size C(169),C(009) COLOR CLR_BLACK PIXEL OF _oDlg When .f.
+	@ C(030),C(013) Say "Quant.Vol.: " 			Size C(032),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(030),C(054) MsGet oEdit3 Var cEdit3 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture "@!"
+	/*@ C(030),C(119) Say "Especie: " 			Size C(024),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(030),C(142) MsGet oEdit4 Var cEdit4 	Size C(117),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(042),C(013) Say "Marca: " 				Size C(020),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(042),C(054) MsGet oEdit5 Var cEdit5 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(042),C(119) Say "Numero: " 				Size C(023),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(042),C(142) MsGet oEdit6 Var cEdit6 	Size C(116),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(055),C(013) Say "Peso Bruto: " 			Size C(031),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(055),C(054) MsGet oEdit7 Var cEdit7 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture PesqPict("SF2","F2_PBRUTO")
+	@ C(055),C(119) Say "Peso Liq:" 			Size C(024),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(055),C(142) MsGet oEdit8 Var cEdit8 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture PesqPict("SF2","F2_PLIQUI")
+	@ C(067),C(013) Say "D. I. :" 				Size C(015),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(067),C(054) MsGet oEdit9 Var cEdit9 	Size C(206),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(100),C(007) Say _cLeg 					Size C(100),C(008) COLOR CLR_GRAY  PIXEL OF _oDlg
+	*/
+	DEFINE SBUTTON FROM C(097),C(210) TYPE 1 ENABLE OF _oDlg Action Eval( { || _xOpc := 1, _oDlg:End()	} )
+	DEFINE SBUTTON FROM C(097),C(240) TYPE 2 ENABLE OF _oDlg Action Eval( { || _xOpc := 2, _oDlg:End()	} )
+	
+	ACTIVATE MSDIALOG _oDlg CENTERED
+	
+	If _xOpc == 1
+		DbSelectArea("SF1")
+		If FieldPos("F1_ESPECI1") > 0
+			
+			// Grava Dados Importacao
+			DbSelectArea("SF1")
+			While !Reclock("SF1",.F.)
+			Enddo
+			
+			Replace SF1->F1_XPLACA		With cEdit3
+			/*Replace SF1->F1_VOLUME1	With cEdit3
+			Replace SF1->F1_ESPECI1		With cEdit4
+			Replace SF1->F1_PBRUTO		With cEdit7
+			Replace SF1->F1_PLIQUI		With cEdit8
+			Replace SF1->F1_DMMAR		With cEdit5
+			Replace SF1->F1_DMNUM		With cEdit6
+			Replace SF1->F1_DMDI		With cEdit9
+			*/SF1->(MsUnlock())
+			
+		EndIf
+	EndIf
+/*Else
+	Alert("Utilizar o Browse Inicial Para Esta Rotina!")
+Endif*/
+
+RestArea(_aArea)
+
+Return(.T.)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ fInfSF1  ³ Autor ³ Eduardo Alberti       ³ Data ³ 21/Dec/09³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³ Monta Dialog Para Capturar Dados Adicionais Da NF-e Utiliza³±±
+±±³          ³ do Principalmente Para Dados De Importacao.                ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function fInfSF1()
+
+Local _aArea	:= GetArea()
+Local _lDmp		:= .f.
+
+For i := 1 To 10
+	If "GQREENTR" $ Upper(Alltrim(ProcName(i)))
+			_lDmp := .t.
+	EndIf
+Next i
+
+
+// Nao Permite Utilizar a Rotina Durante a Digitacao da NF
+If Type('aCols') == 'U' .Or. _lDmp
+	
+	DbSelectArea("SF1")
+	
+	cEdit1	 := IIf(FieldPos("F1_TRANSP")	> 0,SF1->F1_TRANSP		,Space(TamSx3("A4_COD")[1]))
+	cEdit2	 := IIf(FieldPos("F1_TRANSP") 	> 0,Posicione("SA4",1,xFilial("SA4") + SF1->F1_TRANSP,"A4_NOME"),Space(TamSx3("A4_NOME")[1]))
+	cEdit3	 := IIf(FieldPos("F1_VOLUME1") 	> 0,SF1->F1_VOLUME1		,0								)		// Qtd Volumes
+	cEdit4	 := IIf(FieldPos("F1_ESPECI1") 	> 0,SF1->F1_ESPECI1		,Space(TamSx3("F2_ESPECI1")[1])	)		// Especie Volumes
+	//cEdit5	 := IIf(FieldPos("F1_DMMAR") 	> 0,SF1->F1_DMMAR		,Space(15)						)		// Marca
+	//cEdit6	 := IIf(FieldPos("F1_DMNUM") 	> 0,SF1->F1_DMNUM		,Space(15)						)		// Numero
+	cEdit7	 := IIf(FieldPos("F1_PBRUTO") 	> 0,SF1->F1_PBRUTO		,0								)		// P. Bruto
+	cEdit8	 := IIf(FieldPos("F1_PLIQUI") 	> 0,SF1->F1_PLIQUI		,0								)		// P. Liq
+	//cEdit9	 := IIf(FieldPos("F1_DMDI")  	> 0,SF1->F1_DMDI 		,Space(25)						)		// Num. DI
+	_xOpc	 := 0
+	
+	// Carrega Variavel Para Utilizada No Programa GQREENTR
+	/*If Type("_cDocImp") <> "U"
+		If Empty(cEdit9)
+			cEdit9 := _cDocImp
+		EndIf
+	EndIf*/		
+	
+	// Variaveis Objeto
+	Private oEdit1
+	Private oEdit2
+	Private oEdit3
+	Private oEdit4
+	Private oEdit5
+	Private oEdit6
+	Private oEdit7
+	Private oEdit8
+	Private oEdit9
+	
+	// Variaveis Private da Funcao
+	Private _oDlg				// Dialog Principal
+	Private INCLUI := .F.	// (na Enchoice) .T. Traz registro para Inclusao / .F. Traz registro para Alteracao/Visualizacao
+	Private _cLeg	:= Alltrim(ProcName()) + " - Especifico Demape"
+	
+	DEFINE MSDIALOG _oDlg TITLE OemtoAnsi(FunName()) FROM C(246),C(347) TO C(470),C(883) PIXEL
+	
+	// Cria as Groups do Sistema
+	@ C(004),C(006) TO C(095),C(266) LABEL "  Dados De Importacao  " PIXEL OF _oDlg
+	
+	// Cria Componentes Padroes do Sistema
+	@ C(017),C(013) Say "Transportadora: "		Size C(041),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(017),C(054) MsGet oEdit1 Var cEdit1 	Size C(027),C(009) COLOR CLR_BLACK PIXEL OF _oDlg F3 "SA4" Valid(_fVlTrp(cEdit1))
+	@ C(017),C(089) MsGet oEdit2 Var cEdit2 	Size C(169),C(009) COLOR CLR_BLACK PIXEL OF _oDlg When .f.
+	@ C(030),C(013) Say "Quant.Vol.: " 			Size C(032),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(030),C(054) MsGet oEdit3 Var cEdit3 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture PesqPict("SD1","D1_QUANT")
+	@ C(030),C(119) Say "Especie: " 			Size C(024),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(030),C(142) MsGet oEdit4 Var cEdit4 	Size C(117),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	//@ C(042),C(013) Say "Marca: " 				Size C(020),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	//@ C(042),C(054) MsGet oEdit5 Var cEdit5 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	//@ C(042),C(119) Say "Numero: " 				Size C(023),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	//@ C(042),C(142) MsGet oEdit6 Var cEdit6 	Size C(116),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(055),C(013) Say "Peso Bruto: " 			Size C(031),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(055),C(054) MsGet oEdit7 Var cEdit7 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture PesqPict("SF2","F2_PBRUTO")
+	@ C(055),C(119) Say "Peso Liq:" 			Size C(024),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	@ C(055),C(142) MsGet oEdit8 Var cEdit8 	Size C(054),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture PesqPict("SF2","F2_PLIQUI")
+	//@ C(067),C(013) Say "D. I. :" 				Size C(015),C(008) COLOR CLR_BLACK PIXEL OF _oDlg
+	//@ C(067),C(054) MsGet oEdit9 Var cEdit9 	Size C(206),C(009) COLOR CLR_BLACK PIXEL OF _oDlg Picture '@!'
+	@ C(100),C(007) Say _cLeg 					Size C(100),C(008) COLOR CLR_GRAY  PIXEL OF _oDlg
+	
+	DEFINE SBUTTON FROM C(097),C(210) TYPE 1 ENABLE OF _oDlg Action Eval( { || _xOpc := 1, _oDlg:End()	} )
+	DEFINE SBUTTON FROM C(097),C(240) TYPE 2 ENABLE OF _oDlg Action Eval( { || _xOpc := 2, _oDlg:End()	} )
+	
+	ACTIVATE MSDIALOG _oDlg CENTERED
+	
+	If _xOpc == 1
+		DbSelectArea("SF1")
+		If FieldPos("F1_ESPECI1") > 0
+			
+			// Grava Dados Importacao
+			DbSelectArea("SF1")
+			While !Reclock("SF1",.F.)
+			Enddo
+			
+			Replace SF1->F1_TRANSP		With cEdit1
+			Replace SF1->F1_VOLUME1		With cEdit3
+			Replace SF1->F1_ESPECI1		With cEdit4
+			Replace SF1->F1_PBRUTO		With cEdit7
+			Replace SF1->F1_PLIQUI		With cEdit8
+			//Replace SF1->F1_DMMAR		With cEdit5
+			//Replace SF1->F1_DMNUM		With cEdit6
+			//Replace SF1->F1_DMDI		With cEdit9
+			SF1->(MsUnlock())
+			
+		EndIf
+	EndIf
+Else
+	Alert("Utilizar o Browse Inicial Para Esta Rotina!")
+Endif
+
+RestArea(_aArea)
+
+Return(.T.)
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ _fVlTrp  º Autor ³ Eduardo Alberti    º Data ³ 22/Apr/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ validacao Da Digitacao Dos Dados Da Transportadora.        º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function _fVlTrp(_cTransp)
+
+Local _aArea 	:= GetArea()
+Local _lRet		:= .t.
+
+DbSelectArea("SA4")
+DbSetOrder(1)
+If !MsSeek(xFilial("SA4") + _cTransp)
+	
+	_lRet := .f.
+	
+Else
+	
+	cEdit2 := SA4->A4_NOME
+	
+	oEdit2:Refresh()
+	_oDlg:Refresh()
+	
+EndIf
+
+RestArea(_aArea)
+
+Return(_lRet)
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa   ³   C()      ³ Autor ³ Norbert Waage Junior  ³ Data ³18/Oct/09 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descricao  ³ Funcao responsavel por manter o Layout independente da       ³±±
+±±³           ³ resolução horizontal do Monitor do Usuario.                  ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function C(nTam)
+
+Local nHRes	:=	oMainWnd:nClientWidth	//Resolucao horizontal do monitor
+
+Do Case
+	Case nHRes == 640	//Resolucao 640x480
+		nTam *= 0.8
+	Case nHRes == 800	//Resolucao 800x600
+		nTam *= 1
+	OtherWise			//Resolucao 1024x768 e acima
+		nTam *= 1.28
+EndCase
+
+If "MP8" $ oApp:cVersion
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Tratamento para tema "Flat"³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If (Alltrim(GetTheme()) == "FLAT").Or. SetMdiChild()
+		nTam *= 0.90
+	EndIf
+EndIf
+
+Return Int(nTam)
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ M103EEIC º Autor ³ Eduardo Alberti    º Data ³ 30/Mar/2011 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Exclusao do documento de entrada com amarracao no SIGAEIC  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/                                                                      
+User Function M103EEIC(cAlias,nReg,nOpcX)           
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis da Rotina                                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local aAreaSF1		:= Nil
+Local aAreaSD1		:= Nil
+Private cNumEicCon	:= Nil   
+Private cChaveSeek	:= Nil
+Private aRecD1		:= {}
+Private aRecF1		:= {}
+
+Default cAlias 	:= 'SF1'
+Default nReg	:= SF1->(Recno())
+Default nOpcX	:= 3
+
+If msgYesNo(OemToAnsi("Deseja excluir a amarração com o documento de importação?"),OemToAnsi("ATENÇÃO"))      
+             
+	aAreaSF1a := SF1->(GetArea())
+	aAreaSD1a := SD1->(GetArea())
+	
+	dbSelectArea("SF1") 
+	SF1->(dbSetOrder(1)) //F1_FILIAL, F1_DOC, F1_SERIE, F1_FORNECE, F1_LOJA, F1_TIPO
+	SF1->(dbGoTo(nReg)) 
+	             
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se trata de um documento de importacao                     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If SF1->F1_IMPORT <> 'S'
+		Help(" ",1,"Atenção",,"O documento selecionado nao pertence ao sigaeic, utilize a opcao exclusao!", 3, 0) 
+		RestArea(aAreaSF1a)  
+		RestArea(aAreaSD1a)
+		Return Nil
+	EndIf 
+	 
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Pega o numero do conhecimento                                       ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	cNumEicCom 	:= SF1->F1_HAWB
+	cChaveSeek	:= SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) 	
+	                                                                         
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Limpa os flags de importacao                                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	aAdd(aRecF1,SF1->(Recno()))
+	RecLock("SF1",.F.)
+	SF1->F1_IMPORT := " "
+	SF1->(msUnlock())
+	
+	dbSelectArea("SD1")  
+	SD1->(dbSetOrder(1)) //D1_FILIAL, D1_DOC, D1_SERIE, D1_FORNECE, D1_LOJA, D1_COD, D1_ITEM
+	SD1->(dbSeek(xFilial("SD1")+SF1->(F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) ))              
+	While SD1->(!EOF()) .and. SF1->(F1_FILIAL+F1_DOC+F1_SERIE+F1_FORNECE+F1_LOJA) == xFilial("SD1")+SD1->(D1_DOC+D1_SERIE+D1_FORNECE+D1_LOJA) 
+	    
+		aAdd(aRecD1,SD1->(Recno())) 
+		
+		RecLock("SD1",.F.)
+		SD1->D1_TIPO_NF := " "
+		SD1->(msUnlock())
+		SD1->(dbSkip())
+	
+	Enddo 
+	               
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Exclusao de NF pela tela padrao do documento de entrada             ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ   
+	A103NFiscal(cAlias,nReg,6)   
+	
+	SF1->(dbSetOrder(1))
+	SD1->(dbSetOrder(1))                                                    
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Verifica se a nota foi realmente excluida                           ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If SF1->(!dbSeek(cChaveSeek))
+	 
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Deleta a capa da importacao                                         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ                                                                       
+		dbSelectArea("SW6")
+		SW6->(dbSetOrder(1))
+		If SW6->(dbSeek(xFilial("SW6")+cNumEicCom ))
+		
+			RecLock("SW6",.F.)
+			SW6->(dbDelete())
+			SW6->(msUnlock())
+			
+		EndIf                        
+		 
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Deleta os itens da importacao                                       ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea("SWN") 
+		SWN->(dbSetOrder(3))
+		If SWN->(dbSeek(xFilial("SWN")+cNumEicCom ))    
+			While SWN->(!EOF()) .and. SWN->(WN_FILIAL+WN_HAWB) == xFilial("SWN")+cNumEicCom
+				RecLock("SWN",.F.)
+				SWN->(dbDelete())
+				SWN->(msUnlock())
+				SWN->(dbSkip())
+			Enddo 
+		EndIf
+		
+		dbSelectArea("SW8")  
+		SW8->(dbSetOrder(1))
+		If SW8->(dbSeek(xFilial("SW8")+cNumEicCom ))    
+			While SW8->(!EOF()) .and. SW8->(W8_FILIAL+W8_HAWB) == xFilial("SW8")+cNumEicCom
+				RecLock("SW8",.F.)
+				SW8->(dbDelete())
+				SW8->(msUnlock())
+				SW8->(dbSkip())
+			Enddo                
+		EndIf
+	Else    
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Volta o antigo conteudo por não ter confirmado a exclusao           ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		For nX := 1 To Len(aRecF1)
+			SF1->(dbGoTo(aRecF1[nX]))
+			RecLock("SF1",.F.)
+			SF1->F1_IMPORT := "S"
+			SF1->(msUnlock())
+		Next nX 
+		
+		For nX := 1 To Len(aRecD1)
+			SD1->(dbGoTo(aRecD1[nX]))
+			RecLock("SD1",.F.)
+			SD1->D1_TIPO_NF := "3"
+			SD1->(msUnlock())
+		Next nX     
+		              
+	EndIf   
+	
+	RestArea(aAreaSF1a)
+	RestArea(aAreaSD1a)
+	
+EndIf                  
+
+Return Nil

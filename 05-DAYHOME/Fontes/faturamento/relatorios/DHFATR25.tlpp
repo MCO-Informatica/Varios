@@ -1,0 +1,384 @@
+#Include "RwMake.Ch"
+#Include "Protheus.Ch"
+#Include "TopConn.Ch"
+                        
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+'ฑฑบPrograma  ณDHFATR04  บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Relatorio consulta de produtos acabados faturados por      บฑฑ
+ฑฑบ          ณ periodo.                                                   บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Dayhome.                                                   บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+User Function DHFATR25() 
+	
+	Local cPerg			:= Padr("DHFATR25",10)
+	Local cTitulo		:= "Vendas Diแrias / Acumuladas"
+	Local cDesc			:= "Consulta de Produtos Acabados Faturados - Diario"
+	Private oReport		:= Nil
+	Private oSection	:= Nil
+	Private oPen1		:= Nil
+	Private oPen2		:= Nil
+	Private oPen3		:= Nil
+	Private oFont1  	:= TFont():New("Arial",,-10,,.T.) 
+	Private oFont2  	:= TFont():New("Arial",,-13,,.T.) 
+	Private oFont3 		:= TFont():New("Courier New",,-10,,.T.,,,15,,,,,,,,)
+	Private nLin		:= 3200 
+	Private nTotFil		:= 0
+	Private nTotGer		:= 0
+	           
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณCria Perguntas no Arquivo SX1.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	DHAjustaSx1(cPerg)
+	Pergunte(cPerg,.F.)
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณConstrucao do objeto TReport.ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	oReport := TReport():New("DHFATR25",cTitulo,"DHFATR25",{|oReport| DHMntQry(),DHPReport()},cDesc)
+	oReport:PrintDialog()
+    
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHMntQry  บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que filtra registros atraves da Query com base nos   บฑฑ
+ฑฑบ          ณarquivos SD1 - SD2.                                         บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHMntQry()
+	
+	Local cQry	:= ""
+
+	If U_DHR25Vld('3')
+		cQry:= " SELECT"+CRLF
+		cQry+= " 	TMP_FILIAL"+CRLF
+		cQry+= " 	,TMP_DATA"+CRLF
+		cQry+= " 	,SUM(TMP_FAT) AS TMP_FAT"+CRLF
+		cQry+= " 	,SUM(TMP_DEV) AS TMP_DEV"+CRLF
+		cQry+= " 	,SUM(TMP_FAT - TMP_DEV) AS TMP_TOTAL"+CRLF
+		cQry+= " FROM"+CRLF
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณTotal de Vendas sem IPI.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		cQry+= " 	(SELECT"+CRLF                     
+		cQry+= " 		D2_FILIAL AS TMP_FILIAL"+CRLF
+		cQry+= " 		,D2_EMISSAO AS TMP_DATA"+CRLF
+		cQry+= " 		,SUM(D2_TOTAL) AS TMP_FAT"+CRLF         
+		cQry+= " 		,0 AS TMP_DEV"+CRLF
+		cQry+= " 		,0 AS TMP_TOTAL"+CRLF  
+		cQry+= " 	FROM "+RetSqlName("SD2")+" SD2 "+CRLF
+		cQry+= "		INNER JOIN "+RetSqlName("SF4")+" SF4"+CRLF
+		cQry+= "			ON F4_FILIAL = '"+xFilial("SF4")+"' AND F4_CODIGO = D2_TES AND SF4.D_E_L_E_T_ = ' '"+CRLF
+	    
+		If mv_par05 == 1
+			cQry+="	AND F4_XESPREL IN ('1','2') "
+			//cQry+= " AND F4_CF IN ('5101','5102','5103','5104','5105','5106','5109','5110','5111','5112','5113','5114','5115','5116','5117','5118','5119','5120','5122','5123'	,'5401','5402','5403','5405','5414','5415','5910','5922','6101','6102','6103','6104','6105','6106','6107','6108','6109','6110','6111','6112','6113','6114','6115'	,'6116','6117','6118','6119','6120','6122','6123','6401','6402','6403','6404','6414','6415','6910','6922','7101','7102','7105','7106','7127')
+			//cQry+= " 	AND F4_DUPLIC = 'S'"+CRLF
+		Else
+			cQry+="	AND F4_XESPREL IN ('1') "
+		//	cQry+= " AND F4_CF IN ('5101','5102','5103','5104','5105','5106','5109','5110','5111','5112','5113','5114','5115','5116','5117','5118','5119','5120','5122','5123'	,'5401','5402','5403','5405','5414','5415','5922','6101','6102','6103','6104','6105','6106','6107','6108','6109','6110','6111','6112','6113','6114','6115'	,'6116','6117','6118','6119','6120','6122','6123','6401','6402','6403','6404','6414','6415','6922','7101','7102','7105','7106','7127')
+		//	cQry+= " 	AND F4_DUPLIC = 'S'"+CRLF
+		EndIf    
+	
+	
+		cQry+= " 	WHERE SD2.D_E_L_E_T_ = ' '"+CRLF
+		cQry+= " 	AND D2_EMISSAO BETWEEN '"+Dtos(Mv_Par01)+"' AND '"+Dtos(Mv_Par02)+"' "+CRLF
+		cQry+= " 	AND D2_FILIAL BETWEEN '"+Mv_Par03+"' AND '"+Mv_Par04+"' "+CRLF
+		cQry+= " 	GROUP BY D2_FILIAL,D2_EMISSAO"+CRLF
+		
+		cQry+= " UNION ALL"+CRLF
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณTotal de devolucoes.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		cQry+= " SELECT"+CRLF          
+		cQry+= " 	D1_FILIAL AS TMP_FILIAL"+CRLF
+	//	cQry+= " 	,D1_EMISSAO AS TMP_DATA"+CRLF
+		cQry+= " 	,D1_DTDIGIT AS TMP_DATA"+CRLF
+		cQry+= " 	,0 AS TMP_FAT"+CRLF
+		cQry+= " 	,SUM(D1_TOTAL - D1_VALDESC) AS TMP_DEV"+CRLF
+		cQry+= " 	,0 AS TMP_TOTAL"+CRLF
+		cQry+= " 	FROM "+RetSqlName("SD1")+" SD1 "+CRLF
+		
+		cQry+= "		INNER JOIN "+RetSqlName("SF4")+" SF4"+CRLF
+		cQry+= "			ON F4_FILIAL = '"+xFilial("SF4")+"' AND F4_CODIGO = D1_TES AND SF4.D_E_L_E_T_ = ' '"+CRLF
+	    
+		If mv_par05 == 1
+			cQry+="	AND F4_XESPREL IN ('1','2') "
+			//cQry+= " AND F4_CF IN ('5101','5102','5103','5104','5105','5106','5109','5110','5111','5112','5113','5114','5115','5116','5117','5118','5119','5120','5122','5123'	,'5401','5402','5403','5405','5414','5415','5910','5922','6101','6102','6103','6104','6105','6106','6107','6108','6109','6110','6111','6112','6113','6114','6115'	,'6116','6117','6118','6119','6120','6122','6123','6401','6402','6403','6404','6414','6415','6910','6922','7101','7102','7105','7106','7127')
+			//cQry+= " 	AND F4_DUPLIC = 'S'"+CRLF
+		Else
+			cQry+="	AND F4_XESPREL IN ('1') "
+		//	cQry+= " AND F4_CF IN ('5101','5102','5103','5104','5105','5106','5109','5110','5111','5112','5113','5114','5115','5116','5117','5118','5119','5120','5122','5123'	,'5401','5402','5403','5405','5414','5415','5922','6101','6102','6103','6104','6105','6106','6107','6108','6109','6110','6111','6112','6113','6114','6115'	,'6116','6117','6118','6119','6120','6122','6123','6401','6402','6403','6404','6414','6415','6922','7101','7102','7105','7106','7127')
+		//	cQry+= " 	AND F4_DUPLIC = 'S'"+CRLF
+		EndIf    
+	
+		cQry+= " WHERE SD1.D_E_L_E_T_ = ' '"+CRLF
+	//	cQry+= " 	AND D1_CF IN ('1202','1411','2202','2411')"+CRLF
+		//cQry+= " 	AND D1_TIPO = 'D'"+CRLF
+		//cQry+= " 	AND D1_EMISSAO BETWEEN '"+Dtos(Mv_Par01)+"' AND '"+Dtos(Mv_Par02)+"' "+CRLF
+		cQry+= " 	AND D1_DTDIGIT BETWEEN '"+Dtos(Mv_Par01)+"' AND '"+Dtos(Mv_Par02)+"' "+CRLF
+		cQry+= " 	AND D1_FILIAL BETWEEN '"+Mv_Par03+"' AND '"+Mv_Par04+"' "+CRLF
+		cQry+= " GROUP BY D1_FILIAL,D1_DTDIGIT) AS TMP"+CRLF
+		
+		cQry+= " GROUP BY TMP_FILIAL,TMP_DATA"+CRLF
+		cQry+= " ORDER BY TMP_FILIAL, TMP_DATA"
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณVerifica se o arquivo esta em uso.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		If Select("TRB") > 0
+			TRB->(DbCloseArea())
+		EndIf
+		
+		Memowrite("DHFATR25.SQL",cQry)
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณCria Instancia de trabalho.ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		TcQuery cQry New Alias "TRB"	
+		
+		TcSetField("TRB","TMP_DATA","D")
+	EndIf
+	
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHPReport บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que imprime o relatorio com base nos parametros in-  บฑฑ
+ฑฑบ          ณ-formados pelo usuario.                                     บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHPReport()
+	
+	Local cFil		:= ""
+	
+	If Select("TRB") > 0
+
+		oReport:SetMeter(0)
+		
+		DbSelectArea("TRB")
+		TRB->(DbGoTop())
+		While TRB->(!Eof())
+			
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณCaso ultrapasse o limite de linhas oula para proxima pagina.ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			If nLin > 3100
+				oReport:EndPage()
+				oReport:StartPage()
+				DHImpCb()
+			EndIf
+			
+			If oReport:Cancel()
+			 	Exit
+		  	EndIf              
+			
+			oReport:Say(nLin,0010,DToc(TRB->TMP_DATA),oFont3,,,)	
+			oReport:Say(nLin,1570,Transform(TRB->TMP_TOTAL,"@E 999,999,999.99"),oFont3,,,)
+			nLin+=60	  	
+		  	
+		  	cFil	:= TRB->TMP_FILIAL
+		  	
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณSomatoria dos totais por filial e geral.ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		  	nTotFil	+= TRB->TMP_TOTAL
+			nTotGer	+= TRB->TMP_TOTAL
+			TRB->(DbSkip())
+		    
+			//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+			//ณCaso a Filial seja diferente o rodape sera impresso.ณ
+			//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+			If cFil <> TRB->TMP_FILIAL
+				DHImpRd()
+				If TRB->(!Eof())
+					oReport:EndPage()
+					oReport:StartPage()
+					DHImpCb()			
+				Else
+					nLin+=100                           
+					oPen1 := TBrush():New("",CLR_HRED)
+					oReport:FillRect({nLin-027,0000,nLin+045,4500},oPen1)	
+					oReport:Say(nLin,0010,"TOTAL GERAL : ",oFont1,,,)
+					oReport:Say(nLin,1570,Transform(nTotGer,"@E 999,999,999.99"),oFont3,,,)
+					oReport:Say(nLin-002,0010,Replicate("_",151),oFont2,,,)
+				EndIf	
+			EndIf		  	
+		
+		EndDo	  		
+	EndIf	  		
+	
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHImpCb   บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que faz a impressao do cabecalho do relatorio.       บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHImpCb()
+	    
+	Local cTextFil	:= ""
+	
+	DbSelectArea("SM0")
+	DbSetOrder(1)
+	If DbSeek(cEmpAnt+TRB->TMP_FILIAL)
+		cTextFil:= SM0->M0_CODFIL +" - "+ SM0->M0_FILIAL
+	EndIf
+
+	nLin:= 390
+	
+	oPen1 := TBrush():New("",10223615)
+	oReport:FillRect({0230,0000,0300,4500},oPen1)	
+	
+	oPen2 := TBrush():New("",13619151)
+	oReport:FillRect({0300,0000,0370,4500},oPen2)	
+
+	oReport:Say(0255,0010,"Filial: "+cTextFil,oFont2,,,)
+	oReport:Say(0257,0010,Replicate("_",151),oFont2,,,)
+	oReport:Say(0325,0010,"DATA",oFont1,,,)	
+	oReport:Say(0325,1600,"FATURAMENTO",oFont1,,,)
+	oReport:Say(0325,0010,Replicate("_",151),oFont2,,,)
+	
+Return()            
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHImpRd   บAutor  ณCaio Pereira        บ Data ณ  01/04/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que faz a impressao do rodape.                       บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณDayhome.                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHImpRd()                               
+	
+	oReport:Say(nLin,0010,Replicate("_",151),oFont2,,,)
+	oPen2 := TBrush():New("",13619151)
+	nLin+=50
+	oReport:FillRect({nLin-005,0000,nLin+070,4500},oPen2)	
+	oReport:Say(nLin+025,0010,"TOTAL : ",oFont1,,,)
+	oReport:Say(nLin+025,1570,Transform(nTotFil,"@E 999,999,999.99"),oFont3,,,)
+	oReport:Say(nLin+025,0010,Replicate("_",151),oFont2,,,)
+	
+	nTotFil:= 0
+	
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณAjustaSx1 บAutor  ณCaio Pereira        บ Data ณ  12/30/09   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณFuncao que cria perguntas no arquivo Sx1.                   บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Dayhome.                                                   บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function DHAjustaSx1(cPerg)
+	
+	PutSx1( cPerg, "01", "Emissใo D๊ ?" 	,"","","mv_ch1","D",08,0,0,"G","","   ","","","mv_par01",,,,,,,,,,,,,,,,,{"Emissใo Inicial"	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "02", "Emissใo At้ ?" 	,"","","mv_ch2","D",08,0,0,"G","","   ","","","mv_par02",,,,,,,,,,,,,,,,,{"Emissใo Final"  	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "03", "Filial de ?"	,"","","mv_ch3","C",02,0,0,"G","U_DHR25Vld('1')","SM0","","","mv_par03",,,,,,,,,,,,,,,,,{"Filial De"      	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "04", "Filial At้ ?"	,"","","mv_ch4","C",02,0,0,"G","U_DHR25Vld('2')","SM0","","","mv_par04",,,,,,,,,,,,,,,,,{"Filial Ate"     	,"para considerar na","gera็ใo do relat๓rio."},{},{} )
+	PutSx1( cPerg, "05","Considera Bonificacao ?"	,"","","mv_ch5","N",01,0,1,"C","","","","","mv_par05","Sim","","","","Nใo","","","","","","",,,,,,{"Bonificacao para considerar no filtro."},{},{})
+
+Return(.T.)
+//-------------------------------------------------------------------
+/*{Protheus.doc} DHR25VLD
+Valida a Filial informada no parametro
+
+@author Guilherme Santos
+@since 07/11/2016
+@version P12
+@cParam	1 - MV_PAR03  ou 2 - MV_PAR04
+*/
+//-------------------------------------------------------------------
+User Function DHR25Vld(cParam)
+	Local aEmpresas	:= FWUsrEmp(PswRet()[1][1])
+	Local lParam01	:= .F.
+	Local lParam02	:= .F.
+	Local lRetorno 	:= .F.
+
+	//Se tiver acesso a Empresa libera o Parametro
+	For nI := 1 to Len(aEmpresas)
+		If nI == 1
+			If aEmpresas[nI] == "@@@@"
+				//Acesso a todas as Empresas
+				lRetorno := .T.
+				Exit
+			EndIf
+		EndIf	
+
+		If cParam == "1"
+			If MV_PAR03 == Substr(aEmpresas[nI], 3, 2)
+				lRetorno := .T.
+				Exit
+			EndIf
+		ElseIf cParam == "2"
+			If MV_PAR04 == Substr(aEmpresas[nI], 3, 2)
+				lRetorno := .T.
+				Exit
+			EndIf
+		ElseIf cParam == "3"
+			If MV_PAR03 == Substr(aEmpresas[nI], 3, 2)
+				lParam01 	:= .T.
+			EndIf
+
+			If MV_PAR04 == Substr(aEmpresas[nI], 3, 2)
+				lParam02	:= .T.
+			EndIf
+
+		EndIf
+	Next nI
+
+	If !lRetorno .AND. cParam == "3"
+		If lParam01 .AND. lParam02
+			lRetorno := .T.
+		EndIf
+	EndIf
+
+	If !lRetorno
+		Aviso("DHFATR25", "Usuario sem acesso a Filial informada.", {"Fechar"})
+	EndIf
+
+Return lRetorno

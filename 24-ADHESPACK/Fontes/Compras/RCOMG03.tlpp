@@ -1,0 +1,39 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOMG03        | Autor | Lucas Baia          | Data |    29/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Fonte Customizado para retornar o Nome de Fornecedor na tela de
+//        | Aprovação de Documentos pelo COMPRAS.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function RCOMG03()
+
+Local cTipo     := ""
+Local cNumSC7   := ""
+Local cFornece  := ""
+Local cFornLoja := ""
+Local lRet      := ""
+
+DbSelectArea("SC7")
+SC7->(DbSetOrder(1))
+
+DbSelectArea("SCR")
+SCR->(DbSetOrder(1))
+
+cTipo     := ALLTRIM(SCR->CR_TIPO)
+cNumSC7   := ALLTRIM(SCR->CR_NUM)
+
+IF cTipo $ "PC"
+
+    cFornece    := POSICIONE("SC7",1,xFilial("SC7")+cNumSC7,ALLTRIM("C7_FORNECE"))
+    cFornLoja   := POSICIONE("SC7",1,xFilial("SC7")+cNumSC7,ALLTRIM("C7_LOJA"))
+    lRet        := POSICIONE("SA2",1,xFilial("SA2")+cFornece+cFornLoja,ALLTRIM("A2_NOME"))
+
+ENDIF
+
+
+Return lRet

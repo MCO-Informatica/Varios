@@ -1,0 +1,20 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MA650QTD       | Autor | Lucas Baia          | Data |    18/07/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado durante a Geração de O.P. antes de abrir a
+//        | tela de Empenho dos Pedidos de Vendas.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function MA650QTD()
+
+Local nRet   := 0
+Local nValor := PARAMIXB[1] // Quantidade original
+
+nRet := (nValor+Posicione("SB1",1,xFilial("SB1")+SC6->C6_PRODUTO,"B1_XQTDEMP"))
+
+Return nRet

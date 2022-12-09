@@ -1,0 +1,95 @@
+#Include 'Protheus.ch'
+#INCLUDE "FWMVCDEF.CH" 
+/*/{Protheus.doc} ${DHA00002}
+(Cadastro de CodNome  X Campos Tecnicos)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+User Function DHA00002()
+
+	Local aArea 		:= GetArea()
+
+	Private cCadastro	:= "Cadastro de CodNome  X Campos Tecnicos"
+
+	oBrowse := FWMBrowse():New()
+	oBrowse:SetAlias("Z01")
+	oBrowse:SetDescription(cCadastro)
+	oBrowse:SetUseFilter(.T.)
+	oBrowse:SetUseCaseFilter(.T.)
+
+	oBrowse:Activate()
+	
+	RestArea(aArea)
+Return
+/*/{Protheus.doc} MENUDEF
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function MENUDEF()
+
+	Local aRotina 	:= {} 
+	
+	ADD OPTION aRotina TITLE "Pesquisar" 			   		ACTION "PesqBrw"          	OPERATION 1 ACCESS 0
+	ADD OPTION aRotina TITLE "Visualizar" 			  		ACTION "VIEWDEF.DHA00002"	OPERATION 2 ACCESS 0
+	ADD OPTION aRotina TITLE "Incluir" 			  			ACTION "VIEWDEF.DHA00002"	OPERATION 3 ACCESS 0
+	ADD OPTION aRotina TITLE "Alterar"				 		ACTION "VIEWDEF.DHA00002" 	OPERATION 4 ACCESS 0
+	ADD OPTION aRotina TITLE "Excluir"				 		ACTION "VIEWDEF.DHA00002" 	OPERATION 5 ACCESS 0
+					
+Return aRotina
+/*/{Protheus.doc} MODELDEF
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function ModelDef()
+
+Local oStruZ01 := FWFormStruct(1, "Z01")
+Local oModel	:= MPFormModel():New("MDHA00002",,,) 					
+
+oModel:AddFields("Z01UNICA", ,oStruZ01)
+oModel:GetModel("Z01UNICA"):SetDescription(cCadastro)
+
+Return oModel
+/*/{Protheus.doc} ViewDef
+(long_description)
+@type function
+@author Cris
+@since 31/08/2016
+@version 1.0
+@return ${return}, ${return_description}
+@example
+(examples)
+@see (links_or_references)
+/*/
+Static Function ViewDef()
+
+	Local oModel   := FWLoadModel( 'DHA00002' )
+	Local oStruZ01 := FWFormStruct( 2, 'Z01' )
+	Local oView
+
+		oView := FWFormView():New()
+		oView:SetModel( oModel )
+		oView:AddField( 'VIEW_Z01', oStruZ01, "Z01UNICA")
+		oView:CreateHorizontalBox( 'TELA' , 100 )
+		oView:SetOwnerView( 'VIEW_Z01', 'TELA' )
+	
+Return oView        

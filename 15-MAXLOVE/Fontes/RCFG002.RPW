@@ -1,0 +1,21 @@
+#Include "PROTHEUS.CH"
+
+User Function RCFG002()
+
+_lRet := .F.
+
+
+dbSelectArea("DA1")
+dbSetOrder(1)
+If dbSeek(DA0->DA0_FILIAL+DA0->DA0_CODTAB,.F.)
+    If DA1->DA1_ATIVO$"1"
+        _lRet := .T.
+    else
+        _lRet := .F.
+    EndIf
+
+else
+    _lRet := .F.
+Endif
+
+Return(_lRet)

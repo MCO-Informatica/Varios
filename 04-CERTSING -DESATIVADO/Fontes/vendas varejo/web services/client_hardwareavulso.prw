@@ -1,0 +1,909 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "APWEBSRV.CH"
+
+/* ===============================================================================
+WSDL Location    http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw?WSDL
+Gerado em        01/22/13 12:22:17
+Observações      Código-Fonte gerado por ADVPL WSDL Client 1.110425
+                 Alterações neste arquivo podem causar funcionamento incorreto
+                 e serão perdidas caso o código-fonte seja gerado novamente.
+=============================================================================== */
+
+User Function _NKNPQMN ; Return  // "dummy" function - Internal Use 
+
+/* -------------------------------------------------------------------------------
+WSDL Service WSHARDWAREAVULSOPROVIDER
+------------------------------------------------------------------------------- */
+
+WSCLIENT WSHARDWAREAVULSOPROVIDER
+
+	WSMETHOD NEW
+	WSMETHOD INIT
+	WSMETHOD RESET
+	WSMETHOD CLONE
+	WSMETHOD EXECUTAPEDIDOS
+	WSMETHOD FATURACC
+	WSMETHOD FATURACNAB
+	WSMETHOD GETCONTATO
+	WSMETHOD GETDETALHESPEDIDO
+	WSMETHOD GETEMIGAR
+	WSMETHOD GETLISTADETALHESVOUCHER
+	WSMETHOD GETLISTAPEDIDOSSTATUS
+	WSMETHOD GETLISTAPOSTOS
+	WSMETHOD GETLISTAPRODUTOS
+	WSMETHOD GETPEDIDOPORNUMERO
+	WSMETHOD GETPEDIDOSABERTOS
+	WSMETHOD GETPEDIDOSPORDATA
+	WSMETHOD GETPRODUTO
+	WSMETHOD GETTODOSPEDIDOS
+	WSMETHOD GETVERGAR
+	WSMETHOD GETVLDGAR
+	WSMETHOD RECIBOCNAB
+	WSMETHOD RESETSENHAS
+	WSMETHOD SAVEORUPDATECONTATOS
+	WSMETHOD SAVEORUPDATEPOSTO
+	WSMETHOD SAVEPEDIDOS
+	WSMETHOD UPDATECONFIRMARENTREGAS
+	WSMETHOD UPDATEFORMAPAG
+	WSMETHOD VALIDACONTATO
+	WSMETHOD VALIDAPF
+	WSMETHOD VALIDAPJ
+
+	WSDATA   _URL                      AS String
+	WSDATA   _HEADOUT                  AS Array of String
+	WSDATA   cEXECUTAPEDIDOSRESULT     AS string
+	WSDATA   cXML                      AS string
+	WSDATA   cFATURACCRESULT           AS string
+	WSDATA   cIDPEDIDO                 AS string
+	WSDATA   lIGERARECIBO              AS boolean
+	WSDATA   nVALTITREC				   AS float
+	WSDATA   cIDPEDSITE                AS string
+	WSDATA   cIDNOSSONUM               AS string
+	WSDATA   cDTCRED	               AS string
+	WSDATA   cFATURACNABRESULT         AS string
+	WSDATA   cEMAIL                    AS string
+	WSDATA   cGETCONTATORESULT         AS string
+	WSDATA   cNUMEROPEDIDO             AS string
+	WSDATA   cGETDETALHESPEDIDORESULT  AS string
+	WSDATA   cGETEMIGARRESULT          AS string
+	WSDATA   cGETLISTADETALHESVOUCHERRESULT AS string
+	WSDATA   cGETLISTAPEDIDOSSTATUSRESULT AS string
+	WSDATA   cGETLISTAPOSTOSRESULT     AS string
+	WSDATA   cGETLISTAPRODUTOSRESULT   AS string
+	WSDATA   cGETPEDIDOPORNUMERORESULT AS string
+	WSDATA   cPAGINA                   AS string
+	WSDATA   cQUANTIDADE               AS string
+	WSDATA   cGETPEDIDOSABERTOSRESULT  AS string
+	WSDATA   cDTINICIAL                AS string
+	WSDATA   cDTFINAL                  AS string
+	WSDATA   cGETPEDIDOSPORDATARESULT  AS string
+	WSDATA   cIDPRODUTO                AS string
+	WSDATA   cIDGRUPO                  AS string
+	WSDATA   cGETPRODUTORESULT         AS string
+	WSDATA   cGETTODOSPEDIDOSRESULT    AS string
+	WSDATA   cGETVERGARRESULT          AS string
+	WSDATA   cGETVLDGARRESULT          AS string
+	WSDATA   cRECIBOCNABRESULT         AS string
+	WSDATA   cRESETSENHASRESULT        AS string
+	WSDATA   cSAVEORUPDATECONTATOSRESULT AS string
+	WSDATA   cSAVEORUPDATEPOSTORESULT  AS string
+	WSDATA   cSAVEPEDIDOSRESULT        AS string
+	WSDATA   cUPDATECONFIRMARENTREGASRESULT AS string
+	WSDATA   cUPDATEFORMAPAGRESULT     AS string
+	WSDATA   cSENHA                    AS string
+	WSDATA   cVALIDACONTATORESULT      AS string
+	WSDATA   cCPF                      AS string
+	WSDATA   cVALIDAPFRESULT           AS string
+	WSDATA   cCNPJ                     AS string
+	WSDATA   cVALIDAPJRESULT           AS string
+	
+ENDWSCLIENT
+
+WSMETHOD NEW WSCLIENT WSHARDWAREAVULSOPROVIDER
+::Init()
+If !FindFunction("XMLCHILDEX")
+	UserException("O Código-Fonte Client atual requer os executáveis do Protheus Build [7.00.120420A-20120726] ou superior. Atualize o Protheus ou gere o Código-Fonte novamente utilizando o Build atual.")
+EndIf
+Return Self
+
+WSMETHOD INIT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Return
+
+WSMETHOD RESET WSCLIENT WSHARDWAREAVULSOPROVIDER
+	::cEXECUTAPEDIDOSRESULT := NIL 
+	::cXML               := NIL 
+	::cFATURACCRESULT    := NIL 
+	::cIDPEDIDO          := NIL
+	::lIGERARECIBO		 := NIL
+	::nVALTITREC		 := NIL
+	::cIDPEDSITE         := NIL 
+	::cIDNOSSONUM        := NIL
+	::cDTCRED            := NIL  
+	::cFATURACNABRESULT  := NIL 
+	::cEMAIL             := NIL 
+	::cGETCONTATORESULT  := NIL 
+	::cNUMEROPEDIDO      := NIL 
+	::cGETDETALHESPEDIDORESULT := NIL 
+	::cGETEMIGARRESULT   := NIL 
+	::cGETLISTADETALHESVOUCHERRESULT := NIL 
+	::cGETLISTAPEDIDOSSTATUSRESULT := NIL 
+	::cGETLISTAPOSTOSRESULT := NIL 
+	::cGETLISTAPRODUTOSRESULT := NIL 
+	::cGETPEDIDOPORNUMERORESULT := NIL 
+	::cPAGINA            := NIL 
+	::cQUANTIDADE        := NIL 
+	::cGETPEDIDOSABERTOSRESULT := NIL 
+	::cDTINICIAL         := NIL 
+	::cDTFINAL           := NIL 
+	::cGETPEDIDOSPORDATARESULT := NIL 
+	::cIDPRODUTO         := NIL 
+	::cIDGRUPO           := NIL 
+	::cGETPRODUTORESULT  := NIL 
+	::cGETTODOSPEDIDOSRESULT := NIL 
+	::cGETVERGARRESULT   := NIL 
+	::cGETVLDGARRESULT   := NIL
+	::cRECIBOCNABRESULT  := NIL 
+	::cRESETSENHASRESULT := NIL 
+	::cSAVEORUPDATECONTATOSRESULT := NIL 
+	::cSAVEORUPDATEPOSTORESULT := NIL 
+	::cSAVEPEDIDOSRESULT := NIL 
+	::cUPDATECONFIRMARENTREGASRESULT := NIL 
+	::cUPDATEFORMAPAGRESULT := NIL 
+	::cSENHA             := NIL 
+	::cVALIDACONTATORESULT := NIL 
+	::cCPF               := NIL 
+	::cVALIDAPFRESULT    := NIL 
+	::cCNPJ              := NIL 
+	::cVALIDAPJRESULT    := NIL 
+	::Init()
+Return
+
+WSMETHOD CLONE WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local oClone := WSHARDWAREAVULSOPROVIDER():New()
+	oClone:_URL          := ::_URL 
+	oClone:cEXECUTAPEDIDOSRESULT := ::cEXECUTAPEDIDOSRESULT
+	oClone:cXML          := ::cXML
+	oClone:cFATURACCRESULT := ::cFATURACCRESULT
+	oClone:cIDPEDIDO     := ::cIDPEDIDO
+	oClone:lIGERARECIBO	 := ::lIGERARECIBO
+	oClone:nVALTITREC	 := ::nVALTITREC
+	oClone:cIDPEDSITE    := ::cIDPEDSITE
+	oClone:cIDNOSSONUM   := ::cIDNOSSONUM
+	oClone:cDTCRED       := ::cDTCRED    
+	oClone:cFATURACNABRESULT := ::cFATURACNABRESULT
+	oClone:cEMAIL        := ::cEMAIL
+	oClone:cGETCONTATORESULT := ::cGETCONTATORESULT
+	oClone:cNUMEROPEDIDO := ::cNUMEROPEDIDO
+	oClone:cGETDETALHESPEDIDORESULT := ::cGETDETALHESPEDIDORESULT
+	oClone:cGETEMIGARRESULT := ::cGETEMIGARRESULT
+	oClone:cGETLISTADETALHESVOUCHERRESULT := ::cGETLISTADETALHESVOUCHERRESULT
+	oClone:cGETLISTAPEDIDOSSTATUSRESULT := ::cGETLISTAPEDIDOSSTATUSRESULT
+	oClone:cGETLISTAPOSTOSRESULT := ::cGETLISTAPOSTOSRESULT
+	oClone:cGETLISTAPRODUTOSRESULT := ::cGETLISTAPRODUTOSRESULT
+	oClone:cGETPEDIDOPORNUMERORESULT := ::cGETPEDIDOPORNUMERORESULT
+	oClone:cPAGINA       := ::cPAGINA
+	oClone:cQUANTIDADE   := ::cQUANTIDADE
+	oClone:cGETPEDIDOSABERTOSRESULT := ::cGETPEDIDOSABERTOSRESULT
+	oClone:cDTINICIAL    := ::cDTINICIAL
+	oClone:cDTFINAL      := ::cDTFINAL
+	oClone:cGETPEDIDOSPORDATARESULT := ::cGETPEDIDOSPORDATARESULT
+	oClone:cIDPRODUTO    := ::cIDPRODUTO
+	oClone:cIDGRUPO      := ::cIDGRUPO
+	oClone:cGETPRODUTORESULT := ::cGETPRODUTORESULT
+	oClone:cGETTODOSPEDIDOSRESULT := ::cGETTODOSPEDIDOSRESULT
+	oClone:cGETVERGARRESULT := ::cGETVERGARRESULT
+	oClone:cGETVLDGARRESULT := ::cGETVLDGARRESULT
+	oClone:cRECIBOCNABRESULT := ::cRECIBOCNABRESULT
+	oClone:cRESETSENHASRESULT := ::cRESETSENHASRESULT
+	oClone:cSAVEORUPDATECONTATOSRESULT := ::cSAVEORUPDATECONTATOSRESULT
+	oClone:cSAVEORUPDATEPOSTORESULT := ::cSAVEORUPDATEPOSTORESULT
+	oClone:cSAVEPEDIDOSRESULT := ::cSAVEPEDIDOSRESULT
+	oClone:cUPDATECONFIRMARENTREGASRESULT := ::cUPDATECONFIRMARENTREGASRESULT
+	oClone:cUPDATEFORMAPAGRESULT := ::cUPDATEFORMAPAGRESULT
+	oClone:cSENHA        := ::cSENHA
+	oClone:cVALIDACONTATORESULT := ::cVALIDACONTATORESULT
+	oClone:cCPF          := ::cCPF
+	oClone:cVALIDAPFRESULT := ::cVALIDAPFRESULT
+	oClone:cCNPJ         := ::cCNPJ
+	oClone:cVALIDAPJRESULT := ::cVALIDAPJRESULT
+Return oClone
+
+// WSDL Method EXECUTAPEDIDOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD EXECUTAPEDIDOS WSSEND NULLPARAM WSRECEIVE cEXECUTAPEDIDOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVPED	:= GetNewPar("MV_XWSVPED", "http://192.168.16.113:1002/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<EXECUTAPEDIDOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += "</EXECUTAPEDIDOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/EXECUTAPEDIDOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVPED)
+
+::Init()
+::cEXECUTAPEDIDOSRESULT :=  WSAdvValue( oXmlRet,"_EXECUTAPEDIDOSRESPONSE:_EXECUTAPEDIDOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method FATURACC of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD FATURACC WSSEND cXML WSRECEIVE cFATURACCRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<FATURACC xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</FATURACC>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/FATURACC",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cFATURACCRESULT    :=  WSAdvValue( oXmlRet,"_FATURACCRESPONSE:_FATURACCRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method FATURACNAB of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD FATURACNAB WSSEND cIDPEDIDO,cIDPEDSITE,cIDNOSSONUM,cDTCRED,nVALTITREC,cIDGRUPO WSRECEIVE cFATURACNABRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<FATURACNAB xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("IDPEDIDO", ::cIDPEDIDO, cIDPEDIDO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("IDPEDSITE", ::cIDPEDSITE, cIDPEDSITE , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("IDNOSSONUM", ::cIDNOSSONUM, cIDNOSSONUM , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("DTCRED", ::cDTCRED, cDTCRED , "string", .T. , .F., 0 , NIL, .T.)
+cSoap += WSSoapValue("nVALTITREC", ::nVALTITREC, nVALTITREC , "float", .T. , .F., 0 , NIL, .T.)
+cSoap += WSSoapValue("IDGRUPO", ::cIDGRUPO, cIDGRUPO , "string", .T. , .F., 0 , NIL, .T.)
+cSoap += "</FATURACNAB>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/FATURACNAB",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cFATURACNABRESULT  :=  WSAdvValue( oXmlRet,"_FATURACNABRESPONSE:_FATURACNABRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETCONTATO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETCONTATO WSSEND cEMAIL WSRECEIVE cGETCONTATORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETCONTATO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETCONTATO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETCONTATO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETCONTATORESULT  :=  WSAdvValue( oXmlRet,"_GETCONTATORESPONSE:_GETCONTATORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETDETALHESPEDIDO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETDETALHESPEDIDO WSSEND cEMAIL,cNUMEROPEDIDO WSRECEIVE cGETDETALHESPEDIDORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETDETALHESPEDIDO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("NUMEROPEDIDO", ::cNUMEROPEDIDO, cNUMEROPEDIDO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETDETALHESPEDIDO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETDETALHESPEDIDO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETDETALHESPEDIDORESULT :=  WSAdvValue( oXmlRet,"_GETDETALHESPEDIDORESPONSE:_GETDETALHESPEDIDORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETEMIGAR of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETEMIGAR WSSEND cXML WSRECEIVE cGETEMIGARRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETEMIGAR xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .F.) 
+cSoap += "</GETEMIGAR>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETEMIGAR",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETEMIGARRESULT   :=  WSAdvValue( oXmlRet,"_GETEMIGARRESPONSE:_GETEMIGARRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETLISTADETALHESVOUCHER of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETLISTADETALHESVOUCHER WSSEND NULLPARAM WSRECEIVE cGETLISTADETALHESVOUCHERRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETLISTADETALHESVOUCHER xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += "</GETLISTADETALHESVOUCHER>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETLISTADETALHESVOUCHER",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETLISTADETALHESVOUCHERRESULT :=  WSAdvValue( oXmlRet,"_GETLISTADETALHESVOUCHERRESPONSE:_GETLISTADETALHESVOUCHERRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETLISTAPEDIDOSSTATUS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETLISTAPEDIDOSSTATUS WSSEND NULLPARAM WSRECEIVE cGETLISTAPEDIDOSSTATUSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETLISTAPEDIDOSSTATUS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += "</GETLISTAPEDIDOSSTATUS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETLISTAPEDIDOSSTATUS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETLISTAPEDIDOSSTATUSRESULT :=  WSAdvValue( oXmlRet,"_GETLISTAPEDIDOSSTATUSRESPONSE:_GETLISTAPEDIDOSSTATUSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETLISTAPOSTOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETLISTAPOSTOS WSSEND NULLPARAM WSRECEIVE cGETLISTAPOSTOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETLISTAPOSTOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += "</GETLISTAPOSTOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETLISTAPOSTOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETLISTAPOSTOSRESULT :=  WSAdvValue( oXmlRet,"_GETLISTAPOSTOSRESPONSE:_GETLISTAPOSTOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETLISTAPRODUTOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETLISTAPRODUTOS WSSEND NULLPARAM WSRECEIVE cGETLISTAPRODUTOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETLISTAPRODUTOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += "</GETLISTAPRODUTOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETLISTAPRODUTOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETLISTAPRODUTOSRESULT :=  WSAdvValue( oXmlRet,"_GETLISTAPRODUTOSRESPONSE:_GETLISTAPRODUTOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETPEDIDOPORNUMERO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETPEDIDOPORNUMERO WSSEND cEMAIL,cNUMEROPEDIDO WSRECEIVE cGETPEDIDOPORNUMERORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETPEDIDOPORNUMERO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("NUMEROPEDIDO", ::cNUMEROPEDIDO, cNUMEROPEDIDO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETPEDIDOPORNUMERO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETPEDIDOPORNUMERO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETPEDIDOPORNUMERORESULT :=  WSAdvValue( oXmlRet,"_GETPEDIDOPORNUMERORESPONSE:_GETPEDIDOPORNUMERORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETPEDIDOSABERTOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETPEDIDOSABERTOS WSSEND cEMAIL,cPAGINA,cQUANTIDADE WSRECEIVE cGETPEDIDOSABERTOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETPEDIDOSABERTOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("PAGINA", ::cPAGINA, cPAGINA , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("QUANTIDADE", ::cQUANTIDADE, cQUANTIDADE , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETPEDIDOSABERTOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETPEDIDOSABERTOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETPEDIDOSABERTOSRESULT :=  WSAdvValue( oXmlRet,"_GETPEDIDOSABERTOSRESPONSE:_GETPEDIDOSABERTOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETPEDIDOSPORDATA of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETPEDIDOSPORDATA WSSEND cEMAIL,cPAGINA,cQUANTIDADE,cDTINICIAL,cDTFINAL WSRECEIVE cGETPEDIDOSPORDATARESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETPEDIDOSPORDATA xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("PAGINA", ::cPAGINA, cPAGINA , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("QUANTIDADE", ::cQUANTIDADE, cQUANTIDADE , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("DTINICIAL", ::cDTINICIAL, cDTINICIAL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("DTFINAL", ::cDTFINAL, cDTFINAL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETPEDIDOSPORDATA>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETPEDIDOSPORDATA",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETPEDIDOSPORDATARESULT :=  WSAdvValue( oXmlRet,"_GETPEDIDOSPORDATARESPONSE:_GETPEDIDOSPORDATARESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETPRODUTO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETPRODUTO WSSEND cIDPRODUTO,cIDGRUPO WSRECEIVE cGETPRODUTORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETPRODUTO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("IDPRODUTO", ::cIDPRODUTO, cIDPRODUTO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("IDGRUPO", ::cIDGRUPO, cIDGRUPO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETPRODUTO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETPRODUTO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETPRODUTORESULT  :=  WSAdvValue( oXmlRet,"_GETPRODUTORESPONSE:_GETPRODUTORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETTODOSPEDIDOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETTODOSPEDIDOS WSSEND cEMAIL,cPAGINA,cQUANTIDADE WSRECEIVE cGETTODOSPEDIDOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETTODOSPEDIDOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("PAGINA", ::cPAGINA, cPAGINA , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("QUANTIDADE", ::cQUANTIDADE, cQUANTIDADE , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</GETTODOSPEDIDOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETTODOSPEDIDOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETTODOSPEDIDOSRESULT :=  WSAdvValue( oXmlRet,"_GETTODOSPEDIDOSRESPONSE:_GETTODOSPEDIDOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETVERGAR of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETVERGAR WSSEND cXML WSRECEIVE cGETVERGARRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETVERGAR xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .F.) 
+cSoap += "</GETVERGAR>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETVERGAR",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETVERGARRESULT   :=  WSAdvValue( oXmlRet,"_GETVERGARRESPONSE:_GETVERGARRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method GETVLDGAR of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD GETVLDGAR WSSEND cXML WSRECEIVE cGETVLDGARRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<GETVLDGAR xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .F.) 
+cSoap += "</GETVLDGAR>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/GETVLDGAR",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cGETVLDGARRESULT   :=  WSAdvValue( oXmlRet,"_GETVLDGARRESPONSE:_GETVLDGARRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method FATURACNAB of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD RECIBOCNAB WSSEND cIDPEDIDO,cIDPEDSITE,cIDNOSSONUM,cDTCRED,lIGERARECIBO,nVALTITREC,cIDGRUPO WSRECEIVE cRECIBOCNABRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<RECIBOCNAB xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("IDPEDIDO", ::cIDPEDIDO, cIDPEDIDO , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("IDPEDSITE", ::cIDPEDSITE, cIDPEDSITE , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("IDNOSSONUM", ::cIDNOSSONUM, cIDNOSSONUM , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("DTCRED", ::cDTCRED, cDTCRED , "string", .T. , .F., 0 , NIL, .T.)
+cSoap += WSSoapValue("IGERARECIBO", ::lIGERARECIBO, lIGERARECIBO , "boolean", .T. , .F., 0 , NIL, .T.)
+cSoap += WSSoapValue("nVALTITREC", ::nVALTITREC, nVALTITREC , "float", .T. , .F., 0 , NIL, .T.)
+cSoap += WSSoapValue("IDGRUPO", ::cIDGRUPO, cIDGRUPO , "string", .T. , .F., 0 , NIL, .T.)
+cSoap += "</RECIBOCNAB>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/RECIBOCNAB",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cRECIBOCNABRESULT  :=  WSAdvValue( oXmlRet,"_RECIBOCNABRESPONSE:_RECIBOCNABRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+
+// WSDL Method RESETSENHAS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD RESETSENHAS WSSEND cXML WSRECEIVE cRESETSENHASRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<RESETSENHAS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</RESETSENHAS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/RESETSENHAS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cRESETSENHASRESULT :=  WSAdvValue( oXmlRet,"_RESETSENHASRESPONSE:_RESETSENHASRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method SAVEORUPDATECONTATOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD SAVEORUPDATECONTATOS WSSEND cXML WSRECEIVE cSAVEORUPDATECONTATOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<SAVEORUPDATECONTATOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</SAVEORUPDATECONTATOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/SAVEORUPDATECONTATOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cSAVEORUPDATECONTATOSRESULT :=  WSAdvValue( oXmlRet,"_SAVEORUPDATECONTATOSRESPONSE:_SAVEORUPDATECONTATOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method SAVEORUPDATEPOSTO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD SAVEORUPDATEPOSTO WSSEND cXML WSRECEIVE cSAVEORUPDATEPOSTORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+//Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVFT", "http://192.168.16.131:1310/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<SAVEORUPDATEPOSTO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .F.) 
+cSoap += "</SAVEORUPDATEPOSTO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/SAVEORUPDATEPOSTO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cSAVEORUPDATEPOSTORESULT :=  WSAdvValue( oXmlRet,"_SAVEORUPDATEPOSTORESPONSE:_SAVEORUPDATEPOSTORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method SAVEPEDIDOS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD SAVEPEDIDOS WSSEND cXML WSRECEIVE cSAVEPEDIDOSRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<SAVEPEDIDOS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</SAVEPEDIDOS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/SAVEPEDIDOS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cSAVEPEDIDOSRESULT :=  WSAdvValue( oXmlRet,"_SAVEPEDIDOSRESPONSE:_SAVEPEDIDOSRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method UPDATECONFIRMARENTREGAS of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD UPDATECONFIRMARENTREGAS WSSEND cXML WSRECEIVE cUPDATECONFIRMARENTREGASRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<UPDATECONFIRMARENTREGAS xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</UPDATECONFIRMARENTREGAS>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/UPDATECONFIRMARENTREGAS",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cUPDATECONFIRMARENTREGASRESULT :=  WSAdvValue( oXmlRet,"_UPDATECONFIRMARENTREGASRESPONSE:_UPDATECONFIRMARENTREGASRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method UPDATEFORMAPAG of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD UPDATEFORMAPAG WSSEND cXML WSRECEIVE cUPDATEFORMAPAGRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<UPDATEFORMAPAG xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("XML", ::cXML, cXML , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</UPDATEFORMAPAG>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/UPDATEFORMAPAG",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cUPDATEFORMAPAGRESULT :=  WSAdvValue( oXmlRet,"_UPDATEFORMAPAGRESPONSE:_UPDATEFORMAPAGRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method VALIDACONTATO of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD VALIDACONTATO WSSEND cEMAIL,cSENHA WSRECEIVE cVALIDACONTATORESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<VALIDACONTATO xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("EMAIL", ::cEMAIL, cEMAIL , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += WSSoapValue("SENHA", ::cSENHA, cSENHA , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</VALIDACONTATO>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/VALIDACONTATO",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cVALIDACONTATORESULT :=  WSAdvValue( oXmlRet,"_VALIDACONTATORESPONSE:_VALIDACONTATORESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method VALIDAPF of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD VALIDAPF WSSEND cCPF WSRECEIVE cVALIDAPFRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<VALIDAPF xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("CPF", ::cCPF, cCPF , "string", .T. , .F., 0 , NIL, .F.) 
+cSoap += "</VALIDAPF>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/VALIDAPF",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cVALIDAPFRESULT    :=  WSAdvValue( oXmlRet,"_VALIDAPFRESPONSE:_VALIDAPFRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.
+
+// WSDL Method VALIDAPJ of Service WSHARDWAREAVULSOPROVIDER
+
+WSMETHOD VALIDAPJ WSSEND cCNPJ WSRECEIVE cVALIDAPJRESULT WSCLIENT WSHARDWAREAVULSOPROVIDER
+Local cSoap := "" , oXmlRet
+Local cXWSVVPR	:= GetNewPar("MV_XWSVVPR", "http://192.168.16.10:1803/ws/HARDWAREAVULSOPROVIDER.apw")
+
+BEGIN WSMETHOD
+
+cSoap += '<VALIDAPJ xmlns="http://localhost:8080/wscomprasportal.apw">'
+cSoap += WSSoapValue("CNPJ", ::cCNPJ, cCNPJ , "string", .T. , .F., 0 , NIL, .T.) 
+cSoap += "</VALIDAPJ>"
+
+oXmlRet := SvcSoapCall(	Self,cSoap,; 
+	"http://localhost:8080/wscomprasportal.apw/VALIDAPJ",; 
+	"DOCUMENT","http://localhost:8080/wscomprasportal.apw",,"1.031217",; 
+	cXWSVVPR)
+
+::Init()
+::cVALIDAPJRESULT    :=  WSAdvValue( oXmlRet,"_VALIDAPJRESPONSE:_VALIDAPJRESULT:TEXT","string",NIL,NIL,NIL,NIL,NIL,NIL) 
+
+END WSMETHOD
+
+oXmlRet := NIL
+Return .T.

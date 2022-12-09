@@ -1,0 +1,31 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+
+User Function MTA710OPSC()
+
+ALERT("MTA710OPSC GRAVANDO CENTRO DE CUSTO"+SC2->C2_NUM+" "+SC1->C1_NUM)
+
+//----> PREVISAO DE VENDAS
+If MV_PAR01==1
+    RecLock("SC1",.f.)
+    SC1->C1_CC  :=  SC4->C4_X_CC
+    MsUnLock()
+Else
+    RecLock("SC1",.f.)
+    SC1->C1_CC  :=  SHC->HC_X_CC
+    MsUnLock()
+EndIf
+
+//----> PREVISAO DE VENDAS
+If MV_PAR01==1
+    RecLock("SC2",.f.)
+    SC2->C2_CC  :=  SC4->C4_X_CC
+    MsUnLock()
+Else
+    RecLock("SC2",.f.)
+    SC2->C2_CC  :=  SHC->HC_X_CC
+    MsUnLock()
+EndIf
+
+Return 

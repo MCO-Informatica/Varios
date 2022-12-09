@@ -1,0 +1,99 @@
+#include 'totvs.ch'
+
+/*
+Author: Robert Santos em 12 abr 2012
+Funcao: Deve mostrar a tela de inclusao de chamados e ocorrencias de titulo a receber
+*/                                                                                   
+
+user function dhfinx1()
+          
+// precisa estar com o SE1 aberto e posicionado
+
+Local aArea		:= getArea()
+Local oDlg
+Local nX 		:= 0
+Local nOpcA 	:= 0
+local cse1chv := SE1->(E1_FILIAL+E1_CLIENTE+E1_LOJA+E1_PREFIXO+E1_NUM+E1_PARCELA)
+
+Private aGets	:= {}
+Private aTela	:= {}  
+
+Private bCampo		:= {|nField| FieldName(nField) }
+
+//DIMENSIONAR TELA
+Private aSize		:= {}
+Private aInfo		:= {}
+Private aObj		:= {}
+Private aPObj		:= {}
+Private aPGet		:= {}     
+private inclui := .t.
+
+// posicionar no cliente
+dbselectarea("SA1")
+SA1->(dbsetorder(1))
+SA1->( dbseek(xfilial("SA1")+SE1->(E1_CLIENTE+E1_LOJA)) )
+
+// Retorna a área útil das janelas Protheus
+aSize := MsAdvSize()
+
+// Será utilizado três áreas na janela
+// 1ª - Enchoice
+AADD( aObj, { 100, 200, .T., .F. })
+
+// Cálculo automático da dimensões dos objetos (altura/largura) em pixel
+aInfo := { aSize[1], aSize[2], aSize[3], aSize[4], 3, 3 }
+aPObj := MsObjSize( aInfo, aObj )
+	
+	// Cálculo automático de dimensões dos objetos MSGET
+aPGet := MsObjGetPos( (aSize[3] - aSize[1]), 315, { {004, 024, 240, 270} } )
+
+//EFETUAR INTERFACE DE SIMULACAO DE PRECOS COM USUARIO
+dbSelectArea("SZ1")
+dbSetOrder(1)
+For nX := 1 To FCount()
+	M->&( SZ1->(Eval( bCampo , nX )) ) := CriaVar( FieldName( nX ), .T. )
+Next            
+
+// setar informacoes
+M->Z1_CODCLI  := SE1->E1_CLIENTE
+M->Z1_LOJA    := SE1->E1_LOJA
+M->Z1_NOME    := trim(SA1->A1_NOME)
+M->Z1_NUMTIT  := SE1->E1_NUM
+M->Z1_PARCELA := SE1->E1_PARCELA
+M->Z1_EMAIL   := trim(SA1->A1_EMAIL)
+M->Z1_TELEFON := SA1->A1_TEL
+M->Z1_CONTATO := SA1->A1_CONTATO  
+
+DEFINE MSDIALOG oDlg TITLE "Chamados Ocorrencias x Contas Receber" FROM aSize[7],aSize[1] TO aSize[6],aSize[5] OF oMainWnd PIXEL
+enChoice( "SZ1" , , 3 , , , , , aPObj[1])
+
+ACTIVATE MSDIALOG oDlg ON INIT EnchoiceBar(oDlg , {|| IIF( Obrigatorio( aGets, aTela ), ( nOpcA := 1, oDlg:End() ),NIL) } , {|| oDlg:End() } )
+
+If nOpcA == 1        
+	// Gravar
+	dbSelectArea( "SZ1" )
+	RecLock( "SZ1", .T. )
+	For nX := 1 To FCount()
+		If "FILIAL" $ FieldName( nX )
+			FieldPut( nX, xFilial( "SZ1" ) )
+		Else
+			FieldPut( nX, M->&( Eval( bCampo, nX ) ) )
+		Endif
+	Next nX   
+	SZ1->Z1_SE1 := cse1chv
+	MsUnLock()
+Else
+	RollBackSx8()
+Endif
+
+return nil              `
+                       
+// atualizar chamados e ocorrencias
+user function dhfinx2()
+
+//local cqry
+
+// cqry := "update DADOSADV"+retsqlname("SZ1")+" set Z1_CONCLUI = '3' where Z1_SE1 = '"+SE1->(E1_FILIAL+E1_CLIENTE+E1_LOJA+E1_PREFIXO+E1_NUM+E1_PARCELA)+"' and D_E_L_E_T_ = '' "
+//tcsqlexec( cqry )
+                   
+Return nil

@@ -1,0 +1,14 @@
+
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+
+User Function RESTG04()
+
+_cCodUsr := RetCodUsr()
+_lRet  := .F.
+
+IF _cCodUsr$"000013.000071.000075.000122.000227.000231.000243.000298.000299.000305.000094.000302.000052"
+    _lRet := .T.
+EndIf
+
+Return(_lRet)

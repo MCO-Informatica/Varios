@@ -1,0 +1,98 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | A200GRVE       | Autor | Lucas Baia          | Data |    19/02/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada que é executado nas transações Visualização, Inclusão,
+//        | Alteração e Exclusão.
+//---------------------------------------------------------------------------------
+// Uso    | Adhespack Creative Sampling
+//---------------------------------------------------------------------------------
+// Dicas  | As transações Visualização, Inclusão, Alteração e Exclusão é controlado
+//        | através do ParamIxb[1].
+//---------------------------------------------------------------------------------
+
+
+User Function A200GRVE()
+
+Local aArea     := GetArea()
+Local ExpN1     := ParamIxb[1]
+Local ExpL1     := ParamIxb[2]
+Local ExpA1     := ParamIxb[3]
+Local ExpA2     := ParamIxb[4]
+Local cQuery    := ""
+Local nStatus   := ""
+Local cDB       := "MSSQL/CGA13H_127415_PR_DV"
+Local cSrv      := "10.0.1.3"
+Local nStDB     := ""
+
+
+nStDB   := TCLink(cDB, cSrv, 7891)
+
+IF ExpN1 == 3 // INCLUSÃO
+
+	cQuery := " UPDATE " + RetSQLName( "SG1" )
+	cQuery += " SET G1_DESCR = SB1.B1_DESC "
+	cQuery += " FROM " + RetSQLName( "SG1" ) + " SG1"
+	cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SG1.G1_COD = SB1.B1_COD "
+	cQuery += " WHERE G1_DESCR = ' ' "
+	cQuery += " AND SG1.D_E_L_E_T_ = ' ' "
+	cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+	nStatus    := TCSQLExec( cQuery )
+    if (nStatus < 0)
+        MSGINFO(TCSQLError())
+    endif
+	TcRefresh( 'SG1' )
+	SG1->( dbCommit() )
+
+    cQuery := " UPDATE " + RetSQLName( "SG1" )
+	cQuery += " SET G1_DESC = SB1.B1_DESC "
+	cQuery += " FROM " + RetSQLName( "SG1" ) + " SG1"
+	cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SG1.G1_COMP = SB1.B1_COD "
+	cQuery += " WHERE G1_DESC = ' ' "
+	cQuery += " AND SG1.D_E_L_E_T_ = ' ' "
+	cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+	nStatus    := TCSQLExec( cQuery )
+    if (nStatus < 0)
+        MSGINFO(TCSQLError())
+    endif
+	TcRefresh( 'SG1' )
+	SG1->( dbCommit() )
+
+ELSEIF ExpN1 == 4 // ALTERAÇÃO
+
+    cQuery := " UPDATE " + RetSQLName( "SG1" )
+	cQuery += " SET G1_DESCR = SB1.B1_DESC "
+	cQuery += " FROM " + RetSQLName( "SG1" ) + " SG1"
+	cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SG1.G1_COD = SB1.B1_COD "
+	cQuery += " WHERE G1_DESCR = ' ' "
+	cQuery += " AND SG1.D_E_L_E_T_ = ' ' "
+	cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+	nStatus    := TCSQLExec( cQuery )
+    if (nStatus < 0)
+        MSGINFO(TCSQLError())
+    endif
+	TcRefresh( 'SG1' )
+	SG1->( dbCommit() )
+
+    cQuery := " UPDATE " + RetSQLName( "SG1" )
+	cQuery += " SET G1_DESC = SB1.B1_DESC "
+	cQuery += " FROM " + RetSQLName( "SG1" ) + " SG1"
+	cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SG1.G1_COMP = SB1.B1_COD "
+	cQuery += " WHERE G1_DESC = ' ' "
+	cQuery += " AND SG1.D_E_L_E_T_ = ' ' "
+	cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+	nStatus    := TCSQLExec( cQuery )
+    if (nStatus < 0)
+        MSGINFO(TCSQLError())
+    endif
+	TcRefresh( 'SG1' )
+	SG1->( dbCommit() )
+
+ENDIF
+
+TCUNLink()
+
+RestArea(aArea)
+
+Return

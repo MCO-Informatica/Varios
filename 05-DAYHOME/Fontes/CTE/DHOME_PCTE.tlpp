@@ -1,0 +1,98 @@
+#include "protheus.ch" 
+#include "topconn.ch"
+
+/* 
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ DHOME_PCTE ºAutor  ³ FONTANELLI       º Data ³ 02/05/2017  º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Pesquisa Notas Fiscais nos Lancamentos de CTE              º±±  
+±±º          ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ DAYHOME                                                    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function DHOME_PCTE()
+
+Local _oDlg                                       
+
+Local _oDOC
+Local _oSERIE
+
+Local _Nota  := SPACE(9)
+Local _Serie := SPACE(3)
+
+Local nQTD := 0  
+Local xNOTA := "Notas CTE: "
+
+DEFINE MSDIALOG _oDlg FROM 69,33 TO 160,260 TITLE "Pesquisar" PIXEL OF oMainWnd
+
+@ 011,007 SAY "Nota: " SIZE 20,07 OF _oDlg PIXEL 
+@ 010,027 MSGET _oDOC  VAR _Nota PICTURE "@!" SIZE 50,10 PIXEL OF _oDlg
+
+@ 031,007 SAY "Serie: " SIZE 20,07 OF _oDlg PIXEL 
+@ 030,027 MSGET _oSERIE  VAR _Serie PICTURE "@!" SIZE 25,10 PIXEL OF _oDlg
+
+DEFINE SBUTTON FROM 11, 087 TYPE 1 ENABLE OF _oDlg ACTION ( nOpc1 := 1,_oDlg:End() )
+DEFINE SBUTTON FROM 25, 087 TYPE 2 ENABLE OF _oDlg ACTION ( nOpc1 := 0,_oDlg:End() )
+
+ACTIVATE MSDIALOG _oDlg CENTERED
+
+if nOpc1 == 1
+
+     if !Empty(_Nota) .and. !Empty(_Serie)
+	
+		cQuery := " SELECT F1_FILIAL, F1_DOC, F1_SERIE FROM "+RetSqlName("SF1")+" SF1, "+RetSqlName("SD1")+" SD1"
+		cQuery += "  WHERE SF1.F1_FILIAL = '"+xFilial("SF1")+"'"
+		cQuery += "    AND SF1.F1_ESPECIE = 'CTE'"
+		cQuery += "    AND SF1.D_E_L_E_T_ = ' '"
+		cQuery += "    AND SD1.D1_FILIAL = SF1.F1_FILIAL"   
+		cQuery += "    AND SD1.D1_DOC = SF1.F1_DOC"   
+		cQuery += "    AND SD1.D1_SERIE = SF1.F1_SERIE"   
+		cQuery += "    AND SD1.D1_FORNECE = SF1.F1_FORNECE"  
+		cQuery += "    AND SD1.D1_LOJA = SF1.F1_LOJA"  
+		cQuery += "    AND SD1.D1_NFORI = '"+_Nota+"'"
+		cQuery += "    AND SD1.D1_SERIORI = '"+_Serie+"'"
+		cQuery += "    AND SD1.D_E_L_E_T_ = ' '" 
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"Qry1",.T.,.T.)
+		dbSelectArea("Qry1")
+		Qry1->(dbGoTop())
+		While !Qry1->(Eof())
+			nQTD += 1    
+			xNOTA := xNOTA + alltrim(Qry1->F1_DOC)+"/"+ alltrim(Qry1->F1_SERIE)+"; "
+			Qry1->(DbSkip())
+		EndDo
+		Qry1->(dbCloseArea())   	
+	
+		cQuery := " SELECT ZCT_FILIAL, ZCT_DOC, ZCT_SERIE FROM "+RetSqlName("ZCT")+" "
+		cQuery += "  WHERE ZCT_FILIAL = '"+xFilial("ZCT")+"'"
+		cQuery += "    AND ZCT_ORGNF = '"+_Nota+"'
+		cQuery += "    AND ZCT_ORGSER = '"+_Serie+"'
+		cQuery += "    AND D_E_L_E_T_ = ' ' 
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"Qry1",.T.,.T.)
+		dbSelectArea("Qry1")
+		Qry1->(dbGoTop())
+		While !Qry1->(Eof())
+			nQTD += 1    
+			xNOTA := xNOTA + alltrim(Qry1->ZCT_DOC)+"/"+ alltrim(Qry1->ZCT_SERIE)+"; "
+			Qry1->(DbSkip())
+		EndDo
+		Qry1->(dbCloseArea())   	
+	
+	endif
+
+	if nQTD > 0		
+	   MSGALERT( xNOTA, "Informaativo" ) 
+	else
+	   MSGALERT( "Nota não encontrada!", "Informaativo" ) 
+
+	endif   
+	   
+endif
+		
+Return()

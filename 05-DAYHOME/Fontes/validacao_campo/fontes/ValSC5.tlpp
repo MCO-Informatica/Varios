@@ -1,0 +1,18 @@
+#Include "Protheus.Ch"
+
+User Function ValSC5(cTabela)
+
+local lRet:=.f.
+
+if valtype(cTabela)<>'U'
+	If !Empty(Alltrim(cTabela))
+		lRet:=.T.
+	Else
+		Alert("1: Favor escolher uma Tabela de Preço")
+	EndIf
+else
+	Alert("2: Favor escolher uma Tabela de Preço")
+EndIf
+
+
+Return lRet

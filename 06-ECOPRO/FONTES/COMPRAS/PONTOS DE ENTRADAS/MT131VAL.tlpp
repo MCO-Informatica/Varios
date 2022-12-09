@@ -1,0 +1,21 @@
+#Include 'Protheus.ch'
+
+User Function MT131VAL()
+	Local cMarca := PARAMIXB[1]
+	Local cQuerySC1 := PARAMIXB[2]
+	Local cQuery := ''
+	//Local cMy1Alias := GetNextAlias()
+	Local lRet := .T.
+
+	dbSelectArea("SC1")
+	dbSetOrder(1)
+	// Restringe o uso do produto 1163101
+	cQuery := "UPDATE "+RetSqlName("SC1")+" SC1 SET "
+    cQuery += "SC1.C1_FORNECE =' ', SC1.C1_LOJA = ' ' "
+	cQuery += "WHERE SC1.D_E_L_E_T_ = ' ' "
+    cQuery += "AND SC1.C1_PEDIDO = ' ' "
+	cQuery += "AND " + cQuerySC1
+	TcSqlExec(cQuery)
+
+
+Return lRet

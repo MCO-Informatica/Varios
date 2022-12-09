@@ -1,0 +1,53 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function AtucpoSC6()
+	Local nPProduto	:= Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_PRODUTO"})
+	Local nPQtd		:= Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_QTDVEN"})
+	Local nPoPer		:= Ascan(aHeader, {|x| Alltrim(x[2]) == "C6_OPER"})
+	Local nI			:= 0
+
+	//旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커
+	//� Atualiza os campos da GetDados com os valores previamente salvos �
+	//읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸
+	If (AllTrim(__ReadVar) $ "M->C5_TABELA/M->C5_COMIS1/M->C5_OPER/M->C5_DESC1/M->C5_DESC2/M->C5_DESC3/M->C5_DESC4/M->C5_DESC5")
+		
+		For nI := 1 To Len(aCols)
+
+			n := nI
+			
+			//-->Atualiza Produto
+			M->C6_PRODUTO    := aCols[nI, nPProduto]
+			U_SyEnterCpo("C6_PRODUTO", M->C6_PRODUTO, n)
+			
+			If aCols[nI, nPQtd] > 0
+				//-->Atualiza a Qtd de Vendas
+				M->C6_QTDVEN := aCols[nI, nPQtd]
+				U_SyEnterCpo("C6_QTDVEN", M->C6_QTDVEN, n)
+				
+				//-->Atualiza a Operacao
+				M->C6_OPER	:= aCols[nI, nPoPer]
+				U_SyEnterCpo("C6_OPER", M->C6_OPER, n)
+			Endif
+		Next nI
+
+		n := 1
+		If FunName() = "MATA410"
+			oGetdad:oBrowse:Refresh()
+		EndIf	
+
+	Elseif(AllTrim(__ReadVar) == "M->C6_PRODUTO")
+		M->C6_OPER    := aCols[n,nPOper]
+		U_SyEnterCpo("C6_OPER",   M->C6_OPER,n)
+		
+	Elseif(AllTrim(__ReadVar) == "M->C6_DESCONT")
+		M->C6_OPER    := M->C5_OPER
+		U_SyEnterCpo("C6_OPER",   M->C5_OPER,n)
+		
+		M->C6_QTDVEN := aCols[n,nPQtd]
+		U_SyEnterCpo("C6_QTDVEN", M->C6_QTDVEN,n)
+	Endif
+
+Return(&__ReadVar)
+
+User Function C6GAT()
+Return IsInCallStack("U_AtucpoSC6")

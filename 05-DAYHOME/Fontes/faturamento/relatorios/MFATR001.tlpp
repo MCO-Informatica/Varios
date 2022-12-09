@@ -1,0 +1,663 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "FileIO.CH"
+#INCLUDE "CTBXFUN.CH"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณMFATR001  บ Autor ณ 	Felipe Valenca	 บ Data ณ  08/12/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ Relatorio de Orcamento de Vendedores					      บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function MFATR001()
+
+Local Titulo	:= "Relatorio de Orcamento de Vendas"
+Local Imprime	:= .T.
+
+Private _nPag 	:= 1
+Private nLin	:= 0
+Private lEnd	:= .F.
+Private cPerg	:= "MFATR001"
+Private wnrel	:= "MFATR001" // Coloque aqui o nome do arquivo usado para impressao em disco
+
+//Normal
+oFont08	 := TFont():New("Courier New",06,06,,.F.,,,,.T.,.F.)
+oFont10	 := TFont():New("Courier New",08,08,,.F.,,,,.T.,.F.)
+oFont11  := TFont():New("Courier New",09,09,,.F.,,,,.T.,.F.)
+oFont12  := TFont():New("Courier New",10,10,,.F.,,,,.T.,.F.)
+oFont14	 := TFont():New("Courier New",12,12,,.F.,,,,.T.,.F.)
+oFont16	 := TFont():New("Courier New",14,14,,.F.,,,,.T.,.F.)
+//Negrito
+oFont08N := TFont():New("Courier New",06,06,,.T.,,,,.T.,.F.)
+oFont10N := TFont():New("Courier New",08,08,,.T.,,,,.T.,.F.)
+oFont12N := TFont():New("Courier New",10,10,,.T.,,,,.T.,.F.)
+oFont14N := TFont():New("Courier New",12,12,,.T.,,,,.T.,.F.)
+oFont16N := TFont():New("Courier New",14,14,,.T.,,,,.T.,.F.)
+
+ValidPerg()
+
+If !pergunte(cPerg,.T.)
+	Return
+Endif
+
+oPrn := TMSPrinter():New(Titulo)
+oPrn:Setup()
+
+//oPrn:SetPortrait() //Retrato
+oPrn:SetLandscape()// Paisagem()
+oPrn:StartPage()
+
+Private lEnd := .F.
+Private bBloco := { |lEnd| Orcamento(),Titulo }
+MsAguarde(bBloco,"Aguarde...","Gerando "+Titulo,.T.)
+
+oPrn:Preview()
+oPrn:EndPage()
+oPrn:End()
+
+Return .T.
+
+
+Static Function Orcamento()
+
+Local cBmpPict  := ""
+Local cPathPict := ""
+Local cExtensao := ""
+Local cStartPath := GetSrvProfString("Startpath","")
+Local cPasta	:= ""
+Local cArquiv	:= ""
+Local cPedido	:= ""
+Local nQtdB2	:= 0
+
+Private nTotalPed := 0
+Private nTotal	:= 0
+Private	cRazaoS := ""
+Private	cNome	:= ""
+Private	cContato:= ""
+Private	cFone	:= ""
+Private	cFax	:= ""
+Private	cInscCNP:= ""
+Private	cInscEst:= ""
+Private	cEnderec:= ""
+Private	cCidade := ""
+Private	cCep	:= ""
+Private	cEstado	:= ""
+Private	cBairro	:= ""
+Private cEndEnt	:= ""
+Private cEndCob	:= ""
+
+Private cTransp := ""
+Private cNomeTR	:= ""
+Private cBairrTR:= ""
+Private cMunTR	:= ""
+Private cTelTR	:= ""
+Private cFreteTR:= ""
+
+Private cCondPgt:= ""
+Private cCondP	:= ""
+Private cDescont:= ""
+
+Private cPrevi	:= ""
+Private cDesc	:= ""
+
+Private nDescont := 0
+Private nIPI	 := 0
+Private nIt		 := 1
+
+Private cVend	:= ""
+Private cVend2	:= ""
+Private cTabela	:= ""
+
+Private cLogo      := GetSrvProfString("StartPath","\")+"logoud.bmp"	//FisxLogo("1")
+Private cLogo2     := GetSrvProfString("StartPath","\")+"logofs.bmp"
+Private cProduto	:= ""
+
+Private aRet := {}
+Private aST := {}
+
+cQuery := ""
+cQuery += "SELECT SCK010.CK_TES,SCJ010.CJ_NUM, SCJ010.CJ_EMISSAO, SCJ010.CJ_CLIENTE, SCJ010.CJ_LOJA, SCJ010.CJ_CONDPAG, SCJ010.CJ_TABELA, SCJ010.CJ_TRANSP, "
+cQuery += "SCK010.CK_ITEM, SCK010.CK_PRODUTO, SCK010.CK_UM, SCK010.CK_QTDVEN, SCK010.CK_PRCVEN, SCK010.CK_VALOR, "
+cQuery += "SCK010.CK_DESCRI, SB1010.B1_GRUPO, SB1010.B1_IPI,"
+
+If SB1->(FieldPos("B1_XGRIFE")) > 0
+	cQuery += "SB1010.B1_XGRIFE, "
+EndIf
+
+cQuery += "SBM010.BM_DESC, SB2010.B2_QATU, SB2010.B2_QPEDVEN, "
+cQuery += "SB2010.B2_SALPEDI, SCJ010.CJ_VEND1, SCJ010.CJ_VEND2, SCJ010.CJ_VALIDA, SCK010.CK_ENTREG, SCK010.CK_LOCAL "
+cQuery += "FROM SCJ010 INNER JOIN "
+cQuery += "SCK010 ON SCJ010.CJ_FILIAL = SCK010.CK_FILIAL AND SCJ010.CJ_NUM = SCK010.CK_NUM INNER JOIN "
+cQuery += "SB1010 ON SCK010.CK_PRODUTO = SB1010.B1_COD INNER JOIN "
+cQuery += "SBM010 ON SB1010.B1_GRUPO = SBM010.BM_GRUPO INNER JOIN "
+cQuery += "SB2010 ON SCK010.CK_PRODUTO = SB2010.B2_COD AND SCK010.CK_FILIAL = SB2010.B2_FILIAL AND "
+cQuery += "SCK010.CK_LOCAL = SB2010.B2_LOCAL "
+cQuery += "WHERE (SCJ010.CJ_NUM = '"+Alltrim(MV_PAR01)+"') AND (SCJ010.CJ_FILIAL = '"+XFILIAL('SCJ')+"') AND (SCK010.D_E_L_E_T_ = '') AND (SB2010.D_E_L_E_T_ = '') AND "
+cQuery += "(SBM010.D_E_L_E_T_ = '') AND (SB1010.D_E_L_E_T_ = '') AND (SCJ010.D_E_L_E_T_ = '') "
+cQuery += "ORDER BY SCK010.CK_NUM,SCK010.CK_ITEM "
+
+
+MemoWrite("DHFATR15.SQL",cQuery)
+
+If Select("TRB") > 0
+	dbSelectArea("TRB")
+	dbCloseArea()
+Endif
+
+dbUseArea(.T.,"TOPCOON",TcGenQry(,,cQuery),"TRB",.F.,.T.)
+TcSetField("TRB","CJ_EMISSAO","D",10,0)
+TcSetField("TRB","CJ_VALIDA","D",10,0)
+TcSetField("TRB","CK_ENTREG","D",10,0)
+dbSelectArea("TRB")
+dbGoTop()
+
+If !Eof()
+	_cArea:= GetArea()
+	dbSelectArea("SA1")
+	dbSetOrder(1)
+	dbSeek(xFilial("SA1")+TRB->(CJ_CLIENTE+CJ_LOJA))
+	cRazaoS := SA1->A1_NOME
+	cNome	:= SA1->A1_NREDUZ
+	cContato:= SA1->A1_CONTATO
+	cFone	:= SA1->A1_TEL
+	cFax	:= SA1->A1_FAX
+	cInscCNP:= transform(SA1->A1_CGC,"@R 99.999.999/9999-99")
+	cInscEst:= SA1->A1_INSCR
+	cEnderec:= SA1->A1_END
+	cCidade := SA1->A1_MUN
+	cCep	:= SA1->A1_CEP
+	cEstado	:= SA1->A1_EST
+	cBairro	:= SA1->A1_BAIRRO
+	cTransp := TRB->CJ_TRANSP
+	cCondPgt:= TRB->CJ_CONDPAG
+	cEndEnt	:= SA1->A1_ENDENT
+	cEndCob	:= SA1->A1_ENDCOB
+	RestArea(_cArea)
+	
+	_cArea:= GetArea()
+	dbSelectArea("SA4")
+	dbSetOrder(1)
+	dbSeek(xFilial()+cTransp)
+	cNomeTR	:= SA4->A4_NOME
+	cBairrTR:= SA4->A4_BAIRRO
+	cMunTR	:= SA4->A4_MUN
+	cTelTR	:= SA4->A4_TEL
+	cFreteTR:= SA4->A4_RATFRE
+	RestArea(_cArea)
+	
+	_cArea:= GetArea()
+	dbSelectArea("SE4")
+	dbSetOrder(1)
+	dbSeek(xFilial()+cCondPgt)
+	cCondP	:= SE4->E4_DESCRI
+	cDescont:= SE4->E4_DESCFIN
+	
+	_cArea := GetArea()
+	dbSelectArea("SA3")
+	dbSetOrder(1)
+	dbSeek(xFilial("SA3")+TRB->CJ_VEND1)
+	cVend	:= SA3->A3_NREDUZ
+	RestArea(_cArea)
+	
+	_cArea := GetArea()
+	dbSelectArea("SA3")
+	dbSetOrder(1)
+	dbSeek(xFilial("SA3")+TRB->CJ_VEND2)
+	cVend2	:= SA3->A3_NREDUZ
+	RestArea(_cArea)
+	
+	cTabela := TRB->CJ_TABELA
+	
+		
+	fCabeca()
+	
+	Do While !TRB->(Eof())
+		
+		cPrevi  := "SEM ESTOQUE"
+		_cArea	:= GetArea()
+		dbSelectArea("SB2")
+		dbSetOrder(1)
+		dbSeek(xFilial("SB2")+TRB->(CK_PRODUTO+CK_LOCAL))
+		nQtdB2 := SB2->B2_QATU - (SB2->B2_QPEDVEN + SB2->B2_RESERVA)
+		//SALDOSB2() - TRB->B2_QPEDVEN
+		RestArea(_cArea)
+		
+		If TRB->CK_QTDVEN <= nQtdB2  
+		
+			cPrevi := "EM ESTOQUE"
+		
+		Else
+			dbSelectArea("SC7")
+			dbSetOrder(4)
+			If dbSeek(xFilial("SC7")+TRB->CK_PRODUTO,.F.) // C7_FILIAL+C7_PRODUTO+C7_NUM+C7_ITEM+C7_SEQUEN
+				While !Eof() .and. SC7->C7_PRODUTO == TRB->CK_PRODUTO
+					
+					If SC7->C7_QUJE < SC7->C7_QUANT
+						
+						cPrevi := DTOC(SC7->C7_DATPRF)
+						
+						Exit
+						
+					EndIf
+					
+					dbSelectArea("SC7")
+					dbSkip()
+					
+				EndDo
+				
+			EndIf
+		Endif
+		
+		
+		_cArea:= GetArea()
+		dbSelectArea("SBM")
+		dbSetOrder(1)
+		dbSeek(xFilial("SBM")+TRB->B1_GRUPO)
+		cDesc := SubStr(SBM->BM_DESC,1,AT("LINHA",SBM->BM_DESC)-1)
+		
+		UpdProd(Alltrim(TRB->CK_PRODUTO))
+		
+		cPedido := TRB->CJ_NUM
+		cPasta  := "imagens em bx\"
+		cArquiv := Alltrim(cProduto)+".jpg"
+		cBmpPict := cStartPath+cPasta+cArquiv
+		
+		oPrn:Box(nLin,0055,nLin+150,0260)
+		oPrn:Box(nLin,0260,nLin+150,0770)
+		oPrn:Box(nLin,0770,nLin+150,1270)
+		oPrn:Box(nLin,1270,nLin+150,1940)
+		oPrn:Box(nLin,1940,nLin+150,2050)
+		oPrn:Box(nLin,2050,nLin+150,2410)
+		oPrn:Box(nLin,2410,nLin+150,2700)
+		oPrn:Box(nLin,2700,nLin+150,2940)
+		oPrn:Box(nLin,2940,nLin+150,3200)
+		
+		_nPrUnit := TRB->CK_PRCVEN * Iif(TRB->B1_IPI>0, (1+(TRB->B1_IPI/100)),1)
+		_nTotal  := TRB->CK_QTDVEN * _nPrUnit
+		
+		aST := ORCST(TRB->CK_PRODUTO,TRB->CK_TES,TRB->CJ_CLIENTE,TRB->CJ_LOJA,TRB->CK_ITEM)
+		
+		oPrn:SayBitmap(nLin+10,0110,cBmpPict,140,140)
+
+		If SB1->(FieldPos("B1_XGRIFE")) > 0
+			If Empty(TRB->B1_XGRIFE)
+				oPrn:Say(nLin+60,0320, Substr(cDesc,1,23)							, oFont10)
+			Else
+				oPrn:Say(nLin+60,0320, Substr(TRB->B1_XGRIFE,1,23)				, oFont10)
+			EndIf
+		Else
+			oPrn:Say(nLin+60,0320, Substr(cDesc,1,23)							, oFont10)
+		EndIf
+		oPrn:Say(nLin+60,0790, TRB->CK_PRODUTO								, oFont10)
+		oPrn:Say(nLin+60,1290, Substr(TRB->CK_DESCRI,1,30)					, oFont10)
+		oPrn:Say(nLin+60,1770, Str(TRB->CK_QTDVEN)							, oFont10)
+		oPrn:Say(nLin+60,2160, TRANSFORM(_nPrUnit, "@E 999,999,999.99")		, oFont10)
+		oPrn:Say(nLin+60,2470, TRANSFORM(_nTotal, "@E 999,999,999.99")		, oFont10)
+		//oPrn:Say(nLin+60,2640, Iif(xFilial("SCJ")= "01",Transform(aST[3],"@E 999,999,999.99"),Transform(0,"@E 999,999,999.99"))				, oFont10)
+		oPrn:Say(nLin+60,2640, Transform(aST[3],"@E 999,999,999.99")		, oFont10)
+		oPrn:Say(nLin+60,3030, cPrevi										, oFont10)
+		//		oPrn:Say(nLin,2060, Iif(nQtdB2 > 0, "EM ESTOQUE",DtoC(TRB->PREVISAO)), oFont10)
+		nLin += 150
+		fVerifLin()
+//		nLin += 150
+		
+		nTotalPed 	+= _nTotal + aST[3]
+		nTotal  	+= 0
+		nDescont 	+= 0
+		nIpi		+= 0
+		
+		TRB->(dbSkip())
+	EndDo
+	
+	fRodape()
+Else
+	MsgAlert("O or็amento "+mv_par01+" nใo existe nesta filial.","Atencao!")
+	
+EndIf
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณfCabeca   บAutor  ณFelipe Valenca      บ Data ณ  08/10/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณCabecalho                                                   บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+
+Static Function fCabeca()
+
+If cFilAnt = '01'
+	oPrn:SayBitmap(nLin+50,0055,cLogo,220,220)
+	oPrn:Say(nLin+50,0400, ALLTRIM(SM0->M0_ENDCOB)+" - "+ALLTRIM(SM0->M0_BAIRCOB)+" - "+ALLTRIM(SM0->M0_CIDCOB)+" - "+SM0->M0_ESTCOB+" - CEP "+SM0->M0_CEPCOB, oFont12) //CJ_EMISSAO
+	nLin += 50
+	oPrn:Say(nLin+50,0400, "TEL/FAX: 11 "+ ALLTRIM(SM0->M0_TEL)+" - dayhome@dayhome.com.br - www.dayhome.com.br", oFont12) //CJ_EMISSAO
+
+Else
+	oPrn:SayBitmap(nLin+50,0055,cLogo2,220,220)
+	oPrn:Say(nLin+50,0400, ALLTRIM(SM0->M0_ENDCOB)+" - "+ALLTRIM(SM0->M0_BAIRCOB)+" - "+ALLTRIM(SM0->M0_CIDCOB)+" - "+SM0->M0_ESTCOB+" - CEP "+SM0->M0_CEPCOB, oFont12) //CJ_EMISSAO
+	nLin += 50
+	oPrn:Say(nLin+50,0400, "TEL/FAX: 11 "+ ALLTRIM(SM0->M0_TEL)+" - dayhome@dayhome.com.br - www.dayhome.com.br", oFont12) //CJ_EMISSAO
+EndIf	
+
+nLin += 100
+//oPrn:Say(nLin,0055, Replicate("_",130), oFont14N)
+nLin += 50
+//oPrn:Say(nLin,1500, "RELATORIO DE ORCAMENTO DE VENDAS", oFont14N)
+//oPrn:Say(nLin,0055, Replicate("_",130), oFont14N)
+nLin+= 50
+oPrn:Box(nLin,0055,nLin+400,3200) //2300
+oPrn:Say(nLin,0055, "Orcamento de Venda No: "+ TRB->CJ_NUM , oFont14N)
+oPrn:Say(nLin,0900, "Emissao: "+ DTOC(TRB->CJ_EMISSAO), oFont12) //CJ_EMISSAO
+oPrn:Say(nLin,1800, "Entrada: "+ DTOC(TRB->CK_ENTREG) , oFont12) //CK_ENTREG
+oPrn:Say(nLin,2500, "Limite "+ DTOC(TRB->CJ_VALIDA) , oFont12)   //CJ_VALIDA
+oPrn:Say(nLin,2850, "Pag."+ Alltrim(Str(_nPag)), oFont12)   //CJ_VALIDA
+nLin += 50
+oPrn:Say(nLin,0055, "Pedido do Cliente: " , oFont12)
+//oPrn:Say(nLin,0800, "Filial: " + cFilAnt, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Razao Social: "+ cRazaoS, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Nome Fantasia: "+ cNome , oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Contato: "+ cContato , oFont12)
+oPrn:Say(nLin,1250, "Fone: " + cFone , oFont12)
+oPrn:Say(nLin,2150, "Fax: " + cFax, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Insc. CNPJ: "+ cInscCNP, oFont12)
+oPrn:Say(nLin,1250, "Insc. Est.: "+ cInscEst , oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Endereco: "+ cEnderec , oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Cidade: "+ cCidade, oFont12)
+oPrn:Say(nLin,1250, "Estado: "+ cEstado , oFont12)
+oPrn:Say(nLin,2150, "Cep: "+ cCep , oFont12)
+oPrn:Say(nLin,2900, "Bairro: "+ cBairro , oFont12)
+//-----------------------------------------
+nLin += 50
+oPrn:Box(nLin,0055,nLin+100,3200)
+oPrn:Say(nLin,0055, "Transportadora: "+cNomeTR , oFont12)
+oPrn:Say(nLin,1250, "Bairro: "+cBairrTR , oFont12)
+oPrn:Say(nLin,2150, "Cidade: "+cMunTR , oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Telefone: "+cTelTR , oFont12)
+oPrn:Say(nLin,1250, "Frete: "+cFreteTR , oFont12)
+//-----------------------------------------
+nLin += 50
+oPrn:Box(nLin,0055,nLin+150,3200)
+oPrn:Say(nLin,0055, "Cond. Pagto.: "+ cCondP , oFont12)
+//oPrn:Say(nLin,0800, "% Desconto: " + Alltrim(Str(cDescont)), oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Local de Entrega: "+ Alltrim(cEndEnt) , oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Local de Cobranca: "+ Alltrim(cEndCob) , oFont12)
+//-----------------------------------------
+nLin+= 50
+oPrn:Box(nLin,0055,nLin+50,3200)
+
+oPrn:Say(nLin,0065, "IMAGEM"		, oFont10N)
+oPrn:Say(nLin,0320, "GRIFE"			, oFont10N)
+oPrn:Say(nLin,0800, "REFERENCIA"	, oFont10N)
+oPrn:Say(nLin,1300, "DESCRICAO"		, oFont10N)
+oPrn:Say(nLin,1950, "QTD"			, oFont10N)
+oPrn:Say(nLin,2090, "PRC.UNT"		, oFont10N)
+oPrn:Say(nLin,2450, "TOTAL"			, oFont10N)
+oPrn:Say(nLin,2740, "ST"			, oFont10N)
+oPrn:Say(nLin,2980, "PREVISAO"		, oFont10N)		
+nLin += 50
+Return
+
+Static Function fCabeca2()
+
+If cFilAnt = '01'
+	oPrn:SayBitmap(nLin+50,0055,cLogo,220,220)
+	oPrn:Say(nLin+50,0400, ALLTRIM(SM0->M0_ENDCOB)+" - "+ALLTRIM(SM0->M0_BAIRCOB)+" - "+ALLTRIM(SM0->M0_CIDCOB)+" - "+SM0->M0_ESTCOB+" - CEP "+SM0->M0_CEPCOB, oFont12) //CJ_EMISSAO
+	nLin += 50
+	oPrn:Say(nLin+50,0400, "TEL/FAX: 11 "+ ALLTRIM(SM0->M0_TEL)+" - dayhome@dayhome.com.br - www.dayhome.com.br", oFont12) //CJ_EMISSAO
+
+Else
+	oPrn:SayBitmap(nLin+50,0055,cLogo2,220,220)
+	oPrn:Say(nLin+50,0400, ALLTRIM(SM0->M0_ENDCOB)+" - "+ALLTRIM(SM0->M0_BAIRCOB)+" - "+ALLTRIM(SM0->M0_CIDCOB)+" - "+SM0->M0_ESTCOB+" - CEP "+SM0->M0_CEPCOB, oFont12) //CJ_EMISSAO
+	nLin += 50
+	oPrn:Say(nLin+50,0400, "TEL/FAX: 11 "+ ALLTRIM(SM0->M0_TEL)+" - dayhome@dayhome.com.br - www.dayhome.com.br", oFont12) //CJ_EMISSAO
+EndIf	
+
+nLin += 100
+//oPrn:Say(nLin,0055, Replicate("_",130), oFont14N)
+//nLin += 50
+//oPrn:Say(nLin,1500, "RELATORIO DE ORCAMENTO DE VENDAS", oFont14N)
+//oPrn:Say(nLin,0055, Replicate("_",130), oFont14N)
+//nLin+= 50
+oPrn:Say(nLin,0055, "Orcamento de Venda No: "+ TRB->CJ_NUM , oFont14N)
+oPrn:Say(nLin,0900, "Emissao: "+ DTOC(TRB->CJ_EMISSAO), oFont12) //CJ_EMISSAO
+oPrn:Say(nLin,1800, "Entrada: "+ DTOC(TRB->CK_ENTREG) , oFont12) //CK_ENTREG
+oPrn:Say(nLin,2500, "Limite "+ DTOC(TRB->CJ_VALIDA) , oFont12)   //CJ_VALIDA
+oPrn:Say(nLin,2850, "Pag."+ Str(_nPag), oFont12)   //CJ_VALIDA
+nLin += 50
+oPrn:Box(nLin,0055,nLin+50,3200)
+
+oPrn:Say(nLin,0065, "IMAGEM"		, oFont10N)
+oPrn:Say(nLin,0320, "GRIFE"			, oFont10N)
+oPrn:Say(nLin,0800, "REFERENCIA"	, oFont10N)
+oPrn:Say(nLin,1300, "DESCRICAO"		, oFont10N)
+oPrn:Say(nLin,1950, "QTD"			, oFont10N)
+oPrn:Say(nLin,2090, "PRC.UNT"		, oFont10N)
+oPrn:Say(nLin,2450, "TOTAL"			, oFont10N)
+oPrn:Say(nLin,2740, "ST"			, oFont10N)
+oPrn:Say(nLin,2980, "PREVISAO"		, oFont10N)		
+nLin += 50
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณfRodape   บAutor  ณFelipe Valenca      บ Data ณ  08/10/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณRodape	                                                  บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function fRodape()
+
+If nLin > 1800
+	nLin := 3101
+	fVerifLin()
+Endif
+nLin += 100
+oPrn:Box(nLin,0055,nLin+100,3200)
+oPrn:Say(nLin,2350, "Total do Orcamento: "+ TRANSFORM(nTotalPed, "@E 999,999,999.99")  	, oFont12)
+nLin += 50
+//oPrn:Say(nLin,1500, "Desc. Pagto.   : "+ TRANSFORM(nDescont, "@E 999,999,999.99") 		, oFont12)
+
+//oPrn:Say(nLin,1500, "Sub-Total      : "+ TRANSFORM(nTotalPed - nDescont, "@E 999,999,999.99"), oFont12)
+
+//oPrn:Say(nLin,1500, "Encargo        : "+"          0,00"			, oFont12)
+
+//oPrn:Say(nLin,1500, "IPI            : "+TRANSFORM(nIPI, "@E 999,999,999.99")					, oFont12)
+
+//oPrn:Say(nLin,1500, "Valor Total    : "+ TRANSFORM(nTotal, "@E 999,999,999.99") 		, oFont12)
+//------------------------------------------------------
+nLin+=50
+oPrn:Box(nLin,0055,nLin+250,3200)
+oPrn:Say(nLin,0055, "Vendedor 1  : "+ cVend 		, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Vendedor 2	 : "+ cVend2 		, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Tabela de Preco: "+ cTabela 		, oFont12)
+oPrn:Say(nLin,2750, Replicate("_",20), oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "Aprovador Por: " 		, oFont12)
+oPrn:Say(nLin,2830, "Aprovado " 		, oFont12)
+nLin += 50
+oPrn:Say(nLin,0055, "IMPORTANTE: Informa็๕es faltantes ou cadastradas erroneamente, favor retificar e nos comunicar " 		, oFont12)
+Return
+
+Static Function UpdProd(cProd)
+
+Local nX := 0
+Local nLen := Len(Alltrim(cProd))
+
+cProduto := cProd
+
+For nX := 1 to nLen
+	If Substr(cProd,nX,1) == "/"
+		cProduto := Substr(cProd,1,nX-1)+"%"+Substr(cProd,nX+1,nLen-nX)
+	Endif
+Next
+
+Return (cProduto)                                                                   
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  |fVerifLin บAutor  ณFelipe Valenca      บ Data ณ  15/10/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณVerificacao de linha                                        บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Marine Express                                             บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function fVerifLin()
+
+//SetLandscape
+//If nLin > 2500
+
+//SetPortrait
+If nLin > 1800 //3400
+	oPrn:EndPage()
+	oPrn:StartPage()
+	_nPag += 1
+	nLin:= 0
+	fCabeca2()
+	nLin := 250 //455
+//	nLin := 900 //455
+Endif
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณValidPerg บAutor  ณFelipe Valenca      บ Data ณ  15/10/10   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณArquivo de Perguntas                                        บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Marine Express                                             บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+*---------------------------------*
+Static Function ValidPerg()
+*---------------------------------*
+Local _sAlias := Alias()
+Local aRegs := {}
+Local i,j
+
+DBSelectArea("SX1") ; DBSetOrder(1)
+cPerg := PADR(cPerg,10)
+
+// Grupo/Ordem/Pergunta/Variavel/Tipo/Tamanho/Decimal/Presel/GSC/Valid/Var01/Def01/Cnt01/Var02/Def02/Cnt02/Var03/Def03/Cnt03/Var04/Def04/Cnt04/Var05/Def05/Cnt05
+AADD(aRegs,{cperg,"01","Orcamento		:"	,"","","mv_ch1","C", 8,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+For i:=1 to Len(aRegs)
+	If !dbSeek(cPerg+aRegs[i,2])
+		
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			EndIf
+		Next
+		MsUnlock()
+		
+		
+	EndIf
+Next
+DBSelectArea(_sAlias)
+
+Return
+
+Static Function ORCST(cProd,cTES,cClien,cLoj,cItem)
+//*****************************************************************************
+
+Local aArea	:= GetArea()
+Local aRet	:= {}
+Local nALIQICM := 0
+
+dbSelectArea("SA1")
+dbSetOrder(1)
+dbSeek(xFilial("SA1")+cClien+cLoj,.F.)
+
+MaFisIni(SA1->A1_COD,;			              // 1-Codigo Cliente/Fornecedor
+		SA1->A1_LOJA,;		                  // 2-Loja do Cliente/Fornecedor
+		"C",;							      // 3-C:Cliente , F:Fornecedor
+		"N",;				                  // 4-Tipo da NF
+		SA1->A1_TIPO,;		//			SA1->A1_TIPO,;			// 5-Tipo do Cliente/Fornecedor
+		MaFisRelImp("MT100",{"SF2","SD2"}),; // 6-Relacao de Impostos que suportados no arquivo
+		,;							          // 7-Tipo de complemento
+		,;							          // 8-Permite Incluir Impostos no Rodape .T./.F.
+		"SB1",;					              // 9-Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
+		"MTR700")					          // 10-Nome da rotina que esta utilizando a funcao
+
+RestArea(aArea)
+
+
+MaFisAdd(cProd,; 				  // 1-Codigo do Produto ( Obrigatorio )
+cTes,;					  // 2-Codigo do TES ( Opcional )
+TRB->CK_QTDVEN,;  //1,;				              // 3-Quantidade ( Obrigatorio )
+TRB->CK_PRCVEN,;  //1,;		                      // 4-Preco Unitario ( Obrigatorio )
+0,;                           // 5-Valor do Desconto ( Opcional )
+,;							  // 6-Numero da NF Original ( Devolucao/Benef )
+,;							  // 7-Serie da NF Original ( Devolucao/Benef )
+,;					          // 8-RecNo da NF Original no arq SD1/SD2
+0,;							  // 9-Valor do Frete do Item ( Opcional )
+0,;							  // 10-Valor da Despesa do item ( Opcional )
+0,;            				  // 11-Valor do Seguro do item ( Opcional )
+0,;							  // 12-Valor do Frete Autonomo ( Opcional )
+TRB->CK_VALOR,;  //1,;                           // 13-Valor da Mercadoria ( Obrigatorio )
+0,;							  // 14-Valor da Embalagem ( Opiconal )
+0,;		     				  // 15-RecNo do SB1
+0) 							  // 16-RecNo do SF4
+
+
+aAdd(aRet,MaFisRet(1,"IT_ALIQICM"))
+aAdd(aRet,MaFisRet(1,"IT_ALIQIPI"))
+aAdd(aRet,MaFisRet(1,"IT_VALSOL"))
+
+MaFisEnd()
+
+RestArea(aArea)
+
+Return(aRet) // PVImp()

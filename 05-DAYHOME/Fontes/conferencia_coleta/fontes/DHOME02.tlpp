@@ -1,0 +1,157 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ DHOME02  ºAutor  ³FONTANELLI          º Data ³  01/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Tela Fim da Separação                                      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+                                                    
+
+User Function DHOME02()                                          
+
+Local oButton1
+Local oButton2
+Local oGroup1
+Local oSay1
+Local oSay2
+Local oSay3                          
+Local oSay4                          
+Static oDlg
+Public  oGet1
+Public  oGet2
+Public  oGet3
+Public  oGet4
+Public  cGet1 := SPACE(06)
+Public  cGet2 := SPACE(30)
+Public  cGet3 := dDataBase
+Public  cGet4 := Substr(Time(),1,5) 
+
+if !(cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+	Aviso("Aviso", GetMv("MV_MENCONF"),{"OK"})   
+	Return()
+endif
+
+DEFINE MSDIALOG oDlg TITLE "F I M - SEPARAÇÃO" FROM 000, 000  TO 305, 400 COLORS 0, 16777215 PIXEL
+
+    @ 003, 004 GROUP oGroup1 TO 134, 196 PROMPT " I N F O R M E" OF oDlg COLOR 0, 16777215 PIXEL
+    @ 136, 118 BUTTON oButton1 PROMPT "G R A V A R" SIZE 037, 012 OF oDlg PIXEL ACTION (U_DHOME02G(cGet1,cGet2,cGet3,cGet4),oDlg:End()) 
+    @ 136, 159 BUTTON oButton2 PROMPT "S A I R" SIZE 037, 012 OF oDlg PIXEL ACTION (oDlg:End())
+    @ 020, 011 SAY oSay1 PROMPT "Pedido" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 028, 011 MSGET oGet1 VAR cGet1 F3 "SC5" WHEN .T. VALID (U_DHOME02V(cGet1)) SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 045, 011 SAY oSay2 PROMPT "Separador" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 053, 011 MSGET oGet2 VAR cGet2 F3 "ZZ3" WHEN .T. SIZE 150, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 070, 011 SAY oSay3 PROMPT "Data" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 078, 011 MSGET oGet3 VAR cGet3 WHEN .F. SIZE 040, 010 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 095, 011 SAY oSay4 PROMPT "Hora" SIZE 025, 007 OF oDlg COLORS 0, 16777215 PIXEL
+    @ 103, 011 MSGET oGet4 VAR cGet4 WHEN .F. SIZE 030, 010 OF oDlg COLORS 0, 16777215 PIXEL 
+    
+  ACTIVATE MSDIALOG oDlg CENTERED 
+
+Return                                                               
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME02V ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Valida Pedido                                               ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME02V(cGet1)     
+ 
+	lRet := .T.
+
+	IF !Empty(cGet1)
+ 
+		dbSelectArea("SC5")
+		dbSetOrder(1)
+		SC5->(DbGoTop())       
+		if dbSeek(xFilial("SC5")+cGet1)  
+			if SC5->C5_XSTATUS == "SEP"
+			   lRet := .T.
+			else
+				Aviso("Aviso","PEDIDO: "+cGet1+", não esta em SEPARAÇÃO !", {"OK"})   
+				lRet := .F.
+			endif
+		else
+			Aviso("Aviso","PEDIDO: "+cGet1+", não existe !", {"OK"})   
+			lRet := .F.
+		endif
+
+    endif
+
+Return(lRet)
+
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ DHOME02G ³ Autor ³FONTANELLI             ³ Data ³ 01/12/14 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Grava Fim Separação                                         ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+User Function DHOME02G(cGet1,cGet2,cGet3,cGet4)     
+         
+	if Empty(cGet1)
+		Aviso("Aviso","Pedido NÃO informado !", {"OK"})   
+	else
+	
+		//Caso já exista NOTA na tabela ZZ2
+		cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+		cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+		cQuery += "   AND ZZ2_NUM = '"+SC5->C5_NUM+"' "
+		cQuery += "   AND ZZ2_NOTA <> ' ' "
+		cQuery += "   AND D_E_L_E_T_ = '' "
+		cQuery := ChangeQuery(cQuery)
+		dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+		dbSelectArea("QryZZ2")
+		dbGoTop()
+		nQTDNOTA := 0
+		While !QryZZ2->(Eof())
+			nQTDNOTA += 1
+			QryZZ2->(DbSkip())
+		EndDo
+		QryZZ2->(dbCloseArea())	
+
+	    if nQTDNOTA = 0       
+			if Alltrim(upper(cGet2)) == Alltrim(upper(SC5->C5_XSUSER))
+				RecLock("SC5",.f.)
+				SC5->C5_XSTATUS := "CON"
+				SC5->C5_XSDTFIN := cGet3
+				SC5->C5_XSHRFIN := cGet4
+				SC5->(msunlock())
+				Aviso("Aviso","Gravado fim da separação, PEDIDO: "+cGet1+" !", {"OK"})   
+				u_DAYHOME11(SC5->C5_NUM)
+			else
+				Aviso("Aviso","Erro, Separador que esta finalizando não e o mesmo que iniciou a Separação !", {"OK"})   
+			endif
+		else
+			RecLock("SC5",.f.)
+			SC5->C5_XSTATUS := "CON"
+			SC5->C5_CONFST  := "1"
+	   		SC5->C5_COLST   := "1"  
+			SC5->(msunlock())
+			u_DAYHOME11(SC5->C5_NUM)
+		endif
+			
+	endif
+	
+Return
+

@@ -1,0 +1,49 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | SD1100E          | Autor | Lucas Baia          | Data |    04/11/2021			
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado uma vez para cada item do Documento de
+//        | Entrada que está sendo excluída.
+//---------------------------------------------------------------------------------
+// Uso    | MAXLOVE - MAX BELLE COMERCIO DE COSMETICOS LTDA - ME
+//---------------------------------------------------------------------------------
+// Link   | https://tdn.totvs.com/pages/releaseview.action?spaceKey=PROT&title=SD1100E+-+Rotatividade+para+cada+item+da+nota
+//---------------------------------------------------------------------------------
+
+User Function SD1100E()
+
+Local aArea := GetArea()
+Local aSD3:= {}
+Local cLocal := "MP"
+private lMsErroAuto :=.F.
+
+
+IF SD1->D1_TES=="122" .OR. SD1->D1_TES=="123"
+
+     aSd3:={}
+     aadd(aSd3,{"D3_TM","490",nil})
+     aadd(aSd3,{"D3_FILIAL",xFilial("SD3"),nil})     
+     aadd(aSd3,{"D3_COD",SD1->D1_COD,nil})     
+     aadd(aSd3,{"D3_UM",SD1->D1_UM,nil})               
+     aadd(aSd3,{"D3_LOCAL",cLocal,nil}) 
+     aadd(aSd3,{"D3_LOTECTL",SD1->D1_LOTECTL,nil})     
+     aadd(aSd3,{"D3_DTVALID",SD1->D1_DTVALID,nil})     
+     aadd(aSd3,{"D3_DOC",SD1->D1_DOC,nil})     
+     aadd(aSd3,{"D3_QUANT",SD1->D1_QUANT,nil})  
+     //aadd(aSd3,{"D3_CUSTO1",SD1->D1_CUSTO1,nil})   
+     aadd(aSd3,{"D3_EMISSAO",SD1->D1_EMISSAO,nil})                 
+     MSExecAuto({|x,y| mata240(x,y)},aSd3,3)
+   
+    
+    If lMsErroAuto          
+        alert ("Problema na Geração das Movimentações Internas")
+        mostraerro()
+    endif
+ENDIF
+
+dbSelectArea("SD1")
+
+RestArea(aArea)
+
+Return

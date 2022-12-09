@@ -1,0 +1,233 @@
+#Include "Protheus.ch"
+#include "rptdef.ch"
+#Include "Topconn.ch"
+
+User Function rfat015()
+    Local oReport := nil
+    Local cPerg:= Padr("MTR777",10)
+    //Incluo/Altero as perguntas na tabela SX1
+    AjustaSX1(cPerg)    
+    //gero a pergunta de modo oculto, ficando disponível no botão ações relacionadas
+    Pergunte(cPerg,.F.)              
+        
+    oReport:=RptDef(cPerg)
+    oReport:PrintDialog()
+
+Return
+
+Static Function RptDef(cPerg)
+    Local oReport := Nil
+    Local oSection1:= Nil
+    Local oSection2:= Nil
+    //Local oBreak
+    //Local oFunction
+
+	Local cNome	:= funname()  //"RFAT015"
+	Local cTitulo := "PICK-LIST DE PEDIDO DE VENDAS"
+	Local cPerguntas := cPerg
+	Local bBlocoCodigo := {|oReport| ReportPrint(oReport)}
+	Local cDescricao := "Emissao de produtos a serem separados pela expedicao, para determinada faixa de pedidos."
+	Local lLandscape := .f.  //.t. Aponta a orientação de página do relatório como paisagem
+
+    oReport:= TReport():New(cNome,cTitulo,cPerguntas,bBlocoCodigo,cDescricao,lLandscape)
+	oReport:SetEnvironment(2)  		//1 -Server / 2- Cliente
+    //oReport:SetPortrait()   		//Define orientação de página do relatório como retrato
+	//oReport:SetLandscapet() 		//Define a orientação de página do relatório como Paisagem
+	oReport:oPage:nPaperSize:= 9  	//9 ou 10 são A4
+	oReport:cfontbody :="Arial"		//nome do fonte
+	oReport:nfontbody := 9			//tamanho fonte
+	oReport:SetDevice(IMP_PDF)      //oReport:nDevice:=IMP_PDF //Opções: 1-Arquivo,2-Impressora,3-email,4-Planilha,5-Html,6-PDF.
+	//oReport:setFile(cNome)
+    oReport:SetTotalInLine(.f.)
+	oReport:SetColSpace(0,.f.)		//Define o espaçamento entre as colunas
+    
+    oSection1:= TRSection():New(oReport, "OBRA", {"TRB"}, , .F., .T.)
+    TRCell():New(oSection1,"CTT_CUSTO"  ,"TRB" ,"OBRA"         ,"@!",09)
+    TRCell():New(oSection1,"CTT_DESC01" ,"TRB" ,""             ,"@!",40,,,"LEFT")
+	TRCell():New(oSection1,"C6_ENTREG"  ,"TRB" ,"DATA ENTREGA" ,"@!",60)
+	TRCell():New(oSection1,"CTT_XEND"   ,"TRB" ,"ENDERECO"     ,"@!",30)
+	TRCell():New(oSection1,"CTT_XBAIRR" ,"TRB" ,"BAIRRO"       ,"@!",15)
+	TRCell():New(oSection1,"CTT_XMUN"   ,"TRB" ,"MUNICIPIO"    ,"@!",15)
+	TRCell():New(oSection1,"CTT_XUF"    ,"TRB" ,"UF"           ,"@!",02)  //92
+    
+    oSection2:= TRSection():New(oReport, "PEDIDO", {"TRB"}, , .F., .T.)
+    TRCell():New(oSection2,"C9_PRODUTO" ,"TRB","PRODUTO"   ,"@!",12)
+    TRCell():New(oSection2,"B1_POSIPI"  ,"TRB","NCM"       ,"@!",10)
+    TRCell():New(oSection2,"B1_DESC"    ,"TRB","DESCRICAO" ,"@!",30)
+    TRCell():New(oSection2,"B1_UM"      ,"TRB","UNID"      ,"@!",06)
+	TRCell():New(oSection2,"C9_QTDLIB"  ,"TRB","QUANT"     ,"@E 9,999,999.99" ,12,,,"RIGHT")
+	TRCell():New(oSection2,"C9_LOCAL"   ,"TRB","LC"        ,"@!",02)
+	TRCell():New(oSection2,"C9_BLEST"   ,"TRB","ESTOQUE"   ,"@!",09)
+	TRCell():New(oSection2,"C9_PEDIDO"  ,"TRB","PEDIDO"    ,"@!",06)    
+       
+    //quebra por seção
+    oSection1:SetPageBreak(.t.)
+    oSection1:SetTotalText(" ")
+	oSection1:ForceLineStyle( )
+Return(oReport)
+
+Static Function ReportPrint(oReport)
+    Local oSection1 := oReport:Section(1)
+    Local oSection2 := oReport:Section(2)
+
+	Local aStruSC9  := SC9->(dbStruct())
+    Local cQuery    := ""
+	Local nX := 0
+	Local lUsaLocal := (SuperGetMV("MV_LOCALIZ") == "S")
+	Local cCusto := ""
+
+    cQuery := "SELECT SC9.R_E_C_N_O_ SC9REC,"
+	cQuery += "SC9.C9_PEDIDO,SC9.C9_FILIAL,SC9.C9_QTDLIB,SC9.C9_PRODUTO, "
+	cQuery += "SC9.C9_LOCAL,SC9.C9_LOTECTL,SC9.C9_POTENCI,SC9.C9_NUMLOTE,SC9.C9_DTVALID,SC9.C9_NFISCAL"
+	cQuery += ",SB1.B1_DESC,B1_POSIPI,B1_UM,SC6.C6_ENTREG"
+    //incluida linha provisoria ate equalizar os processos do projeto do estoque que estao sendo iniciados [Mauro Nagata, Actual Trend, 20/08/2012]
+	cQuery += ",SC9.C9_BLEST "		
+	cQuery += ",SC6.C6_CCUSTO "     
+  	If lUsaLocal
+  	   cQuery += ",SDC.DC_LOCALIZ,SDC.DC_QUANT,SDC.DC_QTDORIG"
+  	EndIf
+	/*
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Esta rotina foi escrita para adicionar no select os campos do SC9 usados no filtro do usuario ³
+	//³quando houver, a rotina acrecenta somente os campos que forem adicionados ao filtro testando  ³
+	//³se os mesmo ja existem no selec ou se forem definidos novamente pelo o usuario no filtro.     ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !Empty(aReturn[7])
+		For nX := 1 To SC9->(FCount())
+			cName := SC9->(FieldName(nX))
+			If AllTrim( cName ) $ aReturn[7]
+				If aStruSC9[nX,2] <> "M"
+					If !cName $ cQuery .And. !cName $ cQryAd
+						cQryAd += ",SC9."+ cName
+					EndIf
+				EndIf
+			EndIf
+		Next nX
+	EndIf 
+	cQuery += cQryAd
+	*/
+    cQuery += ",CTT_CUSTO,CTT_DESC01,CTT_XEND,CTT_XBAIRR,CTT_XMUN,CTT_XUF"
+	cQuery += " FROM "+RetSqlName("SC9")+" SC9 "
+	If lUsaLocal
+	   cQuery += "LEFT JOIN "+RetSqlName("SDC") + " SDC "
+	   cQuery += "ON SDC.DC_PEDIDO=SC9.C9_PEDIDO AND SDC.DC_ITEM=SC9.C9_ITEM AND SDC.DC_SEQ=SC9.C9_SEQUEN AND SDC.D_E_L_E_T_ <> '*'"
+	EndIf                                
+	cQuery += " LEFT JOIN "+RetSqlName("SB1") + " SB1 "		     		+Chr(13)+Chr(10)
+	cQuery += "      ON SB1.D_E_L_E_T_ <> '*' "								+Chr(13)+Chr(10)
+	cQuery += "         AND SB1.B1_COD = SC9.C9_PRODUTO " 				+Chr(13)+Chr(10)
+	cQuery += "         AND SB1.B1_FILIAL = '"+xFilial("SB1")+"' "   +Chr(13)+Chr(10)
+	cQuery += " LEFT JOIN "+RetSqlName("SC6") + " SC6 "					+Chr(13)+Chr(10)
+	cQuery += "      ON SC6.D_E_L_E_T_ <> '*' "								+Chr(13)+Chr(10)
+	cQuery += "         AND SC6.C6_ITEM   = SC9.C9_ITEM "	    			+Chr(13)+Chr(10)
+	cQuery += "         AND SC6.C6_NUM = SC9.C9_PEDIDO "      			+Chr(13)+Chr(10)
+	cQuery += "         AND SC6.C6_FILIAL = SC9.C9_FILIAL "      			+Chr(13)+Chr(10)     // incluido para considerar a filial selecionada - luiz henrique 09/11/2012
+	cQuery += "LEFT JOIN "+RetSqlName("CTT") + " CTT ON CTT.CTT_CUSTO=SC6.C6_CCUSTO AND CTT.D_E_L_E_T_ <> '*'"
+	cQuery += "WHERE SC9.C9_FILIAL  = '"+xFilial("SC9")+"' "				+Chr(13)+Chr(10)
+	cQuery += "      AND  SC9.C9_PEDIDO >= '"+mv_par01+"' "				+Chr(13)+Chr(10)
+	cQuery += "      AND  SC9.C9_PEDIDO <= '"+mv_par02+"' "				+Chr(13)+Chr(10)
+	If mv_par03 == 1 .Or. mv_par03 == 3
+		cQuery += " AND SC9.C9_BLEST  = '  '"									+Chr(13)+Chr(10)
+	EndIf
+	//desabilitado provisoriamente ate equalizar os processos do projeto do estoque que estao sendo iniciados [Mauro Nagata, Actual Trend, 20/08/2012]
+	/*
+	If mv_par03 == 2 .Or. mv_par03 == 3
+		cQuery += " AND SC9.C9_BLCRED = '  '"
+	EndIf
+	*/
+	cQuery += " AND SC9.D_E_L_E_T_ = ' '"+Chr(13)+Chr(10)
+//	cQuery += "ORDER BY SC9.C9_FILIAL,SC9.C9_PEDIDO,SC9.C9_CLIENTE,SC9.C9_LOJA,SC9.C9_PRODUTO,SC9.C9_LOTECTL,"
+	cQuery += "ORDER BY SC9.C9_FILIAL,SC6.C6_CCUSTO,SC9.C9_PEDIDO,SC9.C9_CLIENTE,SC9.C9_LOJA,SB1.B1_DESC,SC9.C9_PRODUTO,SC9.C9_LOTECTL,"+Chr(13)+Chr(10)
+	cQuery += "         SC9.C9_NUMLOTE,SC9.C9_DTVALID"
+	cQuery := ChangeQuery(cQuery)
+    Memowrite("RFAT015.SQL",cQuery)
+	//dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"TRB",.T.,.T.)
+
+	If Select("QRYCDL") > 0
+		TRB->(DbCloseArea())
+	EndIf
+
+	TCQuery ChangeQuery(cQuery) New Alias "TRB"
+
+	For nX := 1 To Len(aStruSC9)
+		If aStruSC9[nX][2] <> "C" .and.  FieldPos(aStruSC9[nX][1]) > 0
+			TcSetField("TRB",aStruSC9[nX][1],aStruSC9[nX][2],aStruSC9[nX][3],aStruSC9[nX][4])
+		EndIf
+	Next nX
+    
+    oReport:SetMeter(TRB->(LastRec()))    
+    While !TRB->(Eof())
+        
+        If oReport:Cancel()
+            Exit
+        EndIf
+    
+        oSection1:Init()
+        oReport:IncMeter()
+                    
+        cCusto  := TRB->C6_CCUSTO
+        IncProc("Imprimindo Obra "+alltrim(TRB->C6_CCUSTO))
+        
+        //imprimo a primeira seção
+        oSection1:Cell("CTT_CUSTO"):SetValue(TRB->CTT_CUSTO)
+        oSection1:Cell("CTT_DESC01"):SetValue(iif(empty(TRB->CTT_CUSTO),"OBRA NAO ENCONTRADA",TRB->CTT_DESC01))
+		oSection1:Cell("C6_ENTREG"):SetValue(DTOC(STOD(C6_ENTREG))+space(50))
+		oSection1:Cell("CTT_XEND"):SetValue(TRB->CTT_XEND)
+		oSection1:Cell("CTT_XBAIRR"):SetValue(TRB->CTT_XBAIRR)
+		oSection1:Cell("CTT_XMUN"):SetValue(TRB->CTT_XMUN)
+		oSection1:Cell("CTT_XUF"):SetValue(TRB->CTT_XUF)
+        oSection1:Printline()
+        
+        oSection2:init()
+        While TRB->C6_CCUSTO == cCusto
+            oReport:IncMeter()        
+        
+            IncProc("Imprimindo pedido "+alltrim(TRB->C9_PEDIDO))
+
+            oSection2:Cell("C9_PRODUTO"):SetValue( substr(TRB->C9_PRODUTO,1,12) )
+            oSection2:Cell("B1_POSIPI"):SetValue(TRB->B1_POSIPI)
+            oSection2:Cell("B1_DESC"):SetValue( substr(TRB->B1_DESC,1,30) )
+            oSection2:Cell("B1_UM"):SetValue(TRB->B1_UM)
+			oSection2:Cell("C9_QTDLIB"):SetValue(TRB->C9_QTDLIB)
+			oSection2:Cell("C9_LOCAL"):SetValue(TRB->C9_LOCAL)
+			oSection2:Cell("C9_BLEST"):SetValue( iif(TRB->C9_BLEST="02","BLOQUEADO","         ") )
+			oSection2:Cell("C9_PEDIDO"):SetValue(TRB->C9_PEDIDO)
+            oSection2:Printline()
+
+            TRB->(dbSkip())
+         End
+		 
+         //finalizo a segunda seção para que seja reiniciada para o proximo registro
+         oSection2:Finish()
+         //imprimo uma linha para separar uma NCM de outra
+         oReport:ThinLine()
+         //finalizo a primeira seção
+         oSection1:Finish()
+    End
+	trb->( DbCloseArea() )
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³AjustaSX1 ³Autor  ³ Flavio Luiz Vicco     ³ Data ³ 30.06.06 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ MATR777                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function AjustaSX1(cPerg)
+Local aHelpPor01 := {"Informe o numero do pedido inicial a ser ",    "considerado na selecao."}
+Local aHelpEng01 := {"Enter the initial order number to be taken in","consideration."}
+Local aHelpSpa01 := {"Digite el numero del pedido inicial que debe ","considerarse en la seleccion."}
+Local aHelpPor02 := {"Informe o numero do pedido final a ser ",    "considerado na selecao."}
+Local aHelpEng02 := {"Enter the final order number to be taken in","consideration."}
+Local aHelpSpa02 := {"Digite el numero del pedido final que debe ","considerarse en la seleccion."}
+Local aHelpPor03 := {"Seleciona a condicao do pedido de compras a",    "ser impressa."}
+Local aHelpEng03 := {"Select the purchase order terms to print.",      ""}
+Local aHelpSpa03 := {"Elija la condicion del pedido de compras que se","debe imprimir."}
+PutSX1(cPerg,"01","De pedido ?",       "¿De pedido ?",       "From order ?","mv_ch1","C",6,0,0,"G","","","","","mv_par01","","","","",      "","","","","","","","","","","","",aHelpPor01,aHelpEng01,aHelpSpa01)
+PutSX1(cPerg,"02","Ate pedido ?",      "¿A pedido ?",        "To order ?",  "mv_ch2","C",6,0,0,"G","","","","","mv_par02","","","","zzzzzz","","","","","","","","","","","","",aHelpPor02,aHelpEng02,aHelpSpa02)
+PutSX1(cPerg,"03","Pedidos liberados?","¿Pedidos Aprobados?","orders ?",    "mv_ch3","N",1,0,3,"C","","","","","mv_par03","Estoque","Stock","Inventory","","Credito","Credito","Credit","Credito/Estoque","Credito/Stock","Credit/Invent.","","","","","","",aHelpPor03,aHelpEng03,aHelpSpa03)
+Return

@@ -1,0 +1,9 @@
+#include "protheus.ch"
+
+User Function MA040VLD()
+
+Local _lRet := .t.
+
+ALERT("VALIDACAO CADASTRO VENDEDOR")
+
+Return(_lRet)

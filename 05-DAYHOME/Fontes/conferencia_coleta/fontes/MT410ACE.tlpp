@@ -1,0 +1,91 @@
+#include "rwmake.ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MT410ACE  ºAutor  ³FONTANELLI          º Data ³  02/12/14   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada para nao alterar o Pedido Faturado         º±±
+±±º          ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³                                                            º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/                                             
+User Function MT410ACE()
+                                                               
+Local lContinua := .T.  
+Local nOpc  := PARAMIXB[1] 
+
+if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+    
+	if alltrim(cEmpAnt) == '99'
+		alert("(SIM) - MT410ACE")
+	endif 
+	
+	IF nOpc == 4 // Alterar        
+	
+		if SC5->C5_XSTATUS == "SEP"
+		   	Aviso("Atenção","Não e permitido alterar, PEDIDO em Separação !",{"Ok"},,"Atenção")
+		    lContinua := .F. 
+		endif
+		
+		if SC5->C5_XSTATUS == "CON"
+		   	Aviso("Atenção","Não e permitido alterar, PEDIDO em Conferência !",{"Ok"},,"Atenção")
+		    lContinua := .F. 
+		endif
+		
+		if SC5->C5_XSTATUS == "FAT"
+		   	Aviso("Atenção","Não e permitido alterar, PEDIDO aguardando Faturado !",{"Ok"},,"Atenção")
+		    lContinua := .F. 
+		endif
+	
+		if SC5->C5_XSTATUS == "COL"
+		   	Aviso("Atenção","Não e permitido alterar, PEDIDO em Coleta !",{"Ok"},,"Atenção")
+		    lContinua := .F. 
+		endif
+	
+		if SC5->C5_XSTATUS == "ENT"
+		   	Aviso("Atenção","Não e permitido alterar, PEDIDO Enttregue !",{"Ok"},,"Atenção")
+		    lContinua := .F. 
+		endif
+	
+	 	IF lContinua
+			//Caso já exista NOTA na tabela ZZ2
+			cQuery := "SELECT DISTINCT ZZ2_NOTA FROM "+RetSqlName("ZZ2")+" "
+			cQuery += " WHERE ZZ2_FILIAL = '"+xFilial("ZZ2")+"' "
+			cQuery += "   AND ZZ2_NUM = '"+SC5->C5_NUM+"' "
+			cQuery += "   AND ZZ2_NOTA <> ' ' "
+			cQuery += "   AND D_E_L_E_T_ = '' "
+			cQuery := ChangeQuery(cQuery)
+			dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),"QryZZ2",.T.,.T.)
+			dbSelectArea("QryZZ2")
+			dbGoTop()
+			nQTDNOTA := 0
+			While !QryZZ2->(Eof())
+			    nQTDNOTA += 1
+				QryZZ2->(DbSkip())
+			EndDo
+			QryZZ2->(dbCloseArea())	
+	
+			if nQTDNOTA < 1 
+			   	RecLock("SC5",.F.)
+				SC5->C5_XSTATUS	:= "PED" 
+			    SC5->(MsUnlock())
+			//else
+			// 	RecLock("SC5",.F.)
+			//	SC5->C5_XSTATUS	:= "RES" 
+			//  SC5->(MsUnlock())
+			endif
+		endif 
+	endif
+
+endif
+	
+Return(lContinua)

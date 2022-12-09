@@ -1,0 +1,582 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "APWIZARD.CH"
+#INCLUDE "FILEIO.CH"
+#INCLUDE "RPTDEF.CH"  
+#INCLUDE "FWPrintSetup.ch"
+#INCLUDE "TOTVS.CH"  
+#INCLUDE "TOPCONN.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออออออออออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณSPFAT011  บAutor  ณSergio Lacerda - S N LACERDA INFORMATICA ME   บ Data ณ  08/05/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออออออออออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Resgata o XML do Servidor da TOTVS                                                   บฑฑ
+ฑฑบ          ณ                                                                                      บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ SIGAPMS                                                                              บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+User Function SPFAT011()
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Declaracao de Variaveis                                             ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+Private cCadastro := "Importacao XML Totvs"
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ aRotina padrao. Utilizando a declaracao a seguir, a execucao da     ณ
+//ณ MBROWSE sera identica a da AXCADASTRO:                              ณ
+//ณ                                                                     ณ
+//ณ cDelFunc  := ".T."                                                  ณ
+//ณ aRotina   := { { "Pesquisar"    ,"AxPesqui" , 0, 1},;               ณ
+//ณ                { "Visualizar"   ,"AxVisual" , 0, 2},;               ณ
+//ณ                { "Incluir"      ,"AxInclui" , 0, 3},;               ณ
+//ณ                { "Alterar"      ,"AxAltera" , 0, 4},;               ณ
+//ณ                { "Excluir"      ,"AxDeleta" , 0, 5} }               ณ
+//ณ                                                                     ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Monta um aRotina proprio                                            ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+Private aRotina := { 	{"Pesquisar"	,"AxPesqui"			,0,1} ,;
+             			{"Visualizar"	,"AxVisual"			,0,2} ,;
+             			{"Importar"		,"U_SPIMP011()"		,0,3} }
+             			
+/*
+             			{"Reprocessa"	,"U_SP011REP()"		,0,4} ,;
+             			{"Excluir"		,"AxDeleta"			,0,5}              			
+*/             			
+
+Private cDelFunc := ".F." // Validacao para a exclusao. Pode-se utilizar ExecBlock
+
+Private cString := "Z04"
+
+dbSelectArea("Z04")
+dbSetOrder(1)
+
+dbSelectArea(cString)
+mBrowse( 6,1,22,75,cString)
+
+Return
+
+User Function SPIMP011()
+
+Local aPergs 	:= {}
+Local aRet      := {}
+Local cSerie	:= space(03)
+Local cNotaIni 	:= space(09)
+Local cNotaFim 	:= Space(09)
+Local dDtIni    := cTod("01/01/2000")
+Local dDtFim    := cTod("31/12/2049")
+Local nCount    := 0
+
+aAdd( aPergs ,{1,"Serie da Nota Fiscal: ",cSerie	,"@!",'!Empty(mv_par01)',,'.T.',40,.T.})
+aAdd( aPergs ,{1,"Nota Fiscal Inicial : ",cNotaIni	,"@!",'!Empty(mv_par02)',,'.T.',40,.T.})
+aAdd( aPergs ,{1,"Nota Fiscal Final   : ",cNotaFim	,"@!",'!Empty(mv_par03)',,'.T.',40,.T.})
+aAdd( aPergs ,{1,"Da Emissao          : ",dDtIni	,"@!",'!Empty(mv_par04)',,'.T.',50,.T.})
+aAdd( aPergs ,{1,"Ate Emissao         : ",dDtFim	,"@!",'!Empty(mv_par05)',,'.T.',50,.T.})
+aAdd( aPergs ,{2,"Salva XML no Diretorio?",1, {"Sim", "Nao"}, 30,'.T.',.T.})
+
+If ParamBox(aPergs ,"Download XML do Servidor da Totvs",aRet)
+	Processa( {||SP11NFS(aRet)}, "Aguarde...", "Resgatando Nota(s) Fiscal(is)",.F.)
+Else
+	MsgAlert("Processo cancelado")
+EndIf
+
+Return
+
+Static Function SP11NFS(aRet)
+
+Local nCount := 0
+
+If aRet[6] == 1
+	cLocArqs := cGetFile( '*.*' , 'Diretorios (DIR)', 1, 'C:\', .F., nOR( GETF_LOCALHARD, GETF_LOCALFLOPPY, GETF_RETDIRECTORY ),.T., .T. )
+Else
+	cLocArqs := ""
+Endif	
+
+cQrySf2 := "SELECT SF2.R_E_C_N_O_ " + Chr(13)
+cQrySf2 += "FROM 	" + RetSqlName("SF2") + " SF2 " + Chr(13)
+cQrySf2 += "WHERE	SF2.D_E_L_E_T_ = '' " + Chr(13)
+cQrySf2 += "		AND SF2.F2_FILIAL = '" + xFilial("SF2") + "' " + Chr(13)
+cQrySf2 += "		AND SF2.F2_SERIE = '" + aRet[1] + "' " + Chr(13)
+cQrySf2 += " 		AND SF2.F2_DOC BETWEEN '" + aRet[2] + "' AND '" + aRet[3] + "' " + Chr(13)
+cQrySf2 += "		AND SF2.F2_EMISSAO BETWEEN '" + Dtos(aRet[4]) + "' AND '" + Dtos(aRet[5]) + "' "
+
+If Select("TMPSF2") > 0
+	TMPSF2->(DbCloseArea())
+Endif
+
+Tcquery cqrySf2 New Alias "TMPSF2"	
+
+Count To nCount
+
+If nCount > 0
+	TMPSF2->(DbGoTop())
+	ProcRegua(nCount)
+	
+	While !TMPSF2->(Eof())
+		IncProc()
+		DbSelectArea("SF2")
+		DbGoTo(TMPSF2->R_E_C_N_O_)
+		SP011PROC(cLocArqs)
+		TMPSF2->(DbSkip())
+	Enddo
+Else
+	Aviso("Aviso","Nota(s) Fiscal(is) nใo encontrada(s)",{"OK"})
+Endif	
+	
+Return	
+
+Static Function SP011PROC(cLocArqs)
+
+Local cIdEnt   := ""
+Local aPerg    := {}
+Local aParam   := {Space(Len(SF2->F2_SERIE)),Space(Len(SF2->F2_DOC)),Space(Len(SF2->F2_DOC)),Space(60),CToD(""),CToD(""),Space(14),Space(14)}
+Local cParNfeExp := SM0->M0_CODIGO+SM0->M0_CODFIL+"SPEDNFEEXP"
+Local cNomeArq := "TESTE.PDF"
+Local cDestino := cLocArqs
+
+aadd(aPerg,{1,"Serie da Nota Fiscal",aParam[01],"",".T.","",".T.",30,.F.}) //"Serie da Nota Fiscal"
+aadd(aPerg,{1,"Nota fiscal inicial",aParam[02],"",".T.","",".T.",30,.T.}) //"Nota fiscal inicial"
+aadd(aPerg,{1,"Nota fiscal final",aParam[03],"",".T.","",".T.",30,.T.}) //"Nota fiscal final"
+aadd(aPerg,{6,"Diret๓rio de destino",aParam[04],"",".T.","!Empty(mv_par04)",80,.T.," |*.","c:\",GETF_RETDIRECTORY+GETF_LOCALHARD}) //"Diret๓rio de destino"
+aadd(aPerg,{1,"Data Inicial",aParam[05],"",".T.","",".T.",50,.T.}) //"Data Inicial"
+aadd(aPerg,{1,"Data Final",aParam[06],"",".T.","",".T.",50,.T.}) //"Data Final"
+aadd(aPerg,{1,"CNPJ Inicial",aParam[07],"",".T.","",".T.",50,.F.}) //"CNPJ Inicial"
+aadd(aPerg,{1,"CNPJ final",aParam[08],"",".T.","",".T.",50,.F.}) //"CNPJ final"
+
+aParam[01] := ParamLoad(cParNfeExp,aPerg,1,aParam[01])
+aParam[02] := ParamLoad(cParNfeExp,aPerg,2,aParam[02])
+aParam[03] := ParamLoad(cParNfeExp,aPerg,3,aParam[03])
+aParam[04] := ParamLoad(cParNfeExp,aPerg,4,aParam[04])
+aParam[05] := ParamLoad(cParNfeExp,aPerg,5,aParam[05])
+aParam[06] := ParamLoad(cParNfeExp,aPerg,6,aParam[06])
+aParam[07] := ParamLoad(cParNfeExp,aPerg,7,aParam[07])
+aParam[08] := ParamLoad(cParNfeExp,aPerg,8,aParam[08])
+
+aParam[01] := SF2->F2_SERIE
+aParam[02] := SF2->F2_DOC
+aParam[03] := SF2->F2_DOC
+aParam[04] := cDestino
+aParam[05] := CTOD("01/01/2000")
+aParam[06] := CTOD("31/12/2049")
+aParam[07] := Space(14)
+aParam[08] := Replicate("Z",14)
+
+If IsReady()
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณObtem o codigo da entidade                                              ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู	
+	If !Empty(cIdEnt)
+		SpedPExp(cIdEnt,aParam[01],aParam[02],aParam[03],aParam[04],lEnd,aParam[05],IIF(Empty(aParam[06]),dDataBase,aParam[06]),aParam[07],aParam[08],cNomeArq,cLocArqs)
+	Else
+		cIdEnt := "000591"
+		SpedPExp(cIdEnt,aParam[01],aParam[02],aParam[03],aParam[04],lEnd,aParam[05],IIF(Empty(aParam[06]),dDataBase,aParam[06]),aParam[07],aParam[08],cNomeArq,cLocArqs)
+	EndIf
+Else
+	Aviso("SPED","Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!",{"Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!"},3) //"Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!"
+EndIf
+
+Return
+
+Static Function SpedPExp(cIdEnt,cSerie,cNotaIni,cNotaFim,cDirDest,lEnd, dDataDe,dDataAte,cCnpjDIni,cCnpjDFim,cFileName)
+
+Local aDeleta  := {}
+Local nHandle  := 0
+Local cURL     := "http://sped.totvs.com.br/nfe/"
+Local cChvNFe  := ""
+Local cDestino := ""
+Local cDrive   := ""
+Local cModelo  := ""
+Local cPrefixo := ""
+Local cCNPJDEST := Space(14)                
+Local cNFes     := ""
+Local cIdflush  := cSerie+cNotaIni
+Local cXmlInut  := ""
+Local cAnoInut  := ""
+Local cAnoInut1 := ""
+Local nX        := 0
+Local oWS
+Local oRetorno
+Local oXML
+Local lOk      := .F.
+Local lFlush   := .T.
+Local lFinal   := .F.
+
+ProcRegua(1)
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Corrigi diretorio de destino                                           ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+SplitPath(cDirDest,@cDrive,@cDestino,"","")
+cDestino := cDrive+cDestino
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Inicia processamento                                                   ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+oWS:= WSNFeSBRA():New()
+oWS:cUSERTOKEN        := "TOTVS"
+oWS:cID_ENT           := cIdEnt 
+oWS:_URL              := AllTrim(cURL)+"/NFeSBRA.apw"
+oWS:cIdInicial        := cIdflush // cNotaIni
+oWS:cIdFinal          := cSerie+cNotaFim
+oWS:dDataDe           := dDataDe
+oWS:dDataAte          := dDataAte
+oWS:cCNPJDESTInicial  := cCnpjDIni
+oWS:cCNPJDESTFinal    := cCnpjDFim
+oWS:nDiasparaExclusao := 0
+lOk := oWS:RETORNAFX()
+oRetorno := oWS:oWsRetornaFxResult
+
+If lOk
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณ Exporta as notas                                                       ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	
+	If Len(oRetorno:OWSNOTAS:OWSNFES3) == 0
+		cURL := "http://localhost:8089/"
+		If IsReady(cURL)
+			cIdEnt := "000001"
+			oWS:= WSNFeSBRA():New()
+			oWS:cUSERTOKEN        := "TOTVS"
+			oWS:cID_ENT           := "000001"
+			oWS:_URL              := AllTrim(cURL)+"/NFeSBRA.apw"
+			oWS:cIdInicial        := cIdflush // cNotaIni
+			oWS:cIdFinal          := cSerie+cNotaFim
+			oWS:dDataDe           := dDataDe
+			oWS:dDataAte          := dDataAte
+			oWS:cCNPJDESTInicial  := cCnpjDIni
+			oWS:cCNPJDESTFinal    := cCnpjDFim
+			oWS:nDiasparaExclusao := 0
+			lOk := oWS:RETORNAFX()
+			oRetorno := oWS:oWsRetornaFxResult
+		Endif	
+	Endif	
+
+    For nX := 1 To Len(oRetorno:OWSNOTAS:OWSNFES3)
+ 		oXml := oRetorno:OWSNOTAS:OWSNFES3[nX]
+		oXmlExp   := XmlParser(oRetorno:OWSNOTAS:OWSNFES3[nX]:OWSNFE:CXML,"","","")
+		If Type("oXmlExp:_NFE:_INFNFE:_DEST:_CNPJ")<>"U" 
+			cCNPJDEST := AllTrim(oXmlExp:_NFE:_INFNFE:_DEST:_CNPJ:TEXT)
+		ElseIF Type("oXmlExp:_NFE:_INFNFE:_DEST:_CPF")<>"U"
+			cCNPJDEST := AllTrim(oXmlExp:_NFE:_INFNFE:_DEST:_CPF:TEXT)				
+		Else
+   			cCNPJDEST := ""
+		EndIf	
+
+		dDataNfe := Stod(Strtran(oXmlExp:_NFE:_INFNFE:_IDE:_DEMI:TEXT,"-",""))
+		
+		cVerNfe := IIf(Type("oXmlExp:_NFE:_INFNFE:_VERSAO:TEXT") <> "U", oXmlExp:_NFE:_INFNFE:_VERSAO:TEXT, '')                                 
+		cVerCte := Iif(Type("oXmlExp:_CTE:_INFCTE:_VERSAO:TEXT") <> "U", oXmlExp:_CTE:_INFCTE:_VERSAO:TEXT, '')
+ 		
+ 		If !Empty(oXml:oWSNFe:cProtocolo)
+	    	cNotaIni := oXml:cID	 		
+			cIdflush := cNotaIni
+	 		cNFes := cNFes+cNotaIni+CRLF
+	 		cChvNFe  := NfeIdSPED(oXml:oWSNFe:cXML,"Id")	 			
+			cModelo := cChvNFe
+			cModelo := StrTran(cModelo,"NFe","")
+			cModelo := StrTran(cModelo,"CTe","")
+			cModelo := SubStr(cModelo,21,02)
+			
+			Do Case
+				Case cModelo == "57"
+					cPrefixo := "CTe"
+				OtherWise
+					cPrefixo := "NFe"
+			EndCase	 				
+	 	EndIf
+	 	
+	 	If !Empty(cLocArqs)
+	 		If File(cLocArqs+SubStr(cChvNFe,4,44)+"-"+cPrefixo+".xml")
+	 			fErase(cLocArqs+SubStr(cChvNFe,4,44)+"-"+cPrefixo+".xml")
+	 		Endif
+	 			
+	 		nHandle := FCreate(cLocArqs+SubStr(cChvNFe,4,44)+"-"+cPrefixo+".xml")
+	 		FWrite(nHandle,AllTrim(oXml:oWSNFe:cXML))
+	 		FClose(nHandle)
+	 	Endif
+	 	
+	 	DbSelectArea("Z04")
+	 	DbSetOrder(1)
+	 	If !DbSeek(xFilial("Z04") + cIdEnt + cNotaIni)
+	 		Begin Transaction
+	 			If RecLock("Z04",.T.)
+	 				Z04->Z04_FILIAL := xFilial("Z04")
+	 				Z04->Z04_IDENT  := cIdEnt
+	 				Z04->Z04_NFEID  := cNotaIni
+	 				Z04->Z04_XMLERP := AllTrim(oXml:oWSNFe:cXML)
+	 				Z04->Z04_XMLSIG := AllTrim(oXml:oWSNFe:cXML)
+	 				Z04->Z04_DATENF := dDataNfe
+	 				Z04->Z04_TIMENF := Time()
+	 				Z04->Z04_CNPJ   := cCNPJDEST
+	 				Z04->Z04_CHVNFE := Substr(cChvNFe,4,44)
+	 				Z04->Z04_NFEPTC := oRetorno:OWSNOTAS:OWSNFES3[nX]:OWSNFE:cProtocolo
+	 				Z04->Z04_NFEMOD := cModelo
+	 				Z04->Z04_AMBIEN := 1
+	 				Z04->Z04_STATUS := 6
+	 				Z04->(Msunlock())
+	 				Z04->(DbCommit())
+	 			Endif
+	 		End Transaction
+	 	Else
+	 		Begin Transaction
+	 			If RecLock("Z04",.F.)
+	 				Z04->Z04_FILIAL := xFilial("Z04")
+	 				Z04->Z04_IDENT  := cIdEnt
+	 				Z04->Z04_NFEID  := cNotaIni
+	 				Z04->Z04_XMLERP := AllTrim(oXml:oWSNFe:cXML)
+	 				Z04->Z04_XMLSIG := AllTrim(oXml:oWSNFe:cXML)
+	 				Z04->Z04_DATENF := dDataNfe
+	 				Z04->Z04_TIMENF := Time()
+	 				Z04->Z04_CNPJ   := cCNPJDEST
+	 				Z04->Z04_CHVNFE := Substr(cChvNFe,4,44)
+	 				Z04->Z04_NFEPTC := oRetorno:OWSNOTAS:OWSNFES3[nX]:OWSNFE:cProtocolo
+	 				Z04->Z04_NFEMOD := cModelo
+	 				Z04->(Msunlock())
+	 				Z04->(DbCommit())
+	 			Endif
+	 		End Transaction			 		
+	 	Endif
+    Next nX
+Else
+	Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3))+CRLF+"STR0046",{"OK"},3)
+	lFinal := .T.
+EndIf
+
+Return(.T.)
+
+Static Function IsReady(cURL,nTipo,lHelp)
+
+Local nX       := 0
+Local cHelp    := ""
+Local oWS
+Local lRetorno := .F.
+Local  nTipo := 1
+Local  lHelp := .F.
+Default cURL      := "http://sped.totvs.com.br/nfe/"
+
+/*If !Empty(cURL) .And. !PutMV("MV_SPEDURL",cURL)
+	RecLock("SX6",.T.)
+	SX6->X6_FIL     := xFilial( "SX6" )
+	SX6->X6_VAR     := "MV_SPEDURL"
+	SX6->X6_TIPO    := "C"
+	SX6->X6_DESCRIC := "URL SPED NFe"
+	MsUnLock()
+	PutMV("MV_SPEDURL",cURL)
+EndIf */
+
+SuperGetMv() //Limpa o cache de parametros - nao retirar
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณVerifica se o servidor da Totvs esta no ar                              ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+oWs := WsSpedCfgNFe():New()
+oWs:cUserToken := "TOTVS"
+oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"
+If oWs:CFGCONNECT()
+	lRetorno := .T.
+Else
+	If lHelp
+		Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{"Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!"},3)
+	EndIf
+	lRetorno := .F.
+EndIf
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณVerifica se o certificado digital ja foi transferido                    ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+If nTipo <> 1 .And. lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT    := GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"		
+	If oWs:CFGReady()
+		lRetorno := .T.
+	Else
+		If nTipo == 3
+			cHelp := IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3))
+			If lHelp .And. !"003" $ cHelp
+				Aviso("SPED",cHelp,{"Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!"},3)
+				lRetorno := .F.
+			EndIf		
+		Else
+			lRetorno := .F.
+		EndIf
+	EndIf
+EndIf
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณVerifica se o certificado digital ja foi transferido                    ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+If nTipo == 2 .And. lRetorno
+	oWs:cUserToken := "TOTVS"
+	oWs:cID_ENT    := GetIdEnt()
+	oWS:_URL := AllTrim(cURL)+"/SPEDCFGNFe.apw"		
+	If oWs:CFGStatusCertificate()
+		If Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE) > 0
+			For nX := 1 To Len(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE)
+				If oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nx]:DVALIDTO-30 <= Date()
+				
+					Aviso("SPED","O certificado digital irแ vencer em: "+Dtoc(oWs:oWSCFGSTATUSCERTIFICATERESULT:OWSDIGITALCERTIFICATE[nX]:DVALIDTO),{"Execute o m๓dulo de configura็ใo do servi็o, antes de utilizar esta op็ใo!!!"},3) //"O certificado digital irแ vencer em: "
+				
+			    EndIf
+			Next nX		
+		EndIf
+	EndIf
+EndIf
+
+Return(lRetorno)
+
+
+User Function SP011REP()
+
+Local cQryZ04 := ""
+Local nCount  := 0
+
+cQryZ04 := "SELECT	Z04_IDENT [ID_ENT], Z04_NFEID [NFE_ID], Z04_DATENF [DATE_NFE] , Z04_TIMENF [TIME_NFE], CONVERT(VARCHAR(8000), CONVERT(VARCHAR(8000), CONVERT(VARBINARY(8000), Z04_XMLERP))) [XML_ERP], " + Chr(13)
+cQryZ04 += "		CONVERT(VARCHAR(8000), CONVERT(VARCHAR(8000), CONVERT(VARBINARY(8000), Z04_XMLSIG))) [XML_SIG], " + Chr(13)
+cQryZ04 += "		CONVERT(VARCHAR(8000), CONVERT(VARCHAR(8000), CONVERT(VARBINARY(8000), Z04_XMLCAN))) [XML_CAN] ," + Chr(13)
+cQryZ04 += " 		'1' [AMBIENTE], 1 [MODALIDADE], Z04_STATUS [STATUS], 0 [STATUSCAN], 2 [STATUSMAIL], Z04_NFEPTC [NFE_PROT],  " + Chr(13)
+cQryZ04 += "		'' [DELETEDATE], '' [EMAIL], Z04_NFEMOD [MODELO], '' [XML_DPEC] , Z04_CNPJ [CNPJDEST], '' [REG_DPEC], 0 [STATUSDPEC], '' [XML_NSE] ,  " + Chr(13)
+cQryZ04 += "		'' [NUM_NSE], 0 [PRINT_DOC], '' [PED_NFE], '' [PED_DPEC], Z04_DATENF [DATE_ENFE], Z04_TIMENF [TIME_ENFE] , Z04_DATENF [DATE_GXML],  " + Chr(13)
+cQryZ04 += "		Z04_TIMENF [TIME_GXML] , 'Administrador' [RESP_GXML], 0 [CODCONT], '' [PATHIMPRE], 0 [NRVIAS], '' [FRENTVERS], '' [AUT_COLAB],  " + Chr(13)
+cQryZ04 += "		'' [TOTVSCOLAB], 0 [TIPO_CAN], '' [CLE_ID], 1 [DOC_ID], SUBSTRING(Z04_NFEID,1,3) [DOC_SERIE], Z04_CHVNFE [DOC_CHV], '' [CNPJREM], '' [D_E_L_E_T_], 	 " + Chr(13)
+cQryZ04 += "		1 [R_E_C_N_O_] " + Chr(13)
+cQryZ04 += "FROM " + RetSqlName("Z04") + " " + Chr(13)
+cQryZ04 += "WHERE	D_E_L_E_T_ = '' "
+cQryZ04 += "		AND Z04_REPROC = '' "
+
+If Select("TMPZ04") > 0
+	TMPZ04->(DbCloseArea())
+Endif
+
+Tcquery cQryZ04 New Alias "TMPZ04"	
+
+Count To nCount
+
+TMPZ04->(DbGoTop())                                                                                                                          
+
+If nCount > 0
+
+	ProcRegua(nCount)
+	
+	While !TMPZ04->(Eof())
+		cQrySped050 := "SELECT (MAX(DOC_ID) + 1) [_RECNO] FROM	PROTHEUS11SPED.dbo.SPED050 "
+		
+		If Select("TMP050") > 0
+			TMP050->(DbCloseArea())
+		Endif			
+		
+		Tcquery cQrySped050 New Alias "TMP050"
+		
+		Count to nCount
+		
+		If nCount > 0
+			TMP050->(DbGoTop())
+			nDocID := TMP050->_RECNO
+		Endif			
+	
+		cQrySped050 := "SELECT (MAX(R_E_C_N_O_) + 1) [_RECNO] FROM	PROTHEUS11SPED.dbo.SPED050 "
+		
+		If Select("TMP050") > 0
+			TMP050->(DbCloseArea())
+		Endif			
+		
+		Tcquery cQrySped050 New Alias "TMP050"
+		
+		Count to nCount
+		
+		If nCount > 0
+			TMP050->(DbGoTop())
+			nRecno := TMP050->_RECNO
+			
+			cUpdate := "USE PROTHEUS11SPED " + Chr(13)
+			cUpdate += "	BEGIN TRANSACTION " + Chr(13)
+			cUpdate += "		INSERT INTO SPED050 (	ID_ENT , NFE_ID , DATE_NFE , TIME_NFE , XML_ERP , XML_SIG , XML_SIGCAN , AMBIENTE , MODALIDADE , STATUS , STATUSCANC , STATUSMAIL ,  " + Chr(13)
+			cUpdate += "								NFE_PROT , DELETEDATE , EMAIL , MODELO , XML_DPEC , CNPJDEST , REG_DPEC , STATUSDPEC , XML_NSE , NUM_NSE , PRINT_DOC , PED_NFE ,  " + Chr(13)
+			cUpdate += "								PED_DPEC , DATE_ENFE , TIME_ENFE , DATE_GXML , TIME_GXML , RESP_GXML , CODCONT , PATHIMPRE , NRVIAS , FRENTVERS , AUT_COLAB ,  " + Chr(13)
+			cUpdate += "								TOTVSCOLAB , TIPO_CANC , CLE_ID , DOC_ID , DOC_SERIE , DOC_CHV , CNPJREM , D_E_L_E_T_ , R_E_C_N_O_)	 " + Chr(13)
+			cUpdate += "VALUES " + Chr(13)
+			cUpdate += "(	'" + TMPZ04->ID_ENT + "' , '" + TMPZ04->NFE_ID + "' , '" + TMPZ04->DATE_NFE + "' , '" + TMPZ04->TIME_NFE + "' , '" + TMPZ04->XML_ERP + "' , '" + TMPZ04->XML_SIG + "' , '" + Chr(13)
+			cUpdate += TMPZ04->XML_CAN + "' , '" + Alltrim(Str(TMPZ04->AMBIENTE)) + "' , '" + Alltrim(Str(TMPZ04->MODALIDADE)) + "' , '" + Alltrim(Str(TMPZ04->STATUS)) + "' , '" + Alltrim(Str(TMPZ04->STATUSCAN))  + "' , '" + Chr(13)
+			cUpdate += Alltrim(Str(TMPZ04->STATUSMAIL)) + "' , '" + TMPZ04->NFE_PROT + "' , '" + TMPZ04->DELETEDATE + "' , '" + TMPZ04->EMAIL + "' , '" + TMPZ04->MODELO + "' , '" + TMPZ04->XML_DPEC + "' , '" + Chr(13)
+			cUpdate += TMPZ04->CNPJDEST + "' , '" + TMPZ04->REG_DPEC + "' , '" + Alltrim(Str(TMPZ04->STATUSDPEC)) + "' , '" + TMPZ04->XML_NSE + "' , '" + TMPZ04->NUM_NSE + "' , '" + Alltrim(Str(TMPZ04->PRINT_DOC)) + "' , '" + Chr(13)
+			cUpdate += TMPZ04->PED_NFE + "' , '" + TMPZ04->DATE_ENFE + "' , '" + TMPZ04->TIME_ENFE + "' , '" 
+			cUpdate += TMPZ04->DATE_GXML + "' , '" + TMPZ04->TIME_GXML + "' , '" + TMPZ04->RESP_GXML + "' , '" + Alltrim(Str(TMPZ04->CODCONT)) + "' , '" + TMPZ04->PATHIMPRE + "' , '" + Alltrim(Str(TMPZ04->NRVIAS)) + "' , '" + Chr(13)
+			cUpdate += TMPZ04->FRENTVERS + "' , '" + TMPZ04->AUT_COLAB + "' , '" + TMPZ04->TOTVSCOLAB + "' , '" + Alltrim(Str(TMPZ04->TIPO_CAN)) + "' , '" + TMPZ04->CLE_ID + "' , '" + Alltrim(Str(nDocID)) + "' , '" + Chr(13) 
+			cUpdate += TMPZ04->DOC_SERIE + "' , '" + TMPZ04->DOC_CHV + "' , '" + TMPZ04->CNPJREM + "' , ''  , '" + Alltrim(Str(nRecno)) + "') " + Chr(13)
+			cUpdate += ""
+			cUpdate += "ROLLBACK"
+			
+
+		Endif
+												
+		TMPZ04->(DbSkip())									
+	Enddo									
+Endif
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCOMMI010  บAutor  ณMicrosiga           บ Data ณ  01/30/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ                                                            บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function ConsNFeChave(cChaveNFe,cIdEnt,lWeb)
+
+Local cURL     := "http://sped.totvs.com.br/nfe/"
+Local cMensagem:= ""
+Local oWS
+Local lErro := .F.
+
+If ValType(lWeb) == 'U'
+	lWeb := .F.
+EndIf
+
+oWs:= WsNFeSBra():New()
+oWs:cUserToken   := "TOTVS"
+oWs:cID_ENT    := cIdEnt
+ows:cCHVNFE		 := cChaveNFe
+oWs:_URL         := AllTrim(cURL)+"/NFeSBRA.apw"
+
+If oWs:ConsultaChaveNFE()
+	cMensagem := ""
+	If !Empty(oWs:oWSCONSULTACHAVENFERESULT:cVERSAO)
+		cMensagem += "Versใo da Mensagem"+": "+oWs:oWSCONSULTACHAVENFERESULT:cVERSAO+CRLF
+	EndIf
+	cMensagem += "Ambiente"+": "+IIf(oWs:oWSCONSULTACHAVENFERESULT:nAMBIENTE==1,"Produ็ใo","Homologa็ใo")+CRLF //"Produ็ใo"###"Homologa็ใo"
+	cMensagem += "Cod.Ret.NFe"+": "+oWs:oWSCONSULTACHAVENFERESULT:cCODRETNFE+CRLF
+	cMensagem += "Msg.Ret.NFe"+": "+oWs:oWSCONSULTACHAVENFERESULT:cMSGRETNFE+CRLF
+	If !Empty(oWs:oWSCONSULTACHAVENFERESULT:cPROTOCOLO)
+		cMensagem += "Protocolo"+": "+oWs:oWSCONSULTACHAVENFERESULT:cPROTOCOLO+CRLF
+	EndIf
+	//QUANDO NAO ESTIVER OK NAO IMPORTA, CODIGO DIFERENTE DE 100
+	If oWs:oWSCONSULTACHAVENFERESULT:cCODRETNFE # "100"
+		lErro := .T.
+	EndIf
+	
+	If !lWeb
+		Aviso("Consulta NF",cMensagem,{"Ok"},3)
+	Else
+		Return({lErro,cMensagem})
+	EndIf
+Else
+	Aviso("SPED",IIf(Empty(GetWscError(3)),GetWscError(1),GetWscError(3)),{"Ok"},3)
+EndIf
+
+Return({lErro,oWs:oWSCONSULTACHAVENFERESULT:cCODRETNFE,oWs:oWSCONSULTACHAVENFERESULT:nAMBIENTE})

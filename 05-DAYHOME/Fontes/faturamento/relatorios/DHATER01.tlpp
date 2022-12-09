@@ -1,0 +1,279 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DHATER01 º Autor ³  Osmar Schimitberger º Data ³  13/12/2009º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ Agenda - Eventos para Clientes                             º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³  Day Home     											  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function DHATER01
+
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+Local cDesc1         := "Este programa tem como objetivo imprimir relatorio "
+Local cDesc2         := "de acordo com os parametros informados pelo usuario."
+Local cDesc3         := "Agenda - Eventos para Clientes"
+Local cPict          := ""
+Local titulo       := "Relatório de Atendimento" 
+Local nLin         := 80
+Local Cabec1       := ""
+Local Cabec2       := "-----------------------------------------------------------------------------------------------------------------------------"
+Local imprime      := .T.
+Local aOrd := {}
+Private lEnd         := .F.
+Private lAbortPrint  := .F.
+Private CbTxt        := ""
+Private limite           := 80
+Private tamanho          := "P"
+Private nomeprog         := "DHATER01" // Coloque aqui o nome do programa para impressao no cabecalho
+Private nTipo            := 18
+Private aReturn          := { "Zebrado", 1, "Administracao", 2, 2, 1, "", 1}
+Private nLastKey        := 0
+Private cPerg       := padr("DHATER01",10)
+Private cbtxt      := Space(10)
+Private cbcont     := 00
+Private CONTFL     := 01
+Private m_pag      := 01
+Private wnrel      := "DHATER01" // Coloque aqui o nome do arquivo usado para impressao em disco
+Private cString    := "SZ1"
+Private cVar       := ""
+//Private nTamDet := 72
+Private nBcoHdl := 0
+Private cFile   := "" 
+Private _cArq   := ""
+Private nArqHdl := 0
+Private _cConta := ""
+Private _cTrime := ""
+
+VldSX1(cPerg)
+
+dbSelectArea("SZ1")
+dbSetOrder(1)
+
+
+pergunte(cPerg,.T.)
+
+titulo += "  " //+ substr(dtos(mv_par01),7,2)+"/"+substr(dtos(mv_par01),5,2)+"/"+substr(dtos(mv_par01),1,4)+" a " + substr(dtos(mv_par02),7,2)+"/"+substr(dtos(mv_par02),5,2)+"/"+substr(dtos(mv_par02),1,4)
+
+wnrel := SetPrint(cString,NomeProg,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,aOrd,.T.,Tamanho,,.T.)
+
+If nLastKey == 27
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+   Return
+Endif
+
+nTipo := If(aReturn[4]==1,15,18)
+
+RptStatus({|| RunReport(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFun‡„o    ³RUNREPORT º Autor ³ AP6 IDE            º Data ³  18/01/07   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri‡„o ³ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS º±±
+±±º          ³ monta a janela com a regua de processamento.               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Programa principal                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function RunReport(Cabec1,Cabec2,Titulo,nLin)
+
+Local nTamLinha := 65
+Local lWordWrap := .t.
+Local cMemo
+Local nMemCount
+Local cLinha
+
+Local _cNum := ""
+
+
+dbSelectArea(cString)
+dbSetOrder(4)
+
+SetRegua(RecCount())
+
+dbGoTop()
+dbseek(xFilial("SZ1")+mv_par01)
+
+_cNum:= " "//SZ1->Z1_NUM  
+
+While !EOF() .and. SZ1->Z1_NUM >= mv_par01 .and. SZ1->Z1_NUM <= mv_par02 
+
+   
+   If lAbortPrint
+      @nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+      Exit
+   Endif
+
+   //If nLin == 70 
+   //		@ nLin,000 Psay Replicate("_",132)
+   //Endif
+   
+   If _cNum <> SZ1->Z1_NUM //.and. nLin > 70
+      _cNum:= SZ1->Z1_NUM  
+      nLin:= Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+      nLin+=2
+   Endif
+
+   @nLin,00 PSAY "Número: "+SZ1->Z1_NUM   
+   @nLin,55 PSAY "Data de Emissão: "+DTOC(SZ1->Z1_EMISSAO)   
+   nLin +=2                                 
+   @nLin,00 PSAY "Vendedor: "+SZ1->Z1_NOMVEN1                
+   nLin +=2                                                  
+   DbSelectArea("SA1")
+   DbSetOrder(1)
+   dbseek(xFilial("SA1")+SZ1->Z1_CODCLI+SZ1->Z1_LOJA)
+   @nLin,00 PSAY "Razão Social: "+SA1->A1_COD+"   "+SA1->A1_NOME
+   nLin +=2                                   
+   @nLin,00 PSAY "Endereço: "+SA1->A1_END
+   @nLin,55 PSAY "Cidade: "+SA1->A1_MUN
+   nLin +=2                                   
+   @nLin,00 PSAY "UF: "+SA1->A1_EST
+   @nLin,30 PSAY "CEP: "+SA1->A1_CEP
+   nLin +=2 
+   @nLin,00 PSAY "Filial: "+SM0->M0_FILIAL
+   @nLin,55 PSAY "Contato: "+SZ1->Z1_CONTATO
+   nLin +=2                                 
+   @nLin,00 PSAY "Responsável: "+SZ1->Z1_RESPONS
+   @nLin,55 PSAY "Data Conclusão: "+DTOC(SZ1->Z1_DATACON)
+   nLin +=2                                   
+   @nLin,00 PSAY "Aprovador: "+SZ1->Z1_DHAPROV
+   @nLin,55 PSAY "Data Aprovação: "+DTOC(SZ1->Z1_DHDAPRO)
+   nLin +=1
+   @ nLin,000 Psay Replicate("_",80)
+   nLin +=2                                   
+
+   @nLin,00 PSAY "A S S U N T O: "+Posicione("SX5",1,xFilial("SX5")+"T1"+SZ1->Z1_TIPO,"X5_DESCRI")
+   //nLin +=2 
+   //@nLin,00 PSAY "O B S E R V A Ç Õ E S     D O     E V E N T O"    
+   nLin +=2 
+   /*/
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,1,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,76,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,151,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,226,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,301,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,376,75)
+   nLin +=1
+   @nLin,00 PSAY SUBSTR(SZ1->Z1_OBS,451,75)
+   nLin +=1
+   /*/             
+//   cMemo:= MSMM(SZ1->Z1_CODOBS,80)
+//   For nX:= 1 To Len(cMemo)
+//	   @nLin,00 PSAY SubStr(cMemo,nX,75)
+//	   nLin++
+//       nX+= 74
+//   Next nX	   
+//   nLin +=1   
+
+	cMemo     := AllTrim(MSMM(SZ1->Z1_CODOBS,80))
+	nMemCount := MlCount( cMemo, nTamLinha,,lWordWrap )
+	               
+	If !Empty( nMemCount ) 
+	
+	   For nLinha := 1 To nMemCount
+	
+	      cLinha := MemoLine( cMemo, nTamLinha, nLinha, ,lWordWrap )
+	
+	      @ nLin,00 PSAY cLinha
+	      nLin +=1
+	
+	   Next nLinha
+	
+	EndIf   
+
+   
+   dbSelectArea(cString)
+   dbSkip() 
+  
+EndDo
+
+
+SET DEVICE TO SCREEN
+
+If aReturn[5]==1
+   dbCommitAll()
+   SET PRINTER TO
+   OurSpool(wnrel)
+Endif
+
+MS_FLUSH()
+
+FClose(nArqHdl)
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma ³ VldSX1 ºAutor ³ Osmar Schimitberger  º Data ³  20/11/2008   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Validacao de perguntas do SX1                               º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function VldSX1(cPerg)
+
+Local i
+Local xAlias  := GetArea()
+Local aPergunta := {}
+
+Aadd(aPergunta,{cPerg,"01","Atendimento De	 	?" 	,"mv_ch1","C",06,00,"G","MV_PAR01","","","","","",""})
+Aadd(aPergunta,{cPerg,"02","Atendimento Ate		?" 	,"mv_ch2","C",06,00,"G","MV_PAR02","","","","","",""})
+
+DbSelectArea("SX1")
+DbSetOrder(1)
+For i := 1 To Len(aPergunta)
+	SX1->(RecLock("SX1",!dbSeek(aPergunta[i,1]+aPergunta[i,2])))
+	SX1->X1_GRUPO 		:= aPergunta[i,1]
+	SX1->X1_ORDEM		:= aPergunta[i,2]
+	SX1->X1_PERGUNT 	:= aPergunta[i,3]
+	SX1->X1_VARIAVL		:= aPergunta[i,4]
+	SX1->X1_TIPO	    := aPergunta[i,5]
+	SX1->X1_TAMANHO	    := aPergunta[i,6]
+	SX1->X1_DECIMAL	    := aPergunta[i,7]
+	SX1->X1_GSC			:= aPergunta[i,8]
+	SX1->X1_VAR01		:= aPergunta[i,9]
+	SX1->X1_DEF01		:= aPergunta[i,10]
+	SX1->X1_DEF02		:= aPergunta[i,11]
+	SX1->X1_DEF03		:= aPergunta[i,12]
+	SX1->X1_DEF04		:= aPergunta[i,13]
+	SX1->X1_DEF05		:= aPergunta[i,14]
+	SX1->X1_F3		    := aPergunta[i,15]
+	SX1->(MsUnlock())
+Next i
+
+RestArea(xAlias)
+
+Return(Nil)

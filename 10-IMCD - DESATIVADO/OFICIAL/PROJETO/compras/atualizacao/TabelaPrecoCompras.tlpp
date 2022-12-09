@@ -1,0 +1,1539 @@
+#include 'protheus.ch'
+#include "fwmvcdef.ch"
+
+/*/{Protheus.doc} TabelaPrecoCompras
+description
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/03/2020
+@return nil, nil
+/*/
+user function TabelaPrecoCompras()
+	local oBrowse
+
+    dbSelectArea("AIA")
+    dbSelectArea("SA2")
+
+	// Instanciamento da Classe de Browse
+	oBrowse := FWMBrowse():New()
+	
+	//Alias
+	oBrowse:SetAlias("AIA")
+	oBrowse:addLegend("(Dtos(AIA_DATATE) < Dtos(dDataBase).And. !Empty(Dtos(AIA_DATATE))) .or. AIA_XBLOCK == 'S'", "RED"  ,"Inativa")
+	oBrowse:addLegend("(Dtos(AIA_DATATE) >= Dtos(dDataBase) .Or. Empty(Dtos(AIA_DATATE)))", "GREEN","Ativa")
+
+	// Titulo da Browse
+	oBrowse:SetDescription("Manutencao da Tabela de Preços")
+
+
+	//Define o menu do Browse
+	oBrowse:setMenuDef("TBPRCCMP")
+
+	//Habilita o botão para fechar a janela
+	oBrowse:ForceQuitButton()
+
+	// Ativacao da Classe
+	oBrowse:Activate()
+	
+	freeObj(oBrowse)
+
+return
+
+/*/{Protheus.doc} GetPriceTabelaCompra
+Funcao para trazer preco de compra de acordo com a qtde
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/03/2020
+@param cTabPreco, character, codigo da tabela de preço
+@param cProduto, character, codigo do produto
+@param cIncoterm, character, codigo incoterm
+@param nQtde, numeric, quantidade
+@param cFornece, character, codigo fornecedor
+@param cLoja, character, codigo da loja
+@param nMoeda, numeric, moeda (retorno)
+@param dDataVld, date, data de validade (retorno)
+@param nTxMoeda, numeric, taxa da moeda (retorno)
+@param nValFrete, numeric, valor do frete (retorno)
+@param cCondicao, character, condicao de pagamento (retorno)
+@return numeric, preço unitario
+/*/
+User Function GetPriceTabelaCompra(cProduto,cViaEmb,nQtde,cFornece,cLoja,nMoeda,dDataVld,nTxMoeda,nValFrete,cCondicao,cIncoterm,cTabPreco)
+
+    local aArea      as array
+    local cAliasAIB  as character
+    local nPrcCom    as numeric
+    local nResult    as numeric
+    local nQtdLote   as numeric
+    local nMoedaTab  as numeric
+    local nY         as numeric
+    local nCM010PCL  as numeric
+    local lProcessa  as logical
+    local lPrcAIB    as logical
+    local dDtVig     as date
+    local lMoedaAIB  as logical
+
+    default nMoeda    := 1
+    default dDataVld  := dDataBase
+    default nTxMoeda  := Nil     
+    default nValFrete := 0  
+    default cCondicao := ""
+
+    aArea     := GetArea()
+    nPrcCom   := 0
+    nResult   := 0
+    nQtdLote  := 0
+    nMoedaTab := 1
+    nY        := 0  
+    nCM010PCL := 0
+    lProcessa := .F.
+    lPrcAIB   := .F.
+    dDtVig    := CTOD("  /  /  ")
+    lMoedaAIB := .F.
+
+
+	dbSelectarea("AIB")
+	dbSetOrder(1)
+	cAliasAIB := getNextAlias()
+	aStruAIB  := AIB->(dbStruct())
+
+    beginSql alias cAliasAIB
+	    SELECT AIB.*, AIA.AIA_CONDPG, AIA.AIA_XPGEIC,SA2.A2_EST
+	    FROM %table:AIB% AIB 
+        INNER JOIN %table:AIA% AIA ON ( AIA.AIA_FILIAL = AIB.AIB_FILIAL AND 
+                                        AIA.AIA_CODFOR = AIB.AIB_CODFOR AND
+                                        AIA.AIA_LOJFOR = AIB.AIB_LOJFOR AND
+                                        AIA.AIA_CODTAB = AIB.AIB_CODTAB AND
+										AIA.AIA_XBLOCK <> 'S'           AND
+                                        AIA.%notDel%)
+
+		INNER JOIN %table:SA2% SA2 ON (SA2.A2_COD = AIA.AIA_CODFOR AND
+		                               SA2.A2_LOJA = AIA.AIA_LOJFOR AND
+									   SA2.%notDel%)
+	    WHERE AIB.AIB_FILIAL =  %exp:xFilial("AIB")% AND 
+	          AIB.AIB_CODFOR =  %exp:cFornece%       AND 
+	          AIB.AIB_LOJFOR =  %exp:cLoja%          AND 
+	          AIB.AIB_CODPRO =  %exp:cProduto%        AND 
+	          AIB.AIB_QTDLOT >= %exp:Str(nQtde,18,8)% AND 
+              AIB.AIB_XVIAEM =  %exp:cViaEmb%        AND
+	          AIB.%notDel%
+	    ORDER BY AIB_QTDLOT,%order:AIB%
+    endSql
+
+
+	For nY := 1 To Len(aStruAIB)
+		If aStruAIB[nY][2]<>"C"
+			TcSetField(cAliasAIB,aStruAIB[nY][1],aStruAIB[nY][2],aStruAIB[nY][3],aStruAIB[nY][4])
+		EndIf
+	Next nY
+
+	If (cAliasAIB)->(!Eof())
+		lProcessa := .T.
+	EndIf
+
+	If lProcessa	
+		cCondicao := iif(alltrim((cAliasAIB)->A2_EST) == 'EX' ,  (cAliasAIB)->AIA_XPGEIC, (cAliasAIB)->AIA_CONDPG)
+		If nQtde == 0 .And. Empty(cFornece)
+			cTabPreco := (cAliasAIB)->AIB_CODTAB
+			nPrcCom   := (cAliasAIB)->AIB_PRCCOM
+			nMoedaTab := (cAliasAIB)->AIB_MOEDA			
+			nValFrete := (cAliasAIB)->AIB_FRETE
+			cIncoterm := (cAliasAIB)->AIB_XINCOT
+			lPrcAIB   := .T.
+		Else
+			//------------------------------------------------------
+			//Busca o preco e analisa a qtde de acordo com a faixa
+			//------------------------------------------------------
+			(cAliasAIB)->(DbGotop())
+			While (cAliasAIB)->(!Eof()) .And. (cAliasAIB)->AIB_FILIAL == xFilial("AIB") .And.;
+					(cAliasAIB)->AIB_CODFOR == cFornece  .And.;
+					(cAliasAIB)->AIB_LOJFOR == cLoja     .And.;								
+					(cAliasAIB)->AIB_CODPRO ==  cProduto .and. !lPrcAIB
+				If nQtde <= (cAliasAIB)->AIB_QTDLOT 								
+					//------------------------------
+					//Verifica a vigencia do item         
+					//------------------------------			
+					nQtdLote := (cAliasAIB)->AIB_QTDLOT
+
+					While (cAliasAIB)->(!Eof()) .And. (cAliasAIB)->AIB_FILIAL == xFilial("AIB") .And.;
+							(cAliasAIB)->AIB_CODFOR == cFornece  .And.;
+							(cAliasAIB)->AIB_LOJFOR == cLoja     .And.;								
+							(cAliasAIB)->AIB_CODPRO ==  cProduto .And.;
+							(cAliasAIB)->AIB_QTDLOT == nQtdLote .And.;
+							(cAliasAIB)->AIB_DATVIG <= dDataVld
+
+						If nQtde <= (cAliasAIB)->AIB_QTDLOT .And. (Empty(dDtVig) .Or. (cAliasAIB)->AIB_DATVIG > dDtVig) 
+							cTabPreco := (cAliasAIB)->AIB_CODTAB
+							nPrcCom   := (cAliasAIB)->AIB_PRCCOM
+							nMoedaTab := (cAliasAIB)->AIB_MOEDA  
+							nValFrete := (cAliasAIB)->AIB_FRETE  
+							dDtVig    := (cAliasAIB)->AIB_DATVIG
+							nMoeda    := (cAliasAIB)->AIB_MOEDA  
+							cIncoterm := (cAliasAIB)->AIB_XINCOT
+							lPrcAIB   := .T.
+						EndIf
+
+						
+						(cAliasAIB)->(dbSkip())
+					EndDo				
+					
+				EndIf
+
+				(cAliasAIB)->(dbSkip())
+			EndDo			
+		EndIf
+	EndIf
+	//--------------------------------------------------------------------------
+	//Guarda os ultimos resultados                                           
+	//--------------------------------------------------------------------------
+	nResult  := xMoeda(nPrcCom,nMoedaTab,nMoeda,,TamSx3("D1_VUNIT")[2],,nTxMoeda)	
+	nValFrete:= xMoeda(nValFrete,nMoedaTab,nMoeda,,TamSx3("D1_VUNIT")[2],,nTxMoeda)
+
+
+    //------------------------------
+    //Ponto de Entrada: CM010PCL  
+    //------------------------------  
+    If ExistBlock("CM010PCL")
+    	nCM010PCL:=ExecBlock("CM010PCL",.T.,.T.,{cFornece,cLoja,cTabPreco,cProduto,cAliasAIB,nResult})
+    	If ValType(nCM010PCL)=="N" 
+    		nResult:=nCM010PCL
+    	EndIf
+    EndIF
+
+ 
+    (cAliasAIB)->(dbCloseArea())
+
+
+    RestArea(aArea)
+    aSize(aStruAIB ,0)
+    aSize(aArea,0)
+Return(nResult)
+
+/*/{Protheus.doc} gatilhoTabelaPrecoCompras
+Gatilho da tabela de preço compras, utilizada
+nos campos C1_XTABPRC, C1_PRODUTO, C1_XINCOTE,
+C1_QUANT, C1_FORNECE, C1_LOJA
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 19/03/2020
+@return any, retorno do conteúdo do proprio campo
+/*/
+user function gatilhoTabelaPrecoCompras ()
+	local cProduto as character
+	local nQtde as numeric
+	local nMoeda as numeric
+	local dDataVld as date	
+	local nTxMoeda as numeric
+	local nValFrete as numeric
+	local cCondicao as character
+	local nPreco as numeric
+	local xRet 
+	local nPosTabela   as numeric     
+	local nPosProduto  as numeric      
+	local nPosIncoterm as numeric       
+	local nPosQuant    as numeric    
+	local nPosFornece  as numeric      
+	local nPosLoja     as numeric   
+	local nPosImport   as numeric     
+	local nPosPreco    as numeric    
+	local nPosTotal    as numeric    
+	local nPosCondPag  as numeric      
+	local nPosMoeda    as numeric    
+	local nPosVia      as numeric
+
+	nPosTabela   := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XTABPRC"} )
+	nPosProduto  := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_PRODUTO"} )
+	nPosIncoterm := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XINCOTE"} )
+	nPosQuant    := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_QUANT"} )
+	nPosFornece  := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_FORNECE"} )
+	nPosLoja     := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_LOJA"} )
+	nPosImport   := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_IMPORT"} )
+	nPosPreco    := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XPRECO"} )
+	nPosTotal    := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XTOTAL"} )
+	nPosCondPag  := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XCONPAG"} )
+	nPosMoeda    := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XMOEDA"} )
+	nPosVia      := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XVIAEMB"} )
+
+	
+	cProduto    := aCols[n][nPosProduto]
+	cInco110   := aCols[n][nPosIncoterm]
+	nQtde       := aCols[n][nPosQuant]
+	cForn110    := aCols[n][nPosFornece]
+	cLoj110     := aCols[n][nPosLoja]
+	cVia110     := aCols[n][nPosVia]
+	lImport110  := iif(aCols[n][nPosImport] == 'S', .T., .F.)
+
+
+	if !empty(cProduto)  .and. !empty(nQtde) .and. !empty(cForn110) .and. !empty(cLoj110)
+
+		nPreco := U_GetPriceTabelaCompra(cProduto,cVia110,nQtde,cForn110,cLoj110,@nMoeda,@dDataVld,@nTxMoeda,@nValFrete,@cCondicao, @cInco110,@cCodTb110)
+		aCols[n][nPosTabela]   := cCodTb110
+		aCols[n][nPosPreco]    := nPreco
+		aCols[n][nPosTotal]    := nQtde * nPreco
+		aCols[n][nPosCondPag]  := cCondicao
+		aCols[n][nPosMoeda]    := nMoeda
+		aCols[n][nPosIncoterm] := cInco110
+	endif
+
+
+	xRet := M->&(READVAR())
+
+return xRet
+
+/*/{Protheus.doc} replicaTabelaPrecoCompras
+Replica informações do codigo da tabela de preço, fornecedor, loja,
+incoterm.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 19/03/2020
+@return return_type, return_description
+/*/
+user function replicaTabelaPrecoCompras()
+
+    local aPergs as array
+    local aRet   as array
+	local nPosFornece as numeric
+	local nPosLoja as numeric
+	local nPosTabela as numeric
+	local nIndBkp  as numeric
+	local nQtdTotal as numeric
+	local nIndAtu as numeric
+
+    aRet      := {}
+    aPergs    := {}
+	nPosFornece  := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_FORNECE"} )
+	nPosLoja     := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_LOJA"} )
+	nPosTabela   := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XTABPRC"} )
+	nPosVia      := aScan(aHeader, {|aCampo|alltrim(aCampo[2]) == "C1_XVIAEMB"} )
+	nIndBkp      := n
+
+
+
+    //-------------------------------------------------------------------------
+    //Definção dos parâmetros do parambox referente à informação de
+    //tabela de preços/fornecedor
+    //------------------------------------------------------------------------
+    aAdd(aPergs,{1,"Fornecedor",space(tamSx3("A2_COD")[1]),"","U_SetVariablesTabelaPrecoCompras()","SA2","",50,.T.}) 
+    aAdd(aPergs,{1,"Loja",space(tamSx3("A2_LOJA")[1]),"","U_SetVariablesTabelaPrecoCompras()","","",50,.T.}) 
+	aAdd(aPergs,{1,"Via Transp.",space(tamSx3("C1_XVIAEMB")[1]),"","","SYQCMP","",50,.F.})
+    aAdd(aPergs,{1,"Tabela Preço",space(tamSx3("AIA_CODTAB")[1]),"","","AIA","SA2->(dbSeek(xFilial('SA2')+MV_PAR01+MV_PAR02))",50,.T.})
+
+    If ParamBox(aPergs,"Informe parâmetros: ",@aRet,,,,,,,.T.,.T.)
+        cForn110  := aRet[1]
+        cLoj110   := aRet[2]
+		cCodTb110 := aRet[4]
+		cVia110   := aRet[3]
+		if Aviso("Replica de informações","Deseja realmente replicar as informações anteriormente informadas para todas as linhas?"+CRLF+CRLF+;
+		                                   "Codigo fornecedor:["+cForn110+"]"+CRLF+;
+										   "Loja fornecedor:["+cLoj110+"]"+CRLF+;
+										   "Via Transporte:["+cVia110+"]"+CRLF+;
+										   "Tabela preço:["+cCodTb110+"]", {"Replicar","Cancelar"},3) == 1
+			
+			nQtdTotal := len(aCols)	
+
+			for nIndAtu := 1 to nQtdTotal
+				n := nIndAtu
+
+				aCols[n][nPosFornece] := cForn110
+				aCols[n][nPosLoja]    := cLoj110
+				aCols[n][nPosTabela]  := cCodTb110
+				aCols[n][nPosVia]     := cVia110
+				u_gatilhoTabelaPrecoCompras ()
+
+			next nIndAtu
+
+
+			n := nIndBkp
+		endif
+    endif
+
+
+
+    aSize(aRet,0)
+    aSize(aPergs,0)
+
+return
+
+/*/{Protheus.doc} SetVariablesTabelaPrecoCompras
+Insere as variáveis públicas com os novos valores passados na
+tela de parâmetros da replica de cod. tabela/fornecedor
+@type function
+@version 
+@author marcio.katsumata
+@since 19/03/2020
+@return return_type, return_description
+/*/
+user function SetVariablesTabelaPrecoCompras()
+	cForn110 := MV_PAR01
+	cLoj110  := MV_PAR02
+ return .t.
+
+/*/{Protheus.doc} CopiaTabelaDePrecosCompras
+Copia registros
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/03/2020
+@return nil, nil
+/*/
+user function CopiaTabelaDePrecosCompras()
+	local oModelTbPrc as object
+	local aButtons as array
+
+	//---------------
+	//Load do model 
+	//---------------
+    oModelTbPrc := FwLoadModel("TBPRCCMP")
+    oModelTbPrc:setOperation( MODEL_OPERATION_INSERT)
+    oModelTbPrc:activate()
+
+	//------------------
+	//Alimenta o model
+	//-----------------
+	copyRegs(oModelTbPrc)
+
+	//---------------------------------
+	//Abre a tela de copia de registro
+	//----------------------------------
+	aButtons := {{.F.,Nil},{.F.,Nil},{.F.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,"Salvar"},{.T.,"Cancelar"},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil},{.T.,Nil}}
+ 	FWExecView('COPIAR','TBPRCCMP', 3, , { || .T. }, , ,aButtons,,,,oModelTbPrc ) 
+
+
+	aSize(aButtons,0)
+	oModelTbPrc:DeActivate()
+	freeObj(oModelTbPrc)
+
+Return 
+
+/*/{Protheus.doc} copyRegs
+Alimenta o model com o registro posicionado
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/03/2020
+@param oModelTbPrc, object, model TBPRCCMP
+@return nil, nil
+/*/
+static function copyRegs(oModelTbPrc)
+
+	private cAliasAIA as character
+	private oModelGrid as object
+
+	//--------------------------------
+	//Resgata apenas o model da grid
+	//--------------------------------
+	oModelGrid := oModelTbPrc:getModel("AIBDETAIL")
+
+	cAliasAIA := getNextAlias()
+
+	beginSql alias cAliasAIA
+
+		SELECT AIB.* FROM %table:AIA% AIA
+		INNER JOIN %table:AIB% AIB ON(AIB.AIB_FILIAL = AIA.AIA_FILIAL AND 
+		                              AIB.AIB_CODTAB = AIA.AIA_CODTAB AND
+									  AIB.AIB_CODFOR = AIA.AIA_CODFOR AND
+                                      AIB.AIB_LOJFOR = AIA.AIA_LOJFOR AND
+									  AIB.%notDel%
+									  )
+		WHERE AIA.R_E_C_N_O_ = %exp:AIA->(RECNO())%
+
+
+	endSql
+
+	//------------------------------
+	//Resgata a estrutura da tabela
+	//------------------------------
+	aStruct := (cAliasAIA)->(dbStruct())
+
+	//------------------------------------------------
+	//Alimenta o model com os registros da tabela AIB
+	//------------------------------------------------
+	while (cAliasAIA)->(!eof())
+
+		aEval(aStruct, {|aCampo| iif(aCampo[1] $ "AIB_CODFOR/AIB_LOJFOR/AIB_CODTAB/R_E_C_N_O_/R_E_C_D_E_L_/D_E_L_E_T_","",;
+		                         oModelGrid:setValue(aCampo[1],iif(aCampo[1] == "AIB_DATVIG", stod((cAliasAIA)->&(aCampo[1])), (cAliasAIA)->&(aCampo[1]))))})
+		(cAliasAIA)->(dbSkip())
+
+		if (cAliasAiA)->(!eof())
+			oModelGrid:AddLine()
+		endif
+	enddo
+
+	(cAliasAIA)->(dbCloseArea())
+	aSize(aStruct,0)
+return
+
+
+
+/*/{Protheus.doc} ReplicaDataVigenciaTabelaPrecoCompras
+Preenche todas as linhas com uma determinada data de vigência.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/03/2020
+@param oView, object, view
+@return nil, nil
+/*/
+user function ReplicaDataVigenciaTabelaPrecoCompras(oView)
+    local dDtVig as date
+	local oModelTbPrc as object
+	local nQtdReg as numeric
+	local nIndLine as numeric
+
+	dDtVig := paramData()
+	oModelTbPrc := FWModelActive()
+	oModelGrid   := oModelTbPrc:getModel("AIBDETAIL")
+
+	nQtdReg := oModelGrid:length()
+
+	for nIndLine :=1 to nQtdReg
+		oModelGrid:goLine(nIndLine)
+		oModelGrid:setValue("AIB_DATVIG",dDtVig)
+
+	next nIndLine
+
+	oView:refresh()
+return
+
+/*/{Protheus.doc} paramData
+Tela de parâmetros de replicação de data de vigência
+nos itens da tabela de preço
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 19/03/2020
+@return date, data de vigência
+/*/
+static function paramData()
+
+    local aPergs     as array
+    local aRet       as array
+	local dDtVigencia as date
+
+    aRet      := {}
+    aPergs    := {}
+
+    //-------------------------------------------------------------------------
+    //Definção dos parâmetros do parambox 
+    //------------------------------------------------------------------------
+    aAdd(aPergs,{9,"Replicar a data de vigência  ",150,7,.T.})
+    aAdd(aPergs,{1,"Data vigência ",dDataBase,"","","","",50,.T.}) 
+
+
+    If ParamBox(aPergs,"Parâmetros",@aRet,,,,,,,.T.,.T.)
+        dDtVigencia := aRet[2]
+
+    else
+        dDtVigencia := dDataBase
+    endif
+
+    aSize(aRet,0)
+    aSize(aPergs,0)
+
+return dDtVigencia
+
+
+/*/{Protheus.doc} ImportaTabelaPrecoCompras
+Importa a partir de um arquivo CSV a tabela de preço
+ou gera um arquivo csv de exemplo.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 20/03/2020
+@return nil, nil
+/*/
+user function ImportaTabelaPrecoCompras()
+
+    local aPergs as array
+    local aRet   as array
+	local cLocalCSV as character
+	local cMsgErro  as character
+	private oProcess as object
+
+	//----------------------
+	//Inicializa variáveis
+	//-----------------------
+	aPergs := {}
+	aRet   := {}
+	cMsgErro := ""
+	lRetorno := .T.
+
+    //-------------------------------------------------------------------------
+    //Definção dos parâmetros do parambox referente à informação de
+    //tabela de preços/fornecedor
+    //------------------------------------------------------------------------
+   	aAdd(aPergs,{9,"Esta rotina tem por objetivo criar ou atualizar "+;
+	               "tabela de preços através de arquivo CSV.",150,100,.T.})
+	aAdd(aPergs,{9,"Caso necessite do layout do arquivo CSV faça o "+;
+				   "download através da opção abaixo e depois de "+;
+				   "popular o layout retorne a esta rotina.",150,150,.T.})
+	aAdd(aPergs,{9,"",150,2,.T.})
+    aAdd(aPergs,{2,"Informe a operação",1,{"","IMPORTAR","LAYOUT"},50,"",.T.})
+	aAdd(aPergs,{6,"Informe arquivo",Space(100),"","","iif(ValType(MV_PAR04)=='C', MV_PAR04=='IMPORTAR',.F.)",50,.F.,"Arquivos csv (*.csv) |*.csv"})
+
+
+	If ParamBox(aPergs,"Rotina de importação tabela de preços ",@aRet,,,,,,,.T.,.T.)
+
+	
+		if aRet[4] == 'IMPORTAR'
+			if !empty(cLocalCsv := alltrim(aRet[5]))
+				oProcess := MsNewProcess():New({||ImportaArquivoCSV(cLocalCsv,@cMsgErro,@lRetorno)},"Importação arquivo tabela preço","Processando arquivo...",.F.)
+        		oProcess:Activate()
+				if lRetorno
+					Aviso("IMPORTAR", "Arquivo CSV importado com sucesso.", {"OK"}, 1)
+				else
+					eecView("********ERRO AO IMPORTAR O ARQUIVO********"+CRLF+CRLF+cMsgErro)
+				endif
+
+			endif
+
+		elseif aRet[4] == 'LAYOUT'
+			if!empty(cLocalCsv := alltrim(cGetFile('','Selecione o diretório do layout', 0,'', .T., GETF_OVERWRITEPROMPT + GETF_LOCALHARD + GETF_RETDIRECTORY,.T.)))
+				ExportaLayoutCsv(cLocalCsv)
+				Aviso("LAYOUT", "Download do layout realizado!", {"OK"}, 1)
+
+			endif
+
+		endif
+
+	endif
+
+	aSize(aPergs,0)
+	aSize(aRet,0)
+return
+
+/*/{Protheus.doc} ImportaArquivoCSV
+description
+@type function
+@version 
+@author marcio.katsumata
+@since 20/03/2020
+@param cLocalCsv, character, param_description
+@param cMsgErro, character, param_description
+@param lValid, logical, param_description
+@return return_type, return_description
+/*/
+static function ImportaArquivoCSV(cLocalCsv,cMsgErro,lValid)
+
+	local aLayoutCab as array
+	local aDados as array
+
+
+	dbSelectArea("SA2")
+	SA2->(dbSetOrder(1))
+
+	dbSelectArea("SB1")
+	SB1->(dbSetOrder(1))
+
+	dbSelectArea("SYJ")
+	SYJ->(dbSetOrder(1))
+
+	dbSelectArea("AIA")
+	AIA->(dbSetOrder(1))
+
+	dbSelectArea("SE4")
+	SE4->(dbSetOrder(1))
+
+	dbSelectArea("SYQ")
+	SYQ->(dbSetOrder(1))
+
+	oProcess:setRegua1(2)
+
+	//-----------------------------------
+	//Resgata o layout do arquivo CSV
+	//-----------------------------------
+	aLayoutCab := GetLayoutDePara()
+
+	//---------------------------------------------------
+	//Realiza a leitura do arquivo CSV e formata os dados
+	//---------------------------------------------------
+	aDados := LeArquivoCsv(cLocalCsv,aLayoutCab,@lValid,@cMsgErro)
+
+	if lValid
+		//-----------------------------
+		//Realiza a gravação dos dados
+		//-----------------------------
+		lValid := GravaTabelaDePrecoCompras(aDados,aLayoutCab, @cMsgErro)
+
+	endif
+	//--------------------
+	//Limpeza de arrays
+	//--------------------
+	aSize(aLayoutCab,0)
+	aSize(aDados,0)
+
+return lValid
+
+
+/*/{Protheus.doc} LeArquivoCsv
+Leitura de arquivo CSV
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 21/03/2020
+@param cLocalCsv, character, local completo do arquivo CSV
+@param aLayoutCab, array, layout do arquivo CSV
+@param lValid, logical, retorno do processamento
+@param cMsgErro, character, mensagem de erro
+@return array, [1] cabeçalho
+               [2] Itens
+/*/
+static function LeArquivoCsv(cLocalCsv,aLayoutCab,lValid,cMsgErro)
+    local cLineRead as character //Linha do arquivo
+    local aAux      as array     //Vetor auxiliar
+	local aCabec    as array     //Vetor de cabeçalho
+    local aItens    as array     //Vetor da linha lida 
+	local lHeaderOk as logical   //Indica se a quantidade de campos está ok no cabeçalho
+	local nIndLine  as numeric   //Linha atual
+	local cNomeArq  as character //nome do arquivo
+	local aFornece  as array
+	private nPosCampo as numeric //Posição do campo
+	private aCabecNew as array   //Vetor auxiliar
+	private cCampoAtu as character //Campo atual
+	private nPosFor as numeric     //posição do campo fornecedor
+	private nPosLoj as numeric     //posição do campo loja fornecedor
+	private nPosTab as numeric     //posição do campo codigo da tabela
+
+	//-----------------------
+	//Inicializa variáveis
+	//-----------------------
+    aLido := {}
+	lHeaderOk := .F.
+    nHandle := FT_FUse(cLocalCsv)
+	nPosCampo := 0
+	aCabecNew := {}
+	nIndLine  := 1
+	aItens    := {}
+
+	
+    If nHandle <= 0 
+		cMsgErro := "Arquivo inválido."
+		lValid := .F.
+    	Return
+    Endif
+
+	SplitPath(cLocalCSV,,,@cNomeArq,)
+
+		aFornece := StrTokArr2(cNomeArq, "_", .F.)
+	aFornece[1] := PADR(aFornece[1],tamSx3("A2_COD")[1])
+	aFornece[2] := PADR(aFornece[2],tamSx3("A2_LOJA")[1])
+
+	aSize(aFornece,2)
+
+	oProcess:IncRegua1("Lendo arquivo CSV...")
+	nQtdLinhas := FT_FLastRec()
+	oProcess:SetRegua2(nQtdLinhas)
+
+	FT_FGoTop()
+
+	//------------------------------------------
+	//Realiza a leitura do cabeçalho do arquivo
+	//------------------------------------------
+	if !(FT_FEOF())
+
+		cLineRead := FT_FREADLN()
+		aCabec := StrTokArr2(cLineRead,";", .T.)
+		//--------------------------------
+		//Verifica a quantidade de campos
+		//--------------------------------
+		lHeaderOk := len(aCabec) == len(aLayoutCab)
+
+		//---------------------------------------
+		//Valida a existência de todos os campos 
+		//---------------------------------------
+		aEval(aCabec, {|cCampo| cCampoAtu :=cCampo ,iif ( (nPosCampo := aScan(aLayoutCab, {|aCampo|aCampo[1] == alltrim(cCampoAtu)})) == 0,lHeaderOk := .F., aadd(aCabecNew, {cCampoAtu,nPosCampo}))})
+		
+		FT_FSKIP( )
+
+		oProcess:IncRegua2("Linha "+alltrim(cValToChar(nIndLine))+" de "+alltrim(cValToChar(nQtdLinhas)))
+	else
+		cMsgErro := "Arquivo vazio."
+		lValid := .F.
+	endif
+
+	aSize(aCabec,0)
+	aCabec := aClone(aCabecNew)
+	aSize(aCabecNew,0)
+
+	if lValid
+		if !lHeaderOk
+			cMsgErro := "Verifique o cabeçalho do arquivo, deve conter os seguintes campos: "+CRLF+;
+			            "CODIGO_FORNECEDOR;LOJA_FORNECEDOR;VIA_TRANSPORTE;DESCRICAO_TABELA,DATA_INICIAL_TABELA;"+CRLF+;
+						"DATA_FINAL_TABELA;CONDICAO_PAGAMENTO;INCOTERM;PRODUTO;PRECO;MOEDA;DATA_VIGENCIA_PRODUTO;"+CRLF+;
+						"FAIXA_QUANTIDADE;VALOR_FRETE"
+		endif
+
+		//--------------------------------------------
+		//Realiza a leitura dos itens dos arquivos CSV
+		//---------------------------------------------
+    	While !(FT_FEOF()) .and. lHeaderOk
+			
+    	    cLineRead := FT_FREADLN()
+			if !empty(cLineRead)
+    	    	aAux := StrTokArr2(cLineRead,";", .T.)
+
+				//------------------------------------------
+				//Verifica a quantidade de campos nos itens
+				//------------------------------------------
+				if len(aAux) == len(aLayoutCab)
+					//------------------------------------------
+					//Valida os valores dos campos e formata 
+					//------------------------------------------
+					if !validaItensCsv(aAux,aCabec,aLayoutCab,@cMsgErro, nIndLine,aFornece)
+						lValid := .F.
+					endif
+				else
+					lValid := .F.
+					cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] QUANTIDADE DE CAMPOS INCORRETO."+CRLF
+								" ESPERADO ["+alltrim(cValToChar(len(aLayoutCab)))+"]  INFORMADO: ["+alltrim(cValToChar(len(aAux)))+"]"+CRLF
+    	    	endif
+
+				aadd(aItens, aClone(aAux))
+    	    	aSize(aAux,0)
+			endif
+    	    FT_FSKIP( )
+			nIndLine++
+			oProcess:IncRegua2("Linha "+alltrim(cValToChar(nIndLine))+" de "+alltrim(cValToChar(nQtdLinhas)))
+    	Enddo
+	endif
+
+    FT_FUSE( )
+
+	//-------------------------------------------------------
+	//Realiza a ordenação dos itens FORNECEDOR/CODIGO TABELA
+	//-------------------------------------------------------
+	if !empty(aCabec) .and. !empty(aItens) .and. lValid
+		nPosFor := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == "CODIGO_FORNECEDOR"})
+		nPosLoj := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == "LOJA_FORNECEDOR"}) 
+		nPosTab := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == "CODIGO_TABELA"}) 
+
+
+		ASORT(aItens,,,{ | x,y | x[1]+x[2]+x[3] < y[1]+y[2]+y[3]})
+
+	endif
+return {aCabec, aItens}
+
+/*/{Protheus.doc} validaItensCsv
+description
+@type function
+@version 
+@author marcio.katsumata
+@since 20/03/2020
+@param aItem, array, vetor de itens
+@param aCabec, array, vetor do cabeçalho
+@param aLayoutCab, array, layout do arquivo CSV
+@param cMsgErro, character, mensagem de erro
+@param nIndLine, numeric, linha atual
+@return logical, válido?
+/*/
+static function validaItensCsv(aItem,aCabec,aLayoutCab,cMsgErro, nIndLine, aFornece)
+	local nQtdCampos as numeric    //Quantidade de campos    
+	local nIndCampo as numeric     //Indice de navegação entre os campos 
+	local lRetorno as logical      //Retorno da validação
+	local nIndLay as numeric       //Posicao do campo no vetor de itens
+	local cTypeCampo as character  //Tipo do campo     
+	local nTamanho as numeric      //Tamnho do campo 
+	local cCampo as character      //Nome do campo 
+	local lObrigatorio as logical  //Campo obrigatório     
+	local nTamCampo as numeric     //Tamanho real do campo  
+	local cProduto as character    //Codigo do produto   
+	local cIncoterm as character   //COdigo incoterm    
+	local cCodFor as character     //Codigo fornecedor  
+	local cLojFor as character     //Codigo loja fornecedor  
+	local cCondPag as character    //Condicao de pagamento
+	local cViaTransp as character  //Via de transporte
+	local lCompletaZero as logical //Completa com zeros a esquerda
+	local cSX3Campo as character   //Campo SX3
+	lRetorno := .T.
+
+	nQtdCampos := len(aCabec)
+
+ 	for nIndCampo := 1 to nQtdCampos
+		nIndLay    := aCabec[nIndCampo][2]
+		cTypeCampo := aLayoutCab[nIndLay][4]
+		nTamanho   := aLayoutCab[nIndLay][5]
+		cCampo     := aLayoutCab[nIndLay][1]	
+		lObrigatorio := aLayoutCab[nIndLay][6]
+		nTamCampo := len(alltrim(aItem[nIndCampo]))
+		lCompletaZero := aLayoutCab[nIndLay][7]
+		cSX3Campo  := iif(!empty(aLayoutCab[nIndLay][2]), aLayoutCab[nIndLay][2],aLayoutCab[nIndLay][3])
+		//--------------------------------
+		//Valida obrigatoriedade do campo
+		//--------------------------------
+		if lObrigatorio .and. empty(aItem[nIndCampo])
+			cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] CAMPO "+cCampo+" OBRIGATORIO."+CRLF
+			lRetorno := .F.	
+		endif
+
+		//------------------------
+		//Valida tamanho do campo
+		//-------------------------
+ 		if nTamCampo >  nTamanho
+			cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] TAMANHO INVALIDO DO CAMPO "+cCampo+"."+;
+					            " ESPERADO ["+alltrim(cValToChar(nTamanho))+"]  INFORMADO: ["+alltrim(cValToChar(nTamCampo))+"]"+CRLF
+			lRetorno := .F.
+		endif
+
+
+		//-------------------------------
+		//Realiza formatação dos dados
+		//-------------------------------
+		DO CASE
+			//----------------
+			//Caractere
+			//----------------
+			CASE cTypeCampo == "C"
+
+				if lCompletaZero
+					if !empty(aItem[nIndCampo])
+						aItem[nIndCampo] := PADL(aItem[nIndCampo] , tamSx3(cSX3Campo)[1], "0")
+					else
+						aItem[nIndCampo] := ""
+					endif
+				else
+					aItem[nIndCampo] := PADR(aItem[nIndCampo], nTamanho)
+				endif
+
+
+				DO CASE 
+					CASE cCampo == "CODIGO_FORNECEDOR"
+						cCodFor := aFornece[1]
+						aItem[nIndCampo] := aFornece[1]
+					CASE cCampo == "LOJA_FORNECEDOR"
+						cLojFor := aFornece[2]
+						aItem[nIndCampo] := aFornece[2]
+					CASE cCampo == "PRODUTO"
+						cProduto := aItem[nIndCampo] 
+					CASE cCampo == "INCOTERM"
+						cIncoterm := aItem[nIndCampo] 
+					CASE cCampo == "CONDICAO_PAGAMENTO"
+						cCondPag:= aItem[nIndCampo] 
+					CASE cCampo == "VIA_TRANSPORTE"
+						cViaTransp:= aItem[nIndCampo] 
+				ENDCASE
+
+			//-----------
+			//Numerico
+			//-----------
+			CASE cTypeCampo == "N"
+				
+				if !isDigit(alltrim(aItem[nIndCampo]))
+					cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] CAMPO "+cCampo+" DEVERIA SER NUMERICO."+CRLF
+					lRetorno := .F.	
+				else
+					aItem[nIndCampo] := val(aItem[nIndCampo])
+				endif
+
+			//--------
+			//Data
+			//--------
+			CASE cTypeCampo == "D"
+				aItem[nIndCampo] := stod(aItem[nIndCampo])
+				
+		ENDCASE
+	
+	next nIndCampo
+
+	if lRetorno
+		//Valida Fornecedor
+		if !(SA2->(dbSeek(xFilial("SA2")+cCodFor+cLojFor)))
+			cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] FORNECEDOR INVÁLIDO . CODIGO: ["+cCodFor+" / "+cLojFor+"]."+CRLF
+			lRetorno := .F.	
+		endif
+		//Valida Produto
+		if !(SB1->(dbSeek(xFilial("SB1")+cProduto)))
+			cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] PRODUTO INVÁLIDO . CODIGO: ["+cProduto+"]."+CRLF
+			lRetorno := .F.	
+		endif
+		//Valida Incoterm
+		if !empty(cIncoterm)
+			if !(SYJ->(dbSeek(xFilial("SYJ")+cIncoterm)))
+				cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] INCOTERM INVÁLIDO . CODIGO: ["+cIncoterm+"]."+CRLF
+				lRetorno := .F.	
+			endif
+		else
+			if !empty(cViaTransp) 
+				cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] INCOTERM OBRIGATÓRIO NÃO PREENCHIDO."+CRLF
+				lRetorno := .F.	
+			endif
+		endif
+
+		//Valida Via Transporte
+		if !empty(cViaTransp)
+			if !(SYQ->(dbSeek(xFilial("SYQ")+cViaTransp))) 
+				cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] VIA TRANSPORTE INVÁLIDO . CODIGO: ["+cViaTransp+"]."+CRLF
+				lRetorno := .F.	
+			endif
+		endif
+		
+		//Valida Condição de pagamento
+		if !(SE4->(dbSeek(xFilial("SE4")+cCondPag)))
+			cMsgErro += "LINHA ["+ strZero(nIndLine,4)+"] CONDIÇÃO PAGAMENTO INVÁLIDO . CODIGO: ["+cCondPag+"]."+CRLF
+			lRetorno := .F.	
+		endif
+	endif
+return lRetorno
+
+/*/{Protheus.doc} GetLayoutDePara
+Monta o layout do arquivo CSV
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 20/03/2020
+@return array, layout
+/*/
+static function GetLayoutDePara()
+	local aLayout as array
+
+	aLayout := {}
+
+
+	aadd(aLayout,{"CODIGO_FORNECEDOR"    , "AIA_CODFOR", ""          , "C", tamSx3("AIB_CODFOR")[1], .T.,.T.})             
+	aadd(aLayout,{"LOJA_FORNECEDOR"      , "AIA_LOJFOR", ""          , "C", tamSx3("AIB_LOJFOR")[1], .T.,.T.})                       
+	aadd(aLayout,{"DESCRICAO_TABELA"     , "AIA_DESCRI", ""          , "C", tamSx3("AIA_DESCRI")[1], .T.,.F.})            
+	aadd(aLayout,{"DATA_INICIAL_TABELA"  , "AIA_DATDE" , ""          , "D", tamSx3("AIA_DATDE") [1], .T.,.F.})  
+	aadd(aLayout,{"DATA_FINAL_TABELA"    , "AIA_DATATE", ""          , "D", tamSx3("AIA_DATATE")[1], .T.,.F.}) 
+	aadd(aLayout,{"CONDICAO_PAGAMENTO"   , "AIA_CONDPG", ""          , "C", tamSx3("AIA_CONDPG")[1], .T.,.T.})   
+	aadd(aLayout,{"VIA_TRANSPORTE"       ,  ""         , "AIB_XVIAEM", "C", tamSx3("AIB_XVIAEM")[1], .F.,.T.})            
+	aadd(aLayout,{"INCOTERM"             ,  ""         , "AIB_XINCOT", "C", tamSx3("AIB_XINCOT")[1], .F.,.F.})            
+	aadd(aLayout,{"PRODUTO"              ,  ""         , "AIB_CODPRO", "C", tamSx3("AIB_CODPRO")[1], .T.,.F.})             
+	aadd(aLayout,{"PRECO"                ,  ""         , "AIB_PRCCOM", "N", tamSx3("AIB_PRCCOM")[1], .T.,.F.})            
+	aadd(aLayout,{"MOEDA"                ,  ""         , "AIB_MOEDA" , "N", tamSx3("AIB_MOEDA") [1], .T.,.F.})           
+	aadd(aLayout,{"DATA_VIGENCIA_PRODUTO",  ""         , "AIB_DATVIG", "D", tamSx3("AIB_DATVIG")[1], .T.,.F.})            
+	aadd(aLayout,{"FAIXA_QUANTIDADE"     ,  ""         , "AIB_QTDLOT", "N", tamSx3("AIB_QTDLOT")[1], .T.,.F.})            
+	aadd(aLayout,{"VALOR_FRETE"          ,  ""         , "AIB_FRETE" , "N", tamSx3("AIB_FRETE") [1], .F.,.F.})           
+
+return aLayout
+
+/*/{Protheus.doc} GravaTabelaDePrecoCompras
+Gravação de dados na tabela de preços
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 20/03/2020
+@param aDados, array, dados
+@param aLayoutCab, array, layout do arquivo CSV
+@param cMsgErro, character, mensagem de erro
+@return logical, processado sem erros?
+/*/
+static function GravaTabelaDePrecoCompras(aDados,aLayoutCab,cMsgErro)
+
+	local aCabec as array      //Vetor com cabeçalho do arquivo         
+	local aItens as array      //Vetor com os itens do arquivo         
+	local nPosFor as numeric   //Posição do campo fornecedor            
+	local nPosLoj as numeric   //Posição do campo loja fornecedor            
+	local nQtdTotal as numeric //Quantidade total de itens              
+	local cCodFor  as character//Codigo fornecedor               
+	local cLojFor  as character//Codigo loja               
+	local cCodTab  as character//Codigo da tabela de preço               
+	local oModelTbPrc as object//Model da tabela de preço               
+	local oModelGrid as object  //Model AIB             
+	local oModelCab as object  //Model AIA             
+	local lRetorno as logical  //Retorno da gravação             
+	local lRet     as logical  //Retorno atual da gravação             
+	local nInd as numeric      //Indice de navegação entre os campos         
+	local nIndLine as numeric  //Indice de navegação entre os registros             
+	local nItem as numeric     //Conteúdo do campo AIB_ITEM (Incrementa a cada item)          
+
+	aCabec := aDados[1]
+	aItens := aDados[2]
+
+	lRetorno  := .T.
+	nQtdTotal := len(aItens)
+	nIndLine  := 1
+	
+	oProcess:IncRegua1("Importando arquivo CSV...")
+	oProcess:SetRegua2(nQtdTotal)
+
+	nPosFor := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == "CODIGO_FORNECEDOR"})
+	nPosLoj := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == "LOJA_FORNECEDOR"}) 
+
+
+	while nIndLine <= nQtdTotal
+
+	
+		oProcess:IncRegua2("Linha "+alltrim(cValToChar(nIndLine))+" de "+alltrim(cValToChar(nQtdTotal)))
+		
+		//--------------------------------------------------------------
+		//Inicializa as variáveis para começar uma nova tabela de preços
+		//---------------------------------------------------------------
+		nItem   :=1
+		cCodFor := aItens[nIndLine][nPosFor]
+		cLojFor := aItens[nIndLine][nPosLoj]
+
+
+		lExisteAIA := AIA->(dbSeek(xFilial("AIA")+cCodFor+cLojFor))
+		
+		//-------------------------------------
+		//Se caso já existir a tabela de preço
+		//deve se bloquear ela para substitui-la
+		//--------------------------------------
+		if lExisteAIA
+			reclock("AIA", .F.)
+			AIA->AIA_XBLOCK := "S" 
+			AIA->(msUnlock())
+		endif
+
+
+		//---------------
+		//Load do model 
+		//---------------
+    	oModelTbPrc := FwLoadModel("TBPRCCMP")
+    	oModelTbPrc:setOperation(MODEL_OPERATION_INSERT)
+    	oModelTbPrc:activate()
+
+		oModelCab  :=  oModelTbPrc:getModel("AIAMASTER")
+		oModelGrid :=  oModelTbPrc:getModel("AIBDETAIL")
+		
+		//----------------------------------------------------
+		//Grava as informações do cabeçalho da tabela de preço
+		//-----------------------------------------------------
+		for nInd := 1 to len(aLayoutCab)
+			if !empty(aLayoutCab[nInd][2])
+
+				nPosValue := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == aLayoutCab[nInd][1]})
+				oModelCab:setValue(aLayoutCab[nInd][2],aItens[nIndLine][nPosValue] )
+
+			endif
+
+		next nInd
+
+		//---------------------------------------------------
+		//Grava as informações de itens da tabela de preço
+		//---------------------------------------------------
+		while nIndLine <= nQtdTotal .and.;
+		 	aItens[nIndLine][nPosFor]+aItens[nIndLine][nPosLoj] == cCodFor+cLojFor
+
+			for nInd := 1 to len(aLayoutCab)
+				if !empty(aLayoutCab[nInd][3])
+					nPosValue := aScan(aCabec, {|aCampo| alltrim(aCampo[1]) == aLayoutCab[nInd][1]})
+					if !empty(aItens[nIndLine][nPosValue] )
+						oModelGrid:setValue(aLayoutCab[nInd][3],aItens[nIndLine][nPosValue] )
+					endif
+				endif
+			next nInd
+
+			//---------------------------
+			//Incrementa o item da grid
+			//---------------------------
+			oModelGrid:setValue("AIB_ITEM",strZero(nItem, tamSx3("AIB_ITEM")[1]) )	
+
+			nPosValue := aScan(aLayoutCab, {|aCab| alltrim(aCab[3]) == "AIB_QTDLOT"})
+			if nPosValue > 0
+				oModelGrid:setValue("AIB_INDLOT", StrZero(aItens[nIndLine][nPosValue],18,2)) 
+			endif
+
+			nIndLine++
+			nItem++
+			
+			oProcess:IncRegua2("Linha "+alltrim(cValToChar(nIndLine))+" de "+alltrim(cValToChar(nQtdTotal)))
+
+			if nIndLine <= nQtdTotal .and.;
+				aItens[nIndLine][nPosFor]+aItens[nIndLine][nPosLoj] == cCodFor+cLojFor
+				oModelGrid:AddLine()
+			endif 
+		enddo
+
+		//Validação do modelo passa por todas as validações de campo
+		If ( lRet := oModelTbPrc:VldData() )
+			// Se o dados foram validados faz-se a gravação efetiva dos dados (commit)
+			lRet := oModelTbPrc:CommitData()
+		endif
+
+
+		If !lRet
+			// Se os dados não foram validados obtemos a descrição do erro para gerar LOG ou mensagem de aviso
+			aErro   := oModelTbPrc:GetErrorMessage()
+			// A estrutura do vetor com erro é:
+			//  [1] Id do formulário de origem
+			//  [2] Id do campo de origem
+			//  [3] Id do formulário de erro
+			//  [4] Id do campo de erro
+			//  [5] Id do erro
+			//  [6] mensagem do erro
+			//  [7] mensagem da solução
+			//  [8] Valor atribuido
+			//  [9] Valor anterior
+
+			cMsgErro +="Erro ao gravar a tabela "+cCodTab+" do fornecedor :"+cCodFor+" / "+cLojFor+CRLF+;
+					   "Id do formulário de origem:" + ' [' + AllToChar( aErro[1]  ) + ']' +CRLF+;
+					   "Id do campo de origem:     " + ' [' + AllToChar( aErro[2]  ) + ']' +CRLF+;
+					   "Id do formulário de erro:  " + ' [' + AllToChar( aErro[3]  ) + ']' +CRLF+;
+					   "Id do campo de erro:       " + ' [' + AllToChar( aErro[4]  ) + ']' +CRLF+;
+					   "Id do erro:                " + ' [' + AllToChar( aErro[5]  ) + ']' +CRLF+;
+					   "Mensagem do erro:          " + ' [' + AllToChar( aErro[6]  ) + ']' +CRLF+;
+					   "Mensagem da solução:       " + ' [' + AllToChar( aErro[7]  ) + ']' +CRLF+;
+					   "Valor atribuido:           " + ' [' + AllToChar( aErro[8]  ) + ']' +CRLF+;
+					   "Valor anterior:            " + ' [' + AllToChar( aErro[9]  ) + ']'
+			lRetorno := .F.
+
+		endif
+		
+		oModelTbPrc:DeActivate()
+		freeObj(oModelTbPrc)
+	enddo
+
+return lRetorno
+
+
+
+/*/{Protheus.doc} ExportaLayoutCsv
+Exporta layout do arquivo CSV
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 20/03/2020
+@param cLocalCsv, character, local do arquivo CSV
+@return nil, nil
+/*/
+static function ExportaLayoutCsv(cLocalCsv)
+	local cHeader as character
+	local cItem   as character
+
+
+	cHeader := "CODIGO_FORNECEDOR;LOJA_FORNECEDOR;VIA_TRANSPORTE;DESCRICAO_TABELA;DATA_INICIAL_TABELA;DATA_FINAL_TABELA;CONDICAO_PAGAMENTO;INCOTERM;PRODUTO;PRECO;MOEDA;DATA_VIGENCIA_PRODUTO;FAIXA_QUANTIDADE;VALOR_FRETE"
+	cItem   := "002346;01;01;TESTE IMP1;20200320;20201231;000;CIP;MR0194651TCX000;12.67;2;20200320;999999.99;0"
+
+
+	memowrite(cLocalCsv+"\layout_tabela_preco.csv",cHeader+CRLF+cItem)
+
+
+return
+
+
+/*/{Protheus.doc} ExportaTabelaPrecoCompras
+Exporta tabela de preços compras
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/03/2020
+@return nil, nil
+/*/
+user function ExportaTabelaPrecoCompras()
+	local cLocalCSV as character
+	local lRetorno  as logical
+	local cMsgErro  as character
+	
+
+	lRetorno := .T.
+	cMsgErro := ""
+
+	//---------------------------------------------
+	//Solicita o caminho do arquivo CSV ao usuário
+	//---------------------------------------------
+	cLocalCsv := alltrim(cGetFile('','Selecione o diretório de exportação', 0,'', .T., GETF_OVERWRITEPROMPT + GETF_LOCALHARD + GETF_RETDIRECTORY,.T.))
+
+	//-----------------------------------------------------
+	//Realiza o processamento de exportação do arquivo CSV
+	//-----------------------------------------------------
+	if !empty(cLocalCSV)
+		processa({||EscreveArquivoCsv(cLocalCsv, @cMsgErro, @lRetorno)}, "Exportação da tabela de preço ", "Aguarde...", .F.)
+	else
+		lRetorno := .F.
+		cMsgErro := "Não foi selecionado nenhum caminho para gravar o arquivo CSV."
+	endif
+
+
+	if lRetorno
+
+		Aviso("Exporta Tabela", "Tabela exportada com sucesso.", {"OK"},1)
+	else
+
+		eecView("*******Erro ao exportar a tabela*******"+CRLF+cMsgErro)
+
+	endif
+
+
+return
+
+/*/{Protheus.doc} EscreveArquivoCsv
+Função para escrever o arquivo CSV de exportação
+da tabela de preços .
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/03/2020
+@param cLocalCsv, character, local do arquivo CSV
+@param cMsgErro, character, mensagem de erro
+@param lRetorno, logical, retorno do processamento
+@return nil, nil
+/*/
+static function EscreveArquivoCsv(cLocalCsv,cMsgErro, lRetorno)
+	local nHandleCsv as numeric
+	local nIndCab   as numeric
+	local nQtdCampos as numeric
+	local nQtdLinhas as numeric
+	local nIndLine   as numeric
+	local oModelTbPrc as object
+	local oModelCab as object
+	local oModelGrid as object
+	local aLayoutCab as character
+	private cConteudo as character
+
+	cLocalCSV += "\"+AIA->(AIA_CODFOR+"_"+AIA_LOJFOR)+"_"+dtos(date())+strtran(time(),":","")+".csv"
+	cConteudo := ""
+	//---------------------------------
+	//Realiza a criação de arquivo CSV
+	//---------------------------------
+	nHandleCsv := FCreate(cLocalCsv)
+
+	
+	if nHandleCsv > 0
+
+		aLayoutCab := GetLayoutDePara()
+		nQtdCampos := len(aLayoutCab)
+
+		//-----------------------------------------
+		//Load do model para realizar a exportação
+		//-----------------------------------------
+    	oModelTbPrc := FwLoadModel("TBPRCCMP")
+    	oModelTbPrc:setOperation(MODEL_OPERATION_VIEW)
+    	oModelTbPrc:activate()
+
+
+		oModelCab := oModelTbPrc:getModel("AIAMASTER")
+		oModelGrid := oModelTbPrc:getModel("AIBDETAIL")
+
+		nQtdLinhas := oModelGrid:length()
+
+		ProcRegua(nQtdLinhas)
+
+		//------------------------------------
+		//Escreve o cabeçalho do arquivo CSV
+		//------------------------------------
+		aEval(aLayoutCab, {|aCab| cConteudo += aCab[1]+";"})
+		cConteudo := substr(cConteudo, 1,len(cConteudo)-1)+CRLF
+		FWrite(nHandleCsv,cConteudo)
+
+		//-----------------------------------------------------
+		//Escreve as linhas do arquivo CSV com base no layout 
+		//------------------------------------------------------
+		for nIndLine := 1 to nQtdLinhas
+
+			cConteudo:= ""
+			oModelGrid:goLine(nIndLine)
+
+
+			for nIndCab := 1 to nQtdCampos
+				//-----------------------------------------------
+				//Verifica se o campo é referente a AIA ou a AIB
+				//e realiza o resgate da informação
+				//-----------------------------------------------
+				if !empty(aLayoutCab[nIndCab][2])
+
+					cConteudo += normalizaConteudo(oModelCab:getValue(aLayoutCab[nIndCab][2]))+";"
+				else
+
+					cConteudo += normalizaConteudo(oModelGrid:getValue(aLayoutCab[nIndCab][3]))+";"
+				endif	
+
+			next nIndCab
+
+			cConteudo := substr(cConteudo, 1,len(cConteudo)-1)+iif(nIndLine <> nQtdLinhas, CRLF, "")
+
+			FWrite(nHandleCsv,cConteudo)
+
+			IncProc("Processando registro "+ alltrim(cValToChar(nIndLine)) +" / "+alltrim(cValToChar(nQtdLinhas)) ) 
+
+		next nIndLine
+
+		FClose(nHandleCsv)
+
+		aSize(aLayoutCab,0)
+
+		oModelTbPrc:DeActivate()
+		freeObj(oModelTbPrc)
+	else
+		cMsgErro := "Não foi possível realizar a criação do arquivo de exportação."
+		lRetorno := .F.
+	endif
+
+
+return
+
+
+
+/*/{Protheus.doc} normalizaConteudo
+Normaliza o conteúdo em string
+@type function
+@version  1.0
+@author marcio.katsumata
+@since 23/03/2020
+@param xConteudo, any, conteudo do campo
+@return character, conteudo formatado em string
+/*/
+static function normalizaConteudo(xConteudo)
+
+	local xRetorno 
+
+	DO CASE
+		CASE ValType(xConteudo) == 'C'
+			xRetorno := alltrim(xConteudo)
+
+		CASE ValType(xConteudo)== 'N'
+			xRetorno := alltrim(cValToChar(xConteudo))
+
+		CASE ValType(xConteudo) == 'D'
+			xRetorno := alltrim(dtos(xConteudo))
+
+	ENDCASE
+
+return xRetorno
+
+/*/{Protheus.doc} getCodigoTabelaCompras
+Verifica o numero do código de tabela 
+disponivel para utilização.
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/04/2020
+/*/
+user function getCodigoTabelaCompras()
+
+	local cCodigoTabela as character
+	local cAliasAIA as character
+
+	cAliasAIA := getNextAlias()
+	cCodigoTabela := strZero(1, tamSx3("AIA_CODTAB")[1])
+
+	beginSql alias cAliasAIA
+		SELECT MAX(AIA_CODTAB) CODIGO
+		FROM %table:AIA%
+		WHERE %notDel%
+	endSql
+
+
+	if(cAliasAIA)->(!eof())
+		cCodigoTabela := soma1((cAliasAIA)->CODIGO)
+	endif
+
+	(cAliasAIA)->(dbCloseArea())
+
+return cCodigoTabela
+
+/*/{Protheus.doc} getCondicaoPagamentoEic
+Função responsável por retornar a condição de pagamento
+ou a descrição da condição de pagamento do EIC (SY6)
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 23/04/2020
+@return character, codigo ou descrição da condição de pagamento
+/*/
+user function getCondicaoPagamentoEic(lCodigo,cCodigo)
+    local cAliasSY6 as character
+	local cRetorno   as character
+	local aAreas     as array
+
+
+	default lCodigo    := .F.
+	default cCodigo    := iif (isInCallStack("U_TabelaPrecoCompras"),FwFldGet("AIA_XPGEIC"), M->AIA_XPGEIC)
+
+	aAreas := {SX7->(getArea()), getArea()}
+    cAliasSY6 := getNextAlias()
+	cRetorno  := ""
+	
+	if !empty(cCodigo)
+    	beginSql alias cAliasSY6
+    	    SELECT Y6_SIGSE4,Y6_DESC_P FROM %table:SY6% WHERE Y6_COD = %exp:cCodigo% AND %notDel%
+    	endSql
+
+		if (cAliasSY6)->(!eof())
+			if lCodigo 
+				cRetorno := (cAliasSY6)->Y6_SIGSE4
+			else
+				cRetorno   := MSMM((cAliasSY6)->Y6_DESC_P,48)         
+			endif  
+		else
+			if lCodigo 
+				cRetorno := cCodigo
+			else
+				cRetorno := ""
+			endif	                                                                                            
+		endif
+
+		(cAliasSY6)->(dbCloseArea())
+	endif
+	aEval(aAreas, {|aArea| restArea(aArea)})
+	aSize(aAreas,0)
+return cRetorno
+
+/*/{Protheus.doc} vldTabelaPrecoCompra
+Validação da tabela de preço (inclusão de SC)
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 10/06/2020
+@return logical, válido?
+/*/
+user function vldTabelaPrecoCompra()
+	local lRet as logical
+	local aAreaAIA as array
+	local cCodFor as character
+	local cLojaFor as character
+	local nPosCod as numeric
+	local nPosLoj as numeric
+
+	lRet := .T.
+
+	if type("aHeader") == "A"
+
+		nPosCod := aScan(aHeader, {|aHead|alltrim(aHead[2])=="C1_FORNECE"})
+		nPosLoj := aScan(aHeader, {|aHead|alltrim(aHead[2])=="C1_LOJA"})
+
+		if nPosCod > 0 .and. nPosLoj > 0
+
+			aAreaAIA := AIA->(getArea())
+			lRet := .F.
+			cCodFor  := aCols[n][nPosCod]
+			cLojaFor := aCols[n][nPosLoj]
+			cCodTab  := M->C1_XTABPRC
+
+			dbSelectArea("AIA")
+			AIA->(dbSetOrder(1))
+			if AIA->(dbSeek(xFilial("AIA")+cCodFor+cLojaFor+cCodTab))
+				if !(lRet := !(AIA->AIA_XBLOCK =='S'))
+					aviso("TabelaPrecoCompras","Tabela de preço bloqueada."+CRLF+"A tabela foi substituida por outra tabela, verificar a tabela vigente para o fornecedor.",{"OK"},1 )
+				endif
+			else
+				aviso("TabelaPrecoCompras","Tabela de preço inválida para o fornecedor.",{"OK"},1 )
+			endif
+
+			restArea(aAreaAIA)
+			aSize(aAreaAIA, 0)
+		endif
+	endif
+
+
+
+return lRet
+
+/*/{Protheus.doc} IsFornecedorEX
+Validação utilizada na tabela de preços
+para verificar se o fornecedor é do exterior
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 19/06/2020
+@return logical, .T. = Sim .F. = Não
+/*/
+user function IsFornecedorEX()
+	local cCodFor as character
+	local cLojFor as character
+	local lRet    as logical
+
+	lRet := .F.
+	cCodFor := FwFldGet("AIA_CODFOR")
+	cLojFor := FwFldGet("AIA_LOJFOR")
+
+
+	dbSelectArea("SA2")
+	SA2->(dbSetOrder(1))
+	if SA2->(dbSeek(xFilial("SA2")+cCodFor+cLojFor))
+		lRet := alltrim(SA2->A2_EST) == "EX"
+	endif
+
+return lRet

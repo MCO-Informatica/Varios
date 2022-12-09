@@ -1,0 +1,42 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | A250ETRAN       | Autor | Lucas Baia          | Data |    12/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | O ponto de entrada A250ETRAN é executado após gravação total dos
+//        | movimentos, na inclusão do apontamento de produção simples.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function A250ETRAN()
+
+Local cQuery    := ""
+Local nStatus   := ""
+Local _RetSC5
+Local _aParam
+
+    cQuery := " UPDATE " + RetSQLName( "SD3" )
+	cQuery += " SET D3_DESC = SB1.B1_DESC "
+	cQuery += " FROM " + RetSQLName( "SD3" ) + " SD3"
+	cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SD3.D3_COD = SB1.B1_COD "
+	cQuery += " WHERE D3_DESC = ' ' "
+	cQuery += " AND SD3.D_E_L_E_T_ = ' ' "
+	cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+	nStatus    := TCSQLExec( cQuery )
+    if (nStatus < 0)
+        MSGINFO(TCSQLError())
+    endif
+	TcRefresh( 'SD3' )
+	SD3->( dbCommit() )
+
+	IF SD3->D3_XTERCEI == "S"
+		_aParam	:= {SD3->D3_OP}
+		_RetSC5	:= ExecBlock("RESTF001",.F.,.F.,_aParam)
+		RecLock("SD3", .F.)
+			SD3->D3_XNUMPED	:= _RetSC5
+		SD3->(MsUnlock())
+	ENDIF
+
+Return

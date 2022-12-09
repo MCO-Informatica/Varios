@@ -1,0 +1,45 @@
+#Include 'Protheus.ch'
+ 
+//---------------------------------------------------------------------------------
+// Rotina | MA103BUT             | Autor | Lucas Baia          | Data |	22/08/2021		
+//---------------------------------------------------------------------------------
+// Descr. | Inclusão de opções na EnchoiceBar pelo Documento de Entrada.											
+//---------------------------------------------------------------------------------
+// Uso    | Aevias Onboard Supply Services														
+//---------------------------------------------------------------------------------
+// Links  | https://tdn.totvs.com/pages/releaseview.action?pageId=102269141																		
+//---------------------------------------------------------------------------------
+User Function MA103BUT()
+Local aArea := GetArea()
+Local lEdit
+Local nAba
+Local oCampo
+Public __cCamNovo := ""
+
+ 
+//Adiciona uma nova aba no documento de entrada
+oFolder:AddItem("* Observação da Nota Fiscal", .T.)
+nAba := Len(oFolder:aDialogs)
+ 
+//Se for inclusão, irá criar a variável e será editável, senão irá buscar do banco e não será editável
+If INCLUI
+    __cCamNovo := CriaVar("F1_XOBS",.F.)
+    lEdit := .T.
+Else
+    __cCamNovo := SF1->F1_XOBS
+    lEdit := .F.
+EndIf
+  
+//Criando na janela o campo OBS
+@ 003, 003 SAY Alltrim(RetTitle("F1_XOBS")) OF oFolder:aDialogs[nAba] PIXEL SIZE 050,006
+@ 001,035 GET oCampo VAR __cCamNovo SIZE 200,60 MULTILINE OF oFolder:aDialogs[nAba] COLORS 0, 16777215  PIXEL
+oCampo:bHelp := {|| ShowHelpCpo( "F1_XOBS", {GetHlpSoluc("F1_XOBS")[1]}, 5  )}
+
+//Se não houver edição, desabilita os gets
+If ! lEdit
+    oCampo:lActive := .F.
+EndIf
+ 
+RestArea(aArea)
+ 
+Return Nil

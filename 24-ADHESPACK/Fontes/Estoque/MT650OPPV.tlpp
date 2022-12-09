@@ -1,0 +1,81 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MT650OPPV        | Autor | Lucas Baia          | Data |    28/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada permite ao usuário realizar qualquer customização,
+//        | conforme necessidade.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS
+//---------------------------------------------------------------------------------
+
+
+User Function MT650OPPV()
+
+Local aRet      := PARAMIXB[1]
+Local aArea     := GetArea()
+Local cQuery    := ""
+Local nStatus   := ""
+
+//---> Gravação do campo D4_DESCCOD
+cQuery := " UPDATE " + RetSQLName( "SD4" )
+cQuery += " SET D4_DESCCOD = SB1.B1_DESC "
+cQuery += " FROM " + RetSQLName( "SD4" ) + " SD4"
+cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SD4.D4_COD = SB1.B1_COD "
+cQuery += " WHERE D4_DESCCOD = ' ' "
+cQuery += " AND SD4.D_E_L_E_T_ = ' ' "
+cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+nStatus    := TCSQLExec( cQuery )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SD4' )
+SD4->( dbCommit() )
+
+//---> Gravação do campo D4_DESPROD
+cQuery := " UPDATE " + RetSQLName( "SD4" )
+cQuery += " SET D4_DESPROD = SB1.B1_DESC "
+cQuery += " FROM " + RetSQLName( "SD4" ) + " SD4"
+cQuery += " INNER JOIN " + RetSQLName( "SB1" ) + " SB1 ON SD4.D4_PRODUTO = SB1.B1_COD "
+cQuery += " WHERE D4_DESPROD = ' ' "
+cQuery += " AND SD4.D_E_L_E_T_ = ' ' "
+cQuery += " AND SB1.D_E_L_E_T_ = ' ' "
+nStatus    := TCSQLExec( cQuery )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SD4' )
+SD4->( dbCommit() )
+
+
+//---> Gravação do campo D4_XDENSID
+cQuery := " UPDATE " + RetSQLName( "SD4" )
+cQuery += " SET D4_XDENSID = SD1.D1_XDENSID "
+cQuery += " FROM " + RetSQLName( "SD4" ) + " SD4"
+cQuery += " INNER JOIN " + RetSQLName( "SB8" ) + " SB8 ON SD4.D4_PRODUTO = SB8.B8_PRODUTO "
+cQuery += " AND SD4.D4_LOTECTL = SB8.B8_LOTECTL "
+cQuery += " AND SD4.D4_DTVALID = SB8.B8_DTVALID "
+cQuery += " AND SD4.D4_LOCAL = SB8.B8_LOCAL "
+cQuery += " AND SB8.D_E_L_E_T_ = ' ' "
+cQuery += " INNER JOIN " + RetSQLName( "SD1" ) + " SD1 ON SB8.B8_PRODUTO = SD1.D1_COD "
+cQuery += " AND SB8.B8_LOTECTL = SD1.D1_LOTECTL "
+cQuery += " AND SB8.B8_DTVALID = SD1.D1_DTVALID "
+cQuery += " AND SB8.B8_LOCAL = SD1.D1_LOCAL "
+cQuery += " AND SB8.B8_DOC = SD1.D1_DOC "
+cQuery += " AND SB8.B8_SERIE = SD1.D1_SERIE "
+cQuery += " AND SB8.B8_CLIFOR = SD1.D1_FORNECE "
+cQuery += " AND SB8.B8_LOJA = SD1.D1_LOJA "
+cQuery += " AND SD1.D_E_L_E_T_ = ' ' "
+cQuery += " WHERE D4_XDENSID = 0 "
+cQuery += " AND SD4.D_E_L_E_T_ = ' ' "
+nStatus    := TCSQLExec( cQuery )
+if (nStatus < 0)
+    MSGINFO(TCSQLError())
+endif
+TcRefresh( 'SD4' )
+SD4->( dbCommit() )
+
+
+RestArea(aArea)
+
+Return

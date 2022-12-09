@@ -1,0 +1,72 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ MA410LEG บAutor  ณ hfp		         บ Data ณ  02/12/14   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ  Ponto entrada para redefinir as cores e a legendas no     บฑฑ
+ฑฑบ          ณ  browse                                                    บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function MA410LEG()          
+
+Local aCores := {}
+    
+ 
+If FunName() == "MATA410" 
+
+    if (cEmpAnt+cFilAnt $ GetMv("MV_PARCONF"))
+
+		aCores := {	{"BR_MARRON"	,"Residuo"},;  
+					{"BR_PRETO"		,"Analise Credito"},;    
+					{"BR_PINK"		,"Analise Estoque"},;    
+					{"BR_BRANCO"	,"Analise Credito/Estoque"},;    
+					{"BR_AMARELO"	,"Liberado"},;    
+					{"BR_AZUL"		,"Em Separa็ใo"},;    
+					{"BR_LARANJA"	,"Em Confer๊ncia"},;
+					{"BR_VIOLETA"	,"Aguardando Faturamento"},;
+					{"BR_CINZA"		,"Em Coleta"},;
+					{"ENABLE"		,"Pedido"},;      
+					{"DISABLE"		,"Entregue"}}             
+	else
+
+		aCores := {	{"BR_AMARELO","Pedido de Venda Liberado"},;
+					{"ENABLE","Pedido em aberto"},;      //Pedido em aberto
+					{"DISABLE","Pedido encerrado"}} //Pedido Venda Liberado
+		
+		If !__lPyme
+			Aadd(aCores,{"BR_AZUL","Pedido de Venda com Bloqueio de Regra"})    //Bloqueado Credito
+			Aadd(aCores,{"BR_LARANJA","Pedido de Venda com Bloqueio de Verba"})  //Pedido Liberado
+		EndIf
+		
+		If cPaisLoc <> "BRA"
+			Aadd(aCores,{"BR_CINZA","Pedido finalizado (Remito)" + " (" + AllTrim(GetDescRem()) + ")"}) //Pedido finalizado (Remito)
+		Endif
+	
+	endif
+	
+else				
+
+	aCores := {	{"BR_AMARELO","Pedido de Venda Liberado"},;
+					{"ENABLE","Pedido em aberto"},;      //Pedido em aberto
+					{"DISABLE","Pedido encerrado"}} //Pedido Venda Liberado
+		
+	If !__lPyme
+		Aadd(aCores,{"BR_AZUL","Pedido de Venda com Bloqueio de Regra"})    //Bloqueado Credito
+		Aadd(aCores,{"BR_LARANJA","Pedido de Venda com Bloqueio de Verba"})  //Pedido Liberado
+	EndIf
+	
+	If cPaisLoc <> "BRA"
+		Aadd(aCores,{"BR_CINZA","Pedido finalizado (Remito)" + " (" + AllTrim(GetDescRem()) + ")"}) //Pedido finalizado (Remito)
+	Endif
+
+endif	
+			
+RETURN aCores

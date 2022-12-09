@@ -1,0 +1,743 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+//1818770
+/*****************************************************************************/
+// Gilberto - 22-03-2010 - Ajuste realizado na Query para Pegar somente pedidos liberados, que nao foram emitido NF
+User Function DHFATR03()
+                    
+Private oReport
+Private oSection1
+Private oSection2
+Private cPerg := Padr("DHFATR03",10)
+Private nCol  := 200
+                   
+AjustaSX1(cPerg)
+
+Pergunte(cPerg,.F.)
+oReport := ReportDef()
+oReport:PrintDialog()
+
+Return()
+
+/*****************************************************************************/
+Static Function ReportDef()
+
+IF FUNNAME()="MATA410"                   
+	oReport  := TReport():New("DHFATR03","ROMANEIO", "",{|oReport| PrintReport(oReport, oSection1, oSection2)},"ROMANEIO" )
+Else
+	oReport  := TReport():New("DHFATR03","ROMANEIO", "DHFATR03",{|oReport| PrintReport(oReport, oSection1, oSection2)},"ROMANEIO" )
+Endif
+
+oSection1 := TRSection():New(oReport,"Cabeçalho",{"SA1","SA4","SC5","SE4", "SC6" })
+
+TRCell():New(oSection1,"A1_COD", "SA1")
+TRCell():New(oSection1,"C5_NUM", "SC5")
+TRCell():New(oSection1,"C6_PEDCLI", "SC6" )
+TRCell():New(oSection1,"C5_EMISSAO", "SC5")
+TRCell():New(oSection1,"C6_ENTREG", "SC6")
+TRCell():New(oSection1,"A1_NOME","SA1") 
+TRCell():New(oSection1,"A1_NREDUZ","SA1")      
+TRCell():New(oSection1,"A1_END","SA1") 
+TRCell():New(oSection1,"A1_MUN", "SA1")  
+TRCell():New(oSection1,"A1_BAIRRO", "SA1")
+TRCell():New(oSection1,"A1_EST","SA1") 
+TRCell():New(oSection1,"A1_TEL","SA1")      
+TRCell():New(oSection1,"A1_CGC","SA1")
+TRCell():New(oSection1,"A1_INSCR", "SA1") 
+TRCell():New(oSection1,"A1_FAX", "SA1")  
+TRCell():New(oSection1,"A1_CEP", "SA1")  
+TRCell():New(oSection1,"A1_ENDENT", "SA1")
+TRCell():New(oSection1,"C5_TPFRETE","SC5" ) 
+TRCell():New(oSection1,"A1_ENDCOB","SA1")      
+TRCell():New(oSection1,"A1_CONTATO","SA1") 
+TRCell():New(oSection1,"C5_TRANSP", "SC5" )
+TRCell():New(oSection1,"C5_FILIAL", "SC5" )
+TRCell():New(oSection1,"A4_COD", "SA4" )
+TRCell():New(oSection1,"A4_NREDUZ", "SA4" )
+TRCell():New(oSection1,"A4_TEL", "SA4" )
+TRCell():New(oSection1,"E4_CODIGO", "SE4" )
+TRCell():New(oSection1,"E4_DESCRI", "SE4" )
+TRCell():New(oSection1,"A4_BAIRRO", "SA4" )
+TRCell():New(oSection1,"A4_MUN", "SA4" )
+TRCell():New(oSection1,"E4_COND", "SE4" )
+TRCell():New(oSection1,"C5_DESC1", "SC5")  
+TRCell():New(oSection1,"C5_DESC2", "SC5")
+TRCell():New(oSection1,"C5_DESC3", "SC5")
+TRCell():New(oSection1,"C5_MEMOOBS", "SC5",OEMTOANSI("OBSERVACOES"),"",1024)
+
+oSection2 := TRSection():New(oReport,"Itens",{"SC6","SA3","SA1"})
+TRCell():New(oSection2,"C6_PRODUTO","SC6")  
+TRCell():New(oSection2,"C6_DESCRI", "SC6")
+TRCell():New(oSection2,"C6_LOCALIZ","SC6") 
+TRCell():New(oSection2,"C6_QTDVEN", "SC6")
+TRCell():New(oSection2,"A3_NREDUZ", "SA3")
+TRCell():New(oSection2,"A3_COD",    "SA3")
+TRCell():New(oSection2,"A1_VEND",   "SA1")
+
+Return oReport
+
+/*****************************************************************************/
+Static Function PrintReport()
+
+Local cEmpAtu    := SM0->M0_CODIGO
+Local aCabecalho := {}
+Local aItens	 := {}
+Local nCount     := 0
+Local nPos       := 0
+Local nPos1      := 0
+Local nX := 0
+Local nY := 0
+Local nTotGeral	:= 0
+Local nQtdLib 	:= 0
+Local nQtdFal 	:= 0
+Local cLocEst		:= ""
+
+Private oTFont   := TFont():New('Courier new',,-14,.T.,.F.)
+Private oTFont1  := TFont():New('Courier new',,-12,.T.,.F.)
+Private oTFont2  := TFont():New('Courier new',,-10,.T.,.F.) 
+Private oTFont3  := TFont():New('Courier new',,-08,.T.,.F.) 
+Private oTFont4  := TFont():New('Courier new',,-12,.T.,.F.)
+Private oTFont4n := TFont():New('Courier new',,-12,.T.,.T.)
+Private nPag     := 1
+Private cPedido
+Private cDesc	:= "" 
+Private nLin	:= 6000
+
+If FunName()=="MATA410"   
+	MV_PAR01 := SC5->C5_FILIAL
+	MV_PAR02 := SC5->C5_FILIAL
+	MV_PAR03 := SC5->C5_NUM
+	MV_PAR04 := SC5->C5_NUM
+	MV_PAR05 := SC5->C5_CLIENTE
+	MV_PAR06 := SC5->C5_CLIENTE
+	MV_PAR07 := SC5->C5_EMISSAO
+	MV_PAR08 := SC5->C5_EMISSAO
+	MV_PAR09 := Ctod("01/01/1980")
+	MV_PAR10 := Ctod("31/12/2049")
+	MV_PAR11 := "  "
+	MV_PAR12 := "ZZ"
+	MV_PAR13 := 1
+	MV_PAR14 := 2
+Endif
+
+If Select("TMPSC5") > 0
+	TMPSC5->( dbCloseArea() )
+EndIf
+
+cQuery := "SELECT  SC5.C5_FILIAL,SC5.C5_NUM,SC5.C5_CODOBS,"+CRLF
+cQuery += "       SC6.C6_PRODUTO,SC6.C6_DESCRI, SC6.C6_QTDVEN, SC6.C6_QTDENT,"+CRLF
+cQuery += "       SC6.C6_UM,     SC6.C6_NUM,SC6.C6_NOTA,    SC6.C6_ENTREG,"+CRLF
+cQuery += "       SC6.C6_PEDCLI, SC5.C5_EMISSAO,SC5.C5_DESC4,"+CRLF
+cQuery += "       SC5.C5_CLIENTE,SC5.C5_TRANSP"+CRLF
+cQuery += "		  ,CASE WHEN SC5.C5_TPFRETE = 'F' THEN 'FOB' ELSE 'CIF' END AS C5_TPFRETE"+CRLF
+cQuery += "       ,SC5.C5_LOJACLI,SC5.C5_DESC1,  SC5.C5_DESC2,"+CRLF
+cQuery += "       SC5.C5_DESC3,  SC5.C5_TABELA,"+CRLF
+//cQuery += "       CAST(CAST(ISNULL(SC5.C5_MEMOOBS,' ') AS BINARY(1024)) AS VARCHAR(1024)) SC5.C5_MEMOOBS,"+CRLF
+cQuery += "       SA1.A1_NOME,   SA1.A1_NREDUZ, SA1.A1_CONTATO,"+CRLF
+cQuery += "       SA1.A1_TEL,    SA1.A1_ENDENT, SA1.A1_ENDCOB,"+CRLF
+cQuery += "       SA1.A1_VEND,   SA1.A1_FAX,    SA1.A1_CGC,"+CRLF
+cQuery += "       SA1.A1_INSCR,  SA1.A1_END,    SA1.A1_MUN,"+CRLF
+cQuery += "       SA1.A1_EST,    SA1.A1_CEP,    SA1.A1_BAIRRO,"+CRLF
+cQuery += "       SA1.A1_COD,    SA4.A4_COD,    SA4.A4_NREDUZ,"+CRLF
+cQuery += "       SA4.A4_BAIRRO, SA4.A4_MUN,    SA4.A4_TEL,"+CRLF
+cQuery += "       SA3.A3_NREDUZ, SE4.E4_CODIGO, SE4.E4_COND,"+CRLF
+cQuery += "       SE4.E4_DESCRI, SA3.A3_COD,    SAH.AH_UMRES,"+CRLF
+cQuery += "       SAH.AH_DESCES, SB1.B1_DESC,SB1.B1_DHLOCAL, SB1.B1_X_PRIOR, SB1.B1_LOCALFS, SC6.C6_QTDLIB, SC9.C9_QTDLIB, SC9.C9_BLEST, SC9.C9_SEQUEN, "+CRLF
+cQuery += "        SC9.R_E_C_N_O_ SC9REC ,  "+CRLF
+// Adicionado por Sergio Lacerda - GASS SYSTEM 29/03/2015
+cQuery += "			(	SELECT	SUM(SB2.B2_QATU - (SB2.B2_QPEDVEN + SB2.B2_RESERVA))" + CRLF
+cQuery += "				FROM 	" + RetSqlName("SB2") + " SB2" + CRLF
+cQuery += "				WHERE	SB2.D_E_L_E_T_ = ''" + CRLF
+cQuery += "						AND SB2.B2_FILIAL = SC6.C6_FILIAL" + CRLF
+cQuery += "						AND SB2.B2_LOCAL = SC6.C6_LOCAL" + CRLF
+//cQuery += "						AND SB2.B2_COD = SC6.C6_PRODUTO)  as 'ESTOQUE' , " + CRLF		//ALTERADO EM 11/06/2015 - GUILHERME - ETHOSX
+cQuery += "						AND SB2.B2_COD = SC6.C6_PRODUTO)  + SC6.C6_QTDVEN as 'ESTOQUE' , " + CRLF
+
+cQuery += "			ISNULL((	SELECT	SUM(SB2.B2_QATU - (SB2.B2_QPEDVEN + SB2.B2_RESERVA))" + CRLF
+cQuery += "				FROM 	" + RetSqlName("SB2") + " SB2" + CRLF
+cQuery += "				WHERE	SB2.D_E_L_E_T_ = ''" + CRLF
+cQuery += "						AND SB2.B2_FILIAL <> SC6.C6_FILIAL" + CRLF
+cQuery += "						AND SB2.B2_LOCAL <> SC6.C6_LOCAL" + CRLF
+cQuery += "						AND SB2.B2_COD = SC6.C6_PRODUTO), 0) as 'OUTEST', " + CRLF
+
+cQuery += "		CASE WHEN ZZ4.ZZ4_LOCAL  IS NULL THEN '' ELSE ZZ4.ZZ4_LOCAL END ZZ4_LOCAL, " + CRLF
+cQuery += "		CASE WHEN ZZ4.ZZ4_NIVEL  IS NULL THEN '' ELSE ZZ4.ZZ4_NIVEL END ZZ4_NIVEL, " + CRLF
+cQuery += "		CASE WHEN ZZ4.ZZ4_SUBNIV IS NULL THEN '' ELSE ZZ4.ZZ4_SUBNIV END ZZ4_SUBNIV " + CRLF
+
+cQuery += "FROM "+RETSQLNAME("SC5")+" SC5 "+CRLF 
+cQuery += "INNER JOIN " +RETSQLNAME("SC6")+" SC6 ON SC6.C6_FILIAL = SC5.C5_FILIAL AND SC6.C6_NUM = SC5.C5_NUM AND SC6.C6_LOJA = SC5.C5_LOJACLI "+CRLF 
+cQuery += "INNER JOIN " +RETSQLNAME("SA1")+" SA1 ON SA1.A1_COD    = SC5.C5_CLIENTE AND SA1.A1_LOJA = SC5.C5_LOJACLI "+CRLF
+cQuery += "INNER JOIN " +RETSQLNAME("SA4")+" SA4 ON SA4.A4_COD    = SC5.C5_TRANSP"+CRLF
+cQuery += "INNER JOIN " +RETSQLNAME("SE4")+" SE4 ON SE4.E4_CODIGO = SC5.C5_CONDPAG"+CRLF
+cQuery += "INNER JOIN " +RETSQLNAME("SA3")+" SA3 ON SA3.A3_COD    = SA1.A1_VEND"+CRLF
+cQuery += "INNER JOIN " +RETSQLNAME("SB1")+" SB1 ON SB1.B1_COD    = SC6.C6_PRODUTO"+CRLF
+cQuery += "INNER JOIN " +RETSQLNAME("SAH")+" SAH ON SAH.AH_UNIMED = SC6.C6_UM"+CRLF
+cQuery += "LEFT JOIN " +RETSQLNAME("SC9")+" SC9 ON 	SC9.C9_PEDIDO = SC6.C6_NUM AND SC9.C9_ITEM = SC6.C6_ITEM AND SC9.C9_FILIAL = SC6.C6_FILIAL AND C9_PRODUTO = C6_PRODUTO AND SC9.C9_NFISCAL = SC6.C6_NOTA "+CRLF
+cQuery += "											AND SC9.C9_BLCRED <> '10' AND SC9.D_E_L_E_T_ = '' "+CRLF 
+If MV_PAR13 == 2 // Nao imprime os ja impressos
+	cQuery += "AND SC9.C9_DHIMP = ' '"+CRLF
+Endif
+//cQuery += "INNER JOIN " +RETSQLNAME("DA0")+" DA0 ON DA0.DA0_FILIAL = SC5.C5_FILIAL AND DA0.DA0_CODTAB = SC5.C5_TABELA "+CRLF
+cQuery += "LEFT JOIN " + RetSqlName("ZZ4") + " ZZ4 ON ZZ4.ZZ4_FILIAL = '" + xFilial("ZZ4") + "' AND SB1.B1_ENDLOC = ZZ4.ZZ4_CODIGO AND ZZ4.D_E_L_E_T_ = ''" + CRLF
+
+cQuery += "WHERE "
+cQuery += "(SC5.C5_FILIAL BETWEEN '"+MV_PAR01+"' AND '"+MV_PAR02+"') AND "+CRLF
+cQuery += "(SC5.D_E_L_E_T_ = ' ') AND "+CRLF
+cQuery += "(SC5.C5_NUM BETWEEN '"+MV_PAR03+"' AND '"+MV_PAR04+"') AND "+CRLF
+cQuery += "(SC5.C5_CLIENTE BETWEEN '"+MV_PAR05+"' AND '"+MV_PAR06+"') AND "+CRLF
+cQuery += "(SC5.C5_EMISSAO BETWEEN '"+DTOS(MV_PAR07)+"' AND '"+DTOS(MV_PAR08)+"') AND "+CRLF
+cQuery += "(SC6.C6_ENTREG BETWEEN '"+DTOS(MV_PAR09)+"' AND '"+DTOS(MV_PAR10)+"') AND "+CRLF
+cQuery += "(SC6.C6_LOCAL BETWEEN '"+MV_PAR11+"' AND '"+MV_PAR12+"') AND "+CRLF
+cQuery += " SC6.C6_QTDVEN <> SC6.C6_QTDENT AND "+CRLF   
+//cQuery += " SC6.C6_NOTA = '         ' AND "+CRLF  
+//cQuery += "SC9.C9_BLEST  <> '10' AND SC9.C9_BLCRED <> '10' AND "+CRLF
+//cQuery += "SC9.C9_BLEST  = '' AND SC9.C9_BLCRED <> '10' AND "+CRLF
+//cQuery += "SC9.C9_BLCRED <> '10' AND "+CRLF
+//If MV_PAR13 == 2 // Nao imprime os ja impressos
+//	cQuery += "SC9.C9_DHIMP = ' ' AND "
+//Endif
+cQuery += "SC6.C6_FILIAL <> ' ' AND SC6.D_E_L_E_T_ = ' ' AND "+CRLF
+//cQuery += "SC9.C9_FILIAL <> ' ' AND SC9.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SC5.D_E_L_E_T_ = ' ' AND "
+cQuery += "SA4.A4_FILIAL = '"+xFilial("SA4")+"' AND SA4.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SE4.E4_FILIAL = '"+xFilial("SE4")+"' AND SE4.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SAH.AH_FILIAL = '"+xFilial("SAH")+"' AND SAH.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SB1.B1_FILIAL = '"+xFilial("SB1")+"' AND SB1.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SA1.A1_FILIAL = '"+xFilial("SA1")+"' AND SA1.D_E_L_E_T_ = ' ' AND "+CRLF
+cQuery += "SA3.A3_FILIAL = '"+xFilial("SA3")+"' AND SA3.D_E_L_E_T_ = ' ' "+CRLF
+If MV_PAR14 == 1
+	cQuery += "ORDER BY SC5.C5_FILIAL,SC5.C5_NUM,SB1.B1_X_PRIOR,SC6.C6_PRODUTO "+CRLF
+Else
+	//cQuery += "ORDER BY SC5.C5_FILIAL,SC5.C5_NUM,SE4.E4_DESCRI "+CRLF
+	cQuery += "ORDER BY SC5.C5_FILIAL,SC5.C5_NUM,ZZ4.ZZ4_NIVEL,ZZ4.ZZ4_SUBNIV,ZZ4.ZZ4_LOCAL,SC6.C6_PRODUTO "+CRLF
+EndIf 
+
+MemoWrite("DHFATR03.SQL", cQuery)
+cQuery := ChangeQuery(cQuery)
+TcQuery cQuery NEW ALIAS "TMPSC5"
+
+nTReg := TMPSC5->(RecCount())
+ProcRegua(nTReg)
+
+dbSelectArea("TMPSC5")
+dbGoTop()
+
+//Monta Array com os PEDIDOS
+While !Eof()
+
+    if TMPSC5->SC9REC > 0
+	    SC9->( DbGoTo( TMPSC5->SC9REC) )
+	    RecLock("SC9",.F.)
+	    	SC9->C9_DHIMP = "S"
+	    MsUnLock()
+	Endif
+
+	If Empty(TMPSC5->ZZ4_LOCAL)
+		cLocEst := Iif(TMPSC5->C5_FILIAL$"01",TMPSC5->B1_DHLOCAL, TMPSC5->B1_LOCALFS)
+	Else
+		cLocEst := "|" + TMPSC5->ZZ4_NIVEL + "|" + TMPSC5->ZZ4_SUBNIV + "|" + AllTrim(TMPSC5->ZZ4_LOCAL) + "|"
+	EndIf
+
+	dbSelectArea("TMPSC5")
+	nPos := Ascan(aCabecalho, {|x| x[5]+x[1] == TMPSC5->C5_FILIAL+Alltrim(TMPSC5->C5_NUM) })    
+	
+	If nPos == 0            
+		cDesc:= MSMM(TMPSC5->C5_CODOBS,80)
+		cDesc:= StrTran(cDesc,Chr(13)+Chr(10)," ")
+		AAdd(aCabecalho, {	TMPSC5->C5_NUM,;		 //01
+				            TMPSC5->C5_EMISSAO,;	 //02 
+				            TMPSC5->C6_ENTREG,;	     //03
+		        	        TMPSC5->C6_PEDCLI,;	     //04
+		                    TMPSC5->C5_FILIAL ,;     //05
+				            TMPSC5->A1_NOME,;	   	 //06
+				            TMPSC5->A1_NREDUZ,;	     //07
+				            TMPSC5->A1_CONTATO,;	 //08
+				            TMPSC5->A1_TEL,;		 //09
+				            TMPSC5->A1_FAX,;		 //10
+				            TMPSC5->A1_CGC,;		 //11
+				            TMPSC5->A1_INSCR,;	     //12
+				            TMPSC5->A1_END,;	  	 //13
+				            TMPSC5->A1_MUN,;		 //14
+				            TMPSC5->A1_EST,;		 //15
+				            TMPSC5->A1_CEP,;		 //16
+				            TMPSC5->A1_BAIRRO,;	     //17 
+				            TMPSC5->C5_TRANSP,;	     //18 
+							TMPSC5->A4_COD,;		 //19
+				            TMPSC5->A1_COD,;		 //20
+				            TMPSC5->A4_NREDUZ,;	     //21
+				            TMPSC5->A4_BAIRRO,;	     //22
+				            TMPSC5->A4_MUN,;	 	 //23
+				            TMPSC5->A4_TEL,;	 	 //24
+				            TMPSC5->C5_TPFRETE,; 	 //25
+				            TMPSC5->E4_CODIGO,;	     //26
+				            TMPSC5->E4_COND,;		 //27
+				            TMPSC5->E4_DESCRI,;	     //28 
+				            TMPSC5->C5_DESC1,;	     //29
+				            TMPSC5->C5_DESC2,;	     //30
+				            TMPSC5->C5_DESC3,;	     //31
+				            TMPSC5->C5_DESC4,;	     //32
+				            TMPSC5->A1_ENDENT,;	     //33
+				            TMPSC5->A1_ENDCOB,;	     //34
+				            cDesc,;//35
+				            TMPSC5->C5_FILIAL,;      //36
+				            {}})					 //37
+
+	    //cProduto := TMPSC5->C6_PRODUTO 
+	    //If cProduto == TMPSC5->C6_PRODUTO 
+		//	nPos1 := Len(aCabecalho[nPos,3])    
+		//	nPos2 := Ascan(aCabecalho[nPos,3,nPos1,36], {|x| Trim(x[1]) == Alltrim(TMPSC5->C6_PRODUTO) })    
+		//	If nPos2 == 0
+		
+		nPos := Len(aCabecalho)
+		//cQuery += "INNER JOIN " +RETSQLNAME("DA0")+" DA0 ON DA0.DA0_FILIAL = SC5.C5_FILIAL AND DA0.DA0_CODTAB = SC5.C5_TABELA "+CRLF
+		aAdd(aCabecalho[nPos,37],{TMPSC5->C6_PRODUTO,;
+								  LEFT(TMPSC5->B1_DESC,40),;
+								  cLocEst,;
+								  TMPSC5->C9_QTDLIB,; 
+								  TMPSC5->AH_DESCES,;
+								  TMPSC5->C6_NUM,;
+								  TMPSC5->A3_NREDUZ,;									  
+								  TMPSC5->A1_VEND,;
+								  TMPSC5->A3_COD,;
+								  posicione('DA0', 1, xfilial("DA0") + TMPSC5->C5_TABELA, 'DA0_DESCRI') ,;
+								  TMPSC5->C5_FILIAL ,;
+  								  TMPSC5->C9_BLEST,;
+  								  TMPSC5->C6_QTDVEN-TMPSC5->C6_QTDENT,;
+  								  TMPSC5->C9_SEQUEN,;
+  								  TMPSC5->ESTOQUE,;
+  								  TMPSC5->OUTEST})    
+	Else                    	
+        
+			aAdd(aCabecalho[nPos,37],{TMPSC5->C6_PRODUTO,;
+	   								  LEFT(TMPSC5->B1_DESC,40),;
+									  cLocEst,;
+									  TMPSC5->C9_QTDLIB,; 
+									  TMPSC5->AH_DESCES,;
+									  TMPSC5->C6_NUM,;
+									  TMPSC5->A3_NREDUZ,;
+									  TMPSC5->A1_VEND,;
+									  TMPSC5->A3_COD,;
+									  posicione('DA0', 1, xfilial("DA0") + TMPSC5->C5_TABELA, 'DA0_DESCRI') ,; 
+									  TMPSC5->C5_FILIAL ,;
+	  								  TMPSC5->C9_BLEST,;
+	  								  TMPSC5->C6_QTDVEN-TMPSC5->C6_QTDENT,;
+	  								  TMPSC5->C9_SEQUEN,;
+	  								  TMPSC5->ESTOQUE,;
+	  								  TMPSC5->OUTEST})    
+	EndIf
+    dbSkip()
+End
+
+TMPSC5->( dbCloseArea() )
+
+oReport:SetMeter(nCount)
+
+For nY := 1 To Len(aCabecalho)	
+	
+	If oReport:Cancel()
+	 	Exit
+  	EndIf 
+	
+	PrintCabec(aCabecalho,nCol,nY)  
+	
+	//nLin := 1680       
+	//Alert(Str(nLin))
+	nTotGeral:=0
+		
+	For nX := 1 To Len(aCabecalho[nY][37])
+	    
+		If nLin >= 2720 // 2650
+			oReport:EndPage()
+			nPag++
+			nLin := 300			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ°
+			//³Imprime Cabecalho 2³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ°
+			DhImCbc2()
+			//PrintCabec(aCabecalho,nLin,nCol,nY)  
+			//nLin := 1680
+		EndIf  
+
+
+		nTotGeral+= IIf(aCabecalho[nY][37][nX][12] == "  ",aCabecalho[nY][37][nX][4],0)
+		//nTotGeral+= aCabecalho[nY][37][nX][4]
+
+		
+		If nLin == 300
+		    
+		    If aCabecalho[nY][37][nX][14] == "01"
+		    	oReport:Say ( nLin,nCol,"PEDIDO DE VENDA.: "+cPedido, oTFont,,,) 
+		    	nLin := nLin + 200
+	
+				//Produto + Descricao
+	    		//oReport:Say (nLin, 110, Alltrim(aCabecalho[nY][37][nX][1])+" - "+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	    		
+	    		nDesc := (7 * 20) + (Len(Alltrim(aCabecalho[nY][37][nX][1])) * 20)
+	    		
+	    		oReport:Say (nLin, 140, Alltrim(aCabecalho[nY][37][nX][1]), oTFont4n , ,  , )
+	    		oReport:Say (nLin, 005+nDesc, ' - '+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	    		
+	    		
+	    		nLin := nLin + 80
+		    			    	 	  
+				//Local
+		    	oReport:Say ( nLin,   nCol+500-330,  aCabecalho[nY][37][nX][3], oTFont4 , ,  , ) // FONTANELLI
+		    	
+				//Quantidades
+		    	//----> CHECA SE TEM ESTOQUE
+				If aCabecalho[nY][37][nX][15] <= 0
+					nQtdLib := 0
+					nQtdFal := aCabecalho[nY][37][nX][13]
+				ElseIf aCabecalho[nY][37][nX][15] >= aCabecalho[nY][37][nX][13]
+					nQtdLib := aCabecalho[nY][37][nX][13]
+					nQtdFal := 0
+				Else
+					nQtdLib := aCabecalho[nY][37][nX][15]
+					nQtdFal := aCabecalho[nY][37][nX][13] - aCabecalho[nY][37][nX][15]
+				EndIf
+				
+				oReport:Say ( nLin,   nCol+1100, Transform(nQtdLib,"@E 9999"), oTFont4 , ,  , )
+				oReport:Say ( nLin,   nCol+1250, Transform(nQtdFal,"@E 9999"), oTFont4 , ,  , )
+
+				//ESTOQUE DAS OUTRAS FILIAIS
+				If nQtdFal > 0 .AND. aCabecalho[nY][37][nX][16] >= nQtdFal
+					oReport:Say ( nLin,   nCol+1300, SldFil(aCabecalho[nY][37][nX][01]), oTFont4 , ,  , )
+				EndIf
+
+		    	oReport:Say ( nLin,   nCol+1450, aCabecalho[nY][37][nX][5], oTFont4 , ,  , )  
+		    	oReport:Say ( nLin,   nCol+1650, "________"+"   "+ IIF(nQtdFal==0,"Em Estoque",PrxEntr(Alltrim(aCabecalho[nY][37][nX][1]))) /*"________"*/,oTFont1,,,)
+		    EndIf
+		Else
+			
+		    If aCabecalho[nY][37][nX][14] == "01"
+				nLin := nLin + 80
+
+	    		//oReport:Say ( nLin,   110,      Alltrim(aCabecalho[nY][37][nX][1])+" - "+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	    	
+	    		nDesc := (7 * 20) + (Len(Alltrim(aCabecalho[nY][37][nX][1])) * 20)
+	    		
+	    		oReport:Say (nLin, 140, Alltrim(aCabecalho[nY][37][nX][1]), oTFont4n , ,  , )
+	    		oReport:Say (nLin, 005+nDesc, ' - '+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	
+	    		
+	    		nLin := nLin + 80
+
+				//Local
+				oReport:Say ( nLin,   nCol+500-330,  aCabecalho[nY][37][nX][3], oTFont4 , ,  , ) // FONTANELLI
+
+				//Quantidades
+		    	//----> CHECA SE TEM ESTOQUE
+				If aCabecalho[nY][37][nX][15] <= 0
+					nQtdLib := 0
+					nQtdFal := aCabecalho[nY][37][nX][13]
+				ElseIf aCabecalho[nY][37][nX][15] >= aCabecalho[nY][37][nX][13]
+					nQtdLib := aCabecalho[nY][37][nX][13]
+					nQtdFal := 0
+				Else
+					nQtdLib := aCabecalho[nY][37][nX][15]
+					nQtdFal := aCabecalho[nY][37][nX][13] - aCabecalho[nY][37][nX][15]
+				EndIf
+				
+				oReport:Say ( nLin,   nCol+1100, Transform(nQtdLib,"@E 9999"), oTFont4 , ,  , )
+				oReport:Say ( nLin,   nCol+1250, Transform(nQtdFal,"@E 9999"), oTFont4 , ,  , )
+
+				//ESTOQUE DAS OUTRAS FILIAIS
+				If nQtdFal > 0 .AND. aCabecalho[nY][37][nX][16] >= nQtdFal
+					oReport:Say ( nLin,   nCol+1300, SldFil(aCabecalho[nY][37][nX][01]), oTFont4 , ,  , )
+				EndIf
+
+		    	oReport:Say ( nLin,   nCol+1450, aCabecalho[nY][37][nX][5], oTFont4n , ,  , )  
+		    	oReport:Say ( nLin,   nCol+1650, "__________"+"       "+ IIF(nQtdFal==0,"Em Estoque",PrxEntr(Alltrim(aCabecalho[nY][37][nX][1]))) /*"__________"*/,oTFont1,,,)
+			Elseif Empty(aCabecalho[nY][37][nX][14] )
+				nLin := nLin + 80
+
+				//Produto + Descricao
+	    		//oReport:Say ( nLin,   110,      Alltrim(aCabecalho[nY][37][nX][1])+" - "+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	    		
+	    		nDesc := (7 * 20) + (Len(Alltrim(aCabecalho[nY][37][nX][1])) * 20)
+	    		
+	    		oReport:Say (nLin, 140, Alltrim(aCabecalho[nY][37][nX][1]), oTFont4n , ,  , )
+	    		oReport:Say (nLin, 005+nDesc, ' - '+SubStr(Alltrim(aCabecalho[nY][37][nX][2]),1,50), oTFont4 , ,  , )
+	    		
+	    		nLin := nLin + 80
+
+				//Local
+				oReport:Say ( nLin,   nCol+500-330,  aCabecalho[nY][37][nX][3], oTFont4 , ,  , ) // FONTANELLI
+
+				//Quantidades
+				//----> CHECA SE TEM ESTOQUE
+				If aCabecalho[nY][37][nX][15] <= 0
+					nQtdLib := 0
+					nQtdFal := aCabecalho[nY][37][nX][13]
+				ElseIf aCabecalho[nY][37][nX][15] >= aCabecalho[nY][37][nX][13]
+					nQtdLib := aCabecalho[nY][37][nX][13]
+					nQtdFal := 0
+				Else
+					nQtdLib := aCabecalho[nY][37][nX][15]
+					nQtdFal := aCabecalho[nY][37][nX][13] - aCabecalho[nY][37][nX][15]
+				EndIf
+				
+				oReport:Say ( nLin,   nCol+1100, Transform(nQtdLib,"@E 9999"), oTFont4 , ,  , )
+				oReport:Say ( nLin,   nCol+1250, Transform(nQtdFal,"@E 9999"), oTFont4 , ,  , )
+
+				//ESTOQUE DAS OUTRAS FILIAIS
+				If nQtdFal > 0 .AND. aCabecalho[nY][37][nX][16] >= nQtdFal
+					oReport:Say ( nLin,   nCol+1300, SldFil(aCabecalho[nY][37][nX][01]), oTFont4 , ,  , )
+				EndIf
+
+		    	oReport:Say ( nLin,   nCol+1450, aCabecalho[nY][37][nX][5], oTFont4n , ,  , )  
+		    	oReport:Say ( nLin,   nCol+1650, "__________"+"       "+ IIF(nQtdFal==0,"Em Estoque",PrxEntr(Alltrim(aCabecalho[nY][37][nX][1]))),oTFont1,,,) /* "__________" */			
+		    EndIf
+		EndIf                                                                                    
+		
+		If nX == Len(aCabecalho[nY][37])
+			oReport:Say ( nLin+80,nCol, "TOTAL GERAL - >", oTFont1 , ,  , )
+			oReport:Say ( nLin+80,nCol+1100, Transform(nTotGeral,"@E 9999"), oTFont1 , ,  , )
+			oReport:Say ( 2800, nCol,      "Representante: " +aCabecalho[nY][37][nX][9] + " - " + aCabecalho[nY][37][nX][7] ,oTFont1,,,)
+		    oReport:Say ( 2800, nCol+1500, "________________________",oTFont1,,,)
+			oReport:Say ( 2850, nCol,      "Tabela Preço.: " +aCabecalho[nY][37][nX][10],oTFont1,,,) 
+			oReport:Say ( 2850, nCol+1500, "Separador",oTFont1,,,)
+			oReport:Say ( 3000, nCol+1500, "________________________",oTFont1,,,)
+			oReport:Say ( 3050, nCol+1500, "Conferente",oTFont1,,,) 
+	    EndIf
+
+		oReport:Say ( 3150, nCol, UsrRetName(__cUserId) , oTFont1,,, )
+	    oReport:Say ( 3150, nCol+1800, "Pagina.: "+transform(nPag,"9999"), oTFont1,,, ) 
+	
+	Next nX                                                                           
+	
+	oReport:EndPage()
+			
+Next nY
+    
+Return                   
+
+///////////////////////////////////////////////////////// 
+Static Function PrintCabec(aCabecalho,nCol,nI)
+
+//Local nLin 	:= 400
+Local nTam	:= 1 
+Local nTam2 := 0
+Local nX	:= 0
+Local nRegM0 := SM0->( Recno() )
+Local cFilVenda	:= ""
+Local cString := ""
+
+SM0->( DbSeek( cEmpAnt + aCabecalho[nI][5] ))
+
+cFilVenda := RTrim(SM0->M0_FILIAL)
+
+SM0->( DbGoto(nRegM0) )
+
+cPedido := aCabecalho[nI][1]
+
+oReport:StartPage()
+nLin 	:= 400
+//oReport:Box  (  350, 150, 1550, 2360, ) 
+//oReport:Line (  900, 150,  900, 2360, )
+//oReport:Line ( 1100, 150, 1100, 2360, )
+    
+oReport:Say ( nLin,     nCol,      "PEDIDO DE VENDA .: " + aCabecalho[nI][1], oTFont , ,  , ) 
+oReport:Say ( nLin,     nCol+700,  "EMISSÃO.: "+DTOC(STOD(aCabecalho[nI][2])), oTFont ,  ,  , )	
+oReport:Say ( nLin,     nCol+1200, "ENTREGA.: "+DTOC(STOD(aCabecalho[nI][3])),oTFont , ,  , )   
+oReport:Say ( nLin,     nCol+1700, "LIMITE: ",oTFont , ,  , )
+oReport:Say ( nLin+50,  nCol,      "PEDIDO DO CLIENTE.: "+aCabecalho[nI][4],oTFont , ,  , )
+oReport:Say ( nLin+50,  nCol+1200, "FILIAL DE VENDA.: "+aCabecalho[nI][5] + " " + cFilVenda ,oTFont , ,  , )
+oReport:Say ( nLin+100, nCol,      "Razão Social..: "+aCabecalho[nI][20]+" - "+aCabecalho[nI][6],oTFont1 , ,  , )
+oReport:Say ( nLin+150, nCol,      "Nome Fantasia.: "+aCabecalho[nI][20]+" - "+aCabecalho[nI][7],oTFont1 , ,  , )
+oReport:Say ( nLin+200, nCol,      "Contato: "+aCabecalho[nI][8],oTFont1 , ,  , )
+oReport:Say ( nLin+200, nCol+1100, "Fone.: "+Transform(aCabecalho[nI][9],PesqPict("SA1","A1_TEL")),oTFont1 , ,  , )
+oReport:Say ( nLin+200, nCol+1500, "Fax.: "+Transform(aCabecalho[nI][10],PesqPict("SA1","A1_FAX")),oTFont1 , ,  , )
+oReport:Say ( nLin+250, nCol,      "Insc. CNPJ.: "+Transform(aCabecalho[nI][11],PesqPict("SA1","A1_CGC")),oTFont1 , ,  , )
+oReport:Say ( nLin+250, nCol+1100, "Insc Est.: "+aCabecalho[nI][12],oTFont1 , ,  , )
+oReport:Say ( nLin+300, nCol,      "Endereço.: "+aCabecalho[nI][13],oTFont1 , ,  , )
+oReport:Say ( nLin+350, nCol,      "Cidade.: "+aCabecalho[nI][14],oTFont1 , ,  , )
+oReport:Say ( nLin+350, nCol+1100, "Bairro.: "+aCabecalho[nI][17],oTFont1 , ,  , )
+oReport:Say ( nLin+400, nCol, 		"Estado.: "+aCabecalho[nI][15],oTFont1 , ,  , )
+oReport:Say ( nLin+400, nCol+1100, 	"Cep.: " +Transform(aCabecalho[nI][16],PesqPict("SA1","A1_CEP")),oTFont1 , ,  , )
+//oReport:Say ( nLin+350, nCol+1800, "Bairro.: "+aCabecalho[nI][17],oTFont1 , ,  , )
+//oReport:Say ( nLin+550,   nCol ,    "Transportadora.: "+aCabecalho[nI][19]+" "+aCabecalho[nI][21]+aCabecalho[nI][24], oTFont1 , ,  , ) 
+oReport:Say ( nLin+550, nCol,      "Transportadora.: "+aCabecalho[nI][19]+" - "+aCabecalho[nI][21], oTFont1 , ,  , ) 
+oReport:Say ( nLin+550, nCol+1100, "Bairro.: "+aCabecalho[nI][22], oTFont1 ,  ,  , )	
+oReport:Say ( nLin+600, nCol,      "Telefone.: "+Transform(aCabecalho[nI][24],PesqPict("SA4","A4_TEL")),oTFont1 , ,  , )
+oReport:Say ( nLin+600, nCol+1100, "Cidade.: "+aCabecalho[nI][23],oTFont1 , ,  , )   
+oReport:Say ( nLin+600, nCol+1800, "Frete.: "+aCabecalho[nI][25],oTFont , ,  , )
+oReport:Say ( nLin+750, nCol,      "Cond.Pagamento.: "+aCabecalho[nI][28],oTFont1 , ,  , )
+oReport:Say ( nLin+750, nCol+1100, " % Desconto.: "+(Str(aCabecalho[nI][29],5))+"%"+" "+(Str(aCabecalho[nI][30],5))+"%"+" "+(Str(aCabecalho[nI][31],5))+"%"+" "+(Str(aCabecalho[nI][32],5))+"%", oTFont1,,,) 
+oReport:Say ( nLin+800, nCol,      "Endereço de Entrega..: "+aCabecalho[nI][33],oTFont1 , ,  , )
+oReport:Say ( nLin+850, nCol,      "Endereço de Cobrança.: "+aCabecalho[nI][34],oTFont1 , ,  , )
+oReport:Say ( nLin+900, nCol,      "Observação do Pedido.: ",oTFont1 , ,  , )
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Contador para quebrar descricao.³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	//For nX:= 1 To 4
+	nLin+=950 
+	               
+	While .T.
+		nTam2:=At(CHR(13),SubStr(aCabecalho[nI][35],nTam,095))	
+		If nTam2 > 0
+			cString := SubStr(aCabecalho[nI][35],nTam,At(CHR(13),SubStr(aCabecalho[nI][35],nTam,095)))
+		Else          
+			cString := SubStr(aCabecalho[nI][35],nTam,095)
+		EndIf	
+		
+		oReport:Say ( nLin, nCol,cString,oTFont1,,,)
+		
+		If nTam2 > 0
+			nTam+= nTam2
+		Else
+			nTam+= 095                                                                                       
+		EndIf	
+		
+		If Empty(SubStr(aCabecalho[nI][35],nTam,095))
+			Exit
+		Else
+			nLin+=50
+		EndIf
+	EndDo
+		
+	nLin+=50
+	oReport:Box  (  350, 150, nLin, 2360, ) 
+	oReport:Line (  900, 150,  900, 2360, )
+	oReport:Line ( 1100, 150, 1100, 2360, )
+	nLin+=200
+	//Next nX	
+	//nLin := 1600                                                                 
+	          
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ°
+	//³Imprime Cabecalho 2³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ°
+	DhImCbc2()
+                                                                           	
+Return .T.                                    
+                          
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³DhImCbc2  ºAutor  ³Caio Pereira        º Data ³  12/11/09   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Imprime Cabecalho 2.                                        º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Dayhome.                                                  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function DhImCbc2()
+
+	oReport:Say ( nLin+50, nCol-50,   "Produto ", oTFont1,,,)
+	oReport:Say ( nLin+50, nCol+550-400,  "Local", oTFont1,,,) // FONTANELLI
+	oReport:Say ( nLin,    nCol+1100, "Qtde", oTFont1,,,) 
+	oReport:Say ( nLin+50, nCol+1100, "Lib", oTFont1,,,)
+	oReport:Say ( nLin,    nCol+1250, "Qtde", oTFont1,,,) 
+	oReport:Say ( nLin+50, nCol+1250, "Falta", oTFont1,,,)
+	oReport:Say ( nLin,    nCol+1450, "Unidade", oTFont1,,,)			
+	oReport:Say ( nLin+50, nCol+1450, "Medida", oTFont1,,,)   
+	oReport:Say ( nLin+50, nCol+1750, "Qtde "+"        "+ "Proxima Entrega " /*"Caixa "*/,oTFont1,,,)
+	
+	oReport:Line ( nLin+130 , 150,  nLin+130 , 2360, )	
+	Nlin+=80
+
+Return()
+
+////////////////////////////////////
+Static Function AjustaSX1(cPerg)
+    
+If FUNNAME()="MATA410"
+	MV_PAR03 := SC5->C5_NUM
+	MV_PAR04 := SC5->C5_NUM
+Endif
+
+PutSx1( cPerg, "01", "Filial de ?",                  "Filial de ?",                   "Filial de ?",                   "mv_ch1", "C", 02, 0, 0, "G", "","SM0", "", "", "mv_par01",,,,,,,,,,,,,,,,,{"Filial De",                    "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "02", "Filial Até ?",                 "Filial Até ?",                  "Filial Até ?",                  "mv_ch2", "C", 02, 0, 0, "G", "","SM0", "", "", "mv_par02",,,,,,,,,,,,,,,,,{"Filial Ate",                   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "03", "Pedido de ?",                  "Pedido de ?",                   "Pedido de ?",                   "mv_ch3", "C", 06, 0, 0, "G", "","SC5", "", "", "mv_par03",,,,,,,,,,,,,,,,,{"Pedido De",                    "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "04", "Pedido Até ?",                 "Pedido Até ?",                  "Pedido Até ?",                  "mv_ch4", "C", 06, 0, 0, "G", "","SC5", "", "", "mv_par04",,,,,,,,,,,,,,,,,{"Pedido Até",                   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "05", "Cliente de ?",                 "Cliente de ?",                  "Cliente de ?",                  "mv_ch5", "C", 06, 0, 0, "G", "","SA1", "", "", "mv_par05",,,,,,,,,,,,,,,,,{"Pedido De",                    "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "06", "Cliente Até ?",                "Cliente Até ?",                 "Cliente Até ?",                 "mv_ch6", "C", 06, 0, 0, "G", "","SA1", "", "", "mv_par06",,,,,,,,,,,,,,,,,{"Pedido Até",                   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "07", "Emissão de?",                  "Emissão de ?",                  "Emissão de ?",                  "mv_ch7", "D", 08, 0, 0, "G", "","",    "", "", "mv_par07",,,,,,,,,,,,,,,,,{"Emissão de",                   "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "08", "Emissão Até?",                 "Emissão Até ?",                 "Emissão Ate ?",                 "mv_ch8", "D", 08, 0, 0, "G", "","",    "", "", "mv_par08",,,,,,,,,,,,,,,,,{"Emissão Até",                  "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "09", "Limite de?",                   "Limite de ?",                   "Limite de ?",                   "mv_ch9", "D", 08, 0, 0, "G", "","",    "", "", "mv_par09",,,,,,,,,,,,,,,,,{"Limite De",                    "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "10", "Limite Até?",                  "Limite Até ?",                  "Limite  Até ?",                 "mv_ch10","D", 08, 0, 0, "G", "","",    "", "", "mv_par10",,,,,,,,,,,,,,,,,{"Limite De",                    "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "11", "Almoxarifado de?",             "Almoxarifado de ?",             "Almoxarifado  de ?",            "mv_ch11","C", 02, 0, 0, "G", "","",    "", "", "mv_par11",,,,,,,,,,,,,,,,,{"Almoxarifado De",              "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "12", "Almoxarifado Até?",            "Almoxarifado Até ?",            "Almoxarifado  Até ?",           "mv_ch12","C", 02, 0, 0, "G", "","",    "", "", "mv_par12",,,,,,,,,,,,,,,,,{"Almoxarifado Até",             "para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "13", "Imprime Pedidos ja impressos?","Imprime Pedidos ja impressos ?","Imprime Pedidos ja impressos ?","mv_ch13","N", 01, 0, 1, "C", "","",    "", "", "mv_par13","Sim","Sim","Sim",,"Não","Não","Não",,,,,,,,,,{"Imprime Romaneio já impresso","para considerar na", "geração do relatório."},{},{} )
+PutSx1( cPerg, "14", "Classificação do Relatório ?", "Classificação do Relatório ?",  "Classificação do Relatório ?",  "mv_ch14","N", 01, 0, 1, "C", "","",    "", "", "mv_par14","Código","Código","Código",,"Endereço Estoque","Endereço Estoque","Endereço Estoque",,,,,,,,,,{"Classificação do Relatório","para considerar na", "geração do relatório."},{},{} )
+
+Return .T.
+/*
+-----------------------------------------------------------------------------------------------------
+	Funcao     - SldFil
+	Autor      - Guilherme Santos
+	Descricao  - Retorna os Saldos das Outras Filiais
+	Data       - 11/06/2015
+-----------------------------------------------------------------------------------------------------	
+*/
+Static Function SldFil(cProduto)
+	Local aArea		:= GetArea()
+	Local cQuery		:= ""
+	Local cTabQry		:= GetNextAlias()
+	Local cRetorno 	:= ""
+	
+	cQuery += "SELECT	SB2.B2_FILIAL" + CRLF
+	cQuery += ",		SB2.B2_LOCAL" + CRLF
+	cQuery += "FROM	" + RetSqlName("SB2") + " SB2" + CRLF
+	cQuery += "WHERE	SB2.B2_COD = '" + cProduto + "'" + CRLF
+	cQuery += "AND		SB2.B2_QATU - SB2.B2_RESERVA - SB2.B2_QPEDVEN > 0" + CRLF
+	cQuery += "AND		SB2.D_E_L_E_T_ = ''" + CRLF
+	
+	cQuery := ChangeQuery(cQuery)
+		
+	DbUseArea(.T., "TOPCONN", TcGenQry(NIL, NIL, cQuery), cTabQry, .T., .T.)
+		
+	While !(cTabQry)->(Eof())
+		cRetorno += "|" + (cTabQry)->B2_FILIAL + "|" + (cTabQry)->B2_LOCAL
+	
+		(cTabQry)->(DbSkip())
+	End
+	
+	If Select(cTabQry) > 0
+		(cTabQry)->(DbCloseArea())
+	EndIf
+	
+	RestArea(aArea)
+Return cRetorno 
+
+
+
+Static Function PrxEntr(cProduto)
+	Local aArea		:= GetArea()
+	Local cQuery		:= ""
+	Local cTabQry		:= GetNextAlias()
+	Local cRetorno 	:= ""
+	
+	cQuery += "SELECT MIN(C7_DATPRF) DATAENT	"+ CRLF
+	cQuery += "FROM	" + RetSqlName("SC7") + " SC7" + CRLF
+	cQuery += "WHERE	SC7.C7_PRODUTO = '" + cProduto + "'" + CRLF
+	cQuery += "AND		SC7.C7_ENCER <> 'E' AND SC7.C7_DATPRF >= '"+DtoS(dDataBase)+"' " + CRLF
+	cQuery += "AND		SC7.D_E_L_E_T_ = ''" + CRLF
+	
+	cQuery := ChangeQuery(cQuery)
+		
+	//DbUseArea(.T., "TOPCONN", TcGenQry(NIL, NIL, cQuery), cTabQry, .T., .T.)
+
+	If Select("QRY") > 0
+		QRY->(DbCloseArea())
+	EndIf
+
+	TcQuery cQuery NEW ALIAS "QRY"
+
+	If !Empty(QRY->DATAENT)
+		cRetorno := DtoC(StoD(QRY->DATAENT))
+	Else
+		cRetorno := "Sem Previsão"
+	EndIf
+	
+	If Select("QRY") > 0
+		QRY->(DbCloseArea())
+	EndIf
+	
+	RestArea(aArea)
+
+Return cRetorno 

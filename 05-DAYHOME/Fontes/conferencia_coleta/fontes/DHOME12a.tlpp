@@ -1,0 +1,455 @@
+#include "totvs.ch"
+#include "rwmake.ch"
+#Include "Protheus.Ch"
+#include "topconn.ch"
+#include "tbiconn.ch"
+#include "tbicode.ch"
+#Include "Fileio.ch"
+
+// IMPRESSORA TLP2844
+#define cPorta  "LPT1"
+#define cModelo "ZEBRA" //"ELTRON"
+
+#Define STR_PULA		Chr(13)+Chr(10)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณDHOME12   บAutor  ณ                    บ Data ณ  10/12/14   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Emissใo de Etiqueta ORIGEM                                 บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ                                                            บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿                                                                       	
+*/
+User Function DHOME12a()
+
+Local oDlg                                          
+Local nQTD := 1
+Local cPROD_DE := space(15)
+Local cPROD_ATE := space(15)
+Local cGRUPO_DE := space(04)
+Local cGRUPO_ATE := "ZZZZ"
+
+Local cEMP:= "  "
+Local aEMP := {}
+
+Local nHandle := 0
+Local cPasta  := ""
+
+AADD(aEMP,"01 ( UD-PRESENTES )")
+AADD(aEMP,"02 ( FOOD SERVICE )")
+AADD(aEMP,"03 (   DEPOSITO   )")
+
+DEFINE MSDIALOG oDlg FROM 0,0 TO 320,398 PIXEL TITLE "Impressใo de Etiqueta Origem"
+
+@ 003+(20*1),010 Say "Produto de: " of oDlg Pixel
+@ 002+(20*1),070 MsGet oPROD_DE Var cPROD_DE F3 "SB1" when .T. Size 70,10 of oDlg Pixel
+
+@ 003+(20*2),010 Say "Produto ate: " of oDlg Pixel
+@ 002+(20*2),070 MsGet oPROD_ATE Var cPROD_ATE F3 "SB1" when .T. Size 70,10 of oDlg Pixel
+
+@ 003+(20*3),010 Say "Grupo de: " of oDlg Pixel
+@ 002+(20*3),070 MsGet oGRUPO_DE Var cGRUPO_DE F3 "SBM" when .T. Size 30,10 of oDlg Pixel
+
+@ 003+(20*4),010 Say "Grupo ate: " of oDlg Pixel
+@ 002+(20*4),070 MsGet oGRUPO_ATE Var cGRUPO_ATE F3 "SBM" when .T. Size 30,10 of oDlg Pixel
+
+@ 003+(20*5),010 Say "Empresa: " of oDlg Pixel
+@ 002+(20*5),070 COMBOBOX oEMP VAR cEMP ITEMS aEMP Size 80,10 of oDlg Pixel
+
+@ 003+(20*6),010 Say "Quantidade: " of oDlg Pixel
+@ 002+(20*6),070 MsGet oQtd Var nQTD Picture "999" when .T. Size 20,10 of oDlg Pixel
+
+@ 145,140 BUTTON "Imprimir" SIZE 28,13 PIXEL OF oDlg ACTION (FPrint(cPROD_DE,cPROD_ATE,cGRUPO_DE,cGRUPO_ATE,cEMP,nQTD),oDlg:End())
+@ 145,170 BUTTON "Sair" SIZE 28,13 PIXEL OF oDlg ACTION (oDlg:End())
+
+ACTIVATE MSDIALOG oDlg CENTERED
+
+Return nil
+
+Static Function FPrint(cPROD_DE,cPROD_ATE,cGRUPO_DE,cGRUPO_ATE,cEMP,nQTD)
+
+Local cTAM:= 38
+Local nS := 0
+
+IF(nQTD <= 0)
+	MsgInfo("Quantidade Invalida !","Aten็ใo")
+	Return()
+endif
+
+MSCBPRINTER(cModelo, cPorta)
+MSCBCHKStatus(.f.)
+
+_cQuery := " SELECT * "
+_cQuery += "   FROM "+RetSqlName("SB1")+" "
+_cQuery += "  WHERE B1_FILIAL = '"+ xFilial("SB1") +"' " 
+_cQuery += "    AND B1_COD BETWEEN '"+cPROD_DE+"' AND '"+cPROD_ATE+"'" 
+_cQuery += "    AND B1_GRUPO BETWEEN '"+cGRUPO_DE+"' AND '"+cGRUPO_ATE+"'" 
+_cQuery += "    AND D_E_L_E_T_ = ' ' "
+_cQuery += "   ORDER BY B1_COD"  
+TcQuery _cQuery New Alias "TMP1"
+TMP1->(dbGoTop())
+While TMP1->(!Eof())            
+	
+    if nQTD == 1 
+
+		c1_campo01:=c1_campo02:=c1_campo03:=c1_campo04:=c1_campo05:=c1_campo06:=c1_campo07:=c1_campo08:=c1_campo09:=c1_campo10:=c1_campo11:=c1_campo12:=""
+		c2_campo01:=c2_campo02:=c2_campo03:=c2_campo04:=c2_campo05:=c2_campo06:=c2_campo07:=c2_campo08:=c2_campo09:=c2_campo10:=c2_campo11:=c2_campo12:=""
+	            
+	 	if TMP1->(!EOF())
+			c1_campo01 := SUBSTR(TMP1->B1_COD,1,cTAM)
+			c1_campo02 := TMP1->B1_DESC
+			CFILBKP := cFilAnt                                    
+			if cEMP == "01 ( UD-PRESENTES )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "01" )
+				c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+				c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif
+			if cEMP == "02 ( FOOD SERVICE )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "02" )
+				c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM) 
+				c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif
+			if cEMP == "03 (   DEPOSITO   )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "03" )
+				c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+				c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif             
+			dbSelectArea("SM0")
+			dbSetOrder(1)
+			dbSeek( cEmpAnt + CFILBKP )
+			
+			cPAIS :=  Posicione("SYA",1,xFilial("SYA")+(Posicione("SA2",1,xFilial("SA2")+TMP1->B1_DHFABRI,"A2_PAIS")),"YA_DESCR")   
+			c1_campo06 := "Origem: "+ALLTRIM(cPAIS)
+			
+			if !Empty(TMP1->B1_EAN13)
+				c1_campo07 := alltrim(TMP1->B1_EAN13)
+			elseif  !Empty(TMP1->B1_UPC12)
+				c1_campo07 := alltrim(TMP1->B1_UPC12)
+			elseif  !Empty(TMP1->B1_DUN14D)
+				c1_campo07 := alltrim(TMP1->B1_DUN14D)
+			else
+				c1_campo07 := '0'
+			endif
+			
+			c1_campo08 := "Tipo: NAO PERECIVEL Garantia: 90 DIAS"
+			c1_campo09 := "Validade: INDETERMINADA"
+			c1_campo10 := "Material: "+Posicione("SX5",1,xFilial("SX5")+"ZL"+TMP1->B1_X_MAT,"X5_DESCRI")
+			c1_campo11 := "Sac: (11) 3337-3335 Ramal: 2014"
+			c1_campo12 := ALLTRIM(SM0->M0_ENDCOB)
+    	endif
+    	
+  		TMP1->(dbSkip())
+	 	if TMP1->(!EOF())
+			c2_campo01 := TMP1->B1_COD
+			c2_campo02 := TMP1->B1_DESC
+			CFILBKP := cFilAnt
+			if cEMP == "01 ( UD-PRESENTES )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "01" )
+				c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+				c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif
+			if cEMP == "02 ( FOOD SERVICE )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "02" )
+				c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+				c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif
+			if cEMP == "03 (   DEPOSITO   )"
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + "03" )
+				c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+				c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+				c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+			endif
+			dbSelectArea("SM0")
+			dbSetOrder(1)
+			dbSeek( cEmpAnt + CFILBKP )
+
+			cPAIS := Posicione("SYA",1,xFilial("SYA")+(Posicione("SA2",1,xFilial("SA2")+TMP1->B1_DHFABRI,"A2_PAIS")),"YA_DESCR")   
+			c2_campo06 := "Origem: "+ALLTRIM(cPAIS)
+
+			if !Empty(TMP1->B1_EAN13)
+				c2_campo07 := alltrim(TMP1->B1_EAN13)
+			elseif  !Empty(TMP1->B1_UPC12)
+				c2_campo07 := alltrim(TMP1->B1_UPC12)
+			elseif  !Empty(TMP1->B1_DUN14D)
+				c2_campo07 := alltrim(TMP1->B1_DUN14D)
+			else
+				c2_campo07 := '0'
+			endif
+	
+			c2_campo08 := "Tipo: NAO PERECIVEL Garantia: 90 DIAS"
+			c2_campo09 := "Validade: INDETERMINADA"
+			c2_campo10 := "Material: "+Posicione("SX5",1,xFilial("SX5")+"ZL"+TMP1->B1_X_MAT,"X5_DESCRI")
+			c2_campo11 := "Sac: (11) 3337-3335 Ramal: 2014"
+			c2_campo12 := ALLTRIM(SM0->M0_ENDCOB)
+		endif             
+
+		 MSCBBEGIN(1,6)	                
+
+	 	 MSCBSAY(02,0.1,SUBSTR(c1_campo01,1,cTAM), "N", "B", "1,3")	 	 
+	 	 MSCBSAY(02,2.1,SUBSTR(c1_campo02,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,4.1,SUBSTR(c1_campo03,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,6.1,SUBSTR(c1_campo05,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,8.1,SUBSTR(c1_campo12,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,10.1,SUBSTR(c1_campo04,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,12.1,SUBSTR(c1_campo11,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,14.1,SUBSTR(c1_campo06,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,16.1,SUBSTR(c1_campo08,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,18.1,SUBSTR(c1_campo09,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(02,20.1,SUBSTR(c1_campo10,1,cTAM), "N", "B", "1,3")       
+	     MSCBSAYBAR(02,22.0,c1_campo07,'N','MB04',04,.T.,.F.,.T.,,2,1,,.F.)
+	 	 MSCBSAY(02,28.0,SUBSTR(c1_campo07,1,cTAM), "N", "B", "1,3")       
+
+
+	 	 MSCBSAY(52,0.1,SUBSTR(c2_campo01,1,cTAM), "N", "B", "1,3")	 	 
+	 	 MSCBSAY(52,2.1,SUBSTR(c2_campo02,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,4.1,SUBSTR(c2_campo03,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,6.1,SUBSTR(c2_campo05,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,8.1,SUBSTR(c2_campo12,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,10.1,SUBSTR(c2_campo04,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,12.1,SUBSTR(c2_campo11,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,14.1,SUBSTR(c2_campo06,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,16.1,SUBSTR(c2_campo08,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,18.1,SUBSTR(c2_campo09,1,cTAM), "N", "B", "1,3")       
+	 	 MSCBSAY(52,20.1,SUBSTR(c2_campo10,1,cTAM), "N", "B", "1,3")       
+	     MSCBSAYBAR(52,22.0,c2_campo07,'N','MB04',04,.T.,.F.,.T.,,2,1,,.F.)
+	 	 MSCBSAY(52,28.0,SUBSTR(c2_campo07,1,cTAM), "N", "B", "1,3")       
+ 	 
+	
+		 MSCBEND()
+		 
+
+/*
+
+    If File("C:\temp")
+        cPasta := "C:\temp"
+    Else
+        cPasta := "C:\"
+    EndIf
+
+	nHandle := fOpen(cPasta+"\impressao.txt",FO_READWRITE)
+	IF nHandle == -1
+		nHandle := FCreate(cPasta+"\impressao.txt",FO_READWRITE)
+		FSeek(nHandle, 0, 2)         	// Posiciona no fim do arquivo
+		FWrite(nHandle, c1_campo01+STR_PULA;
+		+c1_campo02+STR_PULA;
+		+c1_campo03+STR_PULA;
+		+c1_campo05+STR_PULA;
+		+c1_campo12+STR_PULA;
+		+c1_campo04+STR_PULA;
+		+c1_campo11+STR_PULA;
+		+c1_campo06+STR_PULA;
+		+c1_campo08+STR_PULA;
+		+c1_campo09+STR_PULA;
+		+c1_campo10+STR_PULA;
+		+c1_campo07+STR_PULA)
+		fclose(nHandle)
+	/*Else
+		nHandle := fOpen(cPasta+"\impressao.txt",FO_READWRITE)
+		IF nHandle == -1
+			MsgStop('Erro de abertura : FERROR '+str(ferror(),4))
+		Else
+			FSeek(nHandle, 0, 2)         // Posiciona no fim do arquivo
+			FWrite(nHandle, "Data: "+ DtoC(Date()) +"-"+ Time() +" - Fun็ใo: "+ FunName() +" - Usuแrio: "+ RetCodUsr() +"-"+ UsrFullName(RetCodUsr())+STR_PULA) 		// Insere texto no arquivo
+			fclose(nHandle)
+		EndIf*/
+	//EndIf
+	
+		SLEEP(2000)
+ 
+    endif           
+        
+        
+    if nQTD > 1
+    
+    	nCOL := 0 
+
+		For nS := 1 to nQTD 
+		    
+			nCOL++
+
+	    	if nCOL = 1 
+				c1_campo01:=c1_campo02:=c1_campo03:=c1_campo04:=c1_campo05:=c1_campo06:=c1_campo07:=c1_campo08:=c1_campo09:=c1_campo10:=c1_campo11:=c1_campo12:=""
+				c2_campo01:=c2_campo02:=c2_campo03:=c2_campo04:=c2_campo05:=c2_campo06:=c2_campo07:=c2_campo08:=c2_campo09:=c2_campo10:=c2_campo11:=c2_campo12:=""
+            endif
+
+	    	if nCOL = 1 
+				c1_campo01 := TMP1->B1_COD
+				c1_campo02 := TMP1->B1_DESC                                                                                             
+				CFILBKP := cFilAnt
+				if cEMP == "01 ( UD-PRESENTES )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "01" )
+					c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				if cEMP == "02 ( FOOD SERVICE )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "02" )
+					c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				if cEMP == "03 (   DEPOSITO   )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "03" )
+					c1_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c1_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c1_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + CFILBKP )
+
+				cPAIS := Posicione("SYA",1,xFilial("SYA")+(Posicione("SA2",1,xFilial("SA2")+TMP1->B1_DHFABRI,"A2_PAIS")),"YA_DESCR")   
+				c1_campo06 := "Origem: "+ALLTRIM(cPAIS)
+
+				if !Empty(TMP1->B1_EAN13)
+					c1_campo07 := alltrim(TMP1->B1_EAN13)
+				elseif  !Empty(TMP1->B1_UPC12)
+					c1_campo07 := alltrim(TMP1->B1_UPC12)
+				elseif  !Empty(TMP1->B1_DUN14D)
+					c1_campo07 := alltrim(TMP1->B1_DUN14D)
+				else
+					c1_campo07 := '0'
+				endif
+
+				c1_campo08 := "Tipo: NAO PERECIVEL Garantia: 90 DIAS"
+				c1_campo09 := "Validade: INDETERMINADA"
+				c1_campo10 := "Material: "+Posicione("SX5",1,xFilial("SX5")+"ZL"+TMP1->B1_X_MAT,"X5_DESCRI")
+				c1_campo11 := "Sac: (11) 3337-3335 Ramal: 2014"
+				c1_campo12 := ALLTRIM(SM0->M0_ENDCOB)
+			endif
+					    	  
+	    	if nCOL = 2 
+				c2_campo01 := TMP1->B1_COD
+				c2_campo02 := TMP1->B1_DESC
+				CFILBKP := cFilAnt
+				if cEMP == "01 ( UD-PRESENTES )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "01" )
+					c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				if cEMP == "02 ( FOOD SERVICE )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "02" )
+					c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				if cEMP == "03 (   DEPOSITO   )"
+					dbSelectArea("SM0")
+					dbSetOrder(1)
+					dbSeek( cEmpAnt + "03" )
+					c2_campo03 := "Importado por: "+ALLTRIM(SM0->M0_NOMECOM)
+					c2_campo04 := "Cep: "+transform(SM0->M0_CEPCOB,"@R 99999-999")+" "+ALLTRIM(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB+" - BRASIL"
+					c2_campo05 := "CNPJ: "+transform(SM0->M0_CGC,"@R 99.999.999/9999-99")
+				endif
+				
+				dbSelectArea("SM0")
+				dbSetOrder(1)
+				dbSeek( cEmpAnt + CFILBKP )
+	
+				cPAIS := Posicione("SYA",1,xFilial("SYA")+(Posicione("SA2",1,xFilial("SA2")+TMP1->B1_DHFABRI,"A2_PAIS")),"YA_DESCR")   
+				c2_campo06 := "Origem: "+ALLTRIM(cPAIS)
+				
+				if !Empty(TMP1->B1_EAN13)
+					c2_campo07 := alltrim(TMP1->B1_EAN13)
+				elseif  !Empty(TMP1->B1_UPC12)
+					c2_campo07 := alltrim(TMP1->B1_UPC12)
+				elseif  !Empty(TMP1->B1_DUN14D)
+					c2_campo07 := alltrim(TMP1->B1_DUN14D)
+				else
+					c2_campo07 := '0'
+				endif
+				
+				c2_campo08 := "Tipo: NAO PERECIVEL Garantia: 90 DIAS"
+				c2_campo09 := "Validade: INDETERMINADA"
+				c2_campo10 := "Material: "+Posicione("SX5",1,xFilial("SX5")+"ZL"+TMP1->B1_X_MAT,"X5_DESCRI")
+				c2_campo11 := "Sac: (11) 3337-3335 Ramal: 2014"
+				c2_campo12 := ALLTRIM(SM0->M0_ENDCOB)
+			endif         
+
+
+
+ 			If nCOL = 2 .OR. (nS == nQTD)    
+
+				 MSCBBEGIN(1,6)	                
+				 
+			 	 MSCBSAY(02,0.1,SUBSTR(c1_campo01,1,cTAM), "N", "B", "1,3")	 	 
+			 	 MSCBSAY(02,2.1,SUBSTR(c1_campo02,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,4.1,SUBSTR(c1_campo03,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,6.1,SUBSTR(c1_campo05,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,8.1,SUBSTR(c1_campo12,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,10.1,SUBSTR(c1_campo04,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,12.1,SUBSTR(c1_campo11,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,14.1,SUBSTR(c1_campo06,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,16.1,SUBSTR(c1_campo08,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,18.1,SUBSTR(c1_campo09,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(02,20.1,SUBSTR(c1_campo10,1,cTAM), "N", "B", "1,3")       
+			     MSCBSAYBAR(02,22.0,c1_campo07,'N','MB04',04,.T.,.F.,.T.,,2,1,,.F.)
+			 	 MSCBSAY(02,28.0,SUBSTR(c1_campo07,1,cTAM), "N", "B", "1,3")       
+		 
+		
+			 	 MSCBSAY(52,0.1,SUBSTR(c2_campo01,1,cTAM), "N", "B", "1,3")	 	 
+			 	 MSCBSAY(52,2.1,SUBSTR(c2_campo02,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,4.1,SUBSTR(c2_campo03,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,6.1,SUBSTR(c2_campo05,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,8.1,SUBSTR(c2_campo12,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,10.1,SUBSTR(c2_campo04,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,12.1,SUBSTR(c2_campo11,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,14.1,SUBSTR(c2_campo06,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,16.1,SUBSTR(c2_campo08,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,18.1,SUBSTR(c2_campo09,1,cTAM), "N", "B", "1,3")       
+			 	 MSCBSAY(52,20.1,SUBSTR(c2_campo10,1,cTAM), "N", "B", "1,3")       
+			     MSCBSAYBAR(52,22.0,c2_campo07,'N','MB04',04,.T.,.F.,.T.,,2,1,,.F.)
+			 	 MSCBSAY(52,28.0,SUBSTR(c2_campo07,1,cTAM), "N", "B", "1,3")       
+	     
+				 MSCBEND()
+
+	    	    SLEEP(2000)
+    	    	nCOL := 0 
+    	    endif
+    		 
+		Next nS
+	 
+    endif           
+    
+	TMP1->(dbSkip())
+EndDo   
+TMP1->(dbCloseArea())
+
+MSCBCLOSEPRINTER()
+MS_FLUSH()
+
+Return nil

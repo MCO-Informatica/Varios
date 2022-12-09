@@ -1,0 +1,490 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "COLORS.CH"
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออออหอออออออัออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณIMCDENVDANFE  บAutor  ณJunior Carvalho   บ Data ณ  02/26/14   บฑฑ
+ฑฑฬออออออออออุออออออออออออสอออออออฯออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณRotina para listar se ja foi feito o envio da nota e esta   บฑฑ
+ฑฑบ          ณesta autorizado o disparo da DANFE para o cliente           บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ p12 e p11                                                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function IMCDENVDANFE()
+	Local aVetor := {}
+	Local nX := 0
+	Private cRetXml := ""
+	default cEmpProc := ""
+	default cFilProc := ""
+
+	//VQ
+	aAdd(aVetor,{"04","01"})
+
+	//IMCD BRASIL
+	aAdd(aVetor,{"01","01"})
+	aAdd(aVetor,{"01","02"})
+	aAdd(aVetor,{"01","04"})
+	aAdd(aVetor,{"01","05"})
+	aAdd(aVetor,{"01","06"})
+
+	//FARMA
+	aAdd(aVetor,{"02","01"})
+	aAdd(aVetor,{"02","02"})
+
+	for nX := 1 To Len(aVetor)
+
+		cEmpProc := aVetor[nX,1]
+		cFilProc := aVetor[nX,2]
+
+		RpcSetType(3)// Nใo consome licensa de uso
+		RpcSetEnv(cEmpProc,cFilProc,,,'FAT','IMCDENVDANFE')
+
+		dbCloseAll()
+		cEmpAnt := cEmpProc
+		cFilAnt := cFilProc
+		cNumEmp := cEmpAnt+cFilAnt
+		cModulo := "FAT"
+		nModulo := 5
+		OpenSM0(cEmpAnt+cFilAnt)
+		OpenFile(cEmpAnt+cFilAnt)
+
+		IMCDENVX()
+
+	Next nX
+
+	RPCCLEARENV()
+
+Return()
+
+Static Function IMCDENVX()
+
+	Local cQuery := ""
+	Local nHdlSemaf := 0
+	Private cAliasNF := ""
+	Private cIdEnt := RetIdEnti()
+	Private cPara := ""
+	Private cCopia	:= ""
+
+	cMsg := "ENTREI NA IMCDENVDANFE  - Empresa: "+cEmpAnt+" | filial: "+cFilAnt+dtoc(date())+" "+time()
+	FWLogMsg("INFO", "", "BusinessObject", "IMCDENVDANFE", "", "", cMsg, 0, 0)
+
+	cSemaf := "IMCDENVDANFE"+cEmpAnt+cFilAnt
+
+	If !U_SemafWKF(cSemaf, @nHdlSemaf, .T.)
+		cMsg :=  ("A rotina IMCDENVDANFE ja esta sendo executada por outra Thread. Execucao interrompida.")
+		FWLogMsg("INFO", "", "BusinessObject", "IMCDENVDANFE", "", "", cMsg, 0, 0)
+		Return
+	EndIf
+
+	cAliasNF := GetNextAlias()
+
+	cQuery := "	SELECT F2_FILIAL, F2_DOC, F2_SERIE, F2_CLIENTE, F2_LOJA, F2_TIPO, DOC_CHV, F2_TRANSP "
+	cQuery += " FROM "+RETSQLNAME("SF2") +" SF2 ,  SPED050  NFE "
+	cQuery += " WHERE F2_SERIE || F2_DOC = NFE_ID "
+	cQuery += " AND ID_ENT = '"+cIdEnt+"' "
+	cQuery += " AND  NFE.D_E_L_E_T_ <> '*' "
+	cQuery += " AND F2_EMISSAO >= '20210801' "
+	cQuery += " AND SF2.D_E_L_E_T_ <> '*' "
+	cQuery += " AND F2_FILIAL = '"+xfilial("SF2")+"'"
+	cQuery += " AND STATUSCANC =  0  "
+	cQuery += " AND STATUS = 6 "
+	cQuery += " AND F2_XMLDANF =  ' ' "
+	//cQuery += " AND F2_DOC = '000016232' "
+	cQuery += " ORDER BY F2_DOC,F2_SERIE "
+
+	cQuery := ChangeQuery( cQuery )
+	IIF(SELECT(cAliasNF)>0,(cAliasNF)->(DBCLOSEAREA()),NIL)
+
+	DbUseArea(.T., "TOPCONN", TcGenQry(,,cQuery),  cAliasNF , .T., .T.)
+
+	TCSetField(cAliasNF, "F2_EMISSAO", "D",08,0 )
+
+	WHILE (cAliasNF)->(!EOF())
+
+		IF( (cAliasNF)->F2_TIPO) $ 'D/B'
+			cPara := ALLTRIM(Posicione("SA2",1,xFilial("SA2") + (cAliasNF)->F2_CLIENTE + (cAliasNF)->F2_LOJA, "A2_EMAIL"))
+		ELSE
+			cPara := ALLTRIM(Posicione("SA1",1,xFilial("SA1") + (cAliasNF)->F2_CLIENTE + (cAliasNF)->F2_LOJA, "A1_ENVMAIL"))
+		ENDIF
+
+		IF !EMPTY( (cAliasNF)->F2_TRANSP)
+			cCopia := ALLTRIM(Posicione("SA4",1,xFilial("SA4") + (cAliasNF)->F2_TRANSP, "A4_EMAIL"))
+		endif
+
+		IF !EMPTY(cPara)
+			ENVNFE( (cAliasNF)->F2_FILIAL, (cAliasNF)->F2_DOC, (cAliasNF)->F2_SERIE, (cAliasNF)->F2_CLIENTE, (cAliasNF)->F2_LOJA, (cAliasNF)->DOC_CHV )
+		ENDIF
+
+		(cAliasNF)->(DBSKIP())
+
+	ENDDO
+
+	IIF(SELECT(cAliasNF)>0,(cAliasNF)->(DBCLOSEAREA()),NIL)
+
+// Encerra controle de semaforo
+	U_SemafWKF(cSemaf, @nHdlSemaf, .F.)
+
+	cMsg :=  "FINALIZADA IMCDENVDANFE - Empresa: "+cEmpAnt+" | filial: "+cFilAnt+dtoc(date())+" "+time()
+	FWLogMsg("INFO", "", "BusinessObject", "IMCDENVDANFE", "", "", cMsg, 0, 0)
+
+Return()
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออออหอออออออัออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ ENVNFE     บAutor  ณJunior Carvalho   บ Data ณ  02/26/14   บฑฑ
+ฑฑฬออออออออออุออออออออออออสอออออออฯออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณRotina para listar se ja foi feito o envio da nota e esta   บฑฑ
+ฑฑบ          ณesta autorizado o disparo da DANFE para o cliente           บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ p12 e p11                                                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function ENVNFE( xFil, cDocJob, cSerieJob, cCliFor,cLoja,cChave)
+
+	Local cIdEnt := RetIdEnti()
+	Local aArea     := GetArea()
+	Local lExistNfe := .F.
+	Local cFilePrint := ""
+	Local aAttach := {}
+	Local oSetup		:= Nil
+	Local lEnviou := .F.
+	Local cXmlEnv := ""
+	Local cMsglog := cSerieJob+cDocJob +" - Empresa: "+cEmpAnt+" | filial: "+cFilAnt+dtoc(date())+" "+time()
+
+	Private oDANFE
+	Private cDirDest := "\danfe\" //'E:\TOTVS\Microsiga\Protheus_Data\danfe\'
+	Private lAdjustToLegacy := .F.
+	Private lDisableSetup  := .T.
+
+	Default xFil := " "
+	Default cDocJob := " "
+	Default cSerieJob := " "
+	Default cTipo := 'S'
+	Default cEmail := ""
+	Default cAnexoXml := ""
+	Default cXml := ""
+	Default cPara := ""
+	Default cCopia	:= ""
+	Default cOculto := ""
+
+	CALIAS :=  iif( cTipo = 'E',"SF1","SF2")
+
+	DbSelectArea(CALIAS)
+	(CALIAS)->( DbSetOrder(1) )	//F2_FILIAL + F2_DOC + F2_SERIE + F2_CLIENTE + F2_LOJA
+	If (CALIAS)->( DbSeek(  xFil +  cDocJob + cSerieJob + cCliFor + cLoja) )
+
+		IF (CALIAS) == "SF2"
+			cChave := (CALIAS)->F2_CHVNFE
+			cPedido := ""
+		ELSE
+			cChave := (CALIAS)->F1_CHVNFE
+		ENDIF
+
+		IF EMPTY( cChave )
+			cFilePrint	:= "DANFE_"+cIdEnt+Dtos(MSDate())+StrTran(Time(),":","")+'.pdf'
+		ELSE
+			cFilePrint	:= "DANFE_"+cChave+".PDF"
+		ENDIF
+
+		MAKEDIR(cDirDest)
+
+		oDanfe:=FWMSPrinter():New(cFilePrint, IMP_PDF, lAdjustToLegacy, cDirDest , lDisableSetup ,, @oDanfe,,,,,.F.)
+
+		oDANFE:SetCopies( 1 )
+
+		oDanfe:SetResolution(78) // Tamanho estipulado para a Danfe
+		oDanfe:SetLandscape()
+		oDanfe:SetPaperSize(DMPAPER_A4)
+
+		oDanfe:SetMargin(30,30,30,30)
+		oDanfe:cPathPDF := cDirDest
+		oDanfe:lServer := .T.
+		oDanfe:nDevice := IMP_PDF
+		oDanfe:lViewPDF := .F.
+
+		lJob := .T.
+		lIsLoja := .F.
+		lAutomato := .F.
+		nEntSai :=  iif( cTipo = 'E',1,2)
+
+		//PROCESSA( { |lEnd| U_DANFE_P1(	cIdEnt,/*cVal1*/,/*cVal2*/, @oDanfe, oSetup ,lIsLoja ,.F.,@lExistNFe,lJob, nEntSai) },"Imprimindo DANFE..." )
+		MVOLD01	:=	MV_PAR01
+		MVOLD02	:=	MV_PAR02
+		MVOLD03	:=	MV_PAR03
+		MVOLD04	:=	MV_PAR04
+		MVOLD05	:=	MV_PAR05
+		MVOLD06	:=	MV_PAR06
+		MVOLD07	:=	MV_PAR07
+		MVOLD08	:=	MV_PAR08
+
+		Pergunte("NFSIGW",.F.)
+
+		MV_PAR01 := cDocJob
+		MV_PAR02 := cDocJob
+		MV_PAR03 := cSerieJob
+		MV_PAR04 := nEntSai	//NF de Saida
+		MV_PAR05 := 1	//Frente e Verso - 1:Sim
+		MV_PAR06 := 2	//DANFE simplificado - 2:Nao
+		MV_PAR07 := ddatabase - 30
+		MV_PAR08 := ddatabase + 30
+
+		lExistNFe :=  U_DANFE_P1(cIDEnt, Nil, Nil, oDANFE, oSetup, lIsLoja ,lAutomato,lJob, nEntSai)
+
+		IF lExistNfe
+			oDanfe:Preview()
+			Sleep( 5000 )
+			xnome := oDanfe:cFilePrint
+			ferase(xnome)
+
+			nEntSai := IIF(nEntSai = 1, 2, 1)
+
+			Processa({|lEnd| u_SpedPExp(cIdEnt,cSerieJob,cDocJob,cDocJob,cDirDest,lEnd,MV_PAR07,MV_PAR08,' ','zzzz',nEntSai,.F.,cSerieJob)},"Processando","Aguarde, exportando arquivos",.F.)
+
+			if !Empty(cAnexoXML)
+
+				cAssunto		:= "Nota fiscal - Numero/Serie: "+cDocJob+"/"+cSerieJob
+
+				cMensagem		:= CORPOEMAIL(cSerieJob,cDocJob,cAssunto)
+				cDirDest 		:= "\DANFE\"
+
+				aAdd(aAttach,cDirDest+cFilePrint)
+
+				aAdd(aAttach,cAnexoXML)
+				cOculto := 'junior.gardel@gmail.com'
+
+				lEnviou := U_ENVMAILIMCD(cPara,cCopia,cOculto,cAssunto,cMensagem,aAttach)
+
+				cXmlEnv := "Data "+DTOC(date())+" "+SubStr(Time(),1,5)
+				cXmlEnv += " - Para="+cPara+" - C/Copia="+cCopia
+
+				if lEnviou
+
+					cMsg :=  "DANFE / XML - GERADOS"
+					FWLogMsg("INFO", "", "BusinessObject", "IMCDENVDANFE", "", "", cMsg+" - "+cMsglog, 0, 0)
+
+				ELSE
+					cMsg :=  "DANFE / XML - ERROR"
+
+					FWLogMsg("INFO", "", "BusinessObject", "IMCDENVDANFE", "", "", cMsg+" - "+cMsglog, 0, 0)
+
+				endif
+
+
+				cQuery := "UPDATE " + RetSQLName( "SF2" )
+				cQuery += " SET F2_XMLDANF =  '"+cMsg+" "+cXmlEnv+"' "
+				cQuery += " WHERE F2_SERIE || F2_DOC = '"+cSerieJob+cDocJob+"' "
+				cQuery += " AND D_E_L_E_T_ <> '*' "
+				cQuery += " AND F2_FILIAL = '"+xfilial("SF2")+"'"
+				TCSQLExec( cQuery )
+				TCRefresh( 'SF2' )
+
+				dbSelectArea("SD2")
+				dbSetOrder(3)
+
+				IF MsSeek(xFil +  cDocJob + cSerieJob + cCliFor + cLoja)
+					U_GrvLogPd(SD2->D2_PEDIDO,cCliFor,cLoja,"IMCDENVDANFE",cMsg,"",ALLTRIM(cXmlEnv))
+				ENDIF
+
+				ferase(cAnexoXml)
+
+			ENDIF
+		ENDIF
+
+		ferase(cDirDest+cFilePrint )
+
+		MV_PAR01	:=	MVOLD01
+		MV_PAR02	:=	MVOLD02
+		MV_PAR03	:=	MVOLD03
+		MV_PAR04	:=	MVOLD04
+		MV_PAR05	:=	MVOLD05
+		MV_PAR06	:=	MVOLD06
+		MV_PAR07	:=	MVOLD07
+		MV_PAR08	:=	MVOLD08
+
+
+	ENDIF
+
+	FreeObj(oDANFE)
+	oDanfe := Nil
+
+	RestArea(aArea)
+
+Return(lEnviou)
+
+Static Function CORPOEMAIL(cDocJob, cSerieJob, cAssunto)
+
+	Local cMensagem := ' '
+	Local oNFe := XmlParser(CXML,"","","")
+	//Local cLogo := GETMV("MV_ENDLOGO")
+
+	cMensagem := '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+	cMensagem += '<html xmlns="http://www.w3.org/1999/xhtml">'
+	cMensagem += '<head>'
+	cMensagem += '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'
+	cMensagem += '<title>NFe Nacional</title>'
+	cMensagem += '  <style type="text/css"> '
+	cMensagem += '	<!-- '
+	cMensagem += '	body {background-color: rgb(37, 64, 97);} '
+	cMensagem += '	.style1 {font-family: Segoe UI,Verdana, Arial;font-size: 12pt;} '
+	cMensagem += '	.style2 {font-family: Segoe UI,Verdana, Arial;font-size: 12pt;color: rgb(255,0,0)} '
+	cMensagem += '	.style3 {font-family: Segoe UI,Verdana, Arial;font-size: 10pt;color: rgb(37,64,97)} '
+	cMensagem += '	.style4 {font-size: 8pt; color: rgb(37,64,97); font-family: Segoe UI,Verdana, Arial;}'
+	cMensagem += '	.style5 {font-size: 10pt} '
+	cMensagem += '	.style10 {font-family: Segoe UI,Verdana, Arial;font-size: 16pt;color:MediumBlue;} '
+	cMensagem += '	--> '
+	cMensagem += '  </style>'
+	cMensagem += '</head>'
+	cMensagem += '<body>'
+
+	cMensagem += '<table style="background-color: rgb(240, 240, 240); width: 500px; text-align: left; margin-left: auto; margin-right: auto;" id="total" border="0" cellpadding="12">'
+	cMensagem += '  <tbody>'
+/*
+	cMensagem += '      <tr>'
+	cMensagem += '      <td colspan="2"; style="text-align:center">'
+	cMensagem += '	  <img alt="IMCD logo" '
+	cMensagem += 'src="'+cLogo+'" width="448" height="132">'
+	cMensagem += '<br/><br/>'
+	cMensagem += '        <p class="style10">Sua Nota Fiscal Eletr&ocirc;nica chegou.</p>'
+	cMensagem += '      </td>'
+	cMensagem += '    </tr>'
+*/
+	cMensagem += '    <tr>'
+	cMensagem += '      <td colspan="2">'
+	cMensagem += '      <p class="style1">Esta mensagem refere-se a Nota Fiscal Eletr&ocirc;nica Nacional de serie/n&uacute;mero '
+	cMensagem += '      '+cSerieJob +' '+cDocJob+' emitida para:</p>'
+	cMensagem += '      </td>'
+	cMensagem += '    </tr>'
+	cMensagem += '    <tr>'
+	cMensagem += '      <td style="width: 250px; white-space: nowrap;">'
+	cMensagem += '      <p class="style1">Raz&atilde;o Social:<br /> '
+	cMensagem += '	  CNPJ:<br />'
+	cMensagem += '      <br />'
+	cMensagem += '      </p>'
+	cMensagem += '      </td>'
+	cMensagem += '      <td width="326">'
+	cMensagem += '      <p class="style1">'+oNFe:_NFEPROC:_NFE:_InfNfe:_Dest:_xNome:TEXT+'<br />'
+	cCNPJ := ""
+	IF( AttIsMemberOf( oNFe:_NFEPROC:_NFE:_InfNfe:_Dest, "_CNPJ") )
+		cCNPJ := TransForm(oNFe:_NFEPROC:_NFE:_InfNfe:_Dest:_CNPJ:TEXT,"@r 99.999.999/9999-99")
+	elseif ( AttIsMemberOf( oNFe:_NFEPROC:_NFE:_InfNfe:_Dest, "_CPF") )
+		cCNPJ := TransForm(oNFe:_NFEPROC:_NFE:_InfNfe:_Dest:_CPF:TEXT,"@r 999.999.999-99")
+	endif
+	cMensagem += 	cCNPJ	+'<br />'
+	cMensagem += '      </p>'
+	cMensagem += '      </td>'
+	cMensagem += '    </tr>'
+	cMensagem += '    <tr>'
+	cMensagem += '      <td colspan="2">'
+	cMensagem += '      <p class="style1">Para verificar a autoriza&ccedil;&atilde;o da SEFAZ referente &agrave; nota acima mencionada, acesse o sitio <a href="http://www.nfe.fazenda.gov.br/portal"><span style="text-decoration: underline;">http://www.nfe.fazenda.gov.br/portal</span></a></p>		'
+	cMensagem += '      </td>'
+	cMensagem += '    </tr>'
+	cMensagem += '    <tr>'
+	cMensagem += '      <td style="white-space: nowrap;">'
+	cMensagem += '      <p class="style1">Chave de acesso:&nbsp;<br />'
+	cMensagem += '		Protocolo:<br /></p>'
+	cMensagem += '      </td>'
+	cMensagem += '      <td><span class="style1">'+oNFE:_NFEPROC:_NFE:_InfNfe:_ID:Text+'<br />'
+	cMensagem += oNFE:_NFEPROC:_PROTNFE:_InfProt:_nProt:Text+'</span></td>'
+	cMensagem += '    </tr>'
+	cMensagem += '    <tr>'
+	cMensagem += '      <td colspan="2">'
+	cMensagem += '      <p class="style1">Este e-mail foi enviado automaticamente pelo&nbsp;Sistema PROTHEUS.</p>'
+	cMensagem += '      </td>'
+	cMensagem += '    </tr>'
+	cMensagem += '    <tr>'
+	cMensagem += '      <td colspan="2" class="style4"><span class="style5"><em><span style="text-decoration: underline;">IMCDENVDANFE - EQUIPE TI - IMCD BRASIL</span></em><em></em></span></td>'
+	cMensagem += '    </tr>'
+	cMensagem += '  </tbody>'
+	cMensagem += '</table>'
+	cMensagem += '<p class="style1">&nbsp;</p>'
+	cMensagem += '</body>'
+	cMensagem += '</html>'
+	freeObj(oNFe)
+Return(cMensagem)
+
+User Function ENVDANFE()
+	Local nX := 0
+	Local nOpcA      := 0
+	Local oDlg1,oGet ,oGet2, oConfirma, oCancela
+
+	PRIVATE cPara := ""
+	PRIVATE	cCopia := Space(250)
+
+	IF( SF2->F2_TIPO) $ 'D/B'
+		cPara := ALLTRIM(Posicione("SA2",1,xFilial("SA2") + SF2->F2_CLIENTE + SF2->F2_LOJA, "A2_EMAIL"))
+	ELSE
+		cPara := ALLTRIM(Posicione("SA1",1,xFilial("SA1") + SF2->F2_CLIENTE + SF2->F2_LOJA, "A1_ENVMAIL"))
+	ENDIF
+
+	IF !EMPTY( SF2->F2_TRANSP)
+		cCopia := ALLTRIM(Posicione("SA4",1,xFilial("SA4") + SF2->F2_TRANSP, "A4_EMAIL"))
+	endif
+
+	DEFINE MSDIALOG oDlg1 TITLE "Nota Fiscal "+SF2->F2_DOC FROM 000, 000  TO 400, 550 COLORS 0, 16777215 PIXEL STYLE DS_MODALFRAME
+
+	@ 10, 10 Say "Para:" Pixel of oDlg1 //FONT oFnt1
+	@ 25, 10 GET oGet VAR cPara SIZE 250,60 MULTILINE OF oDlg1 PIXEL
+
+	@ 100, 10 Say "C/C:" Pixel of oDlg1 //FONT oFnt1
+	@ 115, 10 GET oGet2 VAR cCopia SIZE 250,60 MULTILINE OF oDlg1 PIXEL
+	oGet:ctooltip := 'Preencher com e-mail valido, Separado por ";" '
+	oGet2:ctooltip := 'Preencher com e-mail valido, Separado por ";" '
+	DEFINE SBUTTON oConfirma FROM 180, 100 TYPE 01 OF oDlg1 ENABLE ACTION Eval( { || nOpcA:=1, oDlg1:End() } )
+	DEFINE SBUTTON oCancela  FROM 180, 150 TYPE 02 OF oDlg1 ENABLE ACTION oDlg1:End()
+
+	ACTIVATE MSDIALOG oDlg1 CENTERED
+
+	If nOpcA == 1
+
+		lPara := .T.
+		lCopia := .T.
+
+		aPara := StrTokArr( ALLTRIM(cPara), ";" )
+		cPara := ""
+		FOR nX := 1 TO Len (aPara)
+			lPara := IsEmail(aPara[1])
+			cPara +=aPara[nX]+";"
+		NEXT nX
+
+		aCopia := StrTokArr( ALLTRIM(cCopia), ";" )
+		cCopia := ""
+		FOR nX := 1 TO Len (aCopia)
+			lCopia := IsEmail(aCopia[1])
+			cCopia +=aCopia[nX]+";"
+		NEXT nX
+
+
+		If !(lPara) .OR. EMPTY(cPara)
+			MsgAlert('Aten็ใo! o campo Para nใo foi preenchido ou nใo ้ um e-mail valido.')
+		elseif !(LCopia)
+			MsgAlert('Aten็ใo! o campo C/C nใo ้ um e-mail valido.')
+		else
+
+			lOk := .T.
+
+			Processa( { || lOk :=  ENVNFE( SF2->F2_FILIAL,SF2->F2_DOC, SF2->F2_SERIE, SF2->F2_CLIENTE, SF2->F2_LOJA, ' ' )},'Aguarde','Processando...',.F.)
+
+			if lOk
+				Aviso("ERP", "Danfe e Xml enviado com sucesso.", {"OK"}, 1)
+			else
+				MsgAlert('Aten็ใo! Nใo foi possivel gerar o Danfe/XML.')
+			Endif
+		Endif
+	EndIf
+
+Return
+
+Return()

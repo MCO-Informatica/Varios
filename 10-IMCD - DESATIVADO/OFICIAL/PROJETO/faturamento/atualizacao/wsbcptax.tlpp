@@ -1,0 +1,258 @@
+#include 'totvs.ch'
+#include 'json.ch'
+
+/*/{Protheus.doc} WsBcPtax
+Client do webservice do BC que retorna
+a ptax
+@type class
+@version 
+@author marcio.katsumata
+@since 24/07/2020
+/*/
+class WsBcPtax 
+
+    public method new() constructor
+    public method getCotacaoDiaAnterior()
+    public method getCotacao()
+    public method getCotacaoDia()
+    method deParaMoeda()
+    method getReqDate()
+
+    data cEnderecoBC as string
+endClass
+
+method new() class WsBcPtax
+
+    self:cEnderecoBC := superGetMv("ES_WSPTAX", .F., "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/")
+
+return
+
+/*/{Protheus.doc} WsBcPtax::getCotacaoDiaAnterior
+Pega cotacao de compra ou venda do dia anterior
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@param dDataRef, date, data referencia
+@param cMoeda, character, moeda do ERP
+@param lCompra, logical, Cotação de compra?
+@param lOk, logical, retorno da requisição
+@param cMsgError, character, mensagem de erro
+@return numeric, cotação solicitada 
+/*/
+method getCotacaoDiaAnterior(dDataRef, cMoeda, lCompra, lOk, cMsgError) class WsBcPtax
+    local cDataReq as character
+    local oJsonCot as object
+    local nTotal   as numeric
+    local nRetCot  as numeric
+
+    nRetCot  := 0
+    cMoeda   := self:deParaMoeda(cMoeda)
+    nTotal   := 0
+     
+    while nTotal == 0 .and. lOk .and. !empty(cMoeda)
+
+        dDataRef := dDataRef - 1 
+        cDataReq := self:getReqDate(dDataRef)
+        oJsonCot := self:getCotacao(cMoeda, cDataReq, @lOk, @cMsgError)
+        if valtype(oJsonCot ) == 'A'
+            nTotal := len(oJsonCot)
+            if nTotal > 0
+                if lCompra
+                    nRetCot := oJsonCot[nTotal][#'cotacaoCompra']
+                else
+                    nRetCot := oJsonCot[nTotal][#'cotacaoVenda']
+                endif
+            endif
+        endif
+    enddo
+    
+return nRetCot
+
+/*/{Protheus.doc} WsBcPtax::getCotacaoDia
+Pega cotacao de compra ou venda do dia 
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@param dDataRef, date, data referencia
+@param cMoeda, character, moeda do ERP
+@param lCompra, logical, Cotação de compra?
+@param lOk, logical, retorno da requisição
+@param cMsgError, character, mensagem de erro
+@return numeric, cotação solicitada 
+/*/
+method getCotacaoDia(dDataRef, cMoeda, lCompra, lOk, cMsgError) class WsBcPtax
+    local cDataReq as character
+    local oJsonCot as object
+    local nTotal   as numeric
+    local nRetCot  as numeric
+
+
+    nRetCot  := 0
+    cMoeda   := self:deParaMoeda(cMoeda)
+    nTotal   := 0
+
+
+    if  !empty(cMoeda) 
+
+        cDataReq := self:getReqDate(dDataRef)
+        oJsonCot := self:getCotacao(cMoeda, cDataReq, @lOk, @cMsgError)
+        
+        if valtype(oJsonCot ) == 'A'
+            nTotal := len(oJsonCot)
+            if nTotal > 0
+                if lCompra
+                    nRetCot := oJsonCot[nTotal][#'cotacaoCompra']
+                else
+                    nRetCot := oJsonCot[nTotal][#'cotacaoVenda']
+                endif
+            endif
+        endif
+
+    endif
+    
+return nRetCot
+
+/*/{Protheus.doc} WsBcPtax::getCotacao
+Verifica a cotação de acordo com a data referência
+informada. Ele traz todas as cotações do dia, abertura
+intermediárias e fechamento.
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@param cMoeda, character, moeda
+@param cDataRef, character, data de referência
+@param lOk, logical, retorno da requisição
+@param cMsgError, character, mensagem de erro
+@return object, JSON
+/*/
+method getCotacao(cMoeda, cDataRef, lOk, cMsgError) class WsBcPtax
+
+    local cPathUrl as character
+    local aHeader  as array
+    local oJsonRet as object
+    local cJson    as character
+    local oParser  as object
+    local cRoot    as character
+    local cScriptFile as character
+    local cArqJson as character
+    local cPwrShell as character
+    local cCommand as character
+    local nHdlR as numeric
+
+    
+    cArqJson := "jsonbcptax"+cMoeda+cDataRef+".json"
+    aHeader := {}
+
+    //------------------------------
+    //Monta o path da requisição
+    //------------------------------
+    cPathUrl := "CotacaoMoedaDia(moeda=@moeda,dataCotacao=@dataCotacao)?@moeda='"+cMoeda+"'&@dataCotacao='"+cDataRef+"'&$top=100&$format=json"
+
+    //------------------------------------------------------------------------
+    //Gera o script da requisição ao BC e executa via powershell a requisição
+    //o retorno será um arquivo JSON
+    //------------------------------------------------------------------------
+	cRoot	:= GetSrvProfString("ROOTPATH","")	
+	cScriptFile := "\"+"script_wsbcptax"+dtos(date())+strtran(time(),":","")+".ps1"
+
+	cPwrShell := 'Invoke-WebRequest -Uri  "'+self:cEnderecoBC+cPathUrl+'" -Method Get  -ContentType "text/plain; charset=utf-8" -OutFile "'+cRoot+"\"+cArqJson+'" '
+
+	Memowrite(cScriptFile, cPwrShell)
+	cCommand  := 'PowerShell "'+cRoot+cScriptFile+'"'
+	WaitRunSrv (cCommand, .T.,"C:\")
+
+    
+    if file("\"+cArqJson)
+        //-----------------------------------
+        //Realiza a abertura do arquivo JSON
+        //e transforma num JSON Object
+        //-----------------------------------
+        nHdlR := Ft_Fuse("\"+cArqJson)
+
+        if nHdlR >=0 
+            cJson := FT_FREADLN(  )
+        endif
+
+        Ft_FUse( )
+
+        cJson := DecodeUtf8(cJson)
+		oParser := JSON():New(cJson)
+		oParser := oParser:Parse()
+			
+		If oParser:IsJSON()	
+            oJsonRet := oParser:Object()[#'value']
+        else
+            lOk := .F.
+            cMsgError += " Erro ao converter JSON requisição BCB ou webservice indisponível"
+        endif
+
+        freeObj(oParser)
+        FErase("\"+cArqJson)
+        
+    else
+        lOk := .F.
+        cMsgError += " Erro ao realizar requisição BCB, indisponível. "
+    endif
+
+    FErase(cScriptFile)
+
+return oJsonRet
+
+
+/*/{Protheus.doc} WsBcPtax::deParaMoeda
+Retorno de moeda convertendo a moeda informada
+pelo código da moeda no BC
+@type method
+@version 1.0
+@author marcio.katsumata
+@since 24/07/2020
+@param cMoedaErp, character, moeda ERP
+@return character, codigo da moeda
+/*/
+method deParaMoeda(cMoedaErp) class WsBcPtax
+
+    cMoedaErp := alltrim(cMoedaErp)
+
+    DO CASE 
+        CASE cMoedaErp $ "US$/USD"
+            cMoedaRet := "USD"
+        CASE cMoedaErp == "CAN"
+            cMoedaRet := "CAD"
+        CASE cMoedaErp == "LBR"
+            cMoedaRet := "GBP"
+        CASE cMoedaErp == "IENE"
+            cMoedaRet := "JPY"
+        CASE cMoedaErp == "CHF"
+            cMoedaRet := "CHF"
+        CASE cMoedaErp == "EUR"
+            cMoedaRet := "EUR"
+        OTHERWISE
+            cMoedaRet := ""
+    ENDCASE
+
+return cMoedaRet
+
+/*/{Protheus.doc} WsBcPtax::getReqDate
+Retorna a data de requisição formatada 
+no formato BC, ele retorna já na ultima data útil
+conforme configuração do Protheus.
+@type method
+@version 1,0
+@author marcio.katsumata
+@since 24/07/2020
+@param dDataRef, date, data referência
+@return character, data formatada
+/*/
+method getReqDate(dDataRef) class WsBcPtax
+
+    local dDataNew as date
+    local cDataRet as character
+    
+    dDataNew := DataValida (dDataRef, .F.)
+    cDataRet := strZero(month(dDataNew), 2) + "-"+ strZero(day(dDataNew),2)  + "-"+ strZero(year(dDataNew),4)
+
+
+return cDataRet

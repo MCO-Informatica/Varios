@@ -1,0 +1,567 @@
+MANIFESTO DE ATUALIZAÇÃO
+
+Data : 22/08/2022
+Hora : 17:41:34
+Arquivo de atualização diferencial baseado em projeto gerado pelo Configurador
+Projeto : 000004
+Descrição : 23 - VERQUIMICA PLANILHA DE IMPORTACAO            
+Versão : 0001
+Release de referência : 12.1.033  
+Responsável pelo Projeto: 000000 - Administrador
+Geração do Pacote: 000000 - Administrador
+-----------------------------
+Componentes do arquivo de atualização :
+
+------------
+SX2 - Dicionário de Arquivos
+
+Operação:Inclusão ou Alteração
+Tabela : SZ3
+
+
+------------
+SX3 - Dicionário de Dados
+
+Operação:Inclusão ou Alteração
+Campo : Z3_FILIAL 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_COD    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PROD   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_EXPOR  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_FABRI  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PNETT  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PBTON  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_INSFUM 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_LIBERAD
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PPERIGO
+
+Operação:Inclusão ou Alteração
+Campo : Z3_VLOTE  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NCLI   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PORIGEM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_TCONTEI
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NCRT   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NCONTAI
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NCOMM  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_TERMINA
+
+Operação:Inclusão ou Alteração
+Campo : Z3_TTERRES
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DESPAC 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DEMBARQ
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PATRACA
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DATRACA
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DDDI   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DIMPORT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_TRADING
+
+Operação:Inclusão ou Alteração
+Campo : Z3_EMBALA 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_IMO    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ONU    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NCM    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PEDIDO 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_AGETCAR
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PORTOEM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NAVIOEM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NAVIOCH
+
+Operação:Inclusão ou Alteração
+Campo : Z3_VENCLI 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ARMAZE 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_FREET  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_CANAL  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ENTVERQ
+
+Operação:Inclusão ou Alteração
+Campo : Z3_NNFV   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_VNFVER 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DATA   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_QNTCONT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DENSAIO
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DOLAREN
+
+Operação:Inclusão ou Alteração
+Campo : Z3_TTLIB  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PPUSD  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PFUSD  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PTUSD  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_OBSERV 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DFEPLAN
+
+Operação:Inclusão ou Alteração
+Campo : Z3_IMPOSIM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PTAXFE 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ICMS   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DFCF   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_COFINS 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_UTILUSD
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PIS    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_FECAFUT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_IPI    
+
+Operação:Inclusão ou Alteração
+Campo : Z3_CONTCAM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ANTITO 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_VENCAM 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_CONDPAG
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DFRETEF
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DFRETE 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCUSFRE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DIMPIMP
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DIPI   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DICMS  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCOFINS
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DPIS   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DANTID 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DSISCO 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_MARMER 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DINSMAD
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DSDA   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DDESCPA
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DIMPOR 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ARMDESM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCAPAT 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DDESLI 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DOUTRAS
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DEMCONT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DESFRTE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DFRETER
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DICMSFT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DMOTOBO
+
+Operação:Inclusão ou Alteração
+Campo : Z3_MARTRA 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCARCRE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DOTDESP
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DTOTAL 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCUPKG 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DCUPKGN
+
+Operação:Inclusão ou Alteração
+Campo : Z3_DRISCAM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_PSISCUS
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RFRETEF
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RFRETE 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCUSFRE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RIMPIMP
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RIPI   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RICMS  
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCOFINS
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RPIS   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RANTID 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RSISCO 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RARMER 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RINSMAD
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RSDA   
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RDESCPA
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RIMPOR 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RRMDESM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCAPAT 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RDESLI 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ROUTRAS
+
+Operação:Inclusão ou Alteração
+Campo : Z3_REMCONT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RESFRTE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RFRETER
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RICMSFT
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RMOTOBO
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RARTRA 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCARCRE
+
+Operação:Inclusão ou Alteração
+Campo : Z3_ROTDESP
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RTOTAL 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCUPKG 
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RCUPKGN
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RRISCAM
+
+Operação:Inclusão ou Alteração
+Campo : Z3_RSISCUS
+
+
+------------
+SXA - Pastas e agrupamentos
+
+Operação:Inclusão ou Alteração
+Tabela : SZ3
+Ordem : 1
+Agrupamento :    
+
+Operação:Inclusão ou Alteração
+Tabela : SZ3
+Ordem : 2
+Agrupamento :    
+
+Operação:Inclusão ou Alteração
+Tabela : SZ3
+Ordem : 3
+Agrupamento :    
+
+Operação:Inclusão ou Alteração
+Tabela : SZ3
+Ordem : 4
+Agrupamento :    
+
+
+------------
+Helps (hlppack*.txt)
+
+Chave : Z3_COD    
+Chave : Z3_PROD   
+Chave : Z3_EXPOR  
+Chave : Z3_FABRI  
+Chave : Z3_PNETT  
+Chave : Z3_PBTON  
+Chave : Z3_INSFUM 
+Chave : Z3_LIBERAD
+Chave : Z3_PPERIGO
+Chave : Z3_VLOTE  
+Chave : Z3_NCLI   
+Chave : Z3_PORIGEM
+Chave : Z3_TCONTEI
+Chave : Z3_NCRT   
+Chave : Z3_NCONTAI
+Chave : Z3_NCOMM  
+Chave : Z3_TERMINA
+Chave : Z3_TTERRES
+Chave : Z3_DESPAC 
+Chave : Z3_DEMBARQ
+Chave : Z3_PATRACA
+Chave : Z3_DATRACA
+Chave : Z3_DDDI   
+Chave : Z3_DIMPORT
+Chave : Z3_TRADING
+Chave : Z3_EMBALA 
+Chave : Z3_IMO    
+Chave : Z3_ONU    
+Chave : Z3_NCM    
+Chave : Z3_PEDIDO 
+Chave : Z3_AGETCAR
+Chave : Z3_PORTOEM
+Chave : Z3_NAVIOEM
+Chave : Z3_NAVIOCH
+Chave : Z3_VENCLI 
+Chave : Z3_ARMAZE 
+Chave : Z3_FREET  
+Chave : Z3_CANAL  
+Chave : Z3_ENTVERQ
+Chave : Z3_NNFV   
+Chave : Z3_VNFVER 
+Chave : Z3_DATA   
+Chave : Z3_QNTCONT
+Chave : Z3_DENSAIO
+Chave : Z3_DOLAREN
+Chave : Z3_TTLIB  
+Chave : Z3_PPUSD  
+Chave : Z3_PFUSD  
+Chave : Z3_PTUSD  
+Chave : Z3_OBSERV 
+Chave : Z3_DFEPLAN
+Chave : Z3_IMPOSIM
+Chave : Z3_PTAXFE 
+Chave : Z3_ICMS   
+Chave : Z3_DFCF   
+Chave : Z3_COFINS 
+Chave : Z3_UTILUSD
+Chave : Z3_PIS    
+Chave : Z3_FECAFUT
+Chave : Z3_IPI    
+Chave : Z3_CONTCAM
+Chave : Z3_ANTITO 
+Chave : Z3_VENCAM 
+Chave : Z3_CONDPAG
+Chave : Z3_DFRETEF
+Chave : Z3_DFRETE 
+Chave : Z3_DCUSFRE
+Chave : Z3_DIMPIMP
+Chave : Z3_DIPI   
+Chave : Z3_DICMS  
+Chave : Z3_DCOFINS
+Chave : Z3_DPIS   
+Chave : Z3_DANTID 
+Chave : Z3_DSISCO 
+Chave : Z3_MARMER 
+Chave : Z3_DINSMAD
+Chave : Z3_DSDA   
+Chave : Z3_DDESCPA
+Chave : Z3_DIMPOR 
+Chave : Z3_ARMDESM
+Chave : Z3_DCAPAT 
+Chave : Z3_DDESLI 
+Chave : Z3_DOUTRAS
+Chave : Z3_DEMCONT
+Chave : Z3_DESFRTE
+Chave : Z3_DFRETER
+Chave : Z3_DICMSFT
+Chave : Z3_DMOTOBO
+Chave : Z3_MARTRA 
+Chave : Z3_DCARCRE
+Chave : Z3_DOTDESP
+Chave : Z3_DTOTAL 
+Chave : Z3_DCUPKG 
+Chave : Z3_DCUPKGN
+Chave : Z3_DRISCAM
+Chave : Z3_PSISCUS
+Chave : Z3_RFRETEF
+Chave : Z3_RFRETE 
+Chave : Z3_RCUSFRE
+Chave : Z3_RIMPIMP
+Chave : Z3_RIPI   
+Chave : Z3_RICMS  
+Chave : Z3_RCOFINS
+Chave : Z3_RPIS   
+Chave : Z3_RANTID 
+Chave : Z3_RSISCO 
+Chave : Z3_RARMER 
+Chave : Z3_RINSMAD
+Chave : Z3_RSDA   
+Chave : Z3_RDESCPA
+Chave : Z3_RIMPOR 
+Chave : Z3_RRMDESM
+Chave : Z3_RCAPAT 
+Chave : Z3_RDESLI 
+Chave : Z3_ROUTRAS
+Chave : Z3_REMCONT
+Chave : Z3_RESFRTE
+Chave : Z3_RFRETER
+Chave : Z3_RICMSFT
+Chave : Z3_RMOTOBO
+Chave : Z3_RARTRA 
+Chave : Z3_RCARCRE
+Chave : Z3_ROTDESP
+Chave : Z3_RTOTAL 
+Chave : Z3_RCUPKG 
+Chave : Z3_RCUPKGN
+Chave : Z3_RRISCAM
+Chave : Z3_RSISCUS

@@ -1,0 +1,23 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | FILSPEDNFE       | Autor | Lucas Baia          | Data |    28/04/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Ponto de Entrada executado para filtros da Rotina NFe-Sefaz.
+//---------------------------------------------------------------------------------
+// Uso    | ADHESPACK COSMETICOS.
+//---------------------------------------------------------------------------------
+
+
+User Function FILSPEDNFE()
+
+Local cTipoNFE := PARAMIXB[1]
+Local cRetorno := PARAMIXB[2]
+
+IF cTipoNFE == "1" //--->Documento de Saída
+
+    cRetorno := SF2->(DbSetOrder(16))
+
+ENDIF
+
+Return cRetorno

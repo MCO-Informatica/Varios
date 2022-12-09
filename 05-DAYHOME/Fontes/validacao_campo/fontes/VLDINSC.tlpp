@@ -1,0 +1,13 @@
+#Include "Protheus.Ch"
+
+User Function VLDINSC()
+	
+	Local nRet	:= 0
+	                    
+	If M->A1_XDESC4 <> 0 .Or. UPPER(Alltrim(M->A1_INSCR)) $ "ISENTO|ISENTA"
+		nRet:= 0
+	ElseIf Alltrim(ReadVar()) == "M->A1_EST" 
+		nRet:= Posicione("SZ3",1,xFilial("SZ3")+M->A1_EST,"Z3_DESC1")
+	EndIf
+
+Return(nRet)

@@ -1,0 +1,38 @@
+#include 'protheus.ch'
+/*/{Protheus.doc} LogAudShw
+Exibe o log de auditoria de campos 
+@type function
+@version 1.0
+@author marcio.katsumata
+@since 18/06/2020
+@param cTabela, character, tabela
+@return nil, nil
+/*/
+user function LogAudShw(cTabela)
+
+    local cAliasAud as character
+    local oImcdLog  as object
+    local cKey      as character
+    local nIndexKey as numeric
+    default cTabela := alias()
+
+    cAliasAud := cTabela
+    oImcdLog := ImcdLogAudit():new()
+
+    DO CASE
+        CASE cAliasAud == "SA1"
+            cKey := SA1->(A1_FILIAL+A1_COD+A1_LOJA)
+            nIndexKey := 1
+        CASE cAliasAud == "SA2"
+            cKey := SA2->(A2_FILIAL+A2_COD+A2_LOJA)
+            nIndexKey := 1
+        CASE cAliasAud == "SA4"
+            cKey := SA4->(A4_FILIAL+A4_COD)
+            nIndexKey := 1
+    ENDCASE
+
+    oImcdLog:getLogByKey(cAliasAud, nIndexKey, cKey)
+
+
+    freeObj(oImcdLog)
+return

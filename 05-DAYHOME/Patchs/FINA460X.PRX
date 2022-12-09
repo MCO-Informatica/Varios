@@ -1,0 +1,5078 @@
+#Include "PROTHEUS.CH"
+#Include "FONT.CH"
+#Include "COLORS.CH"
+#Include "FINA460.CH"
+#Include "FILEIO.CH"
+#Include "FWADAPTEREAI.CH"
+#Include "FWMVCDEF.CH"
+
+#DEFINE OPER_BLOQUEAR		10
+#DEFINE OPER_DESBLOQUEAR    11
+#DEFINE OPER_CANCELAR		12
+#DEFINE OPER_INCLUI			13
+#DEFINE OPER_ALTERA			14
+#DEFINE OPER_EFETIVAR		15
+#DEFINE OPER_LIQUIDAR		16
+#DEFINE OPER_RELIQUIDAR		17
+#DEFINE ENTER				Chr(13) + Chr(10)
+
+Static lOpenCmc7
+Static aPrefixo                              
+Static dLastPcc	:= CTOD("22/06/2015")
+Static nTamParc	:= NIL
+Static lGeraSEF	:= NIL
+Static cParc2Ger:= NIL
+Static cComiLiq := SuperGetMv("MV_COMILIQ",,"2")
+Static lComiLiq	:= ComisBx("LIQ") .AND. cComiLiq == "1"
+Static lTpComis	:= GETMV("MV_TPCOMIS") == "O"
+
+//Variveis para integrao via mensagem nica
+Static __aBaixados := {} 
+Static __aNovosTit := {}
+Static __cNroLiqui := ''
+//Variveis para integrao via mensagem nica
+
+//Cancelamento chamado do Adapter FINI460
+Static aFINI460SE1	:= {}
+
+//Proteo de campo da FO1
+Static lCpoFO1Ad := .F.
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FINA460
+Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+User Function FINA460X(nPosArotina,xAutoCab,xAutoItens,xOpcAuto,xAutoFil,xNumLiq,xRotAutoVa,xOutMoe,xTxNeg,xTpTaxa,xFunOrig, xTxCalJur)
+
+Local lRet      := .F. 
+
+SaveInter()
+
+//------------------------------------------------------------------- 
+// Alguns pontos de entrada foram incluidos para necessidades  
+// especificas na empresa 4K, pois devido ao alto volume de cheques 
+// a liquidar existe a necessidade de alguns controles paralelos
+// em relacao a manipulacao dos registros e log de usuarios.
+//------------------------------------------------------------------- 
+
+Private aPos   		:= {  15,  1, 70, 315 }
+Private cCadastro	:= STR0001 //"Liquidao"
+Private cLote
+Private lAltera		:= .F.
+Private	lhlplog 	:= .T.
+Private lOpcAuto	:= (xOpcAuto   <> Nil)
+Private aAutoCab	:= If(xAutoCab   <> Nil	,xAutoCab  ,{})
+Private aAutoItens	:= If(xAutoItens <> Nil ,xAutoItens,{})
+Private nOpcAuto	:= If(xOpcAuto   <> Nil	,xOpcAuto  ,0)
+Private cAutoFil	:= If(xAutoFil   <> Nil	,xAutoFil  ,"")
+Private cNumLiqCan	:= If(xNumLiq    <> Nil	,xNumLiq   ,"")
+Private aRotAutoVA	:= If(xRotAutoVA <> Nil	,xRotAutoVa,{})
+Private nOutrMoed   := If(xOutMoe    <> Nil	,xOutMoe   ,2)
+Private nTxNegoc    := If(xTxNeg     <> Nil	,xTxNeg    ,0)
+Private nTpTaxa     := If(xTpTaxa    <> Nil	,xTpTaxa   ,2)
+Private cFunOrig	:= If(xFunOrig   <> Nil	,xFunOrig  ,"")
+Private nTxCalJur	:= If(xTxCalJur  <> Nil	,xTxCalJur ,0)
+Private lParcAuto   := .F.
+Private nPergRepl	:= 0
+Private lOracle		:= " ORACLE" $ Upper(TcGetDB())
+Private cMatApl		:= " NULL "
+Private nCodSer		:= " NULL "
+Private lCmc7		:= .F.		//Variavel utilizada para verificar se na tela de liquidao o usurio utilizou a rotina de leitura de cheques.
+Private lMsgUnq		:= FWHasEai('FINA460') .AND. FWHasEai('FINA040')//indica se usa gerao de ttulo por mensagem unica.
+Private aRotina		:= MenuDef()
+Private __nOpcOuMo  := 2
+
+Default nPosArotina := 0
+
+If !( TableIndic("FO0") .and. TableIndic("FO1") .and. TableIndic("FO2") .and. TableIndic("FKD") .and. TableIndic("FKC") )
+//	HELP(" ",1,STR0254 ,, STR0243 ,2,0,,,,,,{ STR0255 }) // "FINA460-ROTINA NOVA DE LIQUIDAO" # "Dicionrio Desatualizado" # "Migrar para Protheus 12.1.17 - out 2017"
+	Return .F.
+Else
+	dbSelectArea("FO1")
+	lCpoFO1Ad := FO1->(ColumnPos("FO1_VLADIC")) > 0
+
+	DbSelectArea("FO2")
+	If ColumnPos( 'FO2_TIPO' ) == 0 
+/*
+		HELP(" ",1,STR0001 ,, STR0243 ,2,0,,,,,,{STR0244 + CRLF + STR0245 + CRLF + CRLF + STR0246 + CRLF +;
+			STR0247 + CRLF +   STR0248 + CRLF + STR0249 + CRLF +;
+			STR0250 + CRLF +   STR0251 + CRLF + STR0252 + CRLF + STR0253 })
+		*/
+	//"LIQUIDAO" # "Dicionrio Desatualizado" # "Favor criar um novo campo com as" # "caracteristicas abaixo:" # "Campo: FO2_TIPO" #
+	//"Tipo: Caracter" # "Tamanho: 3" # " Formato: @! " # 
+	//"Ttulo: Tipo" # "Consulta Padro: 05" # "Obrigatrio" # "Usado"
+		
+	Return .F.
+	EndIf 
+Endif
+
+Fa460MotBx("LIQ","LIQUIDACAO","ASSS")
+
+HelpLog(.t.)
+
+SetKey (VK_F12,{|a,b| AcessaPerg("AFI460",.T.)})
+
+MV_PAR09 := 1
+pergunte("AFI460",.F.)
+
+//Inicia varivel de controle SERASA
+If FindFunction("F770IniSer")
+	F770IniSer()
+EndIf
+
+If nPosArotina > 0
+	dbSelectArea('SE1')
+	bBlock := &( "{ |a,b,c,d,e| " + aRotina[ nPosArotina,2 ] + "(a,b,c,d,e) }" )
+	Eval( bBlock, Alias(), (Alias())->(Recno()),nPosArotina)
+Else
+	If lOpcAuto
+		If nOpcAuto == 3
+			lRet := A460Liquid("SE1",SE1->(Recno()),2)//Liquidacao
+		ElseIf nOpcAuto == 4
+			lRet := A460Liquid("SE1",SE1->(Recno()),4)//Reliquidacao
+		Elseif nOpcAuto == 5
+			lRet:= FA460CAN("SE1",SE1->(Recno()),4)
+		EndIf
+	Else
+		SetKey (VK_F12,{|a,b| AcessaPerg("AFI460",.T.)})
+		mBrowse( 6, 1,22,75,"SE1",,,,,, Fa040Legenda("SE1"))
+	EndIf
+EndIf
+If SuperGetMv("MV_CMC7FIN") == "S" .And. !lOpcAuto
+	If nHdlCmC7 >= 0
+		CMC7Fec(nHdlCmC7,SuperGetMv("MV_CMC7PRT"))
+	EndIf
+EndIf
+
+RestInter()
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460Liquid
+Programa de Inclusao de Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function A460Liquid(cAlias,nReg,nOpcx)
+
+Local lRet				:= .T.
+Local cAliasTMP			:= ""
+Local aAreaSe1			:= SE1->(GetArea())
+Local cMvJurTipo		:= SuperGetMv("MV_JURTIPO", ,"")  // calculo de Multa do Loja , se JURTIPO == L
+Local lMulLoj			:= SuperGetMv("MV_LJINTFS", ,.F.) //Calcula multa conforme regra do loja, se integrao com financial estiver habilitada
+Local aCpoBro			:= {{ "FO1_MARK"  ,, " "    ,"@!"},;							
+							{ "FO1_SALDO" ,, FO1->(RetTitle("FO1_SALDO")),"@E 999,999,999.999"},;	 	//Saldo negociado
+							{ "FO1_TXJUR" ,, FO1->(RetTitle("FO1_TXJUR")),"@E 99.99"},;  				//Taxa de Juros
+							{ "FO1_VLJUR" ,, FO1->(RetTitle("FO1_VLJUR")),"@E 9,999,999,999.99"},;  	//Valor do juros
+							{ "FO1_TXMUL" ,, FO1->(RetTitle("FO1_TXMUL")),"@E 99.99"},;  				//Taxa da multa
+							{ "FO1_VLMUL" ,, FO1->(RetTitle("FO1_VLMUL")),"@E 9,999,999,999.99"},;  	//Valor da multa
+							{ "FO1_DESCON",, FO1->(RetTitle("FO1_DESCON")),"@E 9,999,999,999.99"},;  	//Descontos
+							{ "FO1_ACRESC",, FO1->(RetTitle("FO1_ACRESC")),"@E 9,999,999,999.99"},;  	//Acrescimos
+							{ "FO1_DECRES",, FO1->(RetTitle("FO1_DECRES")),"@E 9,999,999,999.99"},;  	//Decrescimos
+							{ "FO1_VLABT" ,, FO1->(RetTitle("FO1_VLABT")),"@E 9,999,999,999.99"},;		//Valor abatido
+							{ "FO1_TOTAL" ,, FO1->(RetTitle("FO1_TOTAL")),"@E 9,999,999,999.99"},;   	//Total 							
+							{ "FO1_FILORI",, FO1->(RetTitle("FO1_FILORI")),"@!"},;  					//Filial de Origem	
+							{ "FO1_MOEDA" ,, FO1->(RetTitle("FO1_MOEDA")),"@!"},;						//Moeda
+							{ "FO1_TXMOED",, FO1->(RetTitle("FO1_TXMOED")),"@E 99.99"},;  				//Taxa da moeda 							
+							{ "FO1_VALCVT",, SE1->(RetTitle("E1_VALOR")),"@E 9,999,999,999.99"},; 		//Valor convertido na moeda							
+							{ "FO1_PREFIX",, SE1->(RetTitle("E1_PREFIXO")),"@X"},;   					//Prefixo
+							{ "FO1_NUM"   ,, SE1->(RetTitle("E1_NUM")),"@!"},; 							//Nmero do ttulo
+							{ "FO1_PARCEL",, SE1->(RetTitle("E1_PARCELA")),"@!"},;  					//Parcela
+							{ "FO1_TIPO"  ,, SE1->(RetTitle("E1_TIPO")),"@!"},;							//Tipo
+							{ "FO1_NATURE",, SE1->(RetTitle("E1_NATUREZ")),"@!"},;	 					//Natureza
+							{ "FO1_CLIENT",, SE1->(RetTitle("E1_CLIENTE")),"@!"},;  					//Cliente
+							{ "FO1_LOJA"  ,, SE1->(RetTitle("E1_LOJA")),"@!"},;  						//Loja do cliente
+							{ "FO1_EMIS"  ,, SE1->(RetTitle("E1_EMISSAO")),"@D"},;  					//Dt. Emisso
+							{ "FO1_VENCTO",, SE1->(RetTitle("E1_VENCTO")),"@D"},;  						//Dt. de vencimento
+							{ "FO1_VENCRE",, SE1->(RetTitle("E1_VENCREA")),"@D"},;  					//Dt. de vencimento
+							{ "FO1_BAIXA" ,, SE1->(RetTitle("E1_NUM")),"@D"},;  						//Dt. Baixa
+							{ "FO1_VLBAIX",, SE1->(RetTitle("E1_VALLIQ")),"@E 9,999,999,999.99"},; 		//Valor baixado
+							{ "FO1_HIST"  ,, SE1->(RetTitle("E1_HIST")),"@!"},;  						//Histrico
+							{ "FO1_CCUST" ,, SE1->(RetTitle("E1_CCUSTO")),"@!"},;						//Centro de Custo
+							{ "FO1_ITEMCT",, SE1->(RetTitle("E1_ITEMCTA")),"@!"},;						//ITEM DA CONTA
+							{ "FO1_CLVL"  ,, SE1->(RetTitle("E1_CLVL")),"@!"},;							//Classe de Valor		
+							{ "FO1_CREDIT",, SE1->(RetTitle("E1_CREDIT")),"@!"},;						//Conta Credito
+							{ "FO1_DEBITO",, SE1->(RetTitle("E1_DEBITO")),"@!"},;						//Conta Debito
+							{ "FO1_CCC"	  ,, SE1->(RetTitle("E1_CCC")),"@!"},;							//CC Credito
+							{ "FO1_CCD"   ,, SE1->(RetTitle("E1_CCD")),"@!"},;							//CC Debito
+							{ "FO1_ITEMC" ,, SE1->(RetTitle("E1_ITEMC")),"@!"},;						//Item Credito
+							{ "FO1_ITEMD" ,, SE1->(RetTitle("E1_ITEMD")),"@!"},;						//Item Debito
+							{ "FO1_CLVLCR",, SE1->(RetTitle("E1_CLVLCR")),"@!"},;						//Classe de Valor Credito
+							{ "FO1_CLVLDB",, SE1->(RetTitle("E1_CLVLDB")),"@!"}}						//Classe de Valor Debito
+
+Private cCliente 		:= Criavar ("E1_CLIENTE",.F.)
+Private cLoja    		:= Criavar ("E1_LOJA",.F.)
+Private cCli460			:= ""
+Private cCliDE			:= Criavar ("E1_CLIENTE",.F.)
+Private cLojaDE  		:= Criavar ("E1_LOJA",.F.)
+Private cCliAte 		:= Criavar ("E1_CLIENTE",.F.)
+Private cLojaAte 		:= Criavar ("E1_LOJA",.F.)
+Private cNomeCli		:= CriaVar ("E1_NOMCLI")
+Private cNatureza		:= Criavar ("E1_NATUREZ")
+Private cTipo			:= Criavar ("E1_TIPO")
+Private cCondicao		:= Space(3)			// numero de parcelas automaticas
+Private cNumDe			:= CriaVar("E1_NUM")
+Private cNumAte			:= CriaVar("E1_NUM")
+Private cPrefDe			:= CriaVar("E1_PREFIXO")
+Private cPrefAte		:= CriaVar("E1_PREFIXO")
+Private cMarca			:= GetMark()
+Private cParc460		:= F460Parc()		// controle de parcela (E1_PARCELA)
+Private aTmpFil			:= {} 
+Private cChvRaNDoc  	:= ""
+Private cTurma	 		:= ""
+Private cCodDiario		:= ""    
+Private nUsado2			:= 0
+Private nIntervalo		:= 1
+Private nMoeda			:= 1
+Private nValor	 		:= 0
+Private nQtdTit 		:= 0
+Private nValorMax		:= 0				// valor maximo de liquidacao (digitado)
+Private nValorDe		:= 0 			   	// valor inicial dos titulos
+Private nValorAte		:= 999999999.99 	// Valor final dos titulos
+Private nValorLiq		:= 0				// valor da liquidacao aps mBrowse
+Private nNroParc		:= 0				// numero de parcelas digitadas
+Private nPosAtu			:= 0
+Private nPosAnt			:= 9999
+Private nColAnt			:= 9999
+Private nValorAcr		:= 0				// valor da liquidacao aps mBrowse
+Private nValorDcr		:= 0				// valor da liquidacao aps mBrowse
+Private nValorTot		:= 0
+Private nSaldoBx		:= 0
+Private nIDAPLIC 		:= 0				//Integracao Protheus x RM Classis
+Private nContrato   	:= 0
+Private dData460I 		:= dDataBase
+Private dData460F 		:= dDataBase
+Private aHeader 		:= {}
+Private aCols  			:= {}
+Private lInverte		:= .F.
+Private lReliquida 		:= IIF(nOpcx == 2,.F.,.T.)
+Private oGet
+Private oValorLiq
+Private oValorAcr
+Private oValorDcr
+Private oValorTot
+Private oNroParc
+Private oCliAte
+Private oLojaAte
+Private cFilMsg		:= "2" //Filtra movimentos de msg unica
+
+If FindFunction("FINTP01") 
+	If FINTP01(.T.) //Restringe o uso do programa Financeiro Quando a origem do titulo for de origem Totvs Incorporao - RM
+		Return .F.
+	EndIf
+Endif
+
+//Validao quando utiliza mdulo do agro
+If !lOpcAuto .And. SuperGetMv("MV_SIGAAGR",,.F.) 
+	If FindFunction("AGRTITFIN")
+		If !AGRTITFIN()
+			return .F.
+		EndIf
+	EndIf  
+Endif	
+//------------------------------------------------------------------- 
+// Verifica se data do movimento no  menor que data limite de 
+// movimentacao no financeiro    								 
+//------------------------------------------------------------------- 
+If !DtMovFin(,,"2")
+	Return .F.
+EndIf
+
+//------------------------------------------------------------------- 
+// Recupera o numero do lote contabil.							 
+//------------------------------------------------------------------- 
+LoteCont( "FIN" )
+
+//------------------------------------------------------------------- 
+// Inicializa array com as moedas existentes.					 
+//------------------------------------------------------------------- 
+DbSelectArea(cAlias)
+cAlias    	:= "SE1"
+cCliente  	:= SE1->E1_CLIENTE
+cCli460		:= cCliente
+cLoja     	:= SE1->E1_LOJA
+cCliDE 		:= SE1->E1_CLIENTE
+cLojaDE   	:= SE1->E1_LOJA
+cCliAte   	:= SE1->E1_CLIENTE
+cLojaAte  	:= SE1->E1_LOJA
+cNomeCli  	:= SE1->E1_NOMCLI
+dData460I 	:= Iif(SE1->E1_EMISSAO > dDataBase, dDataBase, SE1->E1_EMISSAO)
+dData460F 	:= Iif(dData460I > dDataBase, dData460I, dDataBase)
+
+If Empty(cPrefAte)
+	cPrefAte := Replicate("Z",TamSx3("E1_PREFIXO")[1])
+EndIf
+
+If Empty(cNumAte)
+	cNumAte := Replicate("Z",TamSx3("E1_NUM")[1])
+EndIf
+
+M->E1_TIPO := cTipo
+
+If cMvJurTipo == "L" .Or. lMulLoj
+	aAdd( aCpoBro , {"MULTALJ",,STR0208,"@E 9,999,999,999.99"} )
+EndIf
+
+lRet := F460BuscSE1(cAlias,nOpcx,aCpoBro, @cAliasTMP , 1)
+//------------------------------------------------------------------- 
+// Faz o calculo automatico de dimensoes de objetos     
+// Chamada rotina de seleo de ttulos -
+// Funo - F460SelTit 
+// Param 1 - Alias da tabela TMP utilizada, 
+// Param 2 - se trata-se de uma execauto ou no, 
+// Param 3 - retorno da MarkBrowse
+//-------------------------------------------------------------------
+If lRet
+	lRet := F460SelTit(@cAliasTMP, nOpcX)
+	If lOpenCmc7
+		While !lRet
+			lRet := F460SelTit(@cAliasTMP, nOpcX)
+		End
+	EndIf
+EndIf
+
+SE1->(RestArea(aAreaSe1))
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460Cli
+Verifica dados do Cliente
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+STATIC Function A460Cli ( cCliente, cLoja )
+Local cAlias
+cAlias:=Alias()
+dbSelectArea("SA1")
+dbSetOrder(1)
+cLoja:=Iif(cLoja == Nil,"",cLoja)
+If !(MsSeek(xFilial("SA1")+cCliente+cLoja))
+	Return .f.
+EndIf
+cNomeCli := A1_NREDUZ
+dbSelectArea(cAlias)
+Return ( .T. )
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} a460PreNum
+Numera cheques automaticamente se parcelamento automatico
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function a460PreNum(cCampo,cCpoVld, cSeqTipo)
+
+Local oModel 	:= FWModelActive()
+Local oView		:= FWViewActive()
+Local oModelFO2 := oModel:GetModel("TITGERFO2")
+Local oModelFO1 := oModel:GetModel('TITSELFO1')
+Local oModelFO0 := oModel:GetModel("MASTERFO0")
+Local cBco		:= oModelFO2:GetValue("FO2_BANCO")
+Local cAge		:= oModelFO2:GetValue("FO2_AGENCI")
+Local cNCon		:= oModelFO2:GetValue("FO2_CONTA")
+Local cNum		:= oModelFO2:GetValue("FO2_NUM") 
+Local cParcel	:= Upper(oModelFO2:GetValue("FO2_PARCEL"))
+Local cPrefixo 	:= Upper(oModelFO2:GetValue("FO2_PREFIX"))
+Local cTipoTit 	:= ""
+Local cCondicao	:= oModelFO0:GetValue("FO0_COND")
+Local nLinAtu  	:= oModelFO2:GetLine()
+Local cAlias 	:= Alias()
+Local nOrdem	:= IndexOrd()
+Local nRegistro	:= Recno()
+Local lRet 		:= .T.
+Local cKeyChq	:= ""
+Local nX		:= 1
+Local nJ		:= 1
+Local cLastParc	:= ""
+Local nLinhas	:= oModelFO2:Length()
+Local cValidCh  := '' 
+Local cNumAuxAt	:= ''
+Local cNumAuxAn := ''
+Local cPrefAnt	:= ''
+Local cPrefAtu	:= ''
+Local cNumPos   := ''
+Local cParc2Ger := Alltrim(SuperGetMv("MV_1DUP"))
+Local lVldParc  := .T.
+Local cMaxParc	:= ""
+
+Default cCampo 	:= "1"	//"1" = Prefixo  - "2"=Nmero do titulo - "3" = Parcela - "4" = Tipo
+Default cCpoVld	:= "0"
+
+oModelFO2:LoadValue("FO2_PREFIX", cPrefixo )
+
+If nTamParc == NIL
+	nTamParc := TamSx3("E1_PARCELA")[1]
+Endif
+
+If nTamParc > Len(cParc2Ger)
+	cParc2Ger := cParc2Ger + SPACE( nTamParc-Len(cParc2Ger) )
+ElseIf nTamParc < Len(cParc2Ger)
+	cParc2Ger := Substr(cParc2Ger,1,nTamParc)
+EndIf
+
+If lGeraSEf == NIL
+	lGeraSEF := SuperGetMv("MV_GRSEFLQ",.F., .F. )
+Endif
+
+If cCampo <> "1"
+	cLastParc := cParcel
+Endif
+
+If Empty(oModelFO2:GetValue("FO2_TIPO")) .OR. cCampo == "1"
+	cTipoTit := oModelFO0:GetValue("FO0_TIPO")
+	If Empty(oModelFO2:GetValue("FO2_TIPO"))
+		oModelFO2:LoadValue("FO2_TIPO",cTipoTit)
+	Endif
+Else
+	cTipoTit := oModelFO2:GetValue("FO2_TIPO")	
+EndIf
+
+cPrefixo := Iif(cPrefixo == nil, Space(03), cPrefixo)
+
+If lRet .And. (cCampo == "1" .Or. cCampo == "2" .Or. cCampo == "5") .And. ((!Empty(cCondicao) .And.  !Empty(cPrefixo)) .Or. (!Empty(cCondicao)))
+	If Empty(cPrefixo) .AND. !Empty(MV_PAR08)
+		cPrefixo := Upper(MV_PAR08)
+	EndIf
+	If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+		cNum := a460PrxNum(oModelFO1:GetValue("FO1_FILORI"),cTipoTit,cPrefixo)
+	Else
+		oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+		lRet := .F.
+		Return lRet
+	Endif
+EndIf
+
+cKeyChq := xFilial("SE1") + cPrefixo + cNum + cTipoTit
+
+//-------------------------------------------------------------------
+// Verifica se o titulo ja existe no SE1
+//-------------------------------------------------------------------
+DbSelectArea("SE1")
+SE1->(DbSetOrder(1))
+
+If !lOpcAuto 
+	If SE1->(MsSeek(xFilial("SE1")+cPrefixo+cNum+cParcel+cTipoTit))
+			
+		cValidCh := SE1->(E1_BCOCHQ+E1_AGECHQ+E1_CTACHQ) 
+		
+		If Empty(cValidCh) 
+			
+			While SE1->(!Eof()) .and. xFilial("SE1")+SE1->(E1_PREFIXO+E1_NUM+E1_TIPO) == cKeyChq  
+				If SE1->(E1_BCOCHQ+E1_AGECHQ+E1_CTACHQ) == cBco+cAge+cNCon 
+					lRet := .F.
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0258*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+					Exit
+				Endif
+				SE1->(dbSkip())
+			End
+		
+		Else 
+			While SE1->(!Eof()) .and. xFilial("SE1")+SE1->(E1_PREFIXO+E1_NUM+E1_TIPO) == cKeyChq  
+				If SE1->(E1_BCOCHQ+E1_AGECHQ+E1_CTACHQ) == cValidCh 
+					lRet := .F.
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0258*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+					Exit
+				Endif
+				SE1->(dbSkip())
+			End
+		EndIf 
+	EndIf
+EndIf
+//Carregamento e validacao dos valores quando preenchida uma condicao de pagamento
+
+If !lOpcAuto
+	If nPergRepl == 0 .And. cCpoVld == cCampo
+		If MsgYesNo(/*STR0260*/,STR0051)// "Deseja replicar a informao para as linhas abaixo?. Essa pergunta ser exibida somente no prximo acesso."
+			nPergRepl := 1 // Sim
+		Else
+			nPergRepl := 2 // no
+		Endif
+	Endif
+Endif
+	
+If lRet .And. cCampo == "1" .And. !Empty(cCondicao) .And. (!Empty(cNum) .Or. !Empty(cPrefixo)) .And. !Empty(oModelFO0:GetValue("FO0_TIPO"))
+	
+	For nX := nLinAtu to nLinhas
+		oModelFO2:GoLine(nX)
+		If !Empty(cNum) .And. (cCampo == "1" .Or. Empty(oModelFO2:GetValue("FO2_PARCEL")))  
+			
+			If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+				If F460VldE1(oModelFO2:GetValue("FO2_PREFIX"), cNum, oModelFO2:GetValue("FO2_PARCEL"), oModelFO2:GetValue("FO2_TIPO"))
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0258*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+					lRet := .F.
+					Exit
+				Endif
+			Else
+				oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+				lRet := .F.
+				Return lRet
+			Endif
+
+			//Gero numero da Parcela
+			If FunName() == "TMKA350" .or. lOpcAuto
+				F460GerParc(oModelFO2,nLinAtu,cPrefixo,@cNum,cTipoTit,@cLastParc,.T.)
+			Else
+				If nPergRepl == 1
+					oModelFO2:LoadValue("FO2_PREFIX",cPrefixo)
+					oModelFO2:LoadValue("FO2_NUM",cNum)
+				ElseIf nPergRepl == 0
+					oModelFO2:LoadValue("FO2_TIPO", cTipoTit)
+					oModelFO2:LoadValue("FO2_PREFIX",Iif(Empty(MV_PAR08), oModelFO2:GetValue("FO2_PREFIX"), Upper(MV_PAR08) ))
+				Endif	
+			Endif
+
+		Endif
+	Next nX
+	oModelFO2:GoLine(nLinAtu)
+	If !lOpcAuto .And. lRet
+		oModelFO2:GoLine(nLinAtu)
+		oView:Refresh()
+	EndIf
+ElseIf lRet .and. !Empty(cNum) .And. cCampo == "2"
+	
+	cNumAuxAt := oModelFO2:GetValue("FO2_NUM")
+	oModelFO2:GoLine(nLinAtu - 1)
+	cNumAuxAn := oModelFO2:GetValue("FO2_NUM")
+	oModelFO2:GoLine(nLinAtu)
+
+	If nLinAtu > 1
+		If cNumAuxAt <> cNumAuxAn
+			cNum     := cNumAuxAt
+			lVldParc := .F.
+			If Empty(oModelFO2:GetValue("FO2_PARCEL"))
+				If nPergRepl = 1
+					oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger)
+				Else
+					cParc2Ger := Space(nTamParc)
+					oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger)
+				Endif
+			Else
+				cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+				oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger)
+			Endif
+		Else
+			cNum     := cNumAuxAt
+			cParc2Ger:= oModelFO2:GetValue("FO2_PARCEL")
+		Endif
+	Else
+		If Empty(oModelFO2:GetValue("FO2_PARCEL"))
+			If nPergRepl <> 1
+				cParc2Ger := Space(nTamParc)
+			Endif
+		Else
+			cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+		Endif
+					
+		oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger)
+		cNum := cNumAuxAt
+	Endif
+
+	For nX := nLinAtu to nLinhas
+		oModelFO2:GoLine(nX)
+		cNumAlt := oModelFO2:GetValue("FO2_NUM")
+		If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+			If F460VldE1(oModelFO2:GetValue("FO2_PREFIX"), oModelFO2:GetValue("FO2_NUM"), oModelFO2:GetValue("FO2_PARCEL"), oModelFO2:GetValue("FO2_TIPO"), ,@cMaxParc)
+				If Aviso( STR0051 ,STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0258*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO");
+					+ CRLF + CRLF /*+ STR0271*/ + "'" + cMaxParc + "'" /*+ STR0272*/ , /*{STR0273,STR0274}*/, 3) = 2 // "A proxima parcela disponivel  " # ". Deseja usar essa parcela para essa liquidao?"
+
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0258*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO"))
+					lRet := .F.
+					Exit
+				Else
+					If nPergRepl = 1
+						For nJ := nX To oModelFO2:Length()
+							oModelFO2:GoLine(nJ)
+							oModelFO2:LoadValue("FO2_NUM"   , cNumAlt)
+							oModelFO2:LoadValue("FO2_PARCEL", cMaxParc)
+							cMaxParc := Soma1(Alltrim(cMaxParc))
+						Next nJ
+						Exit
+					Else
+						oModelFO2:LoadValue("FO2_NUM"   , cNumAlt)
+						oModelFO2:LoadValue("FO2_PARCEL", cMaxParc)
+					Endif
+				Endif
+			Endif
+		Else
+			oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+			lRet := .F.
+			Return lRet
+		Endif
+
+		If !Empty(cNum) .And. (cCampo == "2" .Or. Empty(oModelFO2:GetValue("FO2_PARCEL")))  
+			//Gero numero da Parcela
+			If FunName() == "TMKA350" .or. lOpcAuto
+				F460GerParc(oModelFO2,nLinAtu,cPrefixo,@cNum,cTipoTit,@cLastParc,.T.)
+			Else
+				If nPergRepl == 1
+					oModelFO2:LoadValue("FO2_NUM",cNum)
+					If !lVldParc
+						If nX != nLinAtu
+							oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger := Soma1(Alltrim(cParc2Ger)))
+						Endif
+					Else
+						If nLinAtu = nX
+							oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger )
+						EndIf
+					Endif	
+				Endif	
+			Endif
+		Endif
+	Next nX
+	oModelFO2:GoLine(nLinAtu)
+	If !lOpcAuto
+		oView:Refresh()
+	EndIf
+
+ElseIf lRet .and. !Empty(cNum) .And. cCampo == "4"
+	
+	cNumAuxAt := oModelFO2:GetValue("FO2_PARCEL")
+	cPrefAtu  := Upper(oModelFO2:GetValue("FO2_PREFIX"))	
+	If oModelFO2:GetLine() > 1 
+		oModelFO2:GoLine(nLinAtu - 1)
+		cNumAuxAn := oModelFO2:GetValue("FO2_PARCEL")
+		cPrefAnt  := Upper(oModelFO2:GetValue("FO2_PREFIX"))
+		cNumPos	  := oModelFO2:GetValue("FO2_NUM")
+		oModelFO2:GoLine(nLinAtu)
+	Endif
+
+	If Empty(oModelFO2:GetValue("FO2_PARCEL"))
+		If nPergRepl == 1
+			If cCampo == "4"
+				cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+			Endif
+		Else
+			cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+		Endif
+	Else
+		If cPrefAnt <> cPrefAtu 
+			cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+			oModelFO2:LoadValue("FO2_PARCEL",cNumAuxAt)
+		ElseIf oModelFO2:GetValue("FO2_NUM") = cNumPos
+			cParc2Ger := oModelFO2:GetValue("FO2_PARCEL")
+		Endif
+	Endif
+
+	If nLinAtu > 1
+		If cNumAuxAt <> cNumAuxAn
+			cNum     := cNumAuxAt
+			lVldParc := .F.
+			oModelFO2:LoadValue("FO2_PARCEL",oModelFO2:GetValue("FO2_PARCEL"))
+		Endif
+	Else
+		oModelFO2:LoadValue("FO2_PARCEL",cParc2Ger)
+		cNum := cNumAuxAt
+	Endif
+
+	For nX := nLinAtu to nLinhas
+		oModelFO2:GoLine(nX)
+		
+		If nX == nLinAtu
+			cNumAuxAt := oModelFO2:GetValue("FO2_PARCEL")
+			cPrefAtu  := Upper(oModelFO2:GetValue("FO2_PREFIX"))	
+		ElseIf nX > nLinAtu
+			oModelFO2:GoLine(nX - 1)
+			cNumAuxAn := oModelFO2:GetValue("FO2_PARCEL")
+			cPrefAnt  := Upper(oModelFO2:GetValue("FO2_PREFIX"))
+			oModelFO2:GoLine(nX)
+		Endif
+
+		If !Empty(cNum) .And. (cCampo == "4" .Or. Empty(oModelFO2:GetValue("FO2_PARCEL")))  
+			//Gero numero da Parcela
+			If FunName() == "TMKA350" .or. lOpcAuto
+				F460GerParc(oModelFO2,nLinAtu,cPrefixo,@cNum,cTipoTit,@cLastParc,.T.)
+			Else
+				If nPergRepl == 1
+					If !lVldParc
+						If nX != nLinAtu
+							oModelFO2:LoadValue("FO2_PARCEL",cNumAuxAt := Soma1(Alltrim(cNumAuxAt)))
+						Endif
+					Else
+						If nX > nLinAtu
+							If cPrefAnt <> cPrefAtu
+								oModelFO2:LoadValue("FO2_PARCEL",cNumAuxAt)
+							Else
+								If !Empty(cNumAuxAt)
+									oModelFO2:LoadValue("FO2_PARCEL",cNumAuxAt := Soma1(Alltrim(cNumAuxAt)))
+								Endif
+							Endif
+						Endif
+					Endif	
+				Endif	
+			Endif
+
+			If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+				If F460VldE1(oModelFO2:GetValue("FO2_PREFIX"), oModelFO2:GetValue("FO2_NUM"), oModelFO2:GetValue("FO2_PARCEL"), oModelFO2:GetValue("FO2_TIPO"))
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+					+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0260*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+					lRet := .F.
+					Exit
+				Endif
+			Else
+				oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+				lRet := .F.
+				Return lRet
+			Endif
+
+		Endif
+	Next nX
+	oModelFO2:GoLine(nLinAtu)
+	If !lOpcAuto
+		oView:Refresh()
+	EndIf
+
+ElseIf lRet .and. !Empty(cNum) .And. cCampo <> "4" .And. cCampo != "5"
+
+	//Gero numero da Parcela
+	If FunName() == "TMKA350" .or. lOpcAuto
+		F460GerParc(oModelFO2,nLinAtu,cPrefixo,@cNum,cTipoTit,@cLastParc,.T.)
+	Else
+		F460GerParc(oModelFO2,nLinAtu,cPrefixo,@cNum,cTipoTit,@cLastParc,.F.)
+	Endif
+
+	If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+		If F460VldE1(oModelFO2:GetValue("FO2_PREFIX"), oModelFO2:GetValue("FO2_NUM"), oModelFO2:GetValue("FO2_PARCEL"), oModelFO2:GetValue("FO2_TIPO"))
+			oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+			+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0260*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+			lRet := .F.
+		Endif
+	Else
+		oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+		lRet := .F.
+		Return lRet
+	Endif
+
+	If Empty(oModelFO2:GetValue("FO2_NUM"))		
+		oModelFO2:LoadValue("FO2_NUM",cNum)
+	Else
+		cNum := oModelFO2:GetValue("FO2_NUM")
+		oModelFO2:LoadValue("FO2_NUM",cNum)
+	Endif
+
+	cPrefixo := Iif(Empty(oModelFO2:GetValue("FO2_PREFIX")), Upper(MV_PAR08), oModelFO2:GetValue("FO2_PREFIX") )
+	For nX := nLinAtu to nLinhas
+		oModelFO2:GoLine(nX)
+		If nPergRepl == 1
+			If cCampo <> "1"
+				oModelFO2:LoadValue("FO2_PARCEL",cLastParc)
+			Else
+				oModelFO2:LoadValue("FO2_PREFIX",cPrefixo)
+			Endif
+		Endif
+
+		oModelFO2:GoLine(nLinAtu)
+
+		If !lOpcAuto
+			oView:Refresh()
+		EndIf
+	Next nX
+	
+	If !lOpcAuto
+		oView:Refresh()
+	EndIf
+
+ElseIf lRet .and. Empty(cNum) .And. cCampo = "1"
+			
+	If F460VldCar(cTipoTit,oModelFO2:GetValue("FO2_NUM"),oModelFO2:GetValue("FO2_PREFIX"),oModelFO2:GetValue("FO2_PARCEL"),oModelFO2:GetValue("FO2_TIPO"))
+		If F460VldE1(oModelFO2:GetValue("FO2_PREFIX"), oModelFO2:GetValue("FO2_NUM"), oModelFO2:GetValue("FO2_PARCEL"), oModelFO2:GetValue("FO2_TIPO"))
+			oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oModelFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+			+ oModelFO2:GetValue("FO2_NUM") + CRLF /*+ STR0260*/ + " - " + oModelFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oModelFO2:GetValue("FO2_TIPO") )
+			lRet := .F.
+		Endif
+	Else
+		oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+		lRet := .F.
+		Return lRet
+	Endif
+
+	oModelFO2:LoadValue("FO2_PREFIX", Upper(oModelFO2:GetValue("FO2_PREFIX")) )
+
+	oModelFO2:GoLine(nLinAtu)
+
+	If !lOpcAuto
+		oView:Refresh("VIEW_FO0")
+		oView:Refresh("VIEW_FO1")
+	EndIf
+EndIf
+
+cSeqTipo := cNum
+
+If cAlias <> ""
+	DbSelectArea(cAlias)
+	DbSetOrder(nOrdem)
+	DbGoTo(nRegistro)
+EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460Emit
+Repassa Nome do Emitente para as demais parcelas se parcelamento 
+automatico
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function A460Emit()
+
+Local oModel	:= FWModelActive()
+Local oView		:= FWViewActive()
+Local oModelFO0	:= oModel:GetModel('MASTERFO0')
+Local oModelFO2 := oModel:GetModel('TITGERFO2')
+Local nLine		:= 0
+Local cEmitent	:= ""
+Local nX		:= 0
+Local lRet		:= .T.
+
+If AllTrim(oModelFO0:GetValue("FO0_TIPO")) == AllTrim(MVCHEQUE)
+
+	//------------------------------------------------------------------- 
+	// Se parcelamento automatico e se primeira linha do aCols		 
+	// numera cheque automaticamente								 
+	//------------------------------------------------------------------- 
+
+	nLine		:= oModelFO2:GetLine()
+	cEmitent	:= oModelFO2:GetValue("FO2_EMITEN")
+
+	For nX := 1 to oModelFO2:Length()
+		oModelFO2:GoLine(nX)
+		If Empty(oModelFO2:GetValue("FO2_EMITEN"))
+			oModelFO2:LoadValue("FO2_EMITEN",cEmitent)
+		EndIf		
+	Next nX
+	
+	oModelFO2:GoLine(nLine)
+	If !lOpcAuto
+		oView:Refresh()
+	EndIf		
+EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460CtaChq
+Repassa Nome do Emitente para as demais parcelas se parcelamento 
+automtico quando Bco/Age/Cta iguais
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function A460CtaChq()
+
+Local oModel	:= FWModelActive()
+Local oView		:= FWViewActive()
+Local oModelFO2 := oModel:GetModel('TITGERFO2')
+Local nLine		:= 0
+Local cBco		:= ""
+Local cAge		:= ""
+Local cNCon		:= ""
+Local nX		:= 0
+
+//------------------------------------------------------------------- 
+// Se parcelamento automatico e se primeira linha do aCols		 
+// numera cheque automaticamente								 
+//------------------------------------------------------------------- 
+	
+nLine	:= oModelFO2:GetLine()
+cBco 	:= oModelFO2:GetValue("FO2_BANCO")
+cAge 	:= oModelFO2:GetValue("FO2_AGENCI")
+cNcon	:= oModelFO2:GetValue("FO2_CONTA")
+
+If !lOpcAuto
+	If nPergRepl == 0
+		If MsgYesNo(/*STR0260*/,STR0051)// "Deseja replicar a informao para as linhas abaixo?. Essa pergunta ser exibida somente no prximo acesso."
+			nPergRepl := 1 // Sim
+		Else
+			nPergRepl := 2 // no
+		Endif
+	EndIf
+EndIf
+
+If nPergRepl = 1
+	For nX := 1 to oModelFO2:Length() 
+		oModelFO2:GoLine(nX)
+		If 	Empty(oModelFO2:GetValue("FO2_BANCO")) .And. Empty(oModelFO2:GetValue("FO2_AGENCI")) .And. Empty(oModelFO2:GetValue("FO2_CONTA")) 
+			oModelFO2:LoadValue("FO2_BANCO"	, cBco)
+			oModelFO2:LoadValue("FO2_AGENCI", cAge)
+			oModelFO2:LoadValue("FO2_CONTA"	, cNcon)
+		EndIf
+	Next nX
+EndIf
+
+oModelFO2:GoLine(nLine)
+
+If !lOpcAuto
+	oView:Refresh()
+EndIf		
+
+Return .T.
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460ChecF
+Montagem da Query para seleo dos titulos a serem liquidados
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function A460ChecF(nChoice,aSelFil,cEscrit,cFatura,nMoedSel)
+
+Local cFiltro 		:= ""
+Local aTam    		:= TamSX3("E1_VALOR")
+Local nTamLiq 		:= F460TamLiq()
+Local nTamNum 		:= TamSx3('E1_NUM')[1]
+Local l460Fil 		:= ExistBlock("FA460FIL")
+Local lIntGem 		:= HasTemplate('LOT')
+Local nTamCtr 		:= 0
+Local cTmpSE1Fil	:= ""
+Local aArea 		:= GetArea()
+
+// Integrao SIGAPFS x SIGAFIN
+Local lIntPFS	:= SuperGetMV("MV_JURXFIN",,.F.)
+
+//PCREQ-3782 - Bloqueio por situao de cobrana
+Local cLstCart 	:= FN022LSTCB(1,'0006')	//Lista das situacoes de cobranca (Carteira)
+Local cLstNoBlq := FN022LSTCB(6,'0006')	//Lista das situacoes de cobranca (No bloqueadas para determinado processo)
+
+Default cEscrit  := ""
+Default cFatura  := ""
+Default nMoedSel := 1
+
+cNumDe  := Pad(cNumDe ,nTamNum)
+cNumAte := Pad(cNumAte,nTamNum)
+
+DbSelectArea("SED")
+SED->(DbSetOrder(1)) //ED_FILIAL+ED_CODIGO
+
+DbSelectArea("SA1")
+SA1->(DbSetOrder(1)) //A1_FILIAL+A1_CODIGO+A1_LOJA
+
+If lIntGEM
+	nTamCtr := TamSx3('E1_NCONTR')[1] 
+Endif
+
+If ExistBlock("FA460OWN") .And. nChoice <> 3 //No executa o P.E. se selecionada a opo '3-Variao Monetria' no campo 'Outras Moedas'
+	cFiltro := ExecBlock("FA460OWN",.F.,.F.)
+Else
+	If !lOpcAuto 
+		cFiltro := "SELECT "
+		cFiltro += "R_E_C_N_O_ RECNO "
+		cFiltro += " FROM "+	RetSqlName("SE1") + " SE1 "
+		cFiltro += " WHERE "
+		//Gestao
+		If mv_par06 == 1
+			cFiltro += "E1_FILIAL " + GetRngFil( aSelFil, "SE1", .T., @cTmpSE1Fil ) + " AND "
+			aAdd(aTmpFil, cTmpSE1Fil)
+		Else
+			cFiltro += "E1_FILIAL =  '" + xFilial("SE1") + "' AND "
+		Endif
+
+		cFiltro += " E1_CLIENTE BETWEEN '"+ cCliDe   + "' AND '" + cCliAte  + "' AND "
+		cFiltro += " E1_LOJA BETWEEN '"   + cLojaDe  + "' AND '" + cLojaAte + "' AND "
+		cFiltro += " E1_PREFIXO BETWEEN '"+ cPrefDe  + "' AND '" + cPrefAte + "' AND "
+		cFiltro += " E1_NUM BETWEEN '"    + cNumDe   + "' AND '" + cNumAte  + "' AND "
+
+		If nIntervalo = 1
+			cFiltro += "E1_EMISSAO BETWEEN '" + DTOS(dData460I) + "' AND '" + DTOS(dData460F) + "' AND "
+		Else
+			cFiltro += "E1_VENCTO BETWEEN '"  + DTOS(dData460I) + "' AND '" + DTOS(dData460F) + "' AND "
+		EndIf
+
+		If nChoice = 2 .Or. nChoice = 3 //Nao converte outras moedas ou Variao Monetria
+			cFiltro += "E1_MOEDA = " + Alltrim(Str(nMoeda,2)) + " AND "
+		EndIf
+
+		If mv_par04 = 1
+			cFiltro += " E1_SITUACA IN "+FormatIn(cLstCart,'|')+" AND "	
+		Else	
+			//PCREQ-3782 - Bloqueio por situao de cobrana
+			cFiltro += " E1_SITUACA IN "+FormatIn(cLstNoBlq,'|')+" AND "
+		Endif
+
+		//Se a integrao com RM estiver ativa e o processo de baixas via RM estiver configurada para Modelo II
+		//sero exibidos os ttulos
+		If lMsgUnq	//Verifica se os adapters esto configurados 
+			If cFilMsg == "1"
+				cFiltro	+= " E1_IDLAN > 0 AND "  
+			Else
+				cFiltro	+= " E1_IDLAN = 0 AND "
+			EndIf
+		Else	//Se os adapters no esto configurados, sero exibidos os ttulos que no so de integrao.
+			cFiltro	+= " E1_IDLAN = 0 AND "
+		EndIf
+		cFiltro += "E1_SALDO > 0 AND "
+
+		cFiltro += "E1_VALOR >= " + AllTrim(Str(nValorDe ,aTam[1],aTam[2])) + " AND "
+		cFiltro += "E1_VALOR <= " + AllTrim(Str(nValorAte,aTam[1],aTam[2])) + " AND "
+
+		cFiltro += "E1_TIPO NOT IN " + F460NotIN()  + " AND "
+
+		If !lReliquida 	//Liquida titulos no liquidados anteriormente
+			cFiltro += " E1_NUMLIQ = '" + Space(nTamLiq) +"' AND "
+		ElseIf lReliquida		// Reliquidaao
+			cFiltro += " E1_NUMLIQ <> '" + Space(nTamLiq) +"' AND "
+		Endif
+
+		//Template GEM - nao podem ser liquidados/reliquidados os titulos do GEM pelo financeiro.
+		If lIntGem
+			cFiltro += " E1_NCONTR = '" + Space(nTamCtr) +"' AND "
+		EndIf
+
+		If SuperGetMV("MV_RMTINVE",,1) == 2 // MV_RMTINVE = 2  > Baixa bloqueada no BackOffice Protheus e sendo realizada pelo TOTVS Incorporao.
+			cFiltro += " E1_ORIGEM <> 'FINI055' AND " // retornar o filtro de bloqueio do titulo do TIN RM  AND E1_ORIGEM <> 'FINI055'
+		EndIf
+		
+		cFiltro += " D_E_L_E_T_ = ' ' "
+
+		//Filtra faturas do SIGAPFS
+		If lIntPFS 
+			If FindFunction("Jur460Filt")
+				cFiltro += Jur460Filt(cEscrit, cFatura, cFiltro)
+			Else
+				If Empty(cEscrit + cFatura)
+					cFiltro += " AND E1_JURFAT = '' "
+				Else
+					cFiltro += " AND E1_JURFAT = '" + xFilial('NXA') + '-' + cEscrit + '-' + cFatura + '-' + cFilAnt + "' "
+				EndIf
+			EndIf
+		EndIf
+	Else 
+		cFiltro:=cAutoFil
+	EndIf
+	
+	If l460Fil
+		cFiltro += ExecBlock("FA460FIL",.F.,.F.)
+	Endif
+Endif
+
+RestArea(aArea)
+
+Return cFiltro
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460CAN
+Cancelamento da Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function FA460CAN(cAlias,cCampo,nOpcx,aCamposSE1,lAutoGem)
+
+Local lOk    := .T.
+Local lBlind := IsBlind()
+
+If lBlind
+	lOk := FA460ECAN(cAlias,cCampo,nOpcx,aCamposSE1,lAutoGem,lBlind)
+Else
+	Processa( {|| lOk := FA460ECAN(cAlias,cCampo,nOpcx,aCamposSE1,lAutoGem,lBlind) }, /*STR0263*/ ) //Cancelando Liquidao...
+EndIf
+
+Return lOk
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460ECAN
+Cancelamento da Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function FA460ECAN(cAlias,cCampo,nOpcx,aCamposSE1,lAutoGem,lBlind)
+
+Local lPanelFin 	:= IsPanelFin()
+Local cArquivo		:= ""
+Local nTotal		:= 0
+Local nHdlPrv		:= 0
+Local nOpcT			:= 0
+Local nTitulos		:= 0
+Local nParcelas		:= 0
+Local cIndex		:= ""
+Local cNewLiq       := ""
+Local cTitulo 		:= STR0062  //"Cancel. Liquidao"
+Local cDadosSE1		:= ""
+Local cDadosSe5		:= ""
+Local lHeadProva 	:= .F.
+Local lPadraoE1		:= VerPadrao("505")  // Exclusao de conta a receber
+Local cPadrao    	:= ""
+Local lContabilizou := .F.
+Local lDigita 		:= .T.
+Local lAglutina		:= .T.
+Local lCtBaixa		:= .F.
+Local lFin460e1 	:= ExistBlock("FIN460E1")
+Local lAcreDecre 	:= .F.
+Local nAcresc 		:= 0
+Local nDecresc	 	:= 0   
+Local oDlg4         := nil                     
+Local nGemMulta		:= 0
+Local lRastro		:= FVerRstFin()
+Local aAlt   		:= {}
+Local cChaveTit		:= ""
+Local cChaveFK7		:= ""
+Local nSe1Multa  	:= 0
+Local cAliasTMP	 	:= GetNextAlias()
+Local nRecFO2       := 0
+Local cFuncOri      := ""
+
+//Tratamento para o template GEM - exclusao de renegociacao
+Local lOpcAuto2 	:= IIf (Type("lOpcAuto") == "U",.F.,lOpcAuto)  
+Local aFlagCTB		:= {}
+
+//639.04 Base Impostos diferenciada
+Local _aTit			:= {}
+Local lContinua		:= .T.
+Local nRecSE1		:= 0
+Local lAtuSldNat	:= .T.   
+
+//Controle de abatimento
+Local lTitpaiSE1	:= .T.
+Local nOrdTitPai	:= 0
+Local bWhile 		:= {||  !Eof() .and. cTitAnt == (SE1->E1_FILIAL+SE1->E1_CLIENTE+SE1->E1_LOJA+SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA)}
+
+//Gestao
+Local cFilialAtu	:= ""
+Local aDadosSE5		:= {}
+
+//Resstruturacao SE5
+Local oModelEst		:= NIL	//FWLoadModel("FINM010")
+Local cLog			:= ""
+Local aValOrig		:= {}
+Local aBaixas		:= {}
+Local nCm			:= 0
+Local nVaTot		:= 0
+Local nTotalReg     := 0
+Local nAbatFO1      := 0
+Local cIdOriE5      := ""
+Local aDadosFO1     := {}
+
+//Parametrizao dos Produtos utilizados pela RM
+Local cProdRM		:= GETNEWPAR('MV_RMORIG', "")
+
+//Cancelamento chamado do Adapter FINI460
+Local lFINI460		:= FwIsInCallStack("FINI460")
+Local lPodeCanc		:= .T. 
+Local lFxBDelFI2  	:= Existfunc("FxBDelFI2")
+
+//valor Acessorio
+Local lValAcess   	:= ExistFunc("FValAcess") .and. ExistFunc("FAtuFKDBx")
+Local lAutomato   	:= .F.
+Local lSE1Comp  	:= FWModeAccess("SE1",3)== "C" // Verifica se SE1  compartilhada
+Local lF460E5 		:= ExistBlock("F460E5")
+
+// Variavel lAutoGem -> referente  rotina de exclusao de uma renegociacao do template GEM
+Local cInternalId 	:= ""
+Local aReturn
+
+// Integrao SIGAPFS x SIGAFIN
+Local lIntPFS       := SuperGetMV("MV_JURXFIN",,.F.)
+
+DEFAULT lAutoGem	:= .F.
+
+Private cLiqCan 	:= CriaVar("E1_NUMLIQ" , .F.) 
+Private aDiario		:= {}
+Private cCodDiario	:= ""
+Private nVA			:= 0 
+
+//Controle de rotina automatica
+Private lMsErroAuto 	:= IIf (Type("lMsErroAuto") == "U",.F.,lMsErroAuto)
+Private lMsHelpAuto		:= IIf (Type("lOpcAuto") == "U",.F.,lOpcAuto)  
+Private lAutoErrNoFile	:= .F.
+Private FO1VADI := 0
+
+// Zerar variaveis para contabilizar os impostos da lei 10925.
+VALOR5 := 0
+VALOR6 := 0
+VALOR7 := 0                   
+
+//Cancelamento chamado do Adapter FINI460
+aFINI460SE1	:= {}
+
+If FindFunction("FINTP01") 
+	If FINTP01(.T.) //Restringe o uso do programa Financeiro Quando a origem do titulo for de origem Totvs Incorporao - RM
+		Return .F.
+	EndIf
+Endif
+
+//Validao quando utiliza mdulo do agro
+If !lOpcAuto .And. SuperGetMv("MV_SIGAAGR",,.F.) 
+	If FindFunction("AGRTITFIN")
+		If !AGRTITFIN()
+			return .F.
+		EndIf
+	EndIf  
+Endif	
+
+//------------------------------------------------------------------- 
+// Verifica se data do movimento no  menor que data limite de 
+// movimentacao no financeiro    										  
+//------------------------------------------------------------------- 
+If !DtMovFin(,,"2")
+	If lPanelFin  //Chamado pelo Painel Financeiro						
+		dbSelectarea(FinWindow:cAliasFile)
+		FinVisual(FinWindow:cAliasFile,FinWindow,(FinWindow:cAliasFile)->(Recno()),.T.)	
+	EndIf
+	Return .F.
+EndIf
+
+//------------------------------------------------------------------- 
+// Verifica o numero do Lote 											  
+//------------------------------------------------------------------- 
+DbSelectArea("SX5")
+MsSeek(cFilial+"09FIN")
+
+Private cLote := Substr(X5DESCRI(),1,4)
+
+If lOpcAuto2
+	cLiqCan:=cNumLiqCan
+Else
+	If !Empty(SE1->E1_NUMLIQ)
+		cLiqCan := SE1->E1_NUMLIQ
+	ElseIf !Empty(SE1->E1_FATURA) 
+		cLiqCan := SE1->E1_FATURA
+		// Se FATURA gerada pelo FINA280, cancelar pela funo do FINA280 
+		FA280CAN("SE1",'41', 3, lAutomato,.T.)
+		Return .t.
+	EndIf	
+EndIf
+
+nValor		:= 0
+nValRec		:= 0
+nTitulos	:= 0
+nParcelas	:= 0
+nOpcT		:= 0
+
+//verifica se existem os capos de valores de acrescimo e decrescimo no SE5
+lAcreDecre := .T.
+
+If !lAutoGem
+	If !lOpcAuto2
+		If lPanelFin  //Chamado pelo Painel Financeiro			
+			oPanelDados := FinWindow:GetVisPanel()
+			oPanelDados:FreeChildren()
+			aDim := DLGinPANEL(oPanelDados)
+			DEFINE MSDIALOG oDlg4 OF oPanelDados:oWnd FROM 0,0 To 0,0 PIXEL STYLE nOR( WS_VISIBLE, WS_POPUP )							
+
+			// -------------------------------------------------------------- 
+			// Observacao Importante quanto as coordenadas calculadas abaixo:  
+			// --------------------------------------------------------------  		
+			// a funcao DlgWidthPanel() retorna o dobro do valor da area do	 
+			// painel, sendo assim este deve ser dividido por 2 antes da  
+			// subtracao e redivisao por 2 para a centralizacao. 					 		
+			// -------------------------------------------------------------- 		
+			nEspLarg := (((DlgWidthPanel(oPanelDados)/2) - 114) /2)-4
+			nEspLin  := 0				
+			
+		Else   
+			nEspLarg := 0 
+			nEspLin  := 3  
+			DEFINE MSDIALOG oDlg4 FROM	20,1 TO 160,340 TITLE cTitulo PIXEL
+		EndIf       
+	EndIf 
+Else
+	cLiqCan	 := SE1->E1_NUMLIQ 
+	nOpct	 := 1  
+	nEspLarg := 0 
+	nEspLin  := 3  
+EndIf     
+
+If !lOpcAuto2
+	oPanel := TPanel():New(0,0,'',oDlg4,, .T., .T.,, ,20,20)
+	oPanel:Align := CONTROL_ALIGN_ALLCLIENT   
+
+	@ 006+nEspLin, 011+nEspLarg TO 036+nEspLin, 125+nEspLarg OF oPanel PIXEL                                                                            
+	
+	@ 011+nEspLin, 014+nEspLarg SAY STR0058 SIZE 49, 07 OF oPanel PIXEL //"Nro. Liquidao"
+	@ 021+nEspLin, 014+nEspLarg MSGET cLiqCan Valid !Empty(cLiqCan) 	SIZE 49, 11 OF oPanel PIXEL hasbutton
+	
+	If !lAutoGem
+		If lPanelFin  //Chamado pelo Painel Financeiro			
+			// define dimeno da dialog
+			oDlg4:nWidth := aDim[4]-aDim[2]
+
+			ACTIVATE MSDIALOG oDlg4 ON INIT ( FaMyBar(oDlg4,;
+			{||nOpct:=1,oDlg4:End()},;
+			{||oDlg4:End()}),oDlg4:Move(aDim[1],aDim[2],aDim[4]-aDim[2], aDim[3]-aDim[1]))
+		Else
+			DEFINE SBUTTON FROM 10, 133 TYPE 1 ACTION (nOpct:=1,If(Fa460OK2() .And. !Empty(cLiqCan) ,oDlg4:End(),nOpct:=0)) ENABLE OF oPanel
+			DEFINE SBUTTON FROM 23, 133 TYPE 2 ACTION oDlg4:End() ENABLE OF oPanel
+			ACTIVATE MSDIALOG oDlg4 CENTERED
+		EndIf
+	EndIf		   
+EndIf
+// --------------------------------------------------------------
+// Salva a Area atual do SE1                                 
+// --------------------------------------------------------------
+DbSelectArea("SE1")
+nOrdemSe1 	:= SE1->(IndexOrd())
+nRegSE1 	:= SE1->(Recno())
+nRecSe5		:= SE5->(Recno())
+
+//---------------------------------------------------------------
+//Validando se pode excluir por causa da Integrao RM X Classis
+//---------------------------------------------------------------
+If(!lOpcAuto)
+	dbSelectArea("FO0")
+	FO0->(DbSetOrder(2))
+	If(FO0->(DbSeek(xFilial("FO0")+cLiqCan+SE1->E1_CLIENTE+SE1->E1_LOJA)))
+		If(Alltrim(FO0->FO0_ORIGEM) $ cProdRM )
+			HELP(" ",1,"ProtheusXClassis" ,, STR0230 ,2,0,,,,,,{STR0233})//"Liquidao gerada pela Integrao Protheus X Classis no Pode ser alterado pelo Protheus" ## "Efetue alterao da liquidao pelo RM Classis"
+			Return .F.
+		EndIf
+	EndIf
+EndIf
+
+// Inicia controle de transacao
+Begin Transaction
+
+If Existblock("F460CANC")
+	nOpct := Execblock("F460CANC" ,.F.,.F.,{nOpct})
+Endif
+
+If nOpct == 1 .Or. lOpcAuto2
+	// --------------------------------------------------------------------------
+	// POR MAIS ESTRANHO QUE PAREA, ESTA FUNCAO DEVE SER CHAMADA AQUI! 
+	//                                                                  
+	// A funo SomaAbat reabre o SE1 com outro nome pela ChkFile para  
+	// efeito de performance. Se o alias auxiliar para a SumAbat() no  
+	// estiver aberto antes da IndRegua, ocorre Erro de & na ChkFile,   
+	// pois o Filtro do SE1 uptrapassa 255 Caracteres.                  
+	// --------------------------------------------------------------------------
+	SomaAbat("","","","R")
+
+	// --------------------------------------------------------------------------
+	// Seleciona os registros a serem processados no cancelamento
+	// --------------------------------------------------------------------------
+	lPodeCanc	:= A460Filtra(cLiqCan, cAliasTMP ) 
+	If lPodeCanc
+		dbSelectArea(cAliasTMP)
+		(cAliasTMP)->(DbGoTop())
+		If !lBlind
+			(cAliasTMP)->(dbEval({|| nTotalReg++ }))
+			ProcRegua(nTotalReg)
+			(cAliasTMP)->(DbGoTop())
+		EndIf
+		dbSelectArea("SE1")
+		SE1->(dbGoTop())
+		While (cAliasTMP)->(!Eof())
+    
+			If !lBlind
+				IncProc()
+			EndIf
+			
+			cFilialAtu := cFilAnt
+			SE1->(dbGoto((cAliasTMP)->CHAVE))
+			
+			DbSelectArea("SE1")
+
+			cFilOrig  := SE1->E1_FILORIG
+			cDadosSe1 := SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA+ SE1->E1_TIPO
+			cDadosSe5 := SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA+ SE1->E1_TIPO+SE1->E1_CLIENTE+SE1->E1_LOJA
+			aDadosSE5 := {SE1->E1_FILORIG,SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_TIPO,SE1->E1_CLIENTE,SE1->E1_LOJA}
+
+			//Movimento dos titulos geradores de liquidacao
+			If (SE1->E1_NUMLIQ<>cLiqCan) .OR. (Empty(SE1->E1_NUMLIQ) .And. !(SE1->E1_TIPO $ MV_CRNEG)) 
+
+				// --------------------------------------------------------------------------
+				// Se for um titulo que gerou a liquidacao, desfaz o processo
+				// --------------------------------------------------------------------------
+				nTotAbat := 0
+				nJuros	 := 0
+				nDescont := 0
+				nGemMulta:= 0
+				nVA		 := 0 	
+				nCM		 := 0
+				nAbatFO1 := 0
+				cIdOriE5 := ""
+				aDadosFO1:= {}
+				FO1VADI  := 0
+
+				//Gestao
+				cFilAnt := cFilOrig
+				
+				dbSelectArea("SE1")
+				nTotAbat := SomaAbat(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,"R",SE1->E1_MOEDA,dDataBase,SE1->E1_CLIENTE,SE1->E1_LOJA,,,SE1->E1_TIPO)
+				
+				dbSelectArea("SE5")
+				SE5->(dbSetOrder(7))
+
+				//Achou o registro da baixa por liquidao
+				If (cAliasTMP)->CHAVESE5 > 0 
+					SE5->(dbGoto((cAliasTMP)->CHAVESE5))
+
+					//Verifica se a filial atual  a filial do processo
+					If xFilial("SE5",cFilialAtu) == SE5->E5_FILIAL
+						cFilAnt := cFilialAtu
+					Endif
+                
+					//--------------------------------------------------------------------------
+					// Ponto de entrada para tratamento do titulo gerado pela  
+					// liquidacao antes do cancelamento.                       
+	   				//--------------------------------------------------------------------------
+					IF lF460E5
+						ExecBlock("F460E5", .F., .F.,{cDadosSE5})
+					EndIf   
+
+					While !Eof() .and. SE1->E1_FILORIG == SE5->E5_FILORIG .and. ;
+						SE5->(E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA) == cDadosSE5;
+						.AND. AllTrim(SE5->E5_DOCUMEN) == AllTrim(cLiqCan)
+
+						If SE5->E5_SITUACA == "C" .or. cLiqCan != Alltrim(E5_DOCUMEN) .or. ;
+							SE5->E5_MOTBX != "LIQ" .or. !(SE5->E5_TIPODOC $ "DC#JR#BA#MT#CM#VA#VM")
+							dbSKip()
+							Loop
+						EndIf
+
+						// Verifica movimentacao de AVP
+						FAVPValTit( "SE1", SE5->( Recno() ) )
+
+						If SE5->E5_TIPODOC == "DC"
+							nDescont := SE5->E5_VALOR
+							RecLock("SE5")
+								Replace E5_SITUACA with "C"
+							SE5->(MSUNLOCK())
+						ElseIf  SE5->E5_TIPODOC == "JR"
+							nJuros 	:= SE5->E5_VALOR
+							RecLock("SE5")
+								Replace E5_SITUACA with "C"
+							SE5->(MSUNLOCK())
+						ElseIf  SE5->E5_TIPODOC == "CM"
+							nCM 	:= SE5->E5_VALOR
+							RecLock("SE5")
+								Replace E5_SITUACA with "C"
+							SE5->(MSUNLOCK())							
+						ElseIf  SE5->E5_TIPODOC == "MT"
+							nGemMulta:= SE5->E5_VALOR
+							RecLock("SE5")
+								Replace E5_SITUACA with "C"
+							SE5->(MSUNLOCK())
+						ElseIf  SE5->E5_TIPODOC == "VA"
+							nVA:= SE5->E5_VALOR		
+							nVaTot += nVa
+							RecLock("SE5")
+							Replace E5_SITUACA with "C"
+							SE5->(MSUNLOCK())							
+						ElseIf SE5->E5_TIPODOC == "BA" .OR. SE5->E5_TIPODOC == "VM"
+							If SE5->E5_TIPODOC == "BA"
+								cIdOriE5 := SE5->E5_IDORIG
+								nValRec  := SE5->E5_VALOR
+								nValorM2 := SE5->E5_VLMOED2
+								nRecSE5  := SE5->( recno() )
+								lCtBaixa := If("S"$SE5->E5_LA,.T.,lCtBaixa)
+								If lAcreDecre
+									nAcresc := SE5->E5_VLACRES
+									nDecresc := SE5->E5_VLDECRE
+								EndIf
+
+								//Buscar dados da FO1
+								If !Empty(cIdOriE5)
+									If FO0->FO0_NUMLIQ <> cLiqCan
+										dbSelectArea("FO0")
+										dbSetOrder(2)
+										dbSeek( xFilial("FO0") + cLiqCan + SE1->E1_CLIENTE + SE1->E1_LOJA )
+									EndIf
+									aDadosFO1 := F460AbFO1(FO0->FO0_PROCES,FO0->FO0_VERSAO,cIdOriE5)
+									If Len(aDadosFO1) > 0
+										nAbatFO1 := aDadosFO1[1,1]
+										FO1VADI  := aDadosFO1[1,2]
+									EndIf
+								EndIf
+							EndIf
+
+							oModelEst := FWLoadModel("FINM010") //Recarrega o Model de baixa para pegar o campo do relacionamento (SE5->E5_IDORIG)							
+							oModelEst:SetOperation( 4 ) //Alterao
+							oModelEst:Activate()
+							oModelEst:SetValue( "MASTER", "E5_GRV", .T. ) //Habilita gravao SE5
+							//E5_OPERACAO 1 = Altera E5_SITUACA da SE5 para 'C' e gera estorno na FK2
+							//E5_OPERACAO 2 = Grava E5 com E5_TIPODOC = 'ES' e gera estorno na FK2
+							//E5_OPERACAO 3 = Deleta da SE5 e gera estorno na FK2
+							oModelEst:SetValue( "MASTER", "E5_OPERACAO", 1 )
+							oModelEst:SetValue( "MASTER", "HISTMOV"    , STR0062) 
+							
+							//Posiciona a FKA com base no IDORIG da SE5 posicionada
+							oFKA := oModelEst:GetModel( "FKADETAIL" )
+							oFKA:SeekLine( { {"FKA_IDORIG", SE5->E5_IDORIG } } )			
+
+							If oModelEst:VldData()
+								oModelEst:CommitData()
+							Else
+								cLog := cValToChar(oModelMov:GetErrorMessage()[4]) + ' - '
+								cLog += cValToChar(oModelMov:GetErrorMessage()[5]) + ' - '
+								cLog += cValToChar(oModelMov:GetErrorMessage()[6])        	
+
+								Help(,,"F460CANBX",,cLog,1,0)
+								lContinua := .F.
+									
+							EndIf
+							oModelEst:DeActivate()
+							oModelEst:Destroy()
+							oModelEst := NIL
+
+							//Caso ocorra algum problema com o cancelamento da baixa do titulo gerador
+							//O processo de cancelamento das outras baixas  parado.
+							If !lContinua
+								Exit
+							Endif
+
+						EndIf
+						
+						If UsaSeqCor() 
+							aAdd(aDiario,{"SE5",SE5->(Recno()),cCodDiario,"E5_NODIA","E5_DIACTB"}) 
+						EndIf
+						SE5->(dbSkip())
+					EndDo
+				EndIf
+				
+				cFilAnt := cFilialAtu
+				
+				//Caso ocorra algum problema com o cancelamento da baixa do titulo gerador
+				//O processo de cancelamento da liquidao  parado.
+				If !lContinua
+					Exit
+				Endif
+
+				SE5->( dbGoTo( nRecSE5 ) ) 
+
+				If lTpComis  .and. lComiLiq 
+					If ! SE1->E1_TIPO $ MV_CRNEG .And. ! SE1->E1_TIPO $ MV_CPNEG
+						aadd(aBaixas,{SE5->E5_MOTBX,SE5->E5_SEQ,SE5->(Recno())})
+						Fa440DeleB(aBaixas,.F.,.F.,"FINA460")
+						aBaixas		:= {}			   			
+					Endif				
+				Endif
+
+				// --------------------------------------------------------------------------
+				//Verifica se foi utilizada taxa contratada para moeda > 1          
+				// --------------------------------------------------------------------------
+				If SE1->E1_MOEDA > 1 .and. Round(NoRound(xMoeda(nValRec,1,SE1->E1_MOEDA,SE5->E5_DATA,3),3),2) != SE5->E5_VLMOED2
+					nTxMoeda := SE5->E5_VALOR / SE5->E5_VLMOED2
+				Else
+					nTxMoeda := RecMoeda(SE5->E5_DATA,SE1->E1_MOEDA)
+				EndIf
+
+				// --------------------------------------------------------------------------
+				//Caso moeda == 1 a funcao RecMoeda iguala nTxMoeda = 0. Iguala-se   
+				//nTxMoeda = 1 p/ evitar problema c/ calculos de abatimento e outros.
+				// --------------------------------------------------------------------------
+				nTxMoeda := Iif(nTxMoeda == 0 , 1 , nTxMoeda)
+				DbSelectArea("SE1")
+				DbSetOrder(1)
+				If MsSeek(xFilial("SE1",cFilOrig)+cDadosSE1)
+					// --------------------------------------------------------------------------
+					//Gera backup dos valores da baixa (para cancelamento baixa parcial)
+					// --------------------------------------------------------------------------
+					nSe1ValLiq  := SE1->E1_VALLIQ
+					nSe1Descont := SE1->E1_DESCONT
+					nSe1Juros   := SE1->E1_JUROS
+					nSe1Multa   := SE1->E1_MULTA
+					// --------------------------------------------------------------------------
+					//Grava novos valores do cancelamento da baixa parcial              
+					// --------------------------------------------------------------------------
+					RecLock("SE1")
+					SE1->E1_VALLIQ  := 0
+					SE1->E1_DESCONT := nDescont
+					SE1->E1_JUROS   := nJuros
+					SE1->E1_MULTA   := nGemMulta
+					SE1->E1_CORREC	:= nCM	
+					MsUnlock()
+				EndIf
+				DbSetOrder(1)
+				
+				aAdd(__aBaixados , {SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA, SE1->E1_TIPO})
+				
+				If SE1->E1_MOEDA > 1				
+		            nTotAbat := nTotAbat * NoRound(nTxMoeda,5)
+				EndIf
+
+				ABATIMENTO := nTotAbat
+
+				//--------------------------------------------------------------------------
+				//Gera lanamento contabil de estorno                               
+				//--------------------------------------------------------------------------
+				cPadrao := "527"    //cancelamento de baixa
+				lPadrao := VerPadrao(cPadrao)
+				
+				DbSelectArea("SA1")
+				DbSetOrder(1)
+				MsSeek(xFilial("SA1")+SE1->E1_CLIENTE+SE1->E1_LOJA)
+				DbSelectArea("SE1")
+				
+				If !lHeadProva .and. lPadrao 
+					nHdlPrv := HeadProva( 	cLote,;
+											"FINA460",;
+											Substr( cUsuario, 7, 6 ),;
+											@cArquivo )
+					lHeadProva := .T.
+				EndIf
+					
+				If lPadrao .and. lCtBaixa
+					nTotal += DetProva( nHdlPrv,;
+										cPadrao,;
+										"FINA460",;
+										cLote,;
+										/*nLinha*/,;
+										/*lExecuta*/,;
+										/*cCriterio*/,;
+										/*lRateio*/,;
+										/*cChaveBusca*/,;
+										/*aCT5*/,;
+										/*lPosiciona*/,;
+										@aFlagCTB,;
+										/*aTabRecOri*/,;
+										/*aDadosProva*/ )
+					If UsaSeqCor()
+						aAdd(aDiario,{"SE1",SE1->(Recno()),cCodDiario,"E1_NODIA","E1_DIACTB"}) 
+					EndIf 
+
+				EndIf	
+				//--------------------------------------------------------------------------
+				//Grava valores anteriores da contabilizacao do canc da baixa parcial
+				//--------------------------------------------------------------------------
+				RecLock("SE1")
+				SE1->E1_VALLIQ  := 0
+				SE1->E1_DESCONT := nSe1Descont
+				
+				//Retorna os valores de juros e multa
+				If  nSe1Juros >= nJuros 
+					SE1->E1_JUROS -= nJuros
+				EndIf
+
+				If nSe1Multa >= nGemMulta
+					SE1->E1_MULTA -= nGemMulta
+				EndiF
+				
+				SE1->( MsUnlock() )
+				SE1->( DbSetOrder(1) )
+				
+				nSalvRec := SE1->( Recno() )
+
+				If lAtuSldNat
+					If lSE1Comp
+						AtuSldNat(SE1->E1_NATUREZ, SE1->E1_VENCREA, SE1->E1_MOEDA, "2", "R", SE1->E1_VALOR, SE1->E1_VLCRUZ, "+",,FunName(),"SE1",SE1->(Recno()),4 , ,0, SE1->E1_FILORIG)
+					Else
+						AtuSldNat(SE1->E1_NATUREZ, SE1->E1_VENCREA, SE1->E1_MOEDA, "2", "R", SE1->E1_VALOR, SE1->E1_VLCRUZ, "+",,FunName(),"SE1",SE1->(Recno()),4 , ,0, SE1->E1_FILIAL)
+					Endif	
+				Endif
+				//--------------------------------------------------------------------------
+				//Verifica se h abatimentos para voltar a carteira                 
+				//--------------------------------------------------------------------------
+				If nTotAbat > 0 .and. SE1->E1_SALDO == 0 
+					SE1->(DbSetOrder(2))
+					If MsSeek(xFilial("SE1",cFilOrig)+SE1->E1_CLIENTE+SE1->E1_LOJA+SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA)
+						cTitAnt := (SE1->E1_FILIAL+SE1->E1_CLIENTE+SE1->E1_LOJA+SE1->E1_PREFIXO+SE1->E1_NUM+SE1->E1_PARCELA)     
+						If lTitpaiSE1    
+							If (nOrdTitPai:= OrdTitpai()) > 0
+								SE1->(DbSetOrder(nOrdTitPai))
+								If	DbSeek(xFilial("SE1",cFilOrig)+cDadosSe5)    
+									bWhile  := {|| !Eof() .And. Alltrim(SE1->E1_TITPAI) == Alltrim(cDadosSe5)}  
+								Else
+									SE1->(DbSetOrder(2))
+								EndIf
+							EndIf
+						EndIf
+
+						While Eval(bWhile) 
+							If !(SE1->E1_TIPO $ MVABATIM)
+								SE1->( dbSkip() )
+								Loop
+							EndIf
+							//--------------------------------------------------------------------------
+							//Volta ttulo para carteira                                       
+							//--------------------------------------------------------------------------
+							Reclock("SE1", .F.)
+							SE1->E1_BAIXA   := Ctod(" /  /  ")
+							SE1->E1_SALDO	:= SE1->E1_VALOR
+							SE1->E1_DESCONT := 0
+							SE1->E1_JUROS   := 0
+							SE1->E1_MULTA   := 0
+							SE1->E1_CORREC  := 0
+							SE1->E1_VARURV  := 0
+							SE1->E1_VALLIQ  := 0
+							SE1->E1_LOTE    := Space(Len(E1_LOTE))
+							SE1->E1_DATABOR := Ctod(" /  /  ")
+							SE1->E1_STATUS  := "A"
+							SE1->E1_OK		:= "  "
+							SE1->( msUnLock() )
+
+							//--------------------------------------------------------------------------
+							// Carrega variaveis para contabilizacao dos abatimentos 
+							// (impostos da lei 10925).         			
+							//--------------------------------------------------------------------------
+							If SE1->E1_TIPO == MVPIABT
+								VALOR5 := SE1->E1_VALOR			
+							ElseIf SE1->E1_TIPO == MVCFABT
+								VALOR6 := SE1->E1_VALOR
+							ElseIf SE1->E1_TIPO == MVCSABT
+								VALOR7 := SE1->E1_VALOR						
+							EndIf			
+							If lAtuSldNat
+								If lSE1Comp
+									AtuSldNat(SE1->E1_NATUREZ, SE1->E1_VENCREA, SE1->E1_MOEDA, "2", "R", SE1->E1_VALOR, SE1->E1_VLCRUZ, "+",,FunName(),"SE1",SE1->(Recno()),4 , ,0, SE1->E1_FILORIG)
+								Else
+									AtuSldNat(SE1->E1_NATUREZ, SE1->E1_VENCREA, SE1->E1_MOEDA, "2", "R", SE1->E1_VALOR, SE1->E1_VLCRUZ, "+",,FunName(),"SE1",SE1->(Recno()),4 , ,0, SE1->E1_FILIAL)
+								Endif	
+							EndIf
+							SE1->(dbSkip())
+						Enddo
+					EndIf
+					SE1->(DbSetOrder(1))
+				EndIf
+				SE1->( dbGoTo( nSalvRec ) )
+
+				If lAutoGem .and. HasTemplate("LOT")
+					nValor := SE1->E1_SALDO+(nValRec-nJuros+nDescont-nGemMulta+IIF(SE1->E1_SALDO==0,nTotAbat,0))+nVaTot
+				Else
+					If nAbatFO1 <> nTotAbat //Esse IF  um contorno e deve ser mantido ate a SPYKE sobre a definio da regra referente a ISSUE DSERFINR-16726
+						If SE1->E1_MOEDA == 1
+							nValor := SE1->E1_SALDO-(nJuros+nVaTot+nGemMulta-nValRec-nDescont-nAbatFO1)
+						Else
+							nValor := SE1->E1_SALDO-((nJuros+nVaTot+nGemMulta-nValRec-nDescont-nAbatFO1) / NoRound(nTxMoeda,5))
+							//Corrige possiveis erros de arredondamento
+							If Abs(Round(SE1->E1_VALOR - nValor,2)) == 0.01         
+								nValor := SE1->E1_VALOR
+							EndIf
+						EndIf					
+					Else
+						If SE1->E1_MOEDA == 1
+							nValor := SE1->E1_SALDO-(nJuros+nVaTot+nGemMulta-nValRec-nDescont-IIF(SE1->E1_SALDO==0,nTotAbat,0))
+						Else
+							nValor := SE1->E1_SALDO-((nJuros+nVaTot+nGemMulta-nValRec-nDescont-IIF(SE1->E1_SALDO==0,nTotAbat,0)) / NoRound(nTxMoeda,5))
+							//Corrige possiveis erros de arredondamento
+							If Abs(Round(SE1->E1_VALOR - nValor,2)) == 0.01         
+								nValor := SE1->E1_VALOR
+							EndIf
+						EndIf   
+					EndIf
+				EndIf
+				nVaTot := 0 
+
+				RecLock("SE1",.F.)
+				SE1->E1_SALDO		:= nValor
+				SE1->E1_MOVIMEN		:= dDataBase
+				
+				If F460VldLiq(cDadosSE5)
+					SE1->E1_TIPOLIQ		:= Space(3)
+				Endif
+				
+				If lAcreDecre
+					SE1->E1_SDACRES	:= Round(NoRound(xMoeda(nAcresc,1,SE1->E1_MOEDA,SE5->E5_DATA,3,nTxMoeda),3),2)
+					SE1->E1_SDDECRE	:= Round(NoRound(xMoeda(nDecresc,1,SE1->E1_MOEDA,SE5->E5_DATA,3,nTxMoeda),3),2)
+				Else
+					SE1->E1_SDACRES	:= SE1->E1_ACRESC 
+					SE1->E1_SDDECRE	:= SE1->E1_DECRESC		
+				EndIf
+				SE1->E1_STATUS	:= "A"
+				SE1->E1_OK			:= "  "
+
+				//639.04 Base Impostos diferenciada
+				//O caso abaixo ocorrer quando
+				//Controlo base de impostos
+				//Calculo do PCC - CR na emissao
+				//Titulo Gerador da liquidacao eh retentor
+				//Natureza da liquidacao calcula PCC
+				If Str(SE1->E1_SALDO,17,2) > Str(SE1->E1_VALOR,17,2)
+					SE1->E1_SALDO := SE1->E1_VALOR
+				EndIf
+
+				IF Str(SE1->E1_SALDO,17,2) == Str(SE1->E1_VALOR,17,2)
+					SE1->E1_VALLIQ	:= 0				
+					SE1->E1_BAIXA	  := Ctod("//")
+				EndIf
+				SE1->( MsUnlock() )
+				
+				//Atualiza saldo dos valores acessrios (FKD)
+				If lValAcess
+					FAtuFKDBx(.T.)
+				EndIf
+				
+				///numbor			
+				aAlt := {}
+				aAdd( aAlt,{ STR0206,'','','',STR0207 +  Alltrim(Transform(SE1->E1_VALOR,PesqPict("SE1","E1_VALOR"))) })   
+				///chamada da Funo que cria o Histrico de Cobrana
+				FinaCONC(aAlt)							
+				
+								/*
+				Atualiza o status do titulo no SERASA */
+				If cPaisLoc == "BRA"
+					cChaveTit := xFilial("SE1",SE1->E1_FILORIG) + "|" +;
+												SE1->E1_PREFIXO + "|" +;
+												SE1->E1_NUM		+ "|" +;
+												SE1->E1_PARCELA + "|" +;
+												SE1->E1_TIPO	+ "|" +;
+												SE1->E1_CLIENTE + "|" +;
+												SE1->E1_LOJA
+					cChaveFK7 := FINGRVFK7("SE1",cChaveTit,SE1->E1_FILORIG)
+					F770BxRen("3","",cChaveFK7)			
+				EndIf				
+				
+				//--------------------------------------------------------------------------------
+				// Funo Especfica do Modulo Sigapls para atualizar Status de Guias Compradas 
+				//--------------------------------------------------------------------------------				
+				PL090TITCP(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_TIPO,"5")
+				
+				//--------------------------------------------------------------------------------
+				//Integracao Protheus X RM Classis Net (RM Sistemas)
+				//--------------------------------------------------------------------------------
+				If GetNewPar("MV_RMCLASS", .F.) .and. !Empty(SE1->E1_NUMRA)
+					cNumRA 		:= SE1->E1_NUMRA 				 	//Pega o numero do RA do aluno para alimentar o campo E1_NUMRA com a inclusao do novo titulo
+					nIDAPLIC 	:= SE1->E1_IDAPLIC 					//Pega o numero do IDENTIFICADOR DA MATRIZ APLICADA para alimentar o campo E1_IDAPLIC com a inclusao do novo titulo
+					cTurma 		:= SE1->E1_TURMA 					//Pega a Turma do Aluno para alimentar o campo E1_TURMA com a inclusao do novo titulo
+				endif		
+
+				// Cancelamento do rastreamento(FI7/FI8)
+				If lRastro
+					FINRSTDEL("SE1",cDadosSe5,aDadosSE5)
+				EndIf
+
+				dbSelectArea("SA1")
+				dbSetOrder(1)
+				If MsSeek(xFilial("SA1",cFilOrig)+SE1->E1_CLIENTE+SE1->E1_LOJA)
+					If !(SE1->E1_TIPO $ MV_CRNEG+"/"+MVRECANT)
+						//--------------------------------------------------------------------------------
+						// Posiciona no registro do cliente e Estorna Atraso Medio.    
+						//--------------------------------------------------------------------------------
+						dbSelectArea("SA1")
+						SA1->( dbSetOrder(1) )
+						RecLock("SA1",.F.)
+						SA1->A1_NROPAG := SA1->A1_NROPAG-1  //Numero de Duplicatas
+						If ( SE1->E1_BAIXA - SE1->E1_VENCREA) > 0
+							SA1->A1_PAGATR := IiF(SA1->A1_PAGATR ==0,0,SA1->A1_PAGATR-SE1->E1_VALLIQ)   // Pagamentos Atrasados
+							SA1->A1_ATR    := SA1->A1_ATR + SE1->E1_VALLIQ
+							SA1->A1_METR   :=  (SA1->A1_METR * (SA1->A1_NROPAG+1) - (SE1->E1_BAIXA - SE1->E1_VENCREA)) / SA1->A1_NROPAG
+						EndIf
+						AtuSalDup("+",SE1->E1_VALOR,SE1->E1_MOEDA,SE1->E1_TIPO,,SE1->E1_EMISSAO)
+					EndIf
+				EndIf
+
+				//Instruo de Cobrana PCREQ-9881.
+				If lFxBDelFI2
+					FxBDelFI2()
+				EndIf
+
+			//Titulos Gerados pela Liquidacao
+			ElseIf (SE1->E1_NUMLIQ = cLiqCan 	.Or. ;
+					SE1->E1_TIPO $ MV_CRNEG)	.And.;
+					SE1->E1_STATUS != "R"
+				//--------------------------------------------------------------------------------
+				// Se for uma parcela da liquidacao contabiliza o cancelamento e deleta.                            
+				//--------------------------------------------------------------------------------
+				cPadrao := "505"
+
+				//--------------------------------------------------------------------------------
+				//Posiciono FO2 para utilizao na contabilizao
+				//--------------------------------------------------------------------------------
+				nRecFO2 := 0
+				nRecFO2 := F460PosFO2( (cAliasTMP)->CHAVE , cLiqCan )
+				dbSelectArea("FO2")
+				If nRecFO2 > 0
+					FO2->(dbGoto(nRecFO2))
+					JUROS3 := FO2->FO2_VLJUR
+				EndIf
+
+				//--------------------------------------------------------------------------------
+				// Posiciona o SE1 pois o arquivo de trabalgo pode ser resultado de uma Query.                                        
+				//--------------------------------------------------------------------------------
+				DbSelectArea("SE1")
+				SE1->( DbSetOrder(1) )
+
+				SE1->( MsSeek(xFilial("SE1", cFilOrig) + cDadosSE1) )
+				cFilAnt := SE1->E1_FILORIG
+
+				lContabilizou := Iif(SubStr(SE1->E1_LA,1,1)=="S",.T.,.F.)
+				
+				If !(SE1->E1_TIPO $ MV_CRNEG)
+					DbSelectArea("SA1")
+					SA1->( DbSetOrder(1) )
+					If MsSeek(xFilial("SA1")+SE1->E1_CLIENTE+SE1->E1_LOJA)
+						AtuSalDup("-",SE1->E1_VALOR,SE1->E1_MOEDA,SE1->E1_TIPO,,SE1->E1_EMISSAO)
+					EndIf
+					DbSelectArea("SE1")
+				EndIf
+
+				If !lHeadProva .and. lPadraoE1
+					nHdlPrv := HeadProva( 	cLote,;
+											"FINA460",;
+											Substr( cUsuario, 7, 6 ),;
+											@cArquivo )
+					lHeadProva := .T.
+				EndIf
+
+				If lPadraoE1 .and. lContabilizou
+					nTotal += DetProva( nHdlPrv,;
+										cPadrao,;
+										"FINA460",;
+										cLote,;
+										/*nLinha*/,;
+										/*lExecuta*/,;
+										/*cCriterio*/,;
+										/*lRateio*/,;
+										/*cChaveBusca*/,;
+										/*aCT5*/,;
+										/*lPosiciona*/,;
+										@aFlagCTB,;
+										/*aTabRecOri*/,;
+										/*aDadosProva*/ )
+				EndIf
+
+				If lFin460e1
+					Execblock("FIN460E1",.F.,.F.)
+				EndIf
+
+				nRecSE1 := SE1->(Recno())
+            
+				DbSelectArea("SE1")
+				Fa460ExcSef(SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_TIPO)
+
+				SE1->(dbGoto(nRecSE1))
+				SE1->(DbSetOrder(1))
+
+				//Cancelamento chamado do Adapter FINI460
+				If lFINI460
+					cValInt := IntTRcExt(, , SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA,SE1->E1_TIPO)[2]
+					If !Empty(cValInt)
+						AADD(aFINI460SE1, cValInt )
+					Endif
+				Endif
+
+				_aTit := {}
+				aAdd(_aTit , {"E1_PREFIXO"	,SE1->E1_PREFIXO	,NIL})
+				aAdd(_aTit , {"E1_NUM"		,SE1->E1_NUM		,NIL})
+				aAdd(_aTit , {"E1_PARCELA"	,SE1->E1_PARCELA	,NIL})
+				aAdd(_aTit , {"E1_TIPO"  	,SE1->E1_TIPO		,NIL})
+				aAdd(_aTit , {"E1_CLIENTE"	,SE1->E1_CLIENTE	,NIL})
+				aAdd(_aTit , {"E1_LOJA"  	,SE1->E1_LOJA		,NIL})
+				
+				//Salva a funname original
+				cFuncOri := Alltrim(Funname())
+				
+				//Clculo diferenciado dos impostos - MV_RTIPFIN
+
+				cPaisLoc := "ARG"
+
+				SetFunName("FINA460")
+				MSExecAuto({|x, y| FINA040(x, y)}, _aTit, 5)
+
+				cPaisLoc := "BRA"
+
+				cFilAnt := cFilialAtu
+
+				//Restaura a funname original
+				SetFunName(cFuncOri)
+
+				//Em caso de falha na exclusao dos titulos o processo ser parado.
+				If lMsErroAuto
+					MOSTRAERRO()
+					DisarmTransaction()
+					lContinua := .F.
+					Exit
+				Else 
+					aAdd(__aNovosTit ,{SE1->E1_PREFIXO,SE1->E1_NUM,SE1->E1_PARCELA, SE1->E1_TIPO}) // Alimenta aDischarge da mensagem unica no cancelamento
+					cInternalId := IntTRcExt(, SE1->E1_FILIAL, SE1->E1_PREFIXO, SE1->E1_NUM, SE1->E1_PARCELA, SE1->E1_TIPO)[2]
+					CFGA070Mnt('RM' /*cMarca*/, "SE1", "E1_NUM", , cInternalId , .T.)
+				EndIf
+
+			EndIf
+			
+			If lContinua .And. FindFunction("JCancBaixa")
+				// Integrao SIGAPFS x SIGAFIN
+				JCancBaixa((cAliasTMP)->CHAVE, (cAliasTMP)->CHAVESE5)
+			EndIf
+			
+			(cAliasTMP)->(dbSkip())
+
+		EndDo
+
+		//Caso a exclusao tenha ocorrido sem problemas
+		If lContinua	
+			If nTotal > 0
+				RodaProva(  nHdlPrv,;
+							nTotal)
+
+				lDigita		:= IIf( mv_par02 == 1, .T., .F. )
+				lAglutina	:= IIf( mv_par03 == 1, .T., .F. )
+
+				cA100Incl( cArquivo,;
+							nHdlPrv,;
+							3,;
+							cLote,;
+							lDigita,;
+							lAglutina,;
+							/*cOnLine*/,;
+							/*dData*/,;
+							/*dReproc*/,;
+							@aFlagCTB,;
+							/*aDadosProva*/,;
+							aDiario )
+				aFlagCTB := {}  // Limpa o coteudo apos a efetivacao do lancamento
+
+			EndIf
+
+			//------------------------------------------------------------
+			// Volta Ultimo Numero do Parametro de Liquidacao          
+			//------------------------------------------------------------
+			cNewLiq := GetMV("MV_NUMLIQ")
+			If Type("cNewLiq") != "C"
+				cNewLiq := Space(TamSx3("E1_NUMLIQ")[1])
+			EndIf
+			If cNewLiq == cLiqCan
+				PutMv("MV_NUMLIQ",Tira1(SUBSTR(cNewLiq,1,6)))
+			EndIf
+		EndIf
+
+	ElseIf lOpcAuto2 .Or. !lPodeCanc
+		lMsErroAuto := .T.
+		lContinua := .F. 
+	EndIf
+
+	If lContinua
+
+		__cNroLiqui := cLiqCan
+		//Integrao via Mensagem nica
+		If FWHasEAI('FINA460',.T.,,.T.)
+			aValOrig := F460ChgVar() //Altera as variveis INCLUI, ALTERA
+
+			oAux := FwModelActive()
+
+			oFINA460 := FwLoadModel("FINA460AX")
+			oFINA460:SetOperation(MODEL_OPERATION_INSERT)//Define operao de inclusao
+			oFINA460:Activate()
+
+			aReturn := FWIntegDef('FINA460')
+
+			If ValType(aReturn) == "A" .AND. Len(aReturn) >= 2 .AND. !aReturn[1]
+				If ! IsBlind()
+					Help( ,, "FINA460INTEG",, /*STR0241 +*/ AllTrim( aReturn[2] ), 1, 0,,,,,, /*{STR0242}*/ ) //"O registro no ser gravado, pois ocorreu um erro na integrao: ", "Verifique se a integrao est configurada corretamente."  						
+				Endif
+				DisarmTransaction()
+				Return .F.
+			Endif
+
+			F460RetVar(aValOrig)
+			oFINA460:DeActivate()
+			oFINA460:Destroy
+			oFINA460 := NIL
+			
+		EndIf
+
+		If lOpcAuto
+			F460ABlqCan(3, xFilial("SE1"), cLiqCan) //Chama rotina de cancelamento
+		EndIf
+
+		If lIntPFS .And. FindFunction("JCancLiqCR")
+			JCancLiqCR(xFilial("SE1"), cLiqCan)
+		EndIf
+	Endif
+EndIf
+
+//Finaliza controle de transacao
+End Transaction
+
+If lContinua .and. !lOpcAuto .And.  nOpct == 1 
+
+	MsgInfo("Liquidacao cancelada com sucesso!") //"Liquidao cancelada com sucesso!"
+	//Verifica se sero canceladas as simulaes da liquidao.
+	If MsgYesNo(STR0214 , STR0051) //"Deseja cancelar as simulaes desta liquidao ?"###"Ateno"
+		F460ABlqCan(3, xFilial("SE1"), cLiqCan) //Chama rotina de cancelamento
+	Else
+		F460ABlqCan(4, xFilial("SE1"), cLiqCan) //Retorna o Status presente no campo FO0_BKPSTT para todas as simulaes.
+	EndIf
+EndIf	
+
+//------------------------------------------------------------
+// Restaura a area do SE1                                    
+//------------------------------------------------------------
+If Select(cAliasTMP) > 0
+	DbSelectArea(cAliasTMP)
+	DbCloseArea()
+EndIf
+
+If Select("SE1") > 0
+	DbSelectArea("SE1")
+	DbCloseArea()
+EndIf
+
+DbSelectArea("SE1")
+RetIndex("SE1")
+Set Filter to
+
+DbSelectArea("SE1")
+DbSetOrder(nOrdemSE1)
+DbGoToP()
+fErase (cIndex+OrdBagExt())
+cIndex := ""
+
+If lPanelFin  //Chamado pelo Painel Financeiro						
+	dbSelectarea(FinWindow:cAliasFile)
+	FinVisual(FinWindow:cAliasFile,FinWindow,(FinWindow:cAliasFile)->(Recno()),.T.)	
+EndIf
+
+Return (lContinua)
+
+/*/
+
+?
+Funo	  A460FCan    Autor  Mauricio Pequim Jr     Data  02/02/98 
+?
+Descrio  Seleo para a criao do indice condicional no CANCELAMENTO 
+?
+ Uso		  Fina460														
+?
+
+
+/*/
+Static Function A460FCan()
+
+//?
+// Devera selecionar todos os registros que atendam a seguinte condio : 	
+//?
+// 2. Ou titulos que tenham originado a liquidacao selecionada 						
+//
+Local cFiltro
+cFiltro := 'E1_FILIAL = "'+xFilial("SE1")+'"  .And. '
+cFiltro += 'E1_NUMLIQ = "'+cLiqCan+'" '
+
+Return cFiltro
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460Filtra
+Cancelamento da Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function A460Filtra(cLiqCan, cAliasTMP)
+
+Local lRetOk 	:= .T.
+Local cQueryE5	:= ""
+//-----------------------------------------------------------------
+// Variaveis para a funcao da barra de status do processamento     
+//-----------------------------------------------------------------
+A460CalCan(cLiqCan, @lRetOK, cAliasTMP, @cQueryE5)
+
+dbUseArea(.T., "TOPCONN", TCGenQry(,,cQueryE5), cAliasTMP, .F., .T.)
+
+Return(lRetOk)
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460CalCan
+Calcula Parcelas, Nro.Titulos e valor da Liquidao a cancelar
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function A460CalCan(cLiqCan,lRetOk, cAliasTMP, cAlsF465, lComF440)
+
+Local cQuery	:= ""
+Local nTamLiq	:= TamSx3("E5_DOCUMEN")[1]
+Local cChave	:= ""  
+Local lFilOrig	:= .F.
+Local cLstCart 	:= FN022LSTCB(1)	//Lista das situacoes de cobranca (Carteira)
+Local nQtdFil   := 0
+Local cFilQuery := ""
+Local lMultFil  := .F.
+Local lSE1Comp	:= FWModeAccess("SE1",3) == "C"
+
+//Tratamento de gravao de filial do processo ou do titulo nas baixas
+
+Default lRetOk		:= .T.
+Default cAlsF465	:= ""
+Default lComF440	:= .F.
+
+//--------------------------------------------------------------------------
+// Cria indice condicional separando os titulos que deram origem a 
+// liquidacao e os titulos que foram gerados					        
+//--------------------------------------------------------------------------
+dbSelectArea("SE1")
+DbSetOrder(1)
+cIndex := CriaTrab(nil,.f.)
+cChave := "E1_FILIAL+E1_NUMLIQ"
+
+If Select (cAliasTMP) > 0
+	(cAliasTMP)->(DbCloseArea())
+	cAliasTMP := GetNextAlias()
+Endif
+
+//Gestao
+lFilOrig := .F.
+cQuery := "SELECT DISTINCT E5_FILORIG, E5_FILIAL  "
+cQuery += "FROM "+RetSqlName("SE5")+" WHERE"
+//Desconsidero a filial caso a filial da baixa seja a do titulo
+
+cQuery += " E5_DOCUMEN = '" + PADR(cLiqCan,nTamLiq) + "' AND"	
+cQuery += " E5_RECPAG = 'R' AND"
+cQuery += " E5_SITUACA <> 'C' AND" 
+cQuery += " E5_TIPODOC = 'BA' AND"		
+cQuery += " E5_MOTBX = 'LIQ' AND" 
+cQuery += " D_E_L_E_T_ = ' '"	
+cQuery := ChangeQuery(cQuery)
+dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), cAliasTMP, .F., .T.)
+DbSelectArea(cAliasTMP)
+
+While (cAliasTMP)->(!Eof())
+	If nQtdFil = 0
+		If lSE1Comp
+			cFilQuery := "'"  + (cAliasTMP)->(E5_FILORIG) + "'"
+			cFilQuery += ",'" + (cAliasTMP)->(E5_FILIAL)  + "' "
+			cFilQuery += ",'" + SE1->E1_FILORIG + "' "
+		Else
+			If (cAliasTMP)->(E5_FILORIG) = (cAliasTMP)->(E5_FILIAL)
+				cFilQuery := "'" + xFilial("SE1",(cAliasTMP)->(E5_FILORIG)) + "'"
+			Else 
+				cFilQuery := "'" + xFilial("SE1",(cAliasTMP)->(E5_FILORIG)) + "'"
+				cFilQuery += ",'" + (cAliasTMP)->(E5_FILIAL) + "' "
+			Endif
+		Endif
+	Else
+		If lSE1Comp
+			cFilQuery += ",'" +  (cAliasTMP)->(E5_FILORIG) + "'"
+			lMultFil  := .T.
+		Else
+			cFilQuery += ",'" +  xFilial("SE1",(cAliasTMP)->(E5_FILORIG)) + "'"
+			lMultFil  := .T.
+		Endif
+	EndIf
+	nQtdFil++
+	(cAliasTMP)->(dbSkip())
+End
+
+If !(cFilAnt $ cFilQuery)
+	Help(" ",1,"RECNO")
+	(cAliasTMP)->(DbCloseArea())
+	lRetOk := .F.
+	Return lRetOk
+Endif
+
+(cAliasTMP)->(dbGoTop())
+If !(Bof()) .and. !(Eof())
+	lFilOrig := !(Empty((cAliasTMP)->E5_FILORIG))
+	DbSelectArea(cAliasTMP)
+	DbCloseArea()
+	cQuery := "SELECT SE1.R_E_C_N_O_ CHAVE, SE5.R_E_C_N_O_ CHAVESE5 "
+	cQuery += "FROM "+RetSqlName("SE1")+" SE1,"
+	cQuery +=         RetSqlName("SE5")+" SE5 WHERE"
+	//Desconsidero a filial caso a filial da baixa seja a do titulo
+	If lMultFil
+		cQuery += " E5_FILORIG IN (" + cFilQuery + ") AND "
+	Else
+		If lSE1Comp
+			cQuery += " E5_FILORIG IN (" + cFilQuery + ") AND "
+		Else 
+			cQuery += " E5_FILIAL = '" + xFilial("SE5") + "' AND "
+		Endif
+	EndIf
+
+	If lFilOrig
+		If lMultFil .Or. lComF440
+			If lSE1Comp
+				cQuery += " E1_FILIAL = '" + xFilial("SE1") + "' AND"		
+			Else
+				cQuery += " E1_FILIAL IN (" + cFilQuery + ") AND "
+				cQuery += " E1_FILORIG = E5_FILORIG AND "
+			Endif
+		Else
+			If lSE1Comp
+				cQuery += " E1_FILIAL = '" + xFilial("SE1") + "' AND"		
+			Else	
+				cQuery += " (E1_FILIAL = '" + xFilial("SE1") + "' OR "
+				cQuery += " E1_FILORIG = E5_FILORIG) AND "
+			Endif
+		EndIf
+	Else
+		If lMultFil .Or. lComF440
+			cQuery += " E1_FILIAL IN (" + cFilQuery + ") AND "
+		Else
+			cQuery += " E1_FILIAL = '" + xFilial("SE1") + "' AND"		
+		EndIf	
+	EndIf
+	cQuery += " E5_PREFIXO = E1_PREFIXO AND"
+	cQuery += " E5_NUMERO  = E1_NUM AND"
+	cQuery += " E5_PARCELA = E1_PARCELA AND"
+	cQuery += " E5_TIPO    = E1_TIPO AND"
+	cQuery += " E5_CLIFOR  = E1_CLIENTE AND"
+	cQuery += " E5_LOJA    = E1_LOJA AND"
+	cQuery += " E5_RECPAG  = 'R' AND"
+	cQuery += " E5_SITUACA <>'C' AND"
+	cQuery += " E5_TIPODOC = 'BA' AND"	
+	cQuery += " E5_DOCUMEN = '" + PADR(cLiqCan,nTamLiq) + "' AND"
+	cQuery += " E5_MOTBX = 'LIQ' AND"
+	cQuery += " SE1.D_E_L_E_T_ = ' ' AND"
+	cQuery += " SE5.D_E_L_E_T_ = ' ' "
+
+	cQuery += " UNION ALL "
+	cQuery += " SELECT SE1.R_E_C_N_O_ CHAVE, SE1.R_E_C_N_O_ CHAVESE5 FROM " +RetSqlName("SE1")+" SE1 WHERE"
+
+	If lSE1Comp
+		cQuery += " E1_FILIAL = '" + xFilial("SE1") + "' AND"		
+	Else
+		cQuery += " E1_FILIAL IN (" + cFilQuery + ") AND "
+	Endif
+
+	cQuery += " E1_NUMLIQ = '" + cLiqCan + "' AND "
+	cQuery += " SE1.D_E_L_E_T_ = ' '"		
+	cQuery := ChangeQuery(cQuery)
+	
+	cAlsF465 := cQuery
+	
+	dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), cAliasTMP, .F., .T.)
+	DbSelectArea(cAliasTMP)
+EndIf
+
+//--------------------------------------------------------------------------
+// Certifica se foram encontrados registros na condico selecionada		
+//--------------------------------------------------------------------------
+If Bof() .and. Eof()
+	Help(" ",1,"RECNO")
+	//--------------------------------------------------------------------------
+	// Restaura os indices do SE1 e deleta o arquivo de trabalho			
+	//--------------------------------------------------------------------------
+	If Select(cAliasTMP) > 0
+		DbSelectArea(cAliasTMP)
+		DbCloseArea()
+	EndIf
+
+	If Select("SE1") > 0
+		DbSelectArea("SE1")
+		DbCloseArea()
+	EndIf
+
+	DbSelectArea("SE1")
+	RetIndex("SE1")
+	DBClearFilter()
+	fErase(cIndex+OrdBagExt())
+	cIndex := ""
+	DbSetOrder(1)
+	DbGoTop()
+	lRetOk:= .F.
+EndIf
+
+If lRetOk
+
+	While (cAliasTMP)->(!Eof())
+		dbSelectArea(cAliasTMP)
+		SE1->(dbGoto((cAliasTMP)->CHAVE))
+		(cAliasTMP)->(dbSkip())
+		DbSelectArea("SE1")
+		//--------------------------------------------------------------------------
+		// Caso tenha ocorrido a baixa de alguma parcela da liquidao , nao  
+		// sera possivel a operao de cancelamento.						   
+		//--------------------------------------------------------------------------
+		If SE1->E1_NUMLIQ == cLiqCan .And. ;
+				Str(SE1->E1_SALDO,17,2) != Str(SE1->E1_VALOR,17,2)
+
+			Help(" ",1,"LIQJABX")   // Nao aceita se ja houve baixa em liquidacao
+			lRetOk := .F.
+			Exit
+		EndIf
+		If SE1->E1_NUMLIQ == cLiqCan .and. !(SE1->E1_SITUACA $ cLstCart) .and. ;
+				(!Empty(SE1->E1_BCOCHQ) .and. SE1->E1_STATUS != "R" )
+			Help(" ",1,"TITINCOB")
+			lRetOk := .F.
+			Exit
+		EndIf
+	End
+	
+EndIf
+
+If Select (cAliasTMP) > 0
+	(cAliasTMP)->(DbCloseArea())
+Endif
+
+Return lRetOk
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460Natur
+Validacao da Natureza
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function A460Natur(cNatureza)
+Local lRet := .T.
+//294 - Natureza sintetica/Analitica
+Local lNatSa     := FNatSAIsOn()
+
+DbSelectArea("SED")
+If !(MsSeek(xFilial("SED")+cNatureza)) .or. Empty (cNatureza)
+	HELP(" ",1,"F460NATUREZ", , /*STR0261*/ ,2,0,,,,,,/*{ STR0262 }*/) //"Cdigo da natureza utilizado para identificar a procedncia dos ttulos, no  um cdigo permitido para consolidao e nem para controle oramentrio." # "Informe Cdigo de Natureza Valida"
+	lRet := .F.
+EndIf
+
+//294 - Natureza sintetica/Analitica
+If lRet .and. lNatSA .and. !FinVldNat( .F., cNatureza, 1 )
+	lRet := .F.
+EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460Tipo
+Validacao do tipo de titulo informado
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+
+Static Function FA460Tipo(cCampo,cCpoVld)
+
+Local lRetorna	:= .T.
+Local nX 		:= 0
+Local nLinAtu	:= 0 
+Local oModel 	:= FWModelActive()
+Local oView		:= FWViewActive()
+Local oModelFO0	:= oModel:GetModel('MASTERFO0')
+Local oSubFO1 	:= oModel:GetModel("TITSELFO1")
+Local oSubFO2 	:= oModel:GetModel("TITGERFO2")
+Local cNum		:= oSubFO2:GetValue("FO2_NUM")
+Local cPrefixo	:= oSubFO2:GetValue("FO2_PREFIX")
+Local cParcela	:= oSubFO2:GetValue("FO2_PARCEL")
+Local cTipo		:= oSubFO2:GetValue("FO2_TIPO")
+Local cFilOrig	:= oSubFO1:GetValue("FO1_FILORI")
+Local nGetLine	:= oSubFO2:GetLine()
+Local cParc2Ger := Alltrim(SuperGetMv("MV_1DUP"))
+Local cTipoTit  := ""
+
+Default cCampo  := "1"
+Default cCpoVld := "0"
+
+If cCampo == "1"
+	cTipo := oModelFO0:GetValue("FO0_TIPO")
+Else
+	cTipo := oSubFO2:GetValue("FO2_TIPO")
+EndIf
+
+If nTamParc == NIL
+	nTamParc := TamSx3("E1_PARCELA")[1]
+Endif
+
+If nTamParc > Len(cParc2Ger)
+	cParc2Ger := cParc2Ger + SPACE( nTamParc-Len(cParc2Ger) )
+ElseIf nTamParc < Len(cParc2Ger)	
+	cParc2Ger := Substr(cParc2Ger,1,nTamParc)
+EndIf
+
+If !Empty(cTipo)
+	DbSelectArea("SX5")
+	If !MsSeek(cFilial+"05"+cTipo)
+		oModel:SetErrorMessage("",,oModel:GetId(),"","A460TPNAOEXISTE",/*STR0256 + CRLF + STR0257 +*/ " " + cTipo) //"Codigo do Tipo no existe em tabela. Por favor, verifique." # "Codigo Tipo" 
+		lRetorna := .F.
+	Else
+		If cTipo $ MVPAGANT+"/"+MV_CPNEG
+			oModel:SetErrorMessage("",,oModel:GetId(),"","TIPODOC") //"Codigo do Tipo no existe em tabela. Por favor, verifique." # "Codigo Tipo" 
+			lRetorna := .F.
+		ElseIf cTipo $ MVRECANT+"/"+MVTAXA+"/"+MV_CRNEG .or. cTipo $ MVABATIM
+			oModel:SetErrorMessage("",,oModel:GetId(),"","TIPODOC") //"Codigo do Tipo no existe em tabela. Por favor, verifique." # "Codigo Tipo" 
+			lRetorna := .F.
+		EndIf
+	EndIf
+
+	If lRetorna
+		lRetorna := A460PreNum(cCampo, , @cNum)
+	EndIf
+	
+	If lRetorna
+		
+		nLinAtu	:= oSubFO2:GetLine()
+		If Empty(cPrefixo) .And. !Empty(MV_PAR08)
+			cPrefixo := Upper(MV_PAR08)
+		EndIf
+		If cCampo == "1"
+			If Empty(cNum)
+				cNum := a460PrxNum(cFilOrig,cTipo,cPrefixo)
+			Endif
+			For nX := 1 To oSubFO2:Length() 
+				oSubFO2:Goline(nX)
+				If Alltrim(cTipo) <> AllTrim(MVCHEQUE)
+			
+					oSubFO2:LoadValue("FO2_NUMCH","")
+					oSubFO2:LoadValue("FO2_EMITEN","")
+					oSubFO2:LoadValue("FO2_BANCO","")
+					oSubFO2:LoadValue("FO2_AGENCI","")
+					oSubFO2:LoadValue("FO2_CONTA","")
+				EndIf
+				If nPergRepl == 1 .Or. nPergRepl == 0
+					oSubFO2:LoadValue("FO2_TIPO",cTipo)
+					oSubFO2:LoadValue("FO2_NUM" ,cNum )
+				Endif
+			Next
+		ElseIf  cCampo == "5"
+						
+			If !lOpcAuto
+				If nPergRepl == 0 .And. cCpoVld == cCampo
+					If MsgYesNo(/*STR0260*/,STR0051)// "Deseja replicar a informao para as linhas abaixo?. Essa pergunta ser exibida somente no prximo acesso."
+						nPergRepl := 1 // Sim
+					Else
+						nPergRepl := 2 // no
+					Endif
+				Endif
+			Endif	
+			If Empty(cNum)
+				cNum := a460PrxNum(cFilOrig,cTipo,cPrefixo)
+			Endif
+			cTipo := oSubFO2:GetValue("FO2_TIPO")
+				
+			For nX := nLinAtu To oSubFO2:Length() 
+				
+				oSubFO2:Goline(nX)
+				
+				cPrefixo	:= oSubFO2:GetValue("FO2_PREFIX")
+				cParcela	:= oSubFO2:GetValue("FO2_PARCEL")
+					
+				If F460VldCar(cTipoTit, cNum, cPrefixo, cParcela, cTipo )
+					If F460VldE1(cPrefixo, cNum, cParcela, cTipo )
+						oModel:SetErrorMessage("",,oModel:GetId(),"","A460EXISTE",STR0220 + CRLF + " " + CRLF + STR0069 + " - " + oSubFO2:GetValue("FO2_PREFIX") + CRLF + STR0168 + " - ";
+						+ oSubFO2:GetValue("FO2_NUM") + CRLF /*+ STR0260*/ + " - " + oSubFO2:GetValue("FO2_PARCEL") + CRLF + STR0163 + " - " + oSubFO2:GetValue("FO2_TIPO") )
+						lRet := .F.
+						Exit
+					Endif
+				Else
+					oModel:SetErrorMessage("",,oModel:GetId(),"","A460CARACTER",/*STR0259*/ + CRLF + " "   )
+					lRet := .F.
+					Return lRet
+				Endif
+
+				If Alltrim(cTipo) <> AllTrim(MVCHEQUE)
+					oSubFO2:LoadValue("FO2_NUMCH","")
+					oSubFO2:LoadValue("FO2_EMITEN","")
+					oSubFO2:LoadValue("FO2_BANCO","")
+					oSubFO2:LoadValue("FO2_AGENCI","")
+					oSubFO2:LoadValue("FO2_CONTA","")
+				EndIf
+				
+				If nPergRepl == 1
+					oSubFO2:LoadValue("FO2_TIPO",cTipo)
+				Endif
+				oSubFO2:LoadValue("FO2_NUM" ,cNum )
+				
+			Next		
+		Else
+			If Alltrim(cTipo) <> AllTrim(MVCHEQUE)
+				oSubFO2:LoadValue("FO2_NUMCH","")
+				oSubFO2:LoadValue("FO2_EMITEN","")
+				oSubFO2:LoadValue("FO2_BANCO","")
+				oSubFO2:LoadValue("FO2_AGENCI","")
+				oSubFO2:LoadValue("FO2_CONTA","")
+			EndIf
+			oSubFO2:LoadValue("FO2_TIPO",cTipo)
+		EndIf
+		If !lOpcAuto	
+			If cCampo == "1"
+				oSubFO2:GoLine(1)
+			Else
+				oSubFO2:GoLine(nGetLine)
+			Endif
+			oView:Refresh()
+		EndIf
+	EndIf
+EndIf
+
+If lRetorna
+	oSubFO1:GoLine(1)
+EndIf
+
+Return lRetorna
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460GerAr
+Gera arquivo de trabalho
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function Fa460Gerarq(aCampos, cAliasTMP )
+
+Static oTmpTabFO1
+
+If InTransaction()
+	xRet := DBCreate( cAliasTMP , aCampos, "SQLITE_TMP" )
+	DBUseArea( .T., 'SQLITE_TMP', cAliasTMP, cAliasTMP, .F., .F. )
+
+	DBCreateIndex(cAliasTMP+"1", "CHAVE"  )
+
+Else
+	//-------------------
+	//Criao do objeto
+	//-------------------
+	oTmpTabFO1 := FWTemporaryTable():New(cAliasTMP)
+	oTmpTabFO1:SetFields( aCampos )
+	oTmpTabFO1:AddIndex("1", {"CHAVE"} )
+	oTmpTabFO1:AddIndex("2", {"CHAVE2"} )
+	
+	//------------------
+	//Criao da tabela
+	//------------------
+	oTmpTabFO1:Create()
+EndIf
+Return cAliasTMP
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} Fa460OK1
+Funcao que realiza a validacao do usuario na primeira tela
+da Liquidao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function Fa460OK1()
+Local lRet    := .T.
+Local lIntPFS := SuperGetMV("MV_JURXFIN",, .F.)
+
+//639.04 Base Impostos diferenciada
+Local lBaseImp		:= F040BSIMP(2)
+
+If ExistBlock("F460OK1")
+	lRet := ExecBlock("F460OK1",.f.,.f.)
+EndIf
+
+// Se Portugal, pega cod. Diario
+If UsaSeqCor() .AND. lRet
+	lRet := Fa460OK2()
+EndIf
+
+If lRet
+	If cCliAte < cCliDe
+		IW_MsgBox( STR0184, STR0051, "STOP" )	// "O cdigo <Cliente Ate> deve ser maior ou igual ao cdigo <Cliente De>."###"Ateno"
+		oCliAte:SetFocus()
+		lRet := .F.
+	ElseIf cCliAte == cCliDe .And. cLojaAte < cLojaDe
+		IW_MsgBox( STR0185, STR0051, "STOP" )	// "O cdigo <Loja Ate> deve ser maior ou igual ao cdigo <Loja De>."###"Ateno"
+		oLojaAte:SetFocus()
+		lRet := .F.
+	EndIf
+EndIf
+
+//639.04 Base Impostos diferenciada
+If lRet .and. lBaseImp
+	lRet := A460NATUR(cNatureza)
+EndIf
+
+If lRet .And. lIntPFS .And. !ChkFile("OHT")
+	If (Empty(cEscrit) .And. !Empty(cFatura)) .Or. (Empty(cFatura) .And. !Empty(cEscrit))
+		Help(" ", 1, /*STR0264*/,, /*STR0276*/, 2, 0,,,,,,/*{ STR0277 }*/) //"No Permitido" # "Chave da fatura incompleta!" # "Preencha o escritrio e a fatura ou mantenha os dois campos vazios."
+		lRet := .F.
+	EndIf
+EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} Fa460OK2
+Funcao que solicita cod. diario para Portugal
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function Fa460OK2()
+
+lRetOK2 := .T.
+
+If UsaSeqCor()
+	cCodDiario := CTBAVerDia() 
+EndIf
+
+Return lRetOK2
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460CMC7
+Programa destinado a efetuar a leitura de cheques a partir da 
+leitora CMC7 e alimentar a rotina de liquidacao.
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function F460CMC7( oModel )
+
+Local lContinua		:= .T.			// Flag da leitura quando for por dispositivo serial
+Local nNumCH		:= 1			// Numeral do cheque (qual cheque esta sendo lido. Se primeiro, segundo etc)
+Local aCMC7			:= {}			// Array que guardara os dados do cheque vindos da leitora
+Local dVenc460		:= dDataBase    // Data inicial do cheque
+Local nValChq460	:= 0			// Valor inicial do cheque
+Local cEmiten460	:= Space(40)	// Nome do emitente do cheque 
+Local aCmc7Tc 		:= {}			// Armazena o retorno da funcao F460Cmc7Tc
+Local nX			:= 2            // Variavel para comparar com o tamanho do aCols
+Local lContLeit		:= .T.			// Verifica se a leitura (teclado) acabou ou nao
+Local oModelFO0 	:= oModel:GetModel('MASTERFO0')
+Local oModelFO2 	:= oModel:GetModel('TITGERFO2')
+Local lCond 		:= .T.	
+Local lFa460Cmc7	:= ExistBlock("FA460CMC7")
+Local cDescCond   	:= ""
+Local aAuxCond    	:= {}
+Local aAuxParc		:= {}
+Local nQtdCond      
+Local nCountPag   	:= 0
+Local nTotNeg 		:= 0
+Local cParcel		:= ""
+Local cParcAux		:= ""
+Local cNumCH		:= ""
+Local nPosScan		:= 0
+Local nTamParc		:= TamSX3("FO2_PARCEL")[1]
+Local cPrefFO2		:= Upper(oModelFO2:GetValue("FO2_PREFIX")) 
+Local cMVPAR08		:= Alltrim(Upper(MV_PAR08))
+
+If Empty(cPrefFO2) //Prioriza o inicializador padro do campo
+	cPrefFO2 := cMVPAR08
+Endif
+
+SE4->(DbSetOrder(1) )
+If SE4->( DbSeek( xFilial("SE4")+Alltrim(oModelFO0:GetValue("FO0_COND") ) ) )
+	cDescCond   := SE4->E4_COND
+    aAuxCond    := STRTOKARR(cDescCond, ',')         
+                
+	If SE4->E4_TIPO == "1" // Tratamento para as condies de tipo 1 ao 7
+		nQtdCond	:=	Len(aAuxCond)
+    ElseIf SE4->E4_TIPO == "2"
+        nQtdCond	:= Val(SubStr(SE4->E4_CODIGO,2,1))
+    ElseIf SE4->E4_TIPO == "5"
+        nQtdCond   	:= Val(aAuxCond[2])
+    ElseIf SE4->E4_TIPO $ "3467"
+        nQtdCond   	:= Val(aAuxCond[1])
+    EndIf
+EndIf
+
+oModelFO2:SetNoInsertLine(.F.)
+oModelFO2:SetNoDeleteLine(.F.)
+
+If nHdlCMC7 < 0
+	lContinua := .F. 	
+	//---------------------------------------------------------
+	// Leitura do cheque utilizando leitor via teclado
+	//---------------------------------------------------------
+	While lContLeit
+		nCountPag++
+			If oModelFO2:Length() = 1 .And. Empty( oModelFO2:GetValue("FO2_BANCO") ) .And. Empty( oModelFO2:GetValue("FO2_VENCTO") ) 
+			aCmc7Tc		:= F460Cmc7Tc()
+			If Len( aCmc7Tc ) > 0
+				oModelFO2:GoLine(1)
+				If !Empty(oModelFO2:GetValue("FO2_VALOR")) 
+					nValChq460 := oModelFO2:GetValue("FO2_VALOR")
+				EndIf	
+				If F460GetChq(aCmC7Tc,@dVenc460,@nValChq460,@cEmiten460)
+		    		//ALTERAR PARA O MODEL - DIEGO 30-10-2015
+					oModelFO2:LoadValue("FO2_PREFIX" , cPrefFO2	)		    	
+					oModelFO2:LoadValue("FO2_TIPO"   , "CH"	)
+					oModelFO2:LoadValue("FO2_FILIAL" , Pad(cFilAnt,Len(oModelFO2:GetValue("FO2_FILIAL"))))					    	
+					oModelFO2:LoadValue("FO2_BANCO"  , aCmc7Tc[1] )
+					oModelFO2:LoadValue("FO2_AGENCI" , aCmc7Tc[3] )
+					oModelFO2:LoadValue("FO2_CONTA"  , aCmc7Tc[4] )
+					oModelFO2:LoadValue("FO2_NUMCH"  , Pad(aCmc7Tc[2],Len(oModelFO2:GetValue("FO2_NUM"))) )
+					oModelFO2:LoadValue("FO2_NUM"  	 , Pad(aCmc7Tc[2],Len(oModelFO2:GetValue("FO2_NUM"))) )
+					oModelFO2:LoadValue("FO2_VALOR"  , nValChq460 )
+					oModelFO2:LoadValue("FO2_VLPARC" , nValChq460 )	
+					oModelFO2:LoadValue("FO2_EMITEN" , cEmiten460 )
+					oModelFO2:LoadValue("FO2_VENCTO" , dVenc460	 )
+					oModelFO2:LoadValue("FO2_TOTAL"	 , nValChq460 )
+
+					cParcAux	:= oModelFO2:GetValue("FO2_PARCEL")
+					cParcel		:= cParcAux 
+					If Empty(cParcel)
+						cParcel := a460PrxPrc( aCmc7Tc[2] ,oModelFO2:GetValue("FO2_PREFIX"),  nTamParc )
+					Endif
+
+					oModelFO2:LoadValue("FO2_PARCEL" , cParcel )
+					Aadd(aAuxParc, {oModelFO2:GetValue("FO2_NUMCH"), cParcel})
+					nTotNeg += nValChq460
+
+					If lFa460Cmc7
+						oModelFO2 := ExecBlock("FA460CMC7", .F., .F., {oModelFO2} )
+					EndIf
+				EndIf	
+			EndIf
+		EndIf
+
+		If IW_MsgBox(STR0125,STR0001,"YESNO")	//"Deseja incluir mais cheques?"###"Liquidao"
+			aCmc7Tc	:= F460Cmc7Tc()
+
+			If Len( aCmc7Tc ) > 0
+			
+				If !(oModelFO2:SeekLine({{"FO2_BANCO",aCmc7Tc[1]}, {"FO2_AGENCI",aCmc7Tc[3]}, {"FO2_CONTA",aCmc7Tc[4]}, {"FO2_NUMCH",aCmc7Tc[2]}} ))
+					If nX <= oModelFO2:Length()//Len( aCols )
+						If !Empty( oModelFO2:GetValue("FO2_VALOR") )
+							nValChq460 := oModelFO2:GetValue("FO2_VALOR")
+						EndIf
+					EndIf	
+					If F460GetChq(aCmC7Tc,@dVenc460,@nValChq460,@cEmiten460)
+					
+						aSort(aAuxParc)
+						cNumCH   := Pad(aCmc7Tc[2],Len(oModelFO2:GetValue("FO2_NUM") ))
+						nPosScan := aScan(aAuxParc, { |x| UPPER(x[1]) = UPPER(cNumCH)})
+
+						If nPosScan > 0
+							cParcel := Soma1(aAuxParc[nPosScan,2])
+							aAuxParc[nPosScan,2] := cParcel
+						Else
+							cParcel := cParcAux
+							If Empty(cParcel)
+								cParcel :=  a460PrxPrc( aCmc7Tc[2] ,oModelFO2:GetValue("FO2_PREFIX"),  nTamParc )
+							Endif
+							Aadd(aAuxParc, {cNumCH, cParcel})
+						Endif
+											
+						If Empty( cCondicao ) .OR. oModelFO2:Length() = 1 .OR. nX > oModelFO2:Length() .OR. !lCond				
+							oModelFO2:AddLine()
+							oModelFO2:LoadValue("FO2_PREFIX" , cPrefFO2	)
+							oModelFO2:LoadValue("FO2_TIPO"   , "CH")
+							oModelFO2:LoadValue("FO2_FILIAL" , Pad(cFilAnt,Len(oModelFO2:GetValue("FO2_FILIAL"))))						    		
+							oModelFO2:LoadValue("FO2_BANCO"  , aCmc7Tc[1] )
+							oModelFO2:LoadValue("FO2_AGENCI" , aCmc7Tc[3] )
+							oModelFO2:LoadValue("FO2_CONTA"  , aCmc7Tc[4] )
+							oModelFO2:LoadValue("FO2_NUMCH"  , Pad(aCmc7Tc[2],Len(oModelFO2:GetValue("FO2_NUM"))) )
+							oModelFO2:LoadValue("FO2_NUM" 	 , Pad(aCmc7Tc[2],Len(oModelFO2:GetValue("FO2_NUM"))) )
+							oModelFO2:LoadValue("FO2_VALOR"  , nValChq460 )
+							oModelFO2:LoadValue("FO2_VLPARC" , nValChq460 )
+							oModelFO2:LoadValue("FO2_EMITEN" , cEmiten460 )
+							oModelFO2:LoadValue("FO2_VENCTO" , dVenc460	 )
+							oModelFO2:LoadValue("FO2_ACRESC" , 0	)
+							oModelFO2:LoadValue("FO2_DECRES" , 0	)
+							oModelFO2:LoadValue("FO2_TOTAL"	 , nValChq460 )
+							oModelFO2:LoadValue("FO2_PARCEL" , cParcel )
+	
+							nTotNeg += nValChq460
+	
+							lCond := .F.
+						ElseIf lCond
+							oModelFO2:LoadValue("FO2_PREFIX" , cPrefFO2	)
+							oModelFO2:LoadValue("FO2_TIPO"   , "CH"	)					
+							oModelFO2:LoadValue("FO2_FILIAL" , Pad(cFilAnt,Len(SE1->E1_PREFIXO)) )
+							oModelFO2:LoadValue("FO2_BANCO"  , aCmc7Tc[1])
+							oModelFO2:LoadValue("FO2_AGENCIA", aCmc7Tc[3])
+							oModelFO2:LoadValue("FO2_CONTA"	 , aCmc7Tc[4])
+							oModelFO2:LoadValue("FO2_NUMCH"	 , Pad(aCmc7Tc[2],Len(SE1->E1_NUM)) )
+							oModelFO2:LoadValue("FO2_NUM"    , Pad(aCmc7Tc[2],Len(SE1->E1_NUM)) )
+							oModelFO2:LoadValue("FO2_VALOR"	 , nValChq460)
+							oModelFO2:LoadValue("FO2_VLPARC" , nValChq460 )							
+							oModelFO2:LoadValue("FO2_EMITEN" , cEmiten460)
+							oModelFO2:LoadValue("FO2_TOTAL"	 , nValChq460 )
+							oModelFO2:LoadValue("FO2_PARCEL" , cParcel )	
+							
+							nTotNeg += nValChq460													  				
+	
+							If oModelFO2:GetValue("FO2_VENCTO") <> dVenc460			// Vencimento
+								oModelFO2:LoadValue("FO2_VENCTO", dVenc460)//dVenc460
+							Else
+								oModelFO2:LoadValue("FO2_VENCTO", dVenc460)//dVenc460
+							EndIf
+							nX++  	
+						EndIf			
+						If lFa460Cmc7						
+							oModelFO2  := ExecBlock("FA460CMC7", .F., .F., {oModelFO2} )
+						EndIf
+					Endif
+				Else
+					IW_MsgBox(STR0124,STR0051,"STOP")	//""Cheque j Includo ! Ser Desprezado.""###"Ateno"	
+				EndIf
+			EndIf		
+		Else
+			lContLeit := .F.					
+		EndIf	
+		Loop
+	End	
+EndIf                              
+
+While lContinua
+	aCmc7 := {}
+	aCmc7 := LjLeCmc7(nNumCH)
+	If Len(aCmc7) > 0
+		dVenc460		:= dDataBase
+		nValChq460	:= 0
+		If F460GetChq(aCmC7,@dVenc460,@nValChq460,@cEmiten460)
+			If nNumCH == 1  // Se for o primeiro
+				oModelFO2:LoadValue("FO2_PREFIX" , cPrefFO2	)
+				oModelFO2:LoadValue("FO2_TIPO"   , "CH"	)
+				oModelFO2:LoadValue("FO2_FILIAL" , Pad(cFilAnt,Len(SE1->E1_PREFIXO)) )		    		
+				oModelFO2:LoadValue("FO2_BANCO"  , aCmc7[1])
+				oModelFO2:LoadValue("FO2_AGENCIA", aCmc7[3])
+				oModelFO2:LoadValue("FO2_CONTA"	 , aCmc7[4])
+				oModelFO2:LoadValue("FO2_NUMCH"	 , Pad(aCmc7[2],Len(SE1->E1_NUM)) )
+				oModelFO2:LoadValue("FO2_NUM"	 , Pad(aCmc7[2],Len(SE1->E1_NUM)) )
+				oModelFO2:LoadValue("FO2_VALOR"	 , nValChq460)
+				oModelFO2:LoadValue("FO2_VLPARC" , nValChq460 )	
+				oModelFO2:LoadValue("FO2_EMITEN" , cEmiten460)
+				oModelFO2:LoadValue("FO2_ACRESC" , 0	)							  				
+				oModelFO2:LoadValue("FO2_DECRES" , 0	)
+				oModelFO2:LoadValue("FO2_TOTAL"	 , nValChq460 )		    					
+
+				nTotNeg += nValChq460
+			
+				nNumCH++
+				If lFa460Cmc7
+					oModelFO2 := ExecBlock("FA460CMC7", .F., .F., {oModelFO2} )
+				EndIf
+			Else
+				//Pesquisa se cheque ja foi lido anteriormente (Banco/Agencia/Conta/Nro.Cheque)					
+				If !(oModelFO2:SeekLine({{"FO2_BANCO",aCmc7Tc[1]}, {"FO2_AGENCI",aCmc7Tc[3]}, {"FO2_CONTA",aCmc7Tc[4]}, {"FO2_NUMCH",aCmc7Tc[2]}} ))
+					oModelFO2:AddLine()
+					oModelFO2:LoadValue("FO2_PREFIX", cPrefFO2	)
+					oModelFO2:LoadValue("FO2_TIPO"  , "CH"	)
+					oModelFO2:LoadValue("FO2_FILIAL", Pad(cFilAnt,Len(SE1->E1_PREFIXO)) )						
+					oModelFO2:LoadValue("FO2_BANCO"	, aCmc7[1])
+					oModelFO2:LoadValue("FO2_AGENCI", aCmc7[3])									 
+					oModelFO2:LoadValue("FO2_CONTA" , aCmc7[4])
+					oModelFO2:LoadValue("FO2_NUMCH"	, Pad(aCmc7[2],Len(SE1->E1_NUM)))
+					oModelFO2:LoadValue("FO2_NUM"	, Pad(aCmc7[2],Len(SE1->E1_NUM)))
+					oModelFO2:LoadValue("FO2_VENCTO", dVenc460)
+					oModelFO2:LoadValue("FO2_EMITEN", cEmitent)									 
+					oModelFO2:LoadValue("FO2_VALOR"	, nValChq460)
+					oModelFO2:LoadValue("FO2_VLPARC", nValChq460 )
+					oModelFO2:LoadValue("FO2_TOTAL"	, nValChq460 )
+					oModelFO2:LoadValue("FO2_ACRESC", 0)									 
+					oModelFO2:LoadValue("FO2_DECRES", 0)
+
+					nTotNeg += nValChq460
+					nNumCH++
+
+					If lFa460Cmc7
+						oModelFO2 := ExecBlock("FA460CMC7", .F., .F., {oModelFO2} )
+					EndIf
+				Else
+					IW_MsgBox(STR0124,STR0051,"STOP") //"Cheque j Includo ! Ser Desprezado."###"Ateno"
+				EndIf
+			EndIf
+		EndIf
+		If !IW_MsgBox(STR0125,STR0001,"YESNO") //"Deseja incluir mais cheques?"###"Liquidao"
+			Exit
+		EndIf
+	Else
+		If IW_Msgbox(STR0126,STR0051,"YESNO")  //"Encerra leitura de Cheques ?"###"Ateno"
+			Exit
+		EndIf
+	EndIf
+End
+
+oModelFO0:LoadValue("FO0_VLRNEG" , nTotNeg )
+
+oModelFO2:SetNoInsertLine(.T.)
+oModelFO2:SetNoDeleteLine(.T.)
+
+oModelFO2:GoLine(oModelFO2:Length())
+
+Return nTotNeg
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460GetChq
+Entrada de dados do cheque 
+
+Parametros: ExpA1=Array contendo dados do cheque (vindos da leitora)
+			ExpD1=Data de vencto do cheque                          
+			ExpC3=Valor do Cheque
+			ExpC4=Nome do Emitente                                   
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function F460GetChq(aCmC7,dVenc460,nValChq460,cEmiten460)
+
+Local lCorrige := .F.
+Local lRet := .F.
+Local nOpca := 0
+Local oBanco
+
+// Criacao da Interface                                                
+While .T.
+	nOpca := 0
+	DEFINE MSDIALOG oMkwdlg FROM	070,116 TO 344,380 TITLE STR0127 PIXEL  //"Dados do cheque"
+	@ 010,010 SAY STR0128     	Size 25,08 OF oMkwdlg PIXEL	//"Banco"
+	@ 025,010 SAY STR0129   	Size 25,08 OF oMkwdlg PIXEL	//"Agncia"
+	@ 040,010 SAY STR0130     	Size 25,08 OF oMkwdlg PIXEL	//"Conta"
+	@ 055,010 SAY STR0131    	Size 25,08 OF oMkwdlg PIXEL	//"Cheque"
+	@ 070,010 SAY STR0132		Size 35,08 OF oMkwdlg PIXEL	//"Vencimento"
+	@ 085,010 SAY STR0133		Size 25,08 OF oMkwdlg PIXEL	//"Valor"
+	@ 100,010 SAY STR0142		Size 25,08 OF oMkwdlg PIXEL	//"Emitente"
+	@ 010,050 MSGET oBanco VAR aCmc7[1] WHEN lCorrige	Size 70,10 OF oMkwdlg PIXEL hasbutton
+	@ 025,050 MSGET aCmc7[3] WHEN lCorrige	Size 70,08 OF oMkwdlg PIXEL hasbutton
+	@ 040,050 MSGET aCmc7[4] WHEN lCorrige	Size 70,08 OF oMkwdlg PIXEL hasbutton
+	@ 055,050 MSGET aCmc7[2] WHEN lCorrige	Size 70,08 OF oMkwdlg PIXEL hasbutton
+	@ 070,050 MSGET dVenc460					Size 70,08 OF oMkwdlg PIXEL hasbutton
+	@ 085,050 MSGET nValChq460 Valid nValChq460 > 0 Picture "@E 99,999,999.99" Size 70,08  OF oMkwdlg PIXEL hasbutton
+	@ 100,050 MSGET cEmiten460 Picture "@!S40" Size 70,08  OF oMkwdlg PIXEL hasbutton
+		
+	DEFINE SBUTTON FROM 122, 035 TYPE 1 ACTION (nOpca:=1,oMkwdlg:End())ENABLE OF oMkwdlg PIXEL
+	DEFINE SBUTTON FROM 122, 065 TYPE 2 ACTION (nOpca:=2,oMkwdlg:End())ENABLE OF oMkwdlg PIXEL
+	DEFINE SBUTTON FROM 122, 095 TYPE 5 ACTION (nOpca:=3,	;
+																aCmc7[1] := PADR(aCmc7[1],3," "),;
+																aCmc7[3] := PADR(aCmc7[3],4," "),;
+																aCmc7[4] := PADR(aCmc7[4],10," "),;
+																aCmc7[2] := PADR(aCmc7[2],6," "),;
+																lCorrige := .T.,;
+																oBanco:SetFocus()) ENABLE OF oMkwdlg PIXEL
+	
+	ACTIVATE MSDIALOG oMkwdlg CENTERED
+	
+	If nOpca == 1  // Confirma Dados do Cheque
+		lRet := .T.
+		lCorrige := .F.
+	ElseIf nOpca == 2 	// Finaliza inclusao de cheques
+		lRet := .F.
+		lCorrige := .F.
+	EndIf	
+	Exit	
+End	
+Return(lRet)
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} NivelSX3
+Retorna o nvel de um campo no SX3 
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function NivelSX3(cField)
+Local nOrdem := SX3->(IndexOrd())
+Local nRecno := SX3->(Recno())
+Local nNivel := 0
+SX3->(DbSetOrder(2))
+If SX3->(MsSeek(cField))
+	nNivel := SX3->X3_NIVEL
+EndIf
+SX3->(DbSetOrder(nOrdem))
+SX3->(DbGoto(nRecno))
+Return nNivel
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460PARC
+Retorna a Parcela do Ttulo
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function F460PARC()
+
+cParc460 := CriaVar("E1_PARCELA",.F.)
+
+Return cParc460
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FIN460ACUR
+Ajusta o ComboBox de Cursos disponiveis de acordo com o RA  
+escolhido (Gestao Educacional)
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function FIN460ACUR(cNumRa,oNrDoc,cNrDoc,aNrDoc,oClients,cCliCombo,aClients)
+Local aTmpDoc 	:= {}
+Local lDif 		:= .F.
+Local lExitTit 	:= .F.
+Local cQuery 	:= ""
+Local lRet  	:= .T.
+
+//Primeiro verifica se existe titulo para este aluno
+cQuery := "SELECT COUNT(E1_NUM) QTD"
+cQuery += "  FROM " + RetSQLName("SE1")
+cQuery += " WHERE E1_FILIAL = '"+xFilial("SE1")+"'"
+cQuery += "  AND E1_NUMRA = '"+cNumRa+"'"
+cQuery += "  AND D_E_L_E_T_ = ' '"
+cQuery := ChangeQuery(cQuery)
+dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), '_460TITALU', .F., .T.)
+
+lExitTit := _460TITALU->QTD > 0
+_460TITALU->( dbCloseArea() )
+
+if lExitTit
+	JBE->(dbSetOrder(1))
+	JBE->(MsSeek(xFilial("JBE")+cNumRA))
+	WHILE xFilial("JBE") == xFilial("JBE") .and. JBE->JBE_NUMRA == cNumRa .and. ! JBE->(EOF())
+		aadd(aTmpDoc,JBE->JBE_CODCUR+" "+JBE->JBE_PERLET+" "+JBE->JBE_TURMA+" - "+Posicione("JAH",1,xFilial("JAH")+JBE->JBE_CODCUR,"JAH_DESC"))
+		If Len(aNrDoc) >= Len(aTmpDoc)
+			If ! aNrDoc[Len(aTmpDoc)] == aTmpDoc[Len(aTmpDoc)]
+				lDif := .T.
+			EndIf
+		EndIf
+		JBE->(dbSkip())
+	END
+	aadd(aTmpDoc,STR0153)	//"Outros Ttulos"
+	If ! Len(aNrDoc) == Len(aTmpDoc) .or. lDif
+		aNrDoc := aClone(aTmpDoc)
+		oNrDoc:SetItems(aNrDoc)
+		oNrDoc:Refresh()
+	EndIf
+	
+	//Ajusta o ComboBox de Clientes disponiveis de acordo com o RA e Curso (NrDoc) escolhido
+	FIN460ACli(cNumRa,cNrDoc,@oClients,@cCliCombo,@aClients)
+else
+	MsgAlert(STR0195) //"No existem ttulos para este aluno."
+	lRet := .F.
+endif
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} Fa460ExcSef
+Exclui cheques do SEF atrelados ao titulo liquidado
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function Fa460ExcSef(cPrefixo,cNum,cParcela,cTipo)
+Local aArea := GetArea()
+
+SEF->(dbSetOrder(7) )
+If SEF->(MsSeek(xFilial("SEF")+"R"+cPrefixo+cNum+cParcela+cTipo))
+	While SEF->(!Eof()) .And. ;
+			xFilial("SEF")+"R"+cPrefixo+cNum+cParcela+cTipo==;
+			SEF->(EF_FILIAL+EF_CART+EF_PREFIXO+EF_TITULO+EF_PARCELA+EF_TIPO)
+		Reclock("SEF")
+		SEF->(dbDelete())
+		MsUnlock()
+		FkCommit()
+		SEF->(dbSkip())
+	End
+Endif
+RestArea(aArea)
+
+Return Nil 
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460Confirma
+Funcao para a validar o cdigo capturado pelo leitor de CMC7
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function F460Confirma( cCmc7 )
+Local lRet := .F.		// Retorno da validacao da string
+
+Default cCmc7	:= ""	//Codigo do CMC7
+
+If SubStr(cCmc7,1,1) <> "<"
+	cCmc7	:= SubStr(Alltrim(cCmc7),2,Len(Alltrim(cCmc7)) - 1)
+EndIf
+
+If Empty( cCmc7 ) // Caso nao leia nada
+	MsgAlert( STR0178 )		// "Passe o cheque novamente no leitor." 
+ElseIf ( "?" $ cCmc7 ) .OR. Len( AllTrim( cCmc7 ) ) <> 34 // Se encontrar o caracter de erro (?) ou tamnaho menor que o correto (34)
+	MsgAlert( STR0179 + " " + STR0178 )		// "Erro na leitura." ### "Passe o cheque novamente no leitor."  
+Else
+	lRet := .T.
+EndIf	
+
+Return ( lRet )	    
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460Cmc7Tc
+Funcao para a captura do cdigo CMC7 pelo leitor via teclado.
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function F460Cmc7Tc()
+Local cCmc7 	:= Space(35)	// Recebera o conteudo lido do cheque 
+Local oCmc7						// Objeto do get do CMC7
+Local oDlg						// Monta a tela de captura do codigo  
+Local aCmc7Tc	:= {}			// Armazena os dados do cheque; retorno da funcao
+Local nOpcx 	:= 0
+
+DEFINE MSDIALOG oDlg TITLE STR0180 FROM 200 , 001 TO 300 , 300 OF oMainWnd PIXEL	// "Leitura do cdigo do cheque"
+@ 010 , 018 Say STR0181 SIZE 050 , 050 OF oDlg PIXEL								// "Passe o cheque:"
+@ 018 , 018 MSGET oCmc7 VAR cCmc7 PICTURE "@!" SIZE 120,009 OF oDlg PIXEL
+
+DEFINE SBUTTON FROM 35 , 080 TYPE 1 ACTION (Iif (F460Confirma(@cCmc7), (oDlg:End(), nOpcx := 1), oCmc7:SetFocus()) )  ENABLE OF oDlg
+DEFINE SBUTTON FROM 35 , 110 TYPE 2 ACTION oDlg:End()  ENABLE OF oDlg
+
+ACTIVATE MSDIALOG oDlg CENTERED	
+
+If nOpcx == 1  //Confirmou cheque
+
+	If ExistBlock("F460CMTC")
+		aCmc7Tc := ExecBlock("F460CMTC",.F.,.F.,cCmC7)
+	Else
+		aAdd( aCmc7Tc, SubStr(cCmc7, 2,  3) )	//Banco
+		aAdd( aCmc7Tc, SubStr(cCmc7, 14, 6) )	//Cheque
+		aAdd( aCmc7Tc, SubStr(cCmc7, 5,  4) )	//Agencia  
+		aAdd( aCmc7Tc, SubStr(cCmc7, 23, 10) )	//Conta
+	EndIf	
+
+Else
+	lCMC7 := .F.
+EndIf	
+
+//Utilize os cdigos abaixo para testes com CMC7
+//<23701348<0180001265<577508114673:
+//<23728016<0010002185>777500568207:
+//<35612683<0180100215>800060056009:
+Return( aCmc7Tc )
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} MenuDef
+Utilizacao de menu Funcional 
+
+@author Ana Paula N. Silva
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function MenuDef()
+
+Local aRotina 	:= {}
+Local lFa460Rot := Existblock("FA460ROT")
+Local lIntPFS   := SuperGetMV("MV_JURXFIN",,.F.) // Integrao SIGAPFS
+
+aRotina := {			{ STR0002 ,"AxPesqui"  , 0 , 1 ,,.F.},;	    //"Pesquisar"
+						{ STR0003 ,"A460Liquid", 0 , 3 		},;   	// "Liquidar"
+						{ STR0076 ,"A460Liquid", 0 , 3 		},;   	// "Reliquidar"
+						{ STR0052 ,"FA460Can"  , 0 , 6 		},;		//"Cancelar"
+						{ STR0200 ,"CTBC662"   , 0 , 7 		},;   	//"Tracker Contbil"
+						{ STR0154 ,"FA040Legenda", 0 , 6, ,.F.},; 	//"Legenda"}  	 
+						{ STR0234,'FA460Visul',0,4}}//"Visualizar Titulo"
+	
+If lFa460Rot
+	aRotina := Execblock("FA460ROT",.F.,.F.,aRotina)		//adiciona alguma rotina em aRotina
+EndIf
+
+If lIntPFS .And. ExistFunc("JurBtnReli") .And. !FwIsInCallStack("FINA740")
+	JurBtnReli(@aRotina, STR0076)
+EndIf
+
+Return(aRotina)
+
+/*/{Protheus.doc} FA460Visul
+Visualizao do Titulo na baixa
+@type  Function
+@author user
+@since date
+@version 1.0
+/*/
+Static Function FA460Visul
+
+AxVisual( "SE1", SE1->( Recno() ), 2 )
+
+Return
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FinA460T
+Chamada semi-automatica utilizado pelo gestor financeiro
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function FinA460T(aParam)	
+
+	ReCreateBrow("SE1",FinWindow)      	
+	cRotinaExec := "FINA460"
+	FinA460(aParam[1])
+	ReCreateBrow("SE1",FinWindow)      	
+
+	dbSelectArea("SE1")
+	
+	INCLUI := .F.
+	ALTERA := .F.
+
+Return .T.	
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460MotBX
+Funcao criar automaticamente o motivo de baixa LIQ na tabela de
+Motivo de Baixas
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------                   
+Static Function Fa460MotBx(cMot,cNomMot, cConfMot)
+	Local lMotBxEsp	:= .F.
+	Local aMotbx 	:= ReadMotBx(@lMotBxEsp)
+	Local nHdlMot	:= 0
+	Local I			:= 0
+	Local cFile 	:= "SIGAADV.MOT"
+	Local nTamLn	:= 19
+
+	If lMotBxEsp
+		nTamLn	:= 20
+		cConfMot	:= cConfMot + "N"
+	EndIf
+	
+	If ExistBlock("FILEMOT")
+		cFile := ExecBlock("FILEMOT",.F.,.F.,{cFile})
+	EndIf
+	
+	If Ascan(aMotbx, {|x| Substr(x,1,3) == Upper(cMot)}) < 1
+		nHdlMot := FOPEN(cFile,FO_READWRITE)
+		If nHdlMot <0
+			HELP(" ",1,"SIGAADV.MOT")
+			Final("SIGAADV.MOT")
+		EndIf
+		
+		nTamArq:=FSEEK(nHdlMot,0,2)	// VerIfica tamanho do arquivo
+		FSEEK(nHdlMot,0,0)			// Volta para inicio do arquivo
+
+		For I:= 0 to  nTamArq step nTamLn // Processo para ir para o final do arquivo	
+			xBuffer:=Space(nTamLn)
+			FREAD(nHdlMot,@xBuffer,nTamLn)
+		Next		
+		
+		fWrite(nHdlMot,cMot+cNomMot+cConfMot+chr(13)+chr(10))	
+		fClose(nHdlMot)		
+	EndIf	
+Return
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460VldCmp
+Funcao criar automaticamente o motivo de baixa LIQ na tabela de
+Motivo de Baixas
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//------------------------------------------------------------------- 
+Static Function F460VldCmp( cCliDe, cLojaDe, cCliAte, cLojaAte, cCli460, cLoja )
+
+cCliAte := cCliDe
+cLojaAte := cLojaDe
+cCli460 := cCliDe
+cLoja := cLojaDe
+
+Return .T.
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} Fn460ValIn
+Realiza as validacoes da negociacao de titulos nativos do 
+RM ClassisNet
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//------------------------------------------------------------------- 
+Static Function Fn460ValIn(nOpca)
+Local lRet := .T.
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460NATIMP
+Funcao para verifica o calculo de impostos para a natureza dos 
+titulos a serem gerados
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+/*/
+//-------------------------------------------------------------------
+Static Function F460NATIMP()
+
+//639.04 Base Impostos diferenciada
+Local lBaseImp	:= F040BSIMP(2)
+Local cImpPcc	:= ""
+
+cNatureza := If(Type("cNatureza") != "C", "",cNatureza)
+
+If lBaseImp .and. !Empty(cNatureza) .and. !Empty(cCliente)
+
+	//Posiciona Cadastro de Naturezas
+	SED->(dbSetOrder(1))
+	SED->(MsSeek(xFilial("SED")+cNatureza))
+
+	//Posiciona Cadastro de Clientes		
+	SA1->(dbSetOrder(1))
+	SA1->(MsSeek(xFilial("SA1")+cCliente+cLoja))
+
+	//Verifico se a combinacao Cliente x Natureza calcula CSLL
+	If (SED->ED_CALCCSL == "S" .and. SA1->A1_RECCSLL $ "S#P")
+		cImpPcc += "CSL#"
+	EndIf
+
+	//Verifico se a combinacao Cliente x Natureza calcula COFINS	
+	If	(SED->ED_CALCCOF == "S" .and. SA1->A1_RECCOFI $ "S#P")
+		cImpPcc += "COF#"
+	EndIf
+			
+	//Verifico se a combinacao Cliente x Natureza calcula PIS
+	If	(SED->ED_CALCPIS == "S" .and. SA1->A1_RECPIS $ "S#P") 
+		cImpPcc += "PIS#"
+	EndIf
+
+	If SED->ED_CALCIRF $ "1S" .And. If(cPaisLoc == "BRA", SA1->A1_RECIRRF $ "1", .T.)
+		cImpPcc += "IRF#"
+	EndIf
+	If SED->ED_CALCINS $ "1S"
+		cImpPcc += "INS#"
+	EndIf
+	If SED->ED_CALCISS $ "1S" .AND. SA1->A1_RECISS $ "1"
+		cImpPcc += "ISS#"
+	EndIf
+
+EndIf	
+
+Return (cImpPcc)
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FIN460ACli
+Ajusta o ComboBox de Clientes disponiveis de acordo com o RA e 
+Curso (NrDoc) escolhido. (Gestao Educacional )
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function FIN460ACli(cNumRa,cNrDoc,oClients,cCliCombo,aClients)
+Local aTmpCli := {}
+Local cQuery  := ""
+Local lMSSQL := "MSSQL"$TCGetDB()
+Local lMySQL := "MYSQL"$TCGetDB()
+
+If !Empty(cNumRa)
+	cQuery := "SELECT DISTINCT E1_CLIENTE, E1_NOMCLI"
+	cQuery += "  FROM " + RetSQLNAme("SE1")
+	cQuery += " WHERE E1_FILIAL = '"+xFilial("SE1")+"'"
+	cQuery += "   AND E1_NUMRA  = '"+cNumRa+"'"
+	If cNrDoc == STR0153 //"Outros Ttulos"
+		cQuery += "   AND E1_NRDOC  = '"+Space(TamSx3("E1_NRDOC")[1])+"'"
+	Else
+		If lMSSQL .or. lMySQL
+			cQuery += " AND Substring(E1_NRDOC,1,"+alltrim(Str(TamSx3("JBE_CODCUR")[1]+TamSx3("JBE_PERLET")[1]))+") = '"+Substr(cNrDoc,1,TamSx3("JBE_CODCUR")[1])+Substr(cNrDoc,TamSx3("JBE_CODCUR")[1]+2,TamSx3("JBE_PERLET")[1])+"'"
+		Else
+			cQuery += " AND Substr(E1_NRDOC,1,"+alltrim(Str(TamSx3("JBE_CODCUR")[1]+TamSx3("JBE_PERLET")[1]))+") = '"+Substr(cNrDoc,1,TamSx3("JBE_CODCUR")[1])+Substr(cNrDoc,TamSx3("JBE_CODCUR")[1]+2,TamSx3("JBE_PERLET")[1])+"'"
+		EndIf
+	EndIf
+	cQuery += "   AND D_E_L_E_T_ = ' '"
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), '_460CLI', .F., .T.)
+	
+	If _460CLI->( !EoF() )
+		While _460CLI->( !EoF() )
+			aAdd(aTmpCli,_460CLI->E1_CLIENTE+" - "+_460CLI->E1_NOMCLI)
+			_460CLI->( dbSkip() )
+		End
+	Else
+		aAdd(aTmpCli,"")
+	EndIf
+	
+	_460CLI->( dbCloseArea() )
+Else
+	aAdd(aTmpCli,"")
+EndIf
+
+If cChvRaNDoc <> cNumRa+cNrDoc
+	cChvRaNDoc 	:= cNumRa+cNrDoc
+	aClients 	:= aClone(aTmpCli)
+	oClients:SetItems(aClients)
+	oClients:Refresh()
+EndIf
+
+Return .T.
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} fa460Corr
+Calcula a correo monetria
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+
+/*/
+//-------------------------------------------------------------------
+Static Function fa460Corr(nValorBx,nMoeda,nTxMoeda)
+
+Local nCorrecao := 0
+Local nValAtual := 0
+Local nValEmiss := 0
+Local nVlrMoeda	:= 0
+Local nVlrConv	:= 0
+
+DEFAULT nTxMoeda	:= If(SE1->E1_TXMOEDA > 0, SE1->E1_TXMOEDA,RecMoeda(dDataBase,SE1->E1_MOEDA))
+
+If Str(nValorBx,17,2) = Str(SE1->E1_VALOR,17,2) .And. Empty(SE1->E1_DTVARIA)
+	nValEmiss := SE1->E1_VLCRUZ
+Else
+	If !Empty(SE1->E1_TXMDCOR)
+		nValEmiss := xMoeda(nValorBx,SE1->E1_MOEDA,1,Iif(Empty(SE1->E1_DTVARIA),SE1->E1_EMISSAO,SE1->E1_DTVARIA),3,SE1->E1_TXMDCOR)
+	Else
+		If SE1->E1_TXMOEDA > 0
+			nVlrMoeda := SE1->E1_TXMOEDA
+		Else
+			nVlrMoeda := RecMoeda(SE1->E1_EMISSAO, nMoeda)
+		EndIf
+		nValEmiss := xMoeda(SE1->E1_SALDO,SE1->E1_MOEDA,1,Iif(Empty(SE1->E1_DTVARIA),SE1->E1_EMISSAO,SE1->E1_DTVARIA), 3, nVlrMoeda, 1)
+	EndIf
+EndIf
+
+nVlrMoeda := RecMoeda(dDataBase, nMoeda)
+nVlrConv  := xMoeda(nValorBx, 1, SE1->E1_MOEDA, dDataBase, 3, 1, nVlrMoeda)
+nValAtual := xMoeda(nVlrConv, SE1->E1_MOEDA, 1 , dDataBase, 3, nVlrMoeda, IIf(SE1->E1_TXMOEDA > 0 .And. SE1->E1_TXMOEDA == nTxMoeda,SE1->E1_TXMOEDA,nTxMoeda))
+
+//--------------------------------------------------------------------------
+// Verifica atraves do parametro MV_CALCCM se sera calculada a correcao 
+// monetaria. Caso o parametro nao exista, sera assumido "S"					
+//--------------------------------------------------------------------------
+If GetMv("MV_CALCCM") == "S"
+	nCorrecao := Round(nValAtual - nValEmiss, 2)
+Else
+	nCorrecao := 0
+EndIf
+
+Return (nCorrecao)
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460NotIn
+Monta a expresso do NOT IN da query da liquidacao
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	21/01/1998	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function F460NotIN(lMarkAbt)
+
+Local cTipos := MVPROVIS+"/"+MVRECANT+"/"+MV_CRNEG+"/"+MVABATIM
+			
+cTipos	:=	StrTran(cTipos,',','/')
+cTipos	:=	StrTran(cTipos,';','/')
+cTipos	:=	StrTran(cTipos,'|','/')
+cTipos	:=	StrTran(cTipos,'\','/')
+
+cTipos := Formatin(cTipos,"/")
+
+Return cTipos
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460GetTit
+Funo que verifica retorna os vetores com os ttulos baixados e com 
+os novos ttulos gerados, para uso na mensagem nica FinancialTrading
+		
+@return aBaixados - Vetor com os ttulos baixados
+@return aNovos - Vetor com os novos ttulos gerados
+@return cNroLiqui - Varivel com o nmero da liquidao 
+
+@author Pedro Pereira Lima
+@version P12
+@since	02/04/2014											
+/*/
+//-------------------------------------------------------------------
+
+Static Function F460GetTit (_aBaixados,_aNovosTit,_cNroLiqui)
+
+Default _aBaixados := __aBaixados
+Default _aNovosTit := __aNovosTit
+Default _cNroLiqui := __cNroLiqui
+
+Return { _aBaixados, _aNovosTit, _cNroLiqui } 
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} IntegDef
+Integrao via mensagem nica
+
+@author Pedro Pereira Lima
+@version P12
+@since	02/04/2014											
+/*/
+//-------------------------------------------------------------------
+Static Function IntegDef( cXml, nType, cTypeMsg, cVersion )  
+Local aReturn := {}
+
+aReturn := FINI460( cXml, nType, cTypeMsg, cVersion )
+
+If cTypeMsg == EAI_MESSAGE_RESPONSE
+	aRespInteg := aClone(aReturn)
+EndIf
+
+Return aReturn
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460ChgVar
+Altera o valor das variveis INCLUI, ALTERA e EXCLUI, retornando um array
+contendo os valores originais
+
+@author Pedro Pereira Lima
+@version P12
+@since	04/01/2015											
+/*/
+//-------------------------------------------------------------------
+Static Function F460ChgVar()
+Local aRet := {,}
+
+If Type("INCLUI") <> "U"
+	aRet[1] := INCLUI
+	If INCLUI
+		INCLUI := .F.
+	EndIf
+EndIf
+
+If Type("ALTERA") <> "U"
+	aRet[2] := ALTERA
+	If ALTERA
+		ALTERA := .F.
+	EndIf
+EndIf
+
+Return aRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460RetVar
+Retorna os valores originais das variveis INCLUI, ALTERA e EXCLUI
+
+@author Pedro Pereira Lima
+@version P12
+@since	04/01/2015											
+/*/
+//-------------------------------------------------------------------
+Static Function F460RetVar(aValOrig)
+Default aValOrig := {}
+
+If !Empty(aValOrig)
+	
+	If ValType(aValOrig[1]) == "L"
+		INCLUI := aValOrig[1]
+	EndIf
+
+	If ValType(aValOrig[2]) == "L"
+		ALTERA := aValOrig[2]
+	EndIf
+
+EndIf
+
+Return
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460BuscSE1
+Funo para buscar os ttulos para liquidao
+
+@author Pmela Bernardo
+@version P12.1.8
+@since	05/10/2015
+@param cAlias = alias corrente para busca dos dados
+@param nOpcx 2 = Liquidao, 6 = Reliquidao
+@param aCpoBro Estrutura da tabela temporria
+@param cOrigem Origem da chamada da funo 1 = Liquidao, 2 = Simulao/Efetivao
+											
+/*/
+//-------------------------------------------------------------------
+Static Function F460BuscSE1(cAlias,nOpcx,aCpoBro, cAliasTMP,nOrigem )
+
+Local aMoedas		:= {}
+Local cMoeda460		:= ""
+Local cOutrMoed 	:= STR0136 //"2 - Nao Considera"
+Local aOutrMoed 	:= {}
+Local lPanelFin		:= IsPanelFin()
+Local oDlg          := Nil
+Local oValorMax
+Local oValorDe
+Local oValorAte
+Local oFnt
+Local aIntervalo	:= { STR0063, STR0064 }		//"01 EMISSAO   "###"02 VENCIMENTO"
+Local cIntervalo	:= STR0063		//"01 EMISSAO   "
+Local lBaseImp		:= F040BSIMP(2)
+Local cVar			:= ""
+Local cVar1 		:= STR0063		//"01 EMISSAO   "
+Local cSimb			:= ""
+Local nOpca 		:= 0
+
+//Gestao
+Local lGestao	  	:= FWSizeFilial() > 2	// Indica se usa Gestao Corporativa
+Local lSE1Access	:= Iif( lGestao, FWModeAccess("SE1",1) == "E", FWModeAccess("SE1",3) == "E")
+Local aSelFil		:= {}
+Local cAliasSE1		:= GetNextAlias()
+Local cQuery		:= ""
+Local lRet			:= .T.
+Local nX 			:= 0
+Local aAreaSe1		:= SE1->(GetArea())
+Local aCampos 		:= aClone(F460STRFO1())	// Cria a estrutura a ser utilizada no arquivo temporrio
+
+//Variveis para integrao via Mensagem nica
+Local lRMClass	:= GetNewPar("MV_RMCLASS",.F.)
+Local nRMBxEdu	:= GetNewPar("MV_RMBXEDU",0)
+Local oFilInt
+Local aFilInt	:=  {"1=Sim","2=No"}
+Local oJurEscrit	:= ""
+Local oJurFat		:= ""
+
+//Integrao SIGAPFS x SIGAFIN
+Local lIntPFS	:= SuperGetMV("MV_JURXFIN",,.F.)
+Local lLojaAuto := lIntPFS .And. SuperGetMv( "MV_JLOJAUT", .F., "2", ) == "1" //Indica se a Loja do Caso deve ser preenchida automaticamente. (1-Sim; 2-No)
+Local nPicture	:= PesqPict( "SE1", "E1_VALOR")
+
+Private cEscrit	:= Criavar("NS7_COD") //Variaveis modulo Juridico
+Private cFatura	:= Criavar("NXA_COD") //Variaveis modulo Juridico
+
+Default nOrigem := 1
+
+//Opo de variao monetria no disponvel para rotina de simulao
+aOutrMoed := IIf(nOrigem=1, {STR0135,STR0136,/*STR0267*/},{STR0135,STR0136}) //"1 - Converte"###"2 - Nao Considera"###"3 - Variac.Monet."
+
+If Len(aRotina) == 0
+	aRotina := MenuDef()
+EndIf
+
+cAliasTMP 	:= GetNextAlias()//Alias da tabea temporria 						
+aMoedas 	:= FDescMoed()  
+nValTot		:= 0
+nOpca   	:= 0
+lProcessou	:= .F. 
+	
+If nOpcx == 6
+	cCadastro := STR0074		// "Reliquidao"
+Endif
+	
+DEFINE FONT oFnt NAME "Arial" SIZE 12,14 BOLD
+
+If !lOpcAuto
+	//Tela de parametros da rotina
+	If lPanelFin  //Chamado pelo Painel Financeiro			
+		dbSelectArea(cAlias)
+		oPanelDados := FinWindow:GetVisPanel()
+		oPanelDados:FreeChildren()
+		aDim := DLGinPANEL(oPanelDados)
+		DEFINE MSDIALOG oDlg OF oPanelDados:oWnd FROM 0,0 To 0,0 PIXEL STYLE nOR( WS_VISIBLE, WS_POPUP )							
+		oDlg:Move(aDim[1],aDim[2],aDim[4]-aDim[2], aDim[3]-aDim[1])			
+			
+		//--------------------------------------------------------------------------
+		// Observacao Importante quanto as coordenadas calculadas abaixo:  
+		//--------------------------------------------------------------------------
+		// a funcao DlgWidthPanel() retorna o dobro do valor da area do	 
+		// painel, sendo assim este deve ser dividido por 2 antes da sub- 
+		// tracao e redivisao por 2 para a centralizacao. 					 		
+		//--------------------------------------------------------------------------
+		nEspLarg := (((DlgWidthPanel(oPanelDados)/2) - 276) /2)-4
+		nEspLin  := 0				
+	Else   
+		nEspLarg := 0 
+		nEspLin  := 3
+		DEFINE MSDIALOG oDlg FROM	85,0 TO 420,560 TITLE cCadastro PIXEL
+	Endif     
+
+	oDlg:lMaximized := .F.
+	oPanel := TPanel():New(0,0,'',oDlg,, .T., .T.,, ,20,20)
+	oPanel:Align := CONTROL_ALIGN_ALLCLIENT    			
+	
+	@ 004+nEspLin, 007+nEspLarg TO 145+nEspLin, 276+nEspLarg OF oPanel PIXEL
+	If lIntPFS
+		@ 010+nEspLin, 014+nEspLarg SAY STR0020 SIZE 40, 7 OF oPanel PIXEL //"Cliente"
+		If !lLojaAuto
+			@ 010+nEspLin, 070+nEspLarg SAY STR0014 SIZE 20, 7 OF oPanel PIXEL //"Loja"
+		EndIf
+		@ 010+nEspLin, 104+nEspLarg SAY STR0236 SIZE 100,7 PIXEL Of oPanel //"Escritrio"
+		@ 010+nEspLin, 194+nEspLarg SAY STR0237	SIZE 100,7 PIXEL Of oPanel //"Fat. Jurdico"
+	Else
+		@ 010+nEspLin, 014+nEspLarg SAY STR0070	SIZE 40, 7 OF oPanel PIXEL   //"Cliente De"
+		@ 010+nEspLin, 070+nEspLarg SAY STR0072	SIZE 20, 7 OF oPanel PIXEL   //"Loja De"
+		@ 010+nEspLin, 104+nEspLarg SAY STR0071	SIZE 40, 7 OF oPanel PIXEL   //"Cliente Ate"
+		@ 010+nEspLin, 160+nEspLarg SAY STR0073	SIZE 20, 7 OF oPanel PIXEL   //"Loja Ate"
+		@ 010+nEspLin, 194+nEspLarg SAY STR0013	SIZE 40, 7 OF oPanel PIXEL   //"Gerar p/ Cliente"
+		@ 010+nEspLin, 250+nEspLarg SAY STR0014	SIZE 40, 7 OF oPanel PIXEL   //"Loja"
+	EndIf
+	@ 029+nEspLin, 014+nEspLarg SAY STR0015	SIZE 40, 7 OF oPanel PIXEL   //"Valor Maximo"
+	@ 029+nEspLin, 104+nEspLarg SAY STR0107	SIZE 50, 7 OF oPanel PIXEL   //"Titulos no valor de"
+	@ 029+nEspLin, 194+nEspLarg SAY STR0108	SIZE 40, 7 OF oPanel PIXEL   //"Ate o valor de"
+	@ 048+nEspLin, 014+nEspLarg SAY STR0065 SIZE 40, 7 OF oPanel PIXEL   //"Intervalo por"
+	@ 048+nEspLin, 104+nEspLarg SAY STR0066 SIZE 40, 7 OF oPanel PIXEL   //"Data de"
+	@ 048+nEspLin, 194+nEspLarg SAY STR0067 SIZE 40, 7 OF oPanel PIXEL   //"Ate"
+	@ 072+nEspLin, 014+nEspLarg SAY STR0161	SIZE 40, 7 OF oPanel PIXEL   //"Pref De"
+	@ 072+nEspLin, 045+nEspLarg SAY STR0067 SIZE 40, 7 OF oPanel PIXEL   //"Ate"
+	@ 072+nEspLin, 104+nEspLarg SAY STR0162 SIZE 40, 7 OF oPanel PIXEL   //"Titulo de"
+	@ 072+nEspLin, 194+nEspLarg SAY STR0067 SIZE 40, 7 OF oPanel PIXEL   //"Ate"
+	@ 091+nEspLin, 014+nEspLarg SAY STR0016	SIZE 40, 7 OF oPanel PIXEL   //"Moeda"
+	@ 091+nEspLin, 104+nEspLarg SAY STR0137	SIZE 40, 7 OF oPanel PIXEL   //"Outras Moedas"
+
+	//--------------------------------------------------------------------------
+	//Integracao Protheus X RM Classis Net (RM Sistemas)
+	//--------------------------------------------------------------------------
+	If GetNewPar("MV_RMCLASS", .F.)
+		@ 019+nEspLin, 014+nEspLarg MSGET cCliDe  F3 "SA1" Valid F460VldCmp(@cCliDe,@cLojaDe,@cCliAte,@cLojaAte,@cCli460,@cLoja) SIZE 52, 08 OF oPanel PIXEL hasbutton 
+		@ 019+nEspLin, 070+nEspLarg MSGET cLojaDe 		   Valid F460VldCmp(@cCliDe,@cLojaDe,@cCliAte,@cLojaAte,@cCli460,@cLoja) SIZE 20, 08 OF oPanel PIXEL hasbutton
+		@ 019+nEspLin, 104+nEspLarg MSGET oCliAte	VAR cCliAte		F3 "SA1" SIZE 52, 08 OF oPanel PIXEL hasbutton When .F.
+		@ 019+nEspLin, 160+nEspLarg MSGET oLojaAte	VAR cLojaAte	SIZE 20, 08 OF oPanel PIXEL hasbutton When .F.
+		@ 019+nEspLin, 194+nEspLarg MSGET cCli460 F3 "SA1" Valid a460Cli(cCli460)    	SIZE 52, 08 OF oPanel PIXEL hasbutton
+		@ 019+nEspLin, 250+nEspLarg MSGET cLoja			   Valid a460Cli(cCli460,cLoja)	SIZE 20, 08 OF oPanel PIXEL hasbutton
+	Else
+		@ 019+nEspLin, 014+nEspLarg MSGET cCliDe	F3 "SA1" SIZE 52, 08 OF oPanel PIXEL hasbutton
+		If !lLojaAuto
+			@ 019+nEspLin, 070+nEspLarg MSGET cLojaDe	SIZE 20, 08 OF oPanel PIXEL hasbutton
+		EndIf
+		If lIntPFS
+			@ 019+nEspLin, 104+nEspLarg MSGET oJurEscrit VAR cEscrit F3 "NS7" VALID Empty(cEscrit) .Or. ExistCpo("NS7", cEscrit) SIZE 60,8 hasbutton PIXEL Of oPanel
+			oJurEscrit:bChange := {|| cFatura := CriaVar("NXA_COD"), oJurFat:Refresh()}
+			@ 019+nEspLin, 194+nEspLarg MSGET oJurFat VAR cFatura F3 "NXA1" SIZE 60,8 hasbutton PIXEL Of oPanel WHEN ! Empty(cEscrit) ;
+			VALID Empty(cFatura) .Or. ExistCpo("NXA", cEscrit + cFatura)
+		Else
+			@ 019+nEspLin, 104+nEspLarg MSGET oCliAte	VAR cCliAte		F3 "SA1" SIZE 52, 08 OF oPanel PIXEL hasbutton
+			@ 019+nEspLin, 160+nEspLarg MSGET oLojaAte	VAR cLojaAte	SIZE 20, 08 OF oPanel PIXEL hasbutton
+			@ 019+nEspLin, 194+nEspLarg MSGET cCli460	F3 "SA1" 	Valid a460Cli(cCli460)			SIZE 52, 08 OF oPanel PIXEL hasbutton
+			@ 019+nEspLin, 250+nEspLarg MSGET cLoja					Valid a460Cli(cCli460,cLoja)	SIZE 20, 08 OF oPanel PIXEL hasbutton
+		EndIf
+		
+	Endif
+
+	@ 037+nEspLin, 014+nEspLarg MSGET oValorMax VAR nValorMax	Picture nPicture	SIZE 60, 08 OF oPanel PIXEL hasbutton
+	@ 037+nEspLin, 104+nEspLarg MSGET oValorDe  VAR nValorDe	Picture nPicture	SIZE 60, 08 OF oPanel PIXEL hasbutton
+	@ 037+nEspLin, 194+nEspLarg MSGET oValorAte VAR nValorAte	Picture nPicture	SIZE 60, 08 OF oPanel PIXEL hasbutton
+	@ 056+nEspLin, 014+nEspLarg MSCOMBOBOX oCbx1 VAR cIntervalo ITEMS aIntervalo SIZE 60, 54 OF oPanel PIXEL
+	@ 056+nEspLin, 104+nEspLarg MSGET dData460I	Valid !Empty(dData460I) SIZE 52, 08 OF oPanel PIXEL hasbutton
+	@ 056+nEspLin, 194+nEspLarg MSGET dData460F	Valid !Empty(dData460F) .and. ;
+		dData460F >= dData460I 	.and. ;
+		If(Val(SubStr(cIntervalo,1,2))=1,dData460F <= dDataBase,.T.)	;
+		SIZE 52, 08 OF oPanel PIXEL hasbutton
+
+	@ 080+nEspLin, 014+nEspLarg MSGET cPrefDe	SIZE 20, 08 OF oPanel PIXEL hasbutton
+	@ 080+nEspLin, 045+nEspLarg MSGET cPrefAte	VALID cPrefAte >= cPrefDe SIZE 20, 08 OF oPanel PIXEL hasbutton
+	@ 080+nEspLin, 104+nEspLarg MSGET cNumDe	SIZE 52, 08 OF oPanel PIXEL hasbutton
+	@ 080+nEspLin, 194+nEspLarg MSGET cNumAte	VALID cNumAte >= cNumDe SIZE 52, 08 OF oPanel PIXEL hasbutton
+	@ 099+nEspLin, 014+nEspLarg MSCOMBOBOX oCbx  VAR cMoeda460	ITEMS aMoedas	Valid A460VldMoe(cMoeda460,cOutrMoed) SIZE 60, 54 OF oPanel PIXEL
+	@ 099+nEspLin, 104+nEspLarg MSCOMBOBOX oCbx2 VAR cOutrMoed	ITEMS aOutrMoed Valid A460VldMoe(cMoeda460,cOutrMoed) SIZE 60, 54 OF oPanel PIXEL
+
+	//639.04 Base Impostos diferenciada
+	If lBaseImp
+		@ 091+nEspLin, 194+nEspLarg SAY STR0210	SIZE 80,7 PIXEL Of oPanel  COLOR CLR_HBLUE //"Natureza  "
+		@ 099+nEspLin, 194+nEspLarg MSGET cNatureza		F3 "SED" Valid A460NATUR(cNatureza) SIZE 60,8 hasbutton PIXEL Of oPanel
+	EndIf	
+
+	If lMsgUnq	//Verifica se os adapters esto configurados 
+		//Se tiver integrao com RM e o processo de baixas for modelo I, 
+		//exibe opo para filtrar ttulos de integrao. 
+		If  lRMClass .And. nRmBXEdu == 0 
+			@ 115+nEspLin, 014+nEspLarg SAY STR0213 SIZE 100, 7 OF oPanel PIXEL //"Filtra Integrao"
+			@ 123+nEspLin, 014+nEspLarg MSCOMBOBOX oFilInt VAR cFilMsg ITEMS aFilInt SIZE 60,54 OF oPanel PIXEL
+		EndIf	
+	EndIf	
+
+	If lPanelFin  //Chamado pelo Painel Financeiro			
+		ACTIVATE MSDIALOG oDlg ON INIT FaMyBar(oDlg,;
+		{||cVar:=cMoeda460,cVar1:=cIntervalo,cCliente:=cCli460,cTipo:=M->E1_TIPO,;
+		IF(Fa460OK1(),(nOpca:=1,oDlg:End()),nOpca:=2)},;		
+		{||oDlg:End(),nOpca:=0})	
+	
+	Else	
+		DEFINE SBUTTON FROM 150, 214 TYPE 1 ACTION ;
+			(cVar:=cMoeda460,cVar1:=cIntervalo,cCliente:=cCli460,cTipo:=M->E1_TIPO,F460PFSBok(lIntPFS, lLojaAuto),IF(Fa460OK1(),(nOpca:=1,oDlg:End()),nOpca:=2)) ENABLE OF oPanel
+		DEFINE SBUTTON FROM 150, 249 TYPE 2 ACTION {||oDlg:End(),nOpca:=0} ENABLE OF oPanel
+	
+		ACTIVATE MSDIALOG oDlg CENTERED
+	EndIf
+	
+	If nOpca == 0
+		If Existblock("FA460OUT")
+			Execblock("FA460OUT",.F.,.F.)
+		EndIf
+		lRet := .F.
+	EndIf
+	If nOpca == 2
+		lRet := .F.
+	EndIf
+	nMoeda := Val(Substr(cVar,1,2))
+Else
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='CCONDICAO'})) > 0
+		cCondicao :=	aAutoCab[nT,2]
+	EndIf	
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='CCLIENTE'})) > 0
+		cCliente :=	aAutoCab[nT,2]
+	EndIf
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='CLOJA'})) > 0
+		cLoja :=	aAutoCab[nT,2]
+	EndIf	
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='E1_TIPO'})) > 0
+		M->E1_TIPO :=	aAutoCab[nT,2]
+		cTipo:=M->E1_TIPO
+	EndIf
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='CNATUREZA'})) > 0
+		cNatureza := aAutoCab[nT,2]
+	EndIf
+	If (nT := aScan(aAutoCab,{|x| UPPER(Alltrim(x[1]))=='NMOEDA'})) > 0
+		nMoeda := aAutoCab[nT,2]
+	EndIf
+	__nOpcOuMo := nOutrMoed
+	If nTxNegoc = 0
+		nTxNegoc := RecMoeda(dDatabase,nMoeda)
+	EndIf
+EndIf
+
+If lRet
+	cSimb 	   := Pad(SuperGetmv("MV_SIMB"+Alltrim(STR(nMoeda))),4)
+	nIntervalo := Val(Substr(cVar1,1,2))
+	nChoice    := Val(Substr(cOutrMoed,1,1))
+	If !lOpcAuto
+		__nOpcOuMo := nChoice
+	EndIf
+	
+	//Coloco o simbolo da moeda para qual vou gerar os titulos
+	//no titulo das colunas
+	For nX := 8 to 11
+		aCpoBro [nX,3] += 	cSimb
+	Next	
+
+	// --------------------------------------------------------------------------
+	// POR MAIS ESTRANHO QUE PAREA, ESTA FUNCAO DEVE SER CHAMADA AQUI! 
+	//                                                                  
+	// A funo SomaAbat reabre o SE1 com outro nome pela ChkFile para  
+	// efeito de performance. Se o alias auxiliar para a SumAbat() no  
+	// estiver aberto antes da IndRegua, ocorre Erro de & na ChkFile,   
+	// pois o Filtro do SE1 uptrapassa 255 Caracteres.                  
+	// --------------------------------------------------------------------------
+	SomaAbat("","","","R")
+
+	//Gestao
+	//Selecao de filiais
+	If lSE1Access .and. mv_par06 == 1 .And. Len( aSelFil ) <= 0 
+		aSelFil := AdmGetFil(.F.,.F.,"SE1")
+		If Len( aSelFil ) <= 0
+			lRet := .F.
+		EndIf	
+	Else
+		aSelFil := { cFilAnt }
+	EndIf
+	
+	If lRet
+		DbSelectArea ("SE1")
+		DbSetOrder(1)
+	
+		//Seleciona Contas a Receber (SE1)
+		If !lOpcAuto
+			cQuery 		:= a460ChecF(nChoice,aSelFil,cEscrit,cFatura,nMoeda) 
+			cQuery 		:= ChangeQuery(cQuery)
+			dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), cAliasSE1, .F., .T.)
+			dbSelectArea(cAliasSE1)		
+		Else
+			//------------------------------------------------------------------- 
+			// Cria indice condicional									     
+			//------------------------------------------------------------------- 
+			cAliasSE1	:= "SE1"
+			cAlias		:= "SE1"
+			DbSelectArea(cAlias)
+
+			cIndex		:= CriaTrab(nil,.f.)
+			cChave		:= IndexKey()
+			IndRegua("SE1",cIndex,cChave,,a460ChecF(nChoice,aSelFil,cEscrit,cFatura,nMoeda),STR0019)  //"Selecionando Registros..."
+			nIndex := RetIndex("SE1")
+			DbSelectArea(cAlias)
+		
+			DbSetOrder(nIndex+1)
+			MsSeek(xFilial("SE1"))
+			DbGoTop()             
+		EndIf
+		
+		If (cAliasSE1)->(Eof()) .and. (cAliasSE1)->(Bof())
+			Help(" ",1,"RECNO")
+			//Gestao
+			If !lOpcAuto 
+				
+				If Select(cAliasSe1) > 0
+					DbSelectArea(cAliasSe1)
+					DbCloseArea()
+				EndIf
+				//Apaga a tabela temporaria das filiais
+				For nX := 1 TO Len(aTmpFil)
+					CtbTmpErase(aTmpFil[nX])
+				Next
+				dbSelectArea("SE1")
+				dbSetOrder(1)
+	
+				FreeUsedCode()  //libera codigos de correlativos reservados pela MayIUseCode()
+				lRet := .F.
+
+			EndIf
+		EndIf
+	
+		If lRet
+			//--------------------------------------------------------------------------------
+			// Cria Arquivo Temporario						 
+			//--------------------------------------------------------------------------------
+			cTRB := Fa460Gerarq(aCampos, cAliasTMP ) /*DIEGO - Alterar gerao do arquivo para as FO's*/
+		
+			nOpca		:= 0
+			nValor  	:= 0	// Valor total dos titulos,mostrado no rodape do browse
+			nValCruz	:= 0	// Acumula Valor original na moeda nacional
+			nJuros		:= 0
+			nDesc		:= 0
+			nAbatim		:= 0
+			nQtdTit 	:= 0	// Quantidade de titulos,mostrado no rodape do browse
+			
+			cAlias		:= cAliasTMP
+			
+			//--------------------------------------------------------------------------------
+			// Carrega Registros do Arquivo Temporario       
+			//--------------------------------------------------------------------------------
+			Fa460Repl(cAliasSE1, cAliasTMP)
+		EndIf
+	EndIf
+EndIf
+SE1->(RestArea(aAreaSe1))
+
+Return lRet	
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460PFSBok()
+Funo utilizada no boto confirmar da tela de filtro de liquidao para atribuir
+valor as variveis private de cliente e loja.
+
+@param Define se a integrao com Jurdico (SIGAPFS) est habilitada
+
+@author Abner Fogaa | Jonatas Martins
+@since 30/06/20
+/*/
+//-------------------------------------------------------------------
+Static Function F460PFSBok(lIntPFS, lLojaAuto)
+
+If lIntPFS
+	cCliAte  := cCliDe
+	cCli460  := cCliDe
+	If lLojaAuto
+		cLojaDe := JurGetLjAt()
+	EndIf
+	cLojaAte := cLojaDe
+	cLoja    := cLojaDe
+EndIf
+
+Return Nil
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460SelTit
+Funo que monta a tela de seleo de ttulo
+
+@author Diego Santos
+@version P12.1.8
+@since	05/10/2015		
+@param cAliasTRB = Alias da tabela temporria com os ttulos selecionados
+@param nOpcx 2 = Liquidao, 6 = Reliquidao
+@param aCpoBro Estrutura da tabela temporria
+																				
+/*/
+//-------------------------------------------------------------------
+
+Static Function F460SelTit(cAliasTMP, nOpcX)
+
+Local aSize
+Local nX 	    := 0
+Local nW		:= 0
+Local nY		:= 0
+Local oModelLiq
+Local aEnableButtons	:= {}
+Local bCancel
+Local cLog				:= ""
+Local cPrefix
+Local cPrefixAux
+Local cBanco
+Local cAgencia
+Local cContaC
+Local cNum
+Local cNumCh
+Local cEmitCh
+Local dVencto		:= CTOD("")
+Local nPos		
+Local nValParc
+Local nValParT
+Local nAcrescimo
+Local nDecrescimo
+Local nValCh
+Local aFO2DePara	:= {}
+Local aFO0DePara	:= {}
+Local aParcelas		:= {}
+Local cParcCli		:= ""
+Local nValAux		:= 0
+Local nValAuto		:= 0
+Local nDifer		:= 0
+Local nTxJrg	
+Local nMoedaFO0
+Local lRet			:= .T.
+Local cMVPAR08		:= Alltrim(Upper(MV_PAR08))
+
+lCmc7 	:= IIF(Type("lCmc7") == "L", lCmc7, .F.)
+
+If lGeraSEf == NIL
+	lGeraSEF	:= SuperGetMv("MV_GRSEFLQ",.F., .F. )
+Endif
+
+aAdd(aFO0DePara,{"cCondicao", "FO0_COND"	})
+aAdd(aFO0DePara,{"cNatureza", "FO0_NATURE"	})
+aAdd(aFO0DePara,{"E1_TIPO"	, "FO0_TIPO"	})
+aAdd(aFO0DePara,{"cCLIENTE" , "FO0_CLIENT"	})
+aAdd(aFO0DePara,{"nMoeda"   , "FO0_MOEDA"	})
+aAdd(aFO0DePara,{"cLOJA"    , "FO0_LOJA"	})
+
+aAdd(aFO2DePara,{"E1_PREFIXO"	,"FO2_PREFIX"})
+aAdd(aFO2DePara,{"E1_BCOCHQ" 	,"FO2_BANCO" })
+aAdd(aFO2DePara,{"E1_AGECHQ"	,"FO2_AGENCI"})
+aAdd(aFO2DePara,{"E1_CTACHQ"	,"FO2_CONTA" })
+aAdd(aFO2DePara,{"E1_NUM"		,"FO2_NUM"	 })
+aAdd(aFO2DePara,{"E1_PARCELA"	,"FO2_PARCEL" })
+aAdd(aFO2DePara,{"E1_EMITCHQ"	,"FO2_EMITEN"})
+aAdd(aFO2DePara,{"E1_VENCTO"	,"FO2_VENCTO"})
+If lOpcAuto .And. nOutrMoed = 3
+	aAdd(aFO2DePara,{"E1_VALOR"	,"FO2_VLPARC"})
+Else
+	aAdd(aFO2DePara,{"E1_VLCRUZ","FO2_VLPARC"})
+EndIf
+aAdd(aFO2DePara,{"E1_ACRESC"	,"FO2_ACRESC"})
+aAdd(aFO2DePara,{"E1_DECRESC"	,"FO2_DECRES"})
+aAdd(aFO2DePara,{"E1_TOTAL"		,"FO2_TOTAL" })
+
+If 	FwIsInCallStack("FINA460")
+	aEnableButtons := {{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.T., STR0215 },{.T., STR0216},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil}}	//"Confirmar"###"Fechar"
+Else
+	aEnableButtons := {{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.T., STR0217 },{.T., STR0216 },{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil},{.F.,Nil} }	//"Salvar Simulao"###
+EndIf
+
+If !lOpcAuto
+
+	aSize := MSADVSIZE()
+	If FwIsInCallStack("FINA460")
+		_nOper 	  := OPER_LIQUIDAR
+		If SuperGetMv("MV_CMC7FIN") == "S" .and. IW_MsgBox(STR0122,STR0001,"YESNO")  //"Deseja utilizar a leitora de cheques?"###"Liquidao"
+			lCmc7 := .T.
+		Else
+			lCmc7 := .F.		
+		Endif
+	Else
+		_nOper 	  := OPER_INCLUI	
+	EndIf
+
+	oModelLiq := FWLoadModel("FINA460AX")//Carrega estrutura do model
+	oModelLiq:SetOperation(MODEL_OPERATION_INSERT)//Define operao de inclusao
+	oModelLiq:Activate()//Ativa o model	
+	bCancel   :=  { |oModelLiq| F460NoAlt(oModelLiq)}
+	
+	F460Mtela(@cAliasTMP, oModelLiq, cCliente, cLoja, nMoeda, cNatureza, lCMC7 )//Carrega o model com os dados
+	If FwIsInCallStack("FINA460")
+		If lCmC7	
+			// Abre porta para CMC7
+			If lOpenCmc7 == Nil
+				OpenCMC7()
+				lOpenCmc7 := .T.
+			EndIf	
+			
+			If F460CMC7( oModelLiq ) = 0
+				Return .F.
+			EndIf
+			
+			_lUserButton := .T.
+			FWExecView( STR0218 , "FINA460B", 3,  /*oDlgKco*/, {|| .T. } , /*bOk*/ , /*nPercReducao*/, aEnableButtons, bCancel, /*cOperatId*/ , /*cToolBar*/ , oModelLiq )	//"Incluso de Liquidao a receber"
+			_lUserButton := .F.
+		Else		 
+			_lUserButton := .T.
+			FWExecView( STR0218 , "FINA460A", 3,  /*oDlgKco*/, {|| .T. } , /*bOk*/ , /*nPercReducao*/, aEnableButtons, bCancel, /*cOperatId*/ , /*cToolBar*/ , oModelLiq )	//"Incluso de Liquidao a receber"
+			_lUserButton := .F.
+		EndIf
+	Else
+		_lUserButton := .T.
+		FWExecView( STR0212 , "FINA460A", 3,  /*oDlgKco*/, {|| .T. } , /*bOk*/ , /*nPercReducao*/, aEnableButtons, bCancel, /*cOperatId*/ , /*cToolBar*/ , oModelLiq )//"Incluso de Simulao"
+		_lUserButton := .F.
+	EndIf
+	
+Else
+
+   	//Grava a Area para posicionamento indice (2) na cAliasTMP
+	aAreaTMP := GetArea()
+
+   	//Marca todos os titulos do arquivo temporario
+	DbSelectArea(cAliasTMP)
+	SE1->(dbSetOrder(1)) 
+	DbGoTop()
+	While !Eof()
+		SE1->(MSSeek((cAliasTMP)->CHAVE))
+		If SE1->(MsRLock()) .and. SE1->E1_SALDO > 0
+			RecLock((cAliasTMP))			
+			Replace FO1_MARK With .T.
+			(cAliasTMP)->(MsUnlock())
+			nValor += (cAliasTMP)->FO1_TOTAL
+			nQtdTit++
+		EndIf
+		(cAliasTMP)->(dbSkip())
+	End
+	RestArea(aAreaTMP) 
+	
+	DbSelectArea(cAliasTMP)
+	(cAliasTMP)->(DbGoTop())
+	
+	If (cAliasTMP)->(!Eof()) 
+	
+		/* Alterado para o ponto de entrada MODELCOMMITNTTS do MVC (FINA460A)
+		If Existblock("F460GRV")
+			Execblock("F460GRV",.F.,.F.)
+		EndIf
+		*/
+		
+		If nOpcX == 2
+			_nOper 	:= OPER_LIQUIDAR
+		ElseIf nOpcX == 4
+			_nOper	:= OPER_RELIQUIDAR
+		Else	
+			_nOper := nOpcX
+		EndIf
+		
+		oModelLiq := FWLoadModel("FINA460AX")//Carrega estrutura do model
+		oModelLiq:SetOperation(MODEL_OPERATION_INSERT)//Define operao de inclusao
+		oModelLiq:Activate()//Ativa o model	
+		bCancel   :=  { |oModelLiq| F460NoAlt(oModelLiq) }
+		F460Mtela(@cAliasTMP, oModelLiq, cCliente, cLoja, nMoeda, cNatureza )//Carrega o model com os dados
+		
+		oFO0	:=  oModelLiq:GetModel("MASTERFO0")
+		oFO1	:=	oModelLiq:GetModel("TITSELFO1")
+		oFO2	:=	oModelLiq:GetModel("TITGERFO2")
+		
+		//De Para entre tabela SE1 - Variaveis Private(Rotina Antiga) e FO0(Rotina Nova)	
+		For nY := 1 To Len(aAutoCab)
+			nPos := aScan( aFO0DePara ,{|x| Alltrim(x[1])== aAutoCab[nY][1] })
+			If nPos > 0 .And. oFO0:CanSetValue(aFO0DePara[nPos][2])		
+				oFO0:SetValue(aFO0DePara[nPos][2], aAutoCab[nY][2])
+			ElseIf oFO0:HasField(aAutoCab[nY][1]) .And. oFO0:CanSetValue( aAutoCab[nY][1] )
+				oFO0:SetValue(aAutoCab[nY][1], aAutoCab[nY][2])
+			EndIf
+		Next nY
+		
+		nTxJrg		:= oFO0:GetValue("FO0_TXJRG")
+		nMoedaFO0	:= oFO0:GetValue("FO0_MOEDA")
+		
+		//--------------------------------------------------------------------------------
+		// Corrige possiveis diferencas entre o valor selecionado e o 
+		// apurado aps a divisao das parcelas						   	
+		//--------------------------------------------------------------------------------
+		
+		If ! Empty(cCondicao)
+			oFO0:SetValue("FO0_COND", cCondicao)
+			aParcelas 	:= Condicao(nValor,oFO0:GetValue("FO0_COND"),,oFO0:GetValue("FO0_DATA"))
+			
+			For nX := 1 to Len(aParcelas)
+				nValAux += aParcelas [nX, 2]
+			Next nX
+			
+			If nValAux != nValor
+				nDifer := Round(nValor - nValAux,2)
+				aParcelas [ Len(aParcelas), 2 ] += nDifer
+			EndIf
+			aParcelas := {}
+		Endif
+		
+		oFO0:SetValue("FO0_TIPO", E1_TIPO )
+		
+		SE1->( dbClearFilter() )
+				
+		For nX := 1 To Len(aAutoItens)
+			
+			If nX <> 1 
+				oFO2:AddLine()
+				oFO2:GoLine(oFO2:Length())
+			Else
+				oFO2:GoLine(nX)
+			EndIf
+		
+			//Prefixo
+			If ExistIni("E1_PREFIXO")
+				cPrefixAux := InitPad(SX3->X3_RELACAO)
+			Else
+				If !Empty(cMVPAR08)
+					cPrefixAux := cMVPAR08
+				Else
+					cPrefixAux := Space(TamSx3("E1_PREFIXO")[1])
+				Endif
+			EndIf
+
+			cNum	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_NUM" })) > 0	, aAutoItens[nX,nW,2] , Space(TamSx3("FO2_NUM")[1]))		// Nmero do Ttulo.
+			If oFO2:CanSetValue("FO2_NUM")
+				oFO2:SetValue("FO2_NUM", cNum)
+			EndIf
+			
+			cPrefix		:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_PREFIXO" })) > 0 , aAutoItens[nX, nW, 2] , cPrefixAux )	//Prefixo.
+			If oFO2:CanSetValue("FO2_PREFIX")
+				oFO2:SetValue("FO2_PREFIX", cPrefix)
+			EndIf		
+			
+			cBanco 		:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_BCOCHQ" })) > 0 , aAutoItens[nX,nW,2] , Space(TamSx3("FO2_BANCO") [1])) 	// Banco
+			If oFO2:CanSetValue("FO2_BANCO")
+				oFO2:SetValue("FO2_BANCO", cBanco)
+			EndIf
+			
+			cAgencia 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_AGECHQ" })) > 0 , aAutoItens[nX,nW,2] , Space(TamSx3("FO2_AGENCI")[1]))	// Agencia
+			If oFO2:CanSetValue("FO2_AGENCI")
+				oFO2:SetValue("FO2_AGENCI", cAgencia)
+			EndIf		
+			
+			cContaC 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_CTACHQ" })) > 0 , aAutoItens[nX,nW,2] , Space(TamSx3("FO2_CONTA") [1]))	// Conta Corrente
+			If oFO2:CanSetValue("FO2_CONTA")
+				oFO2:SetValue("FO2_CONTA", cContaC)
+			EndIf	
+			
+			cParcCli	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_PARCELA" })) > 0	, aAutoItens[nX,nW,2] , Space(TamSx3("FO2_PARCEL")[1]))		// Parcela do Cliente.
+			If nW > 0
+				If oFO2:CanSetValue("FO2_PARCEL")
+					lParcAuto := .T.
+					oFO2:SetValue("FO2_PARCEL", cParcCli)
+				EndIf
+			Else
+				lParcAuto = .F.
+			Endif	
+			
+			cNumCH		:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_NUM" })) > 0 , aAutoItens[nX,nW,2] , Space(TamSx3("FO2_NUMCH")[1]))		// Nmero do Cheque.
+			If oFO2:CanSetValue("FO2_NUMCH")
+				oFO2:SetValue("FO2_NUMCH", cNumCh)
+			EndIf		
+			
+			dVencto 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_VENCTO" }))  > 0 , aAutoItens[nX,nW,2] , CTOD(SPACE(8)))	// Vencimento
+			If oFO2:CanSetValue("FO2_VENCTO")
+				oFO2:SetValue("FO2_VENCTO", dVencto)
+			EndIf		
+			
+			cEmitCh 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_EMITCHQ"}))  > 0 , aAutoItens[nX,nW,2] , space(40))			// Nome do emitente
+			If oFO2:CanSetValue("FO2_EMITEN")
+				oFO2:SetValue("FO2_EMITEN", cEmitCh)
+			EndIf		
+			
+			If lOpcAuto .And. nOutrMoed = 3
+				nValParc := Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_VALOR" }))  > 0 , aAutoItens[nX,nW,2] , VAL("0"))	// Valor da Parcela
+			Else
+				nValParc := Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_VLCRUZ" }))  > 0 , aAutoItens[nX,nW,2] , VAL("0"))	// Valor da Parcela
+			EndIf
+			If oFO2:CanSetValue("FO2_VALOR")
+				oFO2:SetValue("FO2_VALOR", nValParc)
+			EndIf
+
+			nAcrescimo	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_ACRESC" }))	> 0 , aAutoItens[nX,nW,2] , 0)					// Acrescimo        
+			If nAcrescimo > 0 	//Se existe Acrecimo desconsidera Decrescimo
+				nDecrescimo :=  0		// Decrescimo      		
+				nValCh 		:= nValParc+nAcrescimo	// Valor do Cheque
+			Else
+				nDecrescimo := Iif((nW :=aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_DECRESC" })) > 0 , aAutoItens[nX,nW,2] , 0)		// Decrescimo      				
+				nValCh		:= nValParc-nDecrescimo	// Valor do Cheque
+			EndIf
+			
+			If oFO2:CanSetValue("FO2_DECRES")
+				oFO2:SetValue("FO2_DECRES", nDecrescimo)
+			EndIf
+			
+			If oFO2:CanSetValue("FO2_ACRESC")
+				oFO2:SetValue("FO2_ACRESC", nAcrescimo)
+			EndIf
+			
+			If oFO2:CanSetValue("FO2_TOTAL")
+				oFO2:SetValue("FO2_TOTAL", nValCh)
+			EndIf
+			
+			oFO2:LoadValue("FO2_IDSIM" ,FWUUIDV4() ) //Chave ID tabela FK1.
+			oFO2:LoadValue("FO2_PROCES",oFO0:GetValue("FO0_PROCES")) //Processo
+			oFO2:LoadValue("FO2_VERSAO",oFO0:GetValue("FO0_VERSAO")) //Verso
+			
+			oFO2:LoadValue("FO2_TXJUR",nTxJrg)
+			nValJur := faJuros(	oFO2:GetValue("FO2_VALOR"),oFO2:GetValue("FO2_VALOR"),oFO2:GetValue("FO2_VENCTO"),;
+								, oFO2:GetValue("FO2_TXJUR"),oFO0:GetValue("FO0_MOEDA"),,dDatabase,,,;
+								oFO2:GetValue("FO2_VENCTO"),,,,,,/*Recalculo .T. */ , .T. /*Liquidao*/)
+								
+			oFO2:LoadValue("FO2_VLJUR",  Round(NoRound(xMoeda(nValJur,nMoedaFO0,nMoedaFO0,,3),3),2))
+			
+			nValParT 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_VLCRUZ" }))  > 0 , aAutoItens[nX,nW,2] , VAL("0"))	// Valor da Parcela
+			oFO2:LoadValue("FO2_TOTAL",nValParT + oFO2:GetValue("FO2_VLJUR") + oFO2:GetValue("FO2_ACRESC") - oFO2:GetValue("FO2_DECRES") ) // valor total negociado
+										
+			//De Para entre tabela SE1(Rotina Antiga) e FO2(Rotina Nova)	
+			For nY := 1 To Len(aFO2DePara)
+				nPos := aScan(aAutoItens[nX],{|x| Alltrim(x[1]) == aFO2DePara[nY,1] })
+				If nPos > 0 .And. oFO2:HasField(aFO2DePara[nY][2]) .And. oFO2:CanSetValue(aFO2DePara[nY][2])		
+					oFO2:SetValue(aFO2DePara[nY][2], aAutoItens[nX,nPos,2])
+				EndIf
+			Next nY
+																								
+		Next nX
+		
+		//Chama aes para realizar o dinamismo da tela. Utilizado para atualizao dos juros, multas, etc.
+		F460JurMul(oModelLiq, "FO0_TXJUR" )
+		F460JurMul(oModelLiq, "FO0_TXMUL" )
+		F460JurMul(oModelLiq, "FO0_TXJRG" )
+		
+		nValAuto := 0
+		For nX := 1 To oFO1:Length()
+			oFO1:GoLine(nX)
+			nValAuto += oFO1:GetValue("FO1_TOTAL")
+		Next nX 
+		
+		//--------------------------------------------------------------------------------
+		// Corrige possiveis diferencas entre o valor selecionado e o 
+		// apurado aps a divisao das parcelas						   	
+		//--------------------------------------------------------------------------------
+		
+		If ! Empty(cCondicao)
+			aParcelas 	:= Condicao(nValAuto,oFO0:GetValue("FO0_COND"),,oFO0:GetValue("FO0_DATA"))
+			
+			nValAux := 0
+			For nX := 1 to Len (aParcelas)
+				nValAux += aParcelas [nX, 2]
+			Next nX
+		
+			If nValAux != nValAuto
+				nDifer := Round(nValAuto - nValAux,2)
+				aParcelas [ Len(aParcelas), 2 ] += nDifer
+			EndIf
+			aParcelas := {}
+		Endif
+		
+		For nX := 1 To oFO2:Length()
+			oFO2:GoLine(nX)
+			oFO2:LoadValue("FO2_TXJUR",nTxJrg)
+			nValJur := faJuros(	oFO2:GetValue("FO2_VALOR"),oFO2:GetValue("FO2_VALOR"),oFO2:GetValue("FO2_VENCTO"),;
+								, oFO2:GetValue("FO2_TXJUR"),oFO0:GetValue("FO0_MOEDA"),,dDatabase,,,;
+								oFO2:GetValue("FO2_VENCTO"),,,,,,/*Recalculo .T. */ , .T. /*Liquidao*/)
+			oFO2:LoadValue("FO2_VLJUR",  Round(NoRound(xMoeda(nValJur,nMoedaFO0,nMoedaFO0,,3),3),2))	
+			
+			nValParT 	:= Iif((nW := aScan(aAutoItens[nX],{|x| Alltrim(x[1])=="E1_VLCRUZ" }))  > 0 , aAutoItens[nX,nW,2] , VAL("0"))	// Valor da Parcela
+			oFO2:LoadValue("FO2_TOTAL",nValParT + oFO2:GetValue("FO2_VLJUR") + oFO2:GetValue("FO2_ACRESC") - oFO2:GetValue("FO2_DECRES") ) // valor total negociado
+			
+			If oFO2:GetValue("FO2_TXJUR") == 0 .And. oFO0:GetValue("FO0_TXJUR") > 0 
+				oFO2:LoadValue("FO2_TXJUR", oFO0:GetValue("FO0_TXJUR") )
+				oFO2:LoadValue("FO2_VLJUR", Round(NoRound(xMoeda( oFO2:GetValue("FO2_TOTAL") - oFO2:GetValue("FO2_VALOR"),nMoedaFO0,nMoedaFO0,,3),3),2) )
+			EndIf
+			
+		Next nX
+		oFO2:GoLine(1) 
+											
+		If oModelLiq:VldData()
+			oModelLiq:CommitData()
+		Else
+			aLog := oModelLiq:GetErrorMessage()
+			For nX := 1 to Len(aLog)
+				If !Empty(aLog[nX])
+					cLog += Alltrim(aLog[nX]) + CRLF
+				EndIf
+			Next nX
+			lMsErroAuto := .T.
+			AutoGRLog(cLog)
+			lRet := .F.	
+		EndIf				
+											
+		oModelLiq:DeActivate()
+		oModelLiq:Destroy()
+		oModelLiq := NIL
+	
+	Else		
+		lMsErroAuto := .T.
+	EndIf
+
+EndIf
+
+If oTmpTabFO1 <> Nil
+    oTmpTabFO1:Delete()
+    oTmpTabFO1 := Nil
+EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460GerParc
+Funo que retorna a parcela do titulo
+
+Caso seja atingido o nmero mximo de parcelas, ser incrementado o 
+nmero do titulo
+
+@author Mauricio Pequim Jr
+@version P12.1.8
+@since	11/01/2016		
+																				
+/*/
+//-------------------------------------------------------------------
+
+Static Function F460GerParc(oModelFO2,nLinPos,cPrefixo,cNum,cTipoTit,cLastParc,lSomaPc)
+
+Local nTamMV1DUP	:= 0
+Local cUltParc   	:= TamParcela("E2_PARCELA","Z","ZZ","ZZZ")
+Local nLenNum		:= Len(SE1->E1_NUM)
+Local nTamFO2		:= oModelFO2:Length()
+Local nX			:= 0
+Local nPosAtu		:= 0 
+Local lAchou		:= .T.
+Local cNumFO2		:= ""
+Local lTmka350      := FunName() == "TMKA350"
+
+DEFAULT lSomaPc := .T.
+
+If nTamParc == NIL
+	nTamParc := TamSx3("E1_PARCELA")[1]
+Endif
+
+cParc2Ger  := Alltrim(SuperGetMv("MV_1DUP"))
+nTamMV1DUP := Len(cParc2Ger)
+
+If nTamParc > nTamMV1DUP
+	cParc2Ger := cParc2Ger + SPACE( nTamParc-nTamMV1DUP )
+ElseIf nTamParc < nTamMV1DUP
+	cParc2Ger := Substr(cParc2Ger,1,nTamParc)
+EndIf
+
+If lTmka350 .or. lOpcAuto
+
+    If oModelFO2:Length() == 1
+		If lOpcAuto
+			If !lParcAuto
+				oModelFO2:LoadValue("FO2_PARCEL", cParc2Ger)
+			EndIf
+		Else
+			oModelFO2:LoadValue("FO2_PARCEL", cParc2Ger)
+		EndIf
+    Else
+		If !lParcAuto
+			For nX := 1 To oModelFO2:Length()
+				oModelFO2:GoLine(nX)
+				cNumFO2 := OMODELFO2:GETVALUE("FO2_NUM")
+				If oModelFO2:SeekLine({{"FO2_PREFIX", cPrefixo },{"FO2_NUM", cNumFO2 },{"FO2_PARCEL", cParc2Ger },{"FO2_TIPO", cTipoTit}})
+					oModelFO2:LoadValue("FO2_PARCEL", cParc2Ger)
+					If nX == oModelFO2:Length()
+						Exit
+					Else
+						cParc2Ger := Soma1(OMODELFO2:GETVALUE("FO2_PARCEL"),,.T.)
+					Endif
+				Else
+					If lTmka350
+						cParc2Ger := Soma1(OMODELFO2:GETVALUE("FO2_PARCEL"),,.T.)
+					Else
+						oModelFO2:LoadValue("FO2_PARCEL", cParc2Ger)
+					EndIf
+					If nX == oModelFO2:Length()
+						Exit
+					Endif
+				EndIf
+			Next nX
+		EndIf
+	Endif
+	cLastParc := cParc2Ger
+	
+Else
+
+	If Empty(cLastParc)
+		If !Empty(cParc2Ger)
+			cLastParc := PADL(cParc2Ger,Len(cParc2Ger)/*nTamParc*/,"0")
+		Else
+			cLastParc := STRZero(1,nTamParc)
+		EndIf
+	ElseIf lSomaPc
+		cLastParc := Soma1(cLastParc/*,nTamParc,.T.*/ ) 
+	Endif
+	
+	cLastParc := Upper(cLastParc)
+
+EndIf 
+
+//-------------------------------------------------------------------
+// Verifica se o titulo ja existe no SE1
+//-------------------------------------------------------------------
+DbSelectArea("SE1")
+SE1->(DbSetOrder(1))
+If SE1->(MsSeek(xFilial("SE1")+cPrefixo+cNum+cLastParc+cTipoTit))
+	While ( SE1->(Found()) )
+		If ( cLastParc == cUltParc )
+			If !Empty(cParc2Ger)
+				cLastParc := PADL(cParc2Ger,nTamParc,"0")
+			Else
+				cLastParc := STRZero(1,nTamParc)
+			EndIf
+			cNum := Soma1(cNum,nLenNum)
+		Else
+			cLastParc := Soma1(cLastParc,nTamParc)
+		EndIf
+		SE1->(MsSeek(xFilial("SE1")+cPrefixo+cNum+cLastParc+cTipoTit))
+	EndDo
+EndIf
+
+//-------------------------------------------------------------------
+// Verifica se o titulo ja existe no grid
+//-------------------------------------------------------------------
+If nTamFO2 > 1
+	If nLinPos > 1 .And. !lSomaPc
+
+		lAchou := oModelFO2:SeekLine( {  {"FO2_TIPO", cTipoTit },{"FO2_PREFIX", cPrefixo },{"FO2_NUM", cNum },{"FO2_PARCEL", cLastParc } } )
+
+		nPosAtu := oModelFO2:GetLine()
+		If lAchou
+			For nx := 1 to oModelFO2:Length()
+				oModelFO2:GoLine(nX)
+				If nPosAtu <> nX
+					If oModelFO2:GetValue("FO2_TIPO") == cTipoTit .And. oModelFO2:GetValue("FO2_PREFIX") == cPrefixo .And. oModelFO2:GetValue("FO2_NUM") == cNum .And. oModelFO2:GetValue("FO2_PARCEL") == cLastParc
+						cLastParc := Soma1(cLastParc/*,nTamParc,.T.*/) 
+					Endif
+				EndIf	
+			NExt nX
+		EndIf		
+	EndIf
+EndIf
+
+oModelFO2:Goline(nLinPos)
+
+Return .T.
+
+//------------------------------------------------------------------------------
+/*/{Protheus.doc} F460STRFO1
+Rotina que realiza a criao da estutura para a tabela temporria baseada na
+tabela FO1, ser utilizada pelos fontes FINA460 e TMKA271d
+
+@sample 	F460STRFO1(aCampos)
+@param		aCampos		Array passado por referncia que ir receber a estrutura
+				
+@author 	Marcio Martins Pereira
+@since		18/02/2015
+@version	P12
+/*/
+//------------------------------------------------------------------------------
+Static Function F460STRFO1()
+
+Local nTamTit	:= TamSX3("E1_PREFIXO")[1]+TamSX3("E1_NUM")[1]+TamSX3("E1_PARCELA")[1]+TamSX3("E1_TIPO")[1]
+Local nTamChave	:= TamSX3("E1_FILIAL")[1]+TamSX3("E1_CLIENTE")[1]+TamSX3("E1_LOJA")[1]+nTamTit
+Local aCampos   := FO1->( DbStruct())
+
+aAdd(aCampos,{"FO1_PREFIX","C",TamSX3("E1_PREFIXO")[1],0})
+aAdd(aCampos,{"FO1_NUM"   ,"C",TamSX3("E1_NUM")[1],0})
+aAdd(aCampos,{"FO1_PARCEL","C",TamSX3("E1_PARCELA")[1],0})
+aAdd(aCampos,{"FO1_TIPO"  ,"C",TamSX3("E1_TIPO")[1],0})
+aAdd(aCampos,{"FO1_NATURE","C",TamSX3("E1_NATUREZ")[1],0})
+aAdd(aCampos,{"FO1_CLIENT","C",TamSX3("E1_CLIENTE")[1],0})
+aAdd(aCampos,{"FO1_LOJA"  ,"C",TamSX3("E1_LOJA")[1],0})
+aAdd(aCampos,{"FO1_EMIS"  ,"D",TamSX3("E1_EMISSAO")[1],0})
+aAdd(aCampos,{"FO1_VENCTO","D",TamSX3("E1_VENCTO")[1],0})
+aAdd(aCampos,{"FO1_VENCRE","D",TamSX3("E1_VENCREA")[1],0})
+aAdd(aCampos,{"FO1_BAIXA" ,"D",TamSX3("E1_BAIXA")[1],0})
+aAdd(aCampos,{"FO1_VALCVT","N",TamSX3("E1_VALOR")[1],2})
+aAdd(aCampos,{"FO1_VLBAIX","N",TamSX3("E1_VALOR")[1],2})
+aAdd(aCampos,{"FO1_HIST"  ,"C",TamSX3("E1_HIST")[1],2})
+aAdd(aCampos,{"FO1_MARK"  ,"L", 1,0})
+aAdd(aCampos,{"FO1_CCUST" ,"C",TamSX3("E1_CCUSTO")[1],2})
+aAdd(aCampos,{"FO1_ITEMCT","C",TamSX3("E1_ITEMCTA")[1],2})
+aAdd(aCampos,{"FO1_CLVL"  ,"C",TamSX3("E1_CLVL")[1],2})
+aAdd(aCampos,{"FO1_CREDIT","C",TamSX3("E1_CREDIT")[1],2})
+aAdd(aCampos,{"FO1_DEBITO","C",TamSX3("E1_DEBITO")[1],2})
+aAdd(aCampos,{"FO1_CCC"   ,"C",TamSX3("E1_CCC")[1],2})
+aAdd(aCampos,{"FO1_CCD"   ,"C",TamSX3("E1_CCC")[1],2})
+aAdd(aCampos,{"FO1_ITEMC" ,"C",TamSX3("E1_ITEMC")[1],2})
+aAdd(aCampos,{"FO1_ITEMD" ,"C",TamSX3("E1_ITEMD")[1],2})
+aAdd(aCampos,{"FO1_CLVLCR","C",TamSX3("E1_CLVLCR")[1],2})
+aAdd(aCampos,{"FO1_CLVLDB","C",TamSX3("E1_CLVLCR")[1],2})
+aAdd(aCampos,{"CHAVE"	  ,"C",nTamChave,0})
+aAdd(aCampos,{"CHAVE2"	  ,"C",nTamChave,0})
+aAdd(aCampos,{"BASEIMP"	  ,"N",15,2})
+aAdd(aCampos,{"PIS"		  ,"N",15,2})
+aAdd(aCampos,{"COFINS"	  ,"N",15,2})
+aAdd(aCampos,{"CSLL"	  ,"N",15,2})
+aAdd(aCampos,{"OUTRIMP"	  ,"N",15,2})
+aAdd(aCampos,{"TITPAI"	  ,"C",nTamChave,0})
+
+Return aCampos
+
+//------------------------------------------------------------------------------
+/*/{Protheus.doc} F460IntId
+Limpa o array de internal IDs dos titulos deletados pelo cancelamento da 
+Liquidao quando chamado do adapter FINI460
+
+@sample 	F460STRFO1()
+				
+@author 	Mauricio Pequim Jr
+@since	03/08/2016
+@version	P12
+/*/
+//------------------------------------------------------------------------------
+Static Function F460IntId()
+
+Return aFINI460SE1
+
+//------------------------------------------------------------------------------
+/*/{Protheus.doc} F460IArrSE1
+Limpa o array de internal IDs dos titulos deletados pelo cancelamento da 
+Liquidao quando chamado do adapter FINI460
+
+@sample 	F460STRFO1()
+				
+@author 	Mauricio Pequim Jr
+@since	03/08/2016
+@version	P12
+/*/
+//------------------------------------------------------------------------------
+Static Function F460IArrSE1()
+
+aSize(aFINI460SE1,0)
+aFINI460SE1 := Nil
+
+Return 
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460PrxNum()
+Calcula o proximo nmero 								  
+
+@author Simone Mie Sato Kakinoana
+@version P12.1.17
+@since	07/02/2018	
+/*/
+//-------------------------------------------------------------------
+Static Function a460PrxNum(cFilOrig,cTipo,cPrefixo)
+
+	Local cQuery	:= ""
+	Local cRet		:= ""
+	Local cProxNum	:= ""
+	Local cTMPNum	:= GetNextAlias()
+	Local aArea	:= GetArea()
+	cFilOrig := xFilial("SE1")
+	
+	cQuery := " SELECT MAX(E1_NUM) AS NUMMAX " 		+ CRLF
+	cQuery += " FROM " + RetSqlName("SE1") + " SE1 "	+ CRLF
+	cQuery += " WHERE " 								   + CRLF
+	cQuery += " SE1.E1_FILIAL 	= '" + cFilOrig + "' AND " + CRLF
+	cQuery += " SE1.E1_TIPO 	= '" + cTipo    + "' AND " + CRLF
+	cQuery += " SE1.E1_PREFIXO 	= '" + cPrefixo + "' AND " + CRLF
+	cQuery += " SE1.D_E_L_E_T_	= ''                     " + CRLF
+	cQuery 	:= ChangeQuery(cQuery)
+	dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), cTMPNum, .F., .T.)
+		
+	cProxNum := Iif(!Empty((cTMPNum)->NUMMAX),SOMA1(Alltrim((cTMPNum)->NUMMAX)),SOMA1((cTMPNum)->NUMMAX))
+	While !MayIUseCode( cfilOrig + cPrefixo + cProxNum)  //verifica se esta na memoria, sendo usado
+		// busca o proximo numero disponivel 
+		cProxNum := Soma1(cProxNum)
+	EndDo
+	(cTMPNum)->( dbCloseArea() )
+	
+	cRet	:= cProxNum	
+	RestArea(aArea)
+
+Return(cRet)
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FA460TXMoe
+Validacao da taxa da moeda do titulo informado
+
+@author Francisco Oliveira
+@version P12.1.17
+@since	12/07/2018	
+																				
+/*/
+//-------------------------------------------------------------------
+Static Function FA460TXMOE()
+
+Local aSvArea   := GetArea()
+Local lRet		:= .T.
+Local nX 		:= 0
+Local nTotLiq	:= 0
+Local nTotNeg	:= 0
+Local nLenFO2	:= 0
+Local nTtlMoeda	:= 0
+Local nTxMoeDia	:= 0
+Local nTxMoeFO0 := 0
+Local oModel 	:= FWModelActive()
+Local oView		:= FWViewActive()
+Local oSubFO0 	:= oModel:GetModel('MASTERFO0')
+Local oSubFO1 	:= oModel:GetModel("TITSELFO1")
+Local oSubFO2 	:= oModel:GetModel("TITGERFO2")
+Local nTxMoed	:= oSubFO0:GetValue("FO0_TXMOED")
+Local nMoedaFO0	:= oSubFO0:GetValue("FO0_MOEDA")
+Local nMoedaFO1	:= 0
+Local cChaveFO1 := ""
+Local nFO2Vladic:= 0
+
+dbSelectArea("SE1")
+SE1->(dbSetOrder(1))
+
+For nX := 1 To oSubFO1:Length() 
+
+	oSubFO1:Goline(nX)
+	cChaveFO1 := xFilial("SE1",oSubFO1:GetValue("FO1_FILORI")) + oSubFO1:GetValue("FO1_PREFIX") + oSubFO1:GetValue("FO1_NUM") + oSubFO1:GetValue("FO1_PARCEL") + oSubFO1:GetValue("FO1_TIPO")
+	nMoedaFO1 := oSubFO1:GetValue("FO1_MOEDA")
+
+	If (nMoedaFO1 <> nMoedaFO0) .Or. __nOpcOuMo = 3
+	
+		nTxMoeDia := RecMoeda(dDataBase, oSubFO1:GetValue("FO1_MOEDA") )
+		If nTxMoed > 0  
+			nTxMoeFO0 := nTxMoed
+			If nMoedaFO0 == 1
+				nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoed,nTxMoeDia),3),2)
+			Else
+				nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoeDia, nTxMoed),3),2)
+			Endif
+		Else
+			If oSubFO1:GetValue("FO1_MOEDA") == 1
+				nTxMoeFO0 := 1
+				If nMoedaFO0 == 1
+					nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoeFO0,nTxMoeDia),3),2)
+				Else
+					nTxMoeDia := RecMoeda(dDataBase, oSubFO0:GetValue("FO0_MOEDA") )
+					nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoeFO0,nTxMoeDia),3),2)
+				Endif
+			Else
+				nTxMoeFO0 := RecMoeda(dDataBase, oSubFO1:GetValue("FO1_MOEDA") )
+				If nMoedaFO0 == 1
+					nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoeDia, nTxMoeFO0),3),2)
+				Else
+					nTxMoeDia := RecMoeda(dDataBase, oSubFO0:GetValue("FO0_MOEDA") )
+					nTtlMoeda := Round(NoRound(xMoeda(oSubFO1:GetValue("FO1_SALDO"),oSubFO1:GetValue("FO1_MOEDA"),nMoedaFO0,dDataBase,3,nTxMoeFO0,nTxMoeDia),3),2)
+				Endif
+			Endif
+		Endif
+
+		If SE1->(dbSeek(cChaveFO1)) .AND. SE1->E1_MOEDA > 1 .AND. __nOpcOuMo <> 3
+			oSubFO1:LoadValue("FO1_ACRESC",SE1->E1_ACRESC  * nTxMoeFO0)
+			oSubFO1:LoadValue("FO1_DECRES",SE1->E1_DECRESC * nTxMoeFO0)
+		EndIf
+
+		If lCpoFO1Ad
+			nFO2Vladic	:= oSubFO1:GetValue("FO1_VLADIC")
+		Endif
+		
+		oSubFO1:LoadValue("FO1_VALCVT",nTtlMoeda )   //valor convertido na moeda da liquidao
+		nTtlMoeda := nTtlMoeda + ((oSubFO1:GetValue("FO1_VLJUR") + oSubFO1:GetValue("FO1_VLMUL") + nFO2Vladic + oSubFO1:GetValue("FO1_ACRESC")) - oSubFO1:GetValue("FO1_DESCON") - oSubFO1:GetValue("FO1_DECRES"))
+		oSubFO1:LoadValue("FO1_TXMOED",nTxMoeFO0)    //taxa da moeda na liquidao
+		oSubFO1:LoadValue("FO1_TOTAL" ,nTtlMoeda )   //valor negociado na moeda da liquidao
+		
+		If oSubFO1:GetValue("FO1_MARK")
+			If __nOpcOuMo = 1
+				nTotLiq  += oSubFO1:GetValue("FO1_VALCVT") / nTxMoeFO0
+			Else
+				nTotLiq += oSubFO1:GetValue("FO1_VALCVT")
+			EndIf
+			nTotNeg  := nTotNeg + ((oSubFO1:GetValue("FO1_VALCVT") + oSubFO1:GetValue("FO1_VLJUR") + oSubFO1:GetValue("FO1_VLMUL") + nFO2Vladic + oSubFO1:GetValue("FO1_ACRESC")) - oSubFO1:GetValue("FO1_DESCON") - oSubFO1:GetValue("FO1_DECRES"))
+		Endif
+	
+	Else
+	
+		If oSubFO1:GetValue("FO1_MARK")
+			nTotLiq  += oSubFO1:GetValue("FO1_VALCVT")
+			nTotNeg  := nTotNeg + ((oSubFO1:GetValue("FO1_VALCVT") + oSubFO1:GetValue("FO1_VLJUR") + oSubFO1:GetValue("FO1_VLMUL") + nFO2Vladic + oSubFO1:GetValue("FO1_ACRESC") ) - oSubFO1:GetValue("FO1_DESCON") - oSubFO1:GetValue("FO1_DECRES"))
+		Endif
+	
+	Endif				
+
+Next nX
+
+oSubFO0:LoadValue("FO0_VLRNEG", nTotNeg)
+oSubFO0:LoadValue("FO0_VLRLIQ", nTotLiq)
+
+nLenFO2 := oSubFO2:Length()
+	
+If nLenFO2 > 0 
+	nTotLiq := Round(nTotNeg / nLenFO2, 2)
+	For nX := 1 To nLenFO2
+		oSubFO2:Goline(nX)
+		If !oSubFO2:IsDeleted()
+			oSubFO2:LoadValue("FO2_VALOR" , nTotLiq )
+			oSubFO2:LoadValue("FO2_TOTAL" , nTotLiq )
+			oSubFO2:LoadValue("FO2_VLPARC", nTotLiq )
+		Endif
+	Next nX
+Endif
+	
+If !lOpcAuto	
+	oSubFO1:GoLine(1)
+	oSubFO2:Goline(1)
+	oView:Refresh()
+EndIf
+
+RestArea(aSvArea)
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460PrxPrc()
+Calcula o proxima Parcela 								  
+
+@author Wesley Lossani
+@version P12.1.17
+@since	14/08/2018	
+/*/
+//-------------------------------------------------------------------
+Static Function a460PrxPrc(cNum,cPrefix,nTamParc)
+
+	Local cQuery	:= ""
+	Local cRet		:= ""
+	Local cTMPPrc	:= ""
+	Local aArea	:= GetArea()
+	Local nTamPrf	:= TamSx3("E1_PREFIXO")[1]
+	Local nTamNum	:= TamSx3("E1_NUM")[1]
+	Local nTamTp 	:= TamSx3("E1_TIPO") [1]
+	Local cParcel 	:= Alltrim(GetNewPar("MV_1DUP","1"))
+	Local nTamMV1DUP:= Len(cParcel)
+
+	Default cNum 	:= ""
+	Default cPrefix := ""
+
+	If nTamParc > nTamMV1DUP
+		cParcel := cParcel + SPACE( nTamParc-nTamMV1DUP )
+	ElseIf nTamParc < nTamMV1DUP
+		cParcel := Substr(cParcel,1,nTamParc)
+	EndIf
+
+	SE1->(DbSetOrder(1))  //E1_FILIAL+E1_PREFIXO+E1_NUM+E1_PARCELA+E1_TIPO
+	If SE1->( MsSeek(xFilial("SE1")+ Padr(cPrefix,nTamPrf) + Padr(cNum,nTamNum)+ Padr(cParcel,nTamParc) + Padr("CH",nTamTp)) )
+
+		cQuery := " SELECT MAX(E1_PARCELA) AS PARCMAX " 		+ CRLF
+		cQuery += " FROM " + RetSqlName("SE1") + " SE1 "	+ CRLF
+		cQuery += " WHERE " 									+ CRLF
+		cQuery += " SE1.E1_FILIAL 	= '" + xFilial("SE1") + "' AND " + CRLF
+		cQuery += " SE1.E1_TIPO 		= 'CH' AND " + CRLF
+		cQuery += " SE1.E1_PREFIXO 	= '" + cPrefix + "' AND " + CRLF
+		cQuery += " SE1.E1_NUM 	= '" + cNum + "' AND " + CRLF
+		cQuery += " SE1.D_E_L_E_T_	= ''                     " + CRLF
+		cQuery 	:= ChangeQuery(cQuery)
+		cTMPPrc	:= GetNextAlias()
+		dbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), cTMPPrc, .F., .T.)
+		cParcel	:= SOMA1((cTMPPrc)->PARCMAX)
+		(cTMPPrc)->( dbCloseArea() )
+		
+	EndIf
+	
+	cRet := cParcel	
+	RestArea(aArea)
+
+Return(cRet)
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} F460VldCar()
+Valida os caracteres " ' " e " " " " para no dar error log em query 							  
+
+@author Francisco Oliveira
+@version P12.1.17
+@since	30/01/2019	
+/*/
+//-------------------------------------------------------------------
+
+Static Function F460VldCar(cTipoTit,cNum,cPrefixo, cParcela, cTpFO2)
+
+Local lRet 		:= .T.
+Local cVarChk	:= ""
+
+Default cTipoTit := ""
+Default cNum	 := ""
+Default cPrefixo := ""
+Default cParcela := ""
+Default cTpFO2	 := ""
+
+cVarChk := cTipoTit + "|" + cNum + "|" + cPrefixo + "|" + cParcela + "|" + cTpFO2
+
+If CHR(39) $ cVarChk .Or. CHR(34) $ cVarChk
+	lRet := .F.
+Endif
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*{Protheus.doc} F460VldLiq()
+Valida se existe alguma liquidao para o ttulo posicionado
+
+@author Alberto Teixeira
+@version P12.1.17
+@since 13/02/2019
+//-------------------------------------------------------------------*/
+
+Static Function F460VldLiq(cDadosSE5)
+
+Local lRet 		:= .T.
+Local aAreaAtu 	:= GetArea()
+Local aAreaSe5 	:= SE5->(GetArea())
+
+SE5->(dbSetOrder(7))
+
+If SE5->(dbSeek(xFilial("SE5") + cDadosSE5 ))
+	While !SE5->(Eof()) .And. (xFilial("SE5") + cDadosSE5) == SE5->(E5_FILIAL + E5_PREFIXO + E5_NUMERO + E5_PARCELA + E5_TIPO + E5_CLIFOR + E5_LOJA)
+		If SE5->E5_SITUACA <> 'C'
+			lRet := .F.
+			Exit
+		Endif
+		SE5->(dbSkip())
+	Enddo
+Endif
+
+RestArea(aAreaSe5)
+RestArea(aAreaAtu)
+
+Return lRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} A460VldMoe()
+Valida a seleo dos campos 'Moeda' e 'Outras Moedas'. S  permitida 
+a utilizao da opo '3-Variao monetria' qdo a 'Moeda' for diferente de 01.
+
+@author Luis Felipe Geraldo
+@version P12.1.17
+@since	02/04/2019
+/*/
+//-------------------------------------------------------------------
+Static Function A460VldMoe(cMoeda460,cOutrMoed)
+
+Local lRet  := .T.
+Local cMoed := Substr(cMoeda460,1,2)
+Local cOutr := Substr(cOutrMoed,1,1)
+Local lCpoTxMoed := FO0->(ColumnPos("FO0_TXMOED")) > 0
+Local lIntPFS    := SuperGetMV("MV_JURXFIN",, .F.) //Integrao SIGAPFS x SIGAFIN
+
+If cOutr == "3" .And. cMoed == "01"
+	lRet := .F.
+	Help(" ",1,/*STR0264*/ ,, /*STR0265*/ ,2,0,,,,,,/*{ STR0266 }*/) //"No Permitido" # "No  permitido utilizar a opo '3 - Variao Monetria' com a Moeda '01'" # "Selecione outra opo e verifique o campo 'Moeda'"
+ElseIf cOutr == "3" .And. !lCpoTxMoed
+	lRet := .F.
+	Help(" ",1,/*STR0264*/ ,, /*STR0268*/ ,2,0,,,,,,/*{ STR0269 }*/) //"No Permitido" # "Para utilizao dessa opo  necessria a criao do campo FO0_TXMOED" # "Escolha outra opo ou execute o compatibilizador UPDDISTR"	
+EndIf
+
+If lRet .And. lIntPFS .And. cOutr != "2" // No permitir o campo Outras Moedas diferente de No Considera
+	lRet := .F.
+	Help(" ", 1, /*STR0264*/,, /*STR0278*/, 2, 0,,,,,,/*{ STR0279 }*/) //"No Permitido" # "Quando utilizada a integrao entre SIGAPFS e Financeiro, a nica opo permitida  a '2 - No Considera'" # "Utilize a opo '2 - No Considera'."
+EndIf
+
+Return lRet

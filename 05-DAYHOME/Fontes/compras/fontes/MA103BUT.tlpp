@@ -1,0 +1,9 @@
+#Include "Protheus.ch"
+
+User Function MA103BUT()
+
+Local aButtons := {}
+aButtons := {{"HISTORIC",{ || U_OPERACAO() }, "Replicar Operação","TES Inteligente" }}
+
+
+Return(aButtons)
