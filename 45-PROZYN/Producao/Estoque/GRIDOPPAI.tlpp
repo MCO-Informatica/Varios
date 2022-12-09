@@ -1,0 +1,523 @@
+#Include "Totvs.ch"
+ 
+/*/{Protheus.doc} User Function zGrid
+Visualizacao de Grupos de Produtos com FWBrowse e FWTemporaryTable
+@type  Function
+@author Atilio
+@since  14/06/2020
+@version version
+/*/
+ 
+User Function GridOpPai()
+    Local aArea := GetArea()
+    //Fontes
+    Local cFontUti    := "Tahoma"
+    Local oFontAno    := TFont():New(cFontUti,,-38)
+    Local oFontSub    := TFont():New(cFontUti,,-20)
+    Local oFontSubN   := TFont():New(cFontUti,,-20,,.T.)
+    Local oFontBtn    := TFont():New(cFontUti,,-14)
+    //Janela e componentes
+    Private oDlgGrp
+    Private oPanGrid
+    Private oGetGrid
+    Private aColunas := {}
+    Private cAliasTab := "TMPSBM"
+    //Tamanho da janela
+    Private    aTamanho := MsAdvSize()
+    Private    nJanLarg := aTamanho[5]
+    Private    nJanAltu := aTamanho[6]
+ 
+    //Cria a temporária
+    oTempTable := FWTemporaryTable():New(cAliasTab)
+     
+    //Adiciona no array das colunas as que serão incluidas (Nome do Campo, Tipo do Campo, Tamanho, Decimais)
+    aFields := {}
+    
+    aAdd(aFields, {"XXC2TIPO", "C", 5, 0})
+    aAdd(aFields, {"XXXOPPAI", "C", TamSX3('C2_NUM')[01], 0})
+    aAdd(aFields, {"XXORDPRD", "C", TamSX3('C2_NUM')[01], 0})
+    aAdd(aFields, {"XXC2PROD", "C", TamSX3('C2_PRODUTO')[01], 0})
+    aAdd(aFields, {"XXB1DESC", "C", TamSX3('B1_DESC')[01], 0})
+    aAdd(aFields, {"XXC2QTDE", "N", TamSX3('C2_QUANT')[01], 0})
+    aAdd(aFields, {"XXD3QTDE", "N", TamSX3('C2_QUANT')[01], 0})
+    aAdd(aFields, {"XC2PERDA", "N", TamSX3('C2_QUANT')[01], 0})
+    aAdd(aFields, {"XXC2QTD2", "N", TamSX3('C2_QTSEGUM')[01], 0})
+    aAdd(aFields, {"XXC2SALA", "C", TamSX3('C2_SALA')[01], 0})
+    aAdd(aFields, {"XXLOTECT", "C", TamSX3('C2_LOTECTL')[01], 0})
+    aAdd(aFields, {"XXD7STAT", "C", 1, 0})
+    aAdd(aFields, {"XXXD3DOC", "C", 9, 0})
+    aAdd(aFields, {"XXXD3FIM", "C", 9, 0})
+    aAdd(aFields, {"XXXD7REC", "N", 9, 0})
+     
+    //Define as colunas usadas, adiciona indice e cria a temporaria no banco
+    oTempTable:SetFields( aFields )
+    oTempTable:AddIndex("1", {"XXXOPPAI","XXORDPRD"} )
+    oTempTable:Create()
+ 
+    //Monta o cabecalho
+    fMontaHead()
+ 
+    //Montando os dados, eles devem ser montados antes de ser criado o FWBrowse
+    FWMsgRun(, {|oSay| fMontDados(oSay) }, "Processando", "Buscando grupos")
+ 
+    //Criando a janela
+    DEFINE MSDIALOG oDlgGrp TITLE "Junção de OP's" FROM 000, 000  TO nJanAltu, nJanLarg COLORS 0, 16777215 PIXEL
+        //Labels gerais
+        @ 004, 003 SAY "EST"                        SIZE 200, 030 FONT oFontAno  OF oDlgGrp COLORS RGB(149,179,215) PIXEL
+        @ 004, 045 SAY "Listagem de"                SIZE 200, 030 FONT oFontSub  OF oDlgGrp COLORS RGB(031,073,125) PIXEL
+        @ 014, 045 SAY "Junção de OP's"             SIZE 200, 030 FONT oFontSubN OF oDlgGrp COLORS RGB(031,073,125) PIXEL
+ 
+        //Botões
+        @ 006, (nJanLarg/2-001)-(0052*01) BUTTON oBtnFech  PROMPT "Fechar"          SIZE 050, 018 OF oDlgGrp ACTION (oDlgGrp:End())   FONT oFontBtn PIXEL
+        @ 006, (nJanLarg/2-001)-(0052*02) BUTTON oBtnLege  PROMPT "Junção"          SIZE 050, 018 OF oDlgGrp ACTION ( Iif((cAliasTab)->XXD7STAT != 'F' .and. (cAliasTab)->XXORDPRD == (cAliasTab)->XXXOPPAI .and. MsgYesNo("Confirma a junção das OP's Filhas com a OP pai: "+trim((cAliasTab)->XXXOPPAI)+"?"), Processa( {||juncao()   },"Aguarde", "Realizando processo de junção..."),MsgAlert("Junção cancelada","Atenção!")) ) PIXEL
+        @ 006, (nJanLarg/2-001)-(0052*03) BUTTON oBtnLege  PROMPT "Estorno"         SIZE 050, 018 OF oDlgGrp ACTION ( Iif(!empty(trim((cAliasTab)->XXXD3DOC)) .and. (cAliasTab)->XXORDPRD == (cAliasTab)->XXXOPPAI .and. MsgYesNo("Confirma o ESTORNO da junção das OP's Filhas com a OP pai: "+trim((cAliasTab)->XXXOPPAI)+"?"), Processa( {||estorno()   },"Aguarde", "Realizando processo de ESTORNO de junção..."),MsgAlert("Processo cancelado.","Atenção!")) ) PIXEL
+        
+ 
+        //Dados
+        @ 024, 003 GROUP oGrpDad TO (nJanAltu/2-003), (nJanLarg/2-003) PROMPT "OP's (clique duas vezes sobre as cores para ver as legendas): " OF oDlgGrp COLOR 0, 16777215 PIXEL
+        oGrpDad:oFont := oFontBtn
+        oPanGrid := tPanel():New(033, 006, "", oDlgGrp, , , , RGB(000,000,000), RGB(254,254,254), (nJanLarg/2 - 13),     (nJanAltu/2 - 45))
+        oGetGrid := FWBrowse():New()
+        oGetGrid:DisableFilter()
+        oGetGrid:DisableConfig()
+        oGetGrid:DisableReport()
+        oGetGrid:DisableSeek()
+        oGetGrid:DisableSaveConfig()
+        oGetGrid:SetFontBrowse(oFontBtn)
+        oGetGrid:SetAlias(cAliasTab)
+        oGetGrid:SetDataTable()
+        oGetGrid:SetInsert(.F.)
+        oGetGrid:SetDelete(.F., { || .F. })
+        oGetGrid:lHeaderClick := .F.
+        oGetGrid:AddLegend(cAliasTab + "->XXD7STAT == 'F'", "RED",    "Junção concluída")
+        oGetGrid:AddLegend(cAliasTab + "->XXD7STAT == 'N'", "WHITE",    "Ordem de produção em Processo")
+        oGetGrid:AddLegend(cAliasTab + "->XXD7STAT == 'P'", "YELLOW", "Ordem de produção aguardando Qualidade")
+        oGetGrid:AddLegend(cAliasTab + "->XXD7STAT == 'L'", "GREEN",  "Ordem de produção aguardando junção")
+        // oGetGrid:AddLegend("Empty(" + cAliasTab + "->XXD7STAT)", "BLACK",  "Sem Classificacao")
+        oGetGrid:SetColumns(aColunas)
+        oGetGrid:SetOwner(oPanGrid)
+        oGetGrid:Activate()
+    ACTIVATE MsDialog oDlgGrp CENTERED
+ 
+    //Deleta a temporaria
+    oTempTable:Delete()
+ 
+    RestArea(aArea)
+Return
+ 
+Static Function fMontaHead()
+    Local nAtual
+    Local aHeadAux := {}
+ 
+    //Adicionando colunas
+    //[1] - Campo da Temporaria
+    //[2] - Titulo
+    //[3] - Tipo
+    //[4] - Tamanho
+    //[5] - Decimais
+    //[6] - Máscara
+    aAdd(aHeadAux, {"XXC2TIPO", "Tipo",              "C", 5, 0, ""})
+    aAdd(aHeadAux, {"XXXOPPAI", "OP Pai",            "C", TamSX3('C2_NUM')[01], 0, ""})
+    aAdd(aHeadAux, {"XXORDPRD", "OP",                "C", TamSX3('C2_NUM')[01], 0, ""})
+    aAdd(aHeadAux, {"XXC2PROD", "Produto",           "C", TamSX3('C2_PRODUTO')[01], 0, ""})
+    aAdd(aHeadAux, {"XXB1DESC", "Descrição",         "C", TamSX3('B1_DESC')[01], 0, ""})
+    aAdd(aHeadAux, {"XXC2QTDE", "Quantidade OP",        "N", TamSX3('C2_QUANT')[01], 0, "@E 999,999.9999"})
+    aAdd(aHeadAux, {"XXD3QTDE", "Qtde Apontada",        "N", TamSX3('C2_QUANT')[01], 0, "@E 999,999.9999"})
+    aAdd(aHeadAux, {"XC2PERDA", "Perda",        "N", TamSX3('C2_QUANT')[01], 0, "@E 999,999.9999"})
+    // aAdd(aHeadAux, {"XXC2QTD2", "Quantidade 2UM",        "N", TamSX3('C2_QTSEGUM')[01], 0, "@E 999,999,999.9999"})
+    aAdd(aHeadAux, {"XXC2SALA", "Sala",              "C", TamSX3('C2_SALA')[01], 0, ""})
+    aAdd(aHeadAux, {"XXLOTECT", "Lote",              "C", TamSX3('C2_LOTECTL')[01], 0, ""})
+    // aAdd(aHeadAux, {"XXD7STAT", "Status",            "C", 1, 0, ""})
+ 
+    //Percorrendo e criando as colunas
+    For nAtual := 1 To Len(aHeadAux)
+        oColumn := FWBrwColumn():New()
+        oColumn:SetData(&("{|| " + cAliasTab + "->" + aHeadAux[nAtual][1] +"}"))
+        oColumn:SetTitle(aHeadAux[nAtual][2])
+        oColumn:SetType(aHeadAux[nAtual][3])
+        oColumn:SetSize(aHeadAux[nAtual][4])
+        oColumn:SetDecimal(aHeadAux[nAtual][5])
+        oColumn:SetPicture(aHeadAux[nAtual][6])
+        aAdd(aColunas, oColumn)
+    Next
+Return
+ 
+Static Function fMontDados(oSay)
+    Local aArea := GetArea()
+    Local cQry  := ""
+    Local nAtual := 0
+    Local nTotal := 0
+ 
+    //Zera a grid
+    aColsGrid := {}
+     
+    //Montando a query
+    oSay:SetText("Montando a consulta")
+    cQry := " SELECT DISTINCT 
+    cQry += " CASE WHEN C2.C2_XOPPAI = C2.C2_NUM THEN 'PAI' ELSE 'FILHO' END TIPO,C2.C2_QTSEGUM,C2.C2_XOPPAI,C2PAI.C2_XD3DOC,C2PAI.C2_XD3FIM,
+    cQry += " C2.C2_NUM,C2.C2_PRODUTO,B1_DESC,C2.C2_QUANT,D3_QUANT,C2.C2_PERDA,C2.C2_SALA,C2.C2_LOTECTL,D7.R_E_C_N_O_ REC,D7.D7_DATA,CASE WHEN TRIM(C2PAI.C2_XD3DOC) != '' and ((C2.C2_XOPPAI = C2.C2_NUM and D7.D7_SALDO = 0) or C2.C2_XOPPAI != C2.C2_NUM) THEN 'F' WHEN D7.D7_SALDO = 0 THEN 'L' WHEN D7.D7_SALDO > 0 THEN 'P' ELSE 'N' END D7STATUS
+    cQry += " FROM "+RetSqlName("SC2")+" C2
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_FILIAL = '"+FWxFilial("SB1")+"' AND B1_COD = C2.C2_PRODUTO AND B1.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SC2")+" C2PAI ON C2PAI.C2_NUM = C2.C2_XOPPAI AND C2PAI.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SD3")+" D3 ON D3_OP = C2.C2_NUM+C2.C2_ITEM+C2.C2_SEQUEN AND D3_COD = C2.C2_PRODUTO AND D3_LOTECTL = C2.C2_LOTECTL AND D3.D_E_L_E_T_ = '' AND D3_PARCTOT = 'T'
+    cQry += " LEFT JOIN "+RetSqlName("SD7")+" D7 ON D7_PRODUTO = C2.C2_PRODUTO AND (D7_LOTECTL = C2.C2_LOTECTL OR D7_LOTECTL = C2PAI.C2_LOTECTL) AND D7.D_E_L_E_T_ = '' 
+    cQry += " AND D7.R_E_C_N_O_ = (SELECT TOP 1 D72.R_E_C_N_O_ FROM "+RetSqlName("SD7")+" D72 WHERE D72.D7_PRODUTO = C2.C2_PRODUTO AND (D72.D7_LOTECTL = C2.C2_LOTECTL OR D72.D7_LOTECTL = C2PAI.C2_LOTECTL) AND D72.D_E_L_E_T_ = '' 
+    cQry += " ORDER BY D72.R_E_C_N_O_ DESC) 
+    cQry += " WHERE C2.C2_FILIAL = '"+FWxFilial("SC2")+"' AND C2.D_E_L_E_T_ = ''  AND C2.C2_XOPPAI != '' AND C2.C2_EMISSAO >= '"+DtoS(MonthSub(FirstDate(dDatabase),1))+"'
+    cQry += " ORDER BY C2.C2_NUM
+ 
+    //Executando a query
+    oSay:SetText("Executando a consulta")
+    PLSQuery(cQry, "QRY_SC2")
+ 
+    //Se houve dados
+    If ! QRY_SC2->(EoF())
+        //Pegando o total de registros
+        DbSelectArea("QRY_SC2")
+        Count To nTotal
+        QRY_SC2->(DbGoTop())
+ 
+        //Enquanto houver dados
+        While ! QRY_SC2->(EoF())
+ 
+            //Muda a mensagem na regua
+            nAtual++
+            oSay:SetText("Adicionando registro " + cValToChar(nAtual) + " de " + cValToChar(nTotal) + "...")
+ 
+            RecLock(cAliasTab, .T.)
+                (cAliasTab)->XXC2TIPO := QRY_SC2->TIPO
+                (cAliasTab)->XXXOPPAI := QRY_SC2->C2_XOPPAI
+                (cAliasTab)->XXORDPRD := QRY_SC2->C2_NUM
+                (cAliasTab)->XXC2PROD := QRY_SC2->C2_PRODUTO
+                (cAliasTab)->XXB1DESC := QRY_SC2->B1_DESC
+                (cAliasTab)->XXC2QTDE := QRY_SC2->C2_QUANT
+                (cAliasTab)->XXD3QTDE := QRY_SC2->D3_QUANT
+                (cAliasTab)->XC2PERDA := QRY_SC2->C2_PERDA
+                (cAliasTab)->XXC2QTD2 := QRY_SC2->C2_QTSEGUM
+                (cAliasTab)->XXC2SALA := QRY_SC2->C2_SALA
+                (cAliasTab)->XXLOTECT := QRY_SC2->C2_LOTECTL
+                (cAliasTab)->XXD7STAT := QRY_SC2->D7STATUS
+                (cAliasTab)->XXXD3DOC := QRY_SC2->C2_XD3DOC
+                (cAliasTab)->XXXD3FIM := QRY_SC2->C2_XD3FIM
+                (cAliasTab)->XXXD7REC := QRY_SC2->REC
+            (cAliasTab)->(MsUnlock())
+ 
+            QRY_SC2->(DbSkip())
+        EndDo
+ 
+    Else
+        MsgStop("Nao foi encontrado registros!", "Atencao")
+ 
+        RecLock(cAliasTab, .T.)
+            (cAliasTab)->XXC2TIPO := ""
+            (cAliasTab)->XXXOPPAI := ""
+            (cAliasTab)->XXORDPRD := ""
+            (cAliasTab)->XXC2PROD := ""
+            (cAliasTab)->XXB1DESC := ""
+            (cAliasTab)->XXC2QTDE := 0
+            (cAliasTab)->XXD3QTDE := 0
+            (cAliasTab)->XC2PERDA := 0
+            (cAliasTab)->XXC2QTD2 := 0
+            (cAliasTab)->XXC2SALA := ""
+            (cAliasTab)->XXLOTECT := ""
+            (cAliasTab)->XXD7STAT := ""
+            (cAliasTab)->XXXD3DOC := ""
+            (cAliasTab)->XXXD3FIM := ""
+            (cAliasTab)->XXXD7REC := 0
+        (cAliasTab)->(MsUnlock())
+    EndIf
+    QRY_SC2->(DbCloseArea())
+    (cAliasTab)->(DbGoTop())
+ 
+    RestArea(aArea)
+Return
+ 
+Static Function juncao()
+    Local aArea := GetArea()
+    Local aAuto := {}
+    Local aItem := {}
+    Local aLinha := {}
+    Local aLista := {} //Os produtos a serem utilizados
+    Local aOpPai := {}
+    Local nX
+    Local nOpcAuto := 0
+    Local cDocumen := ""
+    Private lMsErroAuto := .F.
+
+    cOpPai := (cAliasTab)->XXXOPPAI
+    nRecPai := (cAliasTab)->XXXD7REC
+
+    (cAliasTab)->(DbGoTop())
+    While (cAliasTab)->(!eof())
+        If (cAliasTab)->XXXOPPAI == cOpPai .and. (cAliasTab)->XXORDPRD == cOpPai
+            aAdd(aOpPai, {(cAliasTab)->XXC2PROD, (cAliasTab)->XXLOTECT, (cAliasTab)->XXC2QTDE, (cAliasTab)->XXC2QTDE,(cAliasTab)->XXD3QTDE,  (cAliasTab)->XC2PERDA })
+        EndIf
+        If (cAliasTab)->XXXOPPAI == cOpPai .and. (cAliasTab)->XXORDPRD != cOpPai
+            If (cAliasTab)->XXD7STAT != 'L'
+                MsgAlert("OP "+trim((cAliasTab)->XXORDPRD)+" não foi liberada no CQ para o armazém 99", "Atenção!")
+                Return
+            EndIf
+            aAdd(aLista, {(cAliasTab)->XXC2PROD, (cAliasTab)->XXLOTECT, (cAliasTab)->XXC2QTDE, (cAliasTab)->XXC2QTDE,(cAliasTab)->XXD3QTDE,  (cAliasTab)->XC2PERDA })
+        EndIf
+         (cAliasTab)->(DbSkip())
+    EndDo
+
+    cDocumen := GetSxeNum("SD3","D3_DOC")
+
+    aadd(aAuto,{cDocumen,dDataBase}) //Cabecalho
+
+    //Itens a Incluir
+    aItem := {}
+
+    for nX := 1 to len(aLista)
+        aLinha := {}
+        //Origem
+        DbSelectArea("SBE")
+        SBE->(DbSetOrder(2))
+        SBE->(DbSeek(xFilial("SBE")+"99"))
+
+        DbSelectArea("SB8")
+        SB8->(DbSetOrder(6))
+
+        SB1->(DbSeek(xFilial("SB1")+PadR(aLista[nX][1], tamsx3('D3_COD') [1])))
+        aadd(aLinha,{"ITEM",'00'+cvaltochar(nX),Nil})
+        aadd(aLinha,{"D3_COD", SB1->B1_COD, Nil}) //Cod Produto origem
+        aadd(aLinha,{"D3_DESCRI", SB1->B1_DESC, Nil}) //descr produto origem
+        aadd(aLinha,{"D3_UM", SB1->B1_UM, Nil}) //unidade medida origem
+
+        aadd(aLinha,{"D3_LOCAL", PadR(SBE->BE_LOCAL, tamsx3('D3_LOCAL') [1]), Nil}) //armazem origem
+        aadd(aLinha,{"D3_LOCALIZ", PadR(SBE->BE_LOCALIZ, tamsx3('D3_LOCALIZ') [1]),Nil}) //Informar endereÃ§o origem
+        
+        //Destino
+        SB1->(DbSeek(xFilial("SB1")+PadR(aLista[nX][1], tamsx3('D3_COD') [1])))
+        aadd(aLinha,{"D3_COD", SB1->B1_COD, Nil}) //cod produto destino
+        aadd(aLinha,{"D3_DESCRI", SB1->B1_DESC, Nil}) //descr produto destino
+        aadd(aLinha,{"D3_UM", SB1->B1_UM, Nil}) //unidade medida destino
+
+        SBE->(DbSetOrder(1))
+        // SBE->(DbSeek(xFilial("SBE")+"98"+"265.26.001.01"))
+        SBE->(DbSeek(xFilial("SBE")+"99"+"171.00.099.99"))
+        aadd(aLinha,{"D3_LOCAL", PadR(SBE->BE_LOCAL, tamsx3('D3_LOCAL') [1]), Nil}) //armazem destino
+        aadd(aLinha,{"D3_LOCALIZ", PadR(SBE->BE_LOCALIZ, tamsx3('D3_LOCALIZ') [1]),Nil}) //Informar endereÃ§o destino
+        
+        aadd(aLinha,{"D3_NUMSERI", "", Nil}) //Numero serie
+        aadd(aLinha,{"D3_LOTECTL", PadR(aLista[nX][2], tamsx3('D3_LOTECTL') [1]), Nil}) //Lote Origem
+        aadd(aLinha,{"D3_NUMLOTE", "", Nil}) //sublote origem
+        SB8->(DbSeek(xFilial("SB8")+aLista[nX][2]+aLista[nX][1]))
+        aadd(aLinha,{"D3_DTVALID", SB8->B8_DTVALID, Nil}) //data validade
+        aadd(aLinha,{"D3_POTENCI", 0, Nil}) // Potencia
+        aadd(aLinha,{"D3_QUANT", aLista[nX][5], Nil}) //Quantidade
+        // aadd(aLinha,{"D3_QTSEGUM", aLista[nX][5]*1000, Nil}) //Seg unidade medida
+        aadd(aLinha,{"D3_ESTORNO", "", Nil}) //Estorno
+        aadd(aLinha,{"D3_NUMSEQ", "", Nil}) // Numero sequencia D3_NUMSEQ
+        
+        SB8->(DbSeek(xFilial("SB8")+aOpPai[1][2]+aLista[nX][1]))
+        aadd(aLinha,{"D3_LOTECTL", PadR(aOpPai[1][2], tamsx3('D3_LOTECTL') [1]), Nil}) //Lote destino
+        aadd(aLinha,{"D3_NUMLOTE", "", Nil}) //sublote destino
+        aadd(aLinha,{"D3_DTVALID", SB8->B8_DTVALID, Nil}) //validade lote destino
+        aadd(aLinha,{"D3_ITEMGRD", "", Nil}) //Item Grade
+        
+        aadd(aLinha,{"D3_CODLAN", "", Nil}) //cat83 prod origem
+        aadd(aLinha,{"D3_CODLAN", "", Nil}) //cat83 prod destino
+        
+        aAdd(aAuto,aLinha)
+
+    Next nX
+    nOpcAuto := 3 // Inclusao
+    MSExecAuto({|x,y| mata261(x,y)},aAuto,nOpcAuto)
+
+    if lMsErroAuto
+        MostraErro()
+        RestArea(aArea)
+        return
+    else
+
+        SC2->(DbSetOrder(1))
+        SC2->(DbSeek(xFilial("SC2")+cOpPai))
+        SC2->(RecLock("SC2",.f.))
+        SC2->C2_XD3DOC := cDocumen
+        SC2->(MsUnlock())
+        
+    Endif
+
+    Transf98(aOpPai,aLista, cOpPai)
+
+    RestArea(aArea)
+    refreshGrid()
+
+
+Return
+
+Static Function Transf98(aOpPai,aLista, cOpPai)
+    Local aAuto := {}
+    Local aItem := {}
+    Local aLinha := {}
+    Local nX
+    Local nOpcAuto := 0
+    Local cDocumen := ""
+    Private lMsErroAuto := .F.
+
+    cDocumen := GetSxeNum("SD3","D3_DOC")
+
+    aadd(aAuto,{cDocumen,dDataBase}) //Cabecalho
+
+    //Itens a Incluir
+    aItem := {}
+
+    for nX := 1 to len(aOpPai)
+        aLinha := {}
+        //Origem
+        DbSelectArea("SBE")
+        SBE->(DbSetOrder(1))
+
+        DbSelectArea("SB8")
+        SB8->(DbSetOrder(3))
+
+        SB1->(DbSeek(xFilial("SB1")+PadR(aOpPai[nX][1], tamsx3('D3_COD') [1])))
+        aadd(aLinha,{"ITEM",'00'+cvaltochar(nX),Nil})
+        aadd(aLinha,{"D3_COD", SB1->B1_COD, Nil}) //Cod Produto origem
+        aadd(aLinha,{"D3_DESCRI", SB1->B1_DESC, Nil}) //descr produto origem
+        aadd(aLinha,{"D3_UM", SB1->B1_UM, Nil}) //unidade medida origem
+
+        SBE->(DbSeek(xFilial("SBE")+"99"+"171.00.099.99"))
+        aadd(aLinha,{"D3_LOCAL", PadR(SBE->BE_LOCAL, tamsx3('D3_LOCAL') [1]), Nil}) //armazem origem
+        aadd(aLinha,{"D3_LOCALIZ", PadR(SBE->BE_LOCALIZ, tamsx3('D3_LOCALIZ') [1]),Nil}) //Informar endereÃ§o origem
+        
+        //Destino
+        SB1->(DbSeek(xFilial("SB1")+PadR(aOpPai[nX][1], tamsx3('D3_COD') [1])))
+        aadd(aLinha,{"D3_COD", SB1->B1_COD, Nil}) //cod produto destino
+        aadd(aLinha,{"D3_DESCRI", SB1->B1_DESC, Nil}) //descr produto destino
+        aadd(aLinha,{"D3_UM", SB1->B1_UM, Nil}) //unidade medida destino
+
+        SBE->(DbSeek(xFilial("SBE")+"98"+"265.26.001.01"))
+        aadd(aLinha,{"D3_LOCAL", PadR(SBE->BE_LOCAL, tamsx3('D3_LOCAL') [1]), Nil}) //armazem destino
+        aadd(aLinha,{"D3_LOCALIZ", PadR(SBE->BE_LOCALIZ, tamsx3('D3_LOCALIZ') [1]),Nil}) //Informar endereÃ§o destino
+        
+        aadd(aLinha,{"D3_NUMSERI", "", Nil}) //Numero serie
+        aadd(aLinha,{"D3_LOTECTL", PadR(aOpPai[1][2], tamsx3('D3_LOTECTL') [1]), Nil}) //Lote Origem
+        aadd(aLinha,{"D3_NUMLOTE", "", Nil}) //sublote origem
+        SB8->(DbSeek(xFilial("SB8")+aOpPai[nX][1]+"99"+aOpPai[nX][2]))
+        aadd(aLinha,{"D3_DTVALID", SB8->B8_DTVALID, Nil}) //data validade
+        aadd(aLinha,{"D3_POTENCI", 0, Nil}) // Potencia
+        aadd(aLinha,{"D3_QUANT", SB8->B8_SALDO, Nil}) //Quantidade
+        aadd(aLinha,{"D3_ESTORNO", "", Nil}) //Estorno
+        aadd(aLinha,{"D3_NUMSEQ", "", Nil}) // Numero sequencia D3_NUMSEQ
+        
+        aadd(aLinha,{"D3_LOTECTL", PadR(aOpPai[1][2], tamsx3('D3_LOTECTL') [1]), Nil}) //Lote destino
+        aadd(aLinha,{"D3_NUMLOTE", "", Nil}) //sublote destino
+        aadd(aLinha,{"D3_DTVALID", SB8->B8_DTVALID, Nil}) //validade lote destino
+        aadd(aLinha,{"D3_ITEMGRD", "", Nil}) //Item Grade
+        
+        aadd(aLinha,{"D3_CODLAN", "", Nil}) //cat83 prod origem
+        aadd(aLinha,{"D3_CODLAN", "", Nil}) //cat83 prod destino
+        
+        aAdd(aAuto,aLinha)
+
+    Next nX
+    nOpcAuto := 3 // Inclusao
+    MSExecAuto({|x,y| mata261(x,y)},aAuto,nOpcAuto)
+
+    if lMsErroAuto
+        MostraErro()
+        return
+    else
+
+        SC2->(DbSetOrder(1))
+        If SC2->(DbSeek(xFilial("SC2")+cOpPai))
+            SC2->(RecLock("SC2",.f.))
+            SC2->C2_XD3FIM := cDocumen
+            SC2->(MsUnlock())
+        EndIf
+        
+        MsgAlert("Junção concluída com sucesso!","Atenção")
+    Endif
+
+    (cAliasTab)->(DbGoTop())
+    While (cAliasTab)->(!eof())
+        If (cAliasTab)->XXXOPPAI == cOpPai
+            (cAliasTab)->XXXD3FIM := cDocumen
+            If (cAliasTab)->XXD7STAT == 'L'
+                (cAliasTab)->XXD7STAT := "F"
+            EndIf
+        EndIf
+        (cAliasTab)->(DbSkip()) 
+    Enddo
+Return
+
+Static Function estorno()
+    Local cD3Doc := (cAliasTab)->XXXD3DOC
+    Local cD3Fim := (cAliasTab)->XXXD3FIM
+    Local cOpPai := (cAliasTab)->XXXOPPAI
+    Private lMsErroAuto := .F.
+
+    If !empty(trim(cD3Fim))
+    //Estorno Transf 98
+    
+        aAuto := {}
+        aadd(aAuto,{"D3_DOC", cD3Fim, Nil})
+        aadd(aAuto,{"D3_COD", (cAliasTab)->XXC2PROD, Nil})
+        
+        DbSelectArea("SD3")
+        DbSetOrder(2)
+        DbSeek(xFilial("SD3")+cD3Fim+(cAliasTab)->XXC2PROD)
+
+        //-- Teste de Estorno
+        nOpcAuto := 6 // Estornar
+        MSExecAuto({|x,y| mata261(x,y)},aAuto,nOpcAuto)
+
+    EndIf
+
+    If !empty(trim(cD3Doc))
+
+        lMsErroAuto := .F.
+        aAuto := {}
+        aadd(aAuto,{"D3_DOC", cD3Doc, Nil})
+        aadd(aAuto,{"D3_COD", (cAliasTab)->XXC2PROD, Nil})
+        
+        DbSelectArea("SD3")
+        DbSetOrder(2)
+        DbSeek(xFilial("SD3")+cD3Doc+(cAliasTab)->XXC2PROD)
+
+        //-- Teste de Estorno
+        nOpcAuto := 6 // Estornar
+        MSExecAuto({|x,y| mata261(x,y)},aAuto,nOpcAuto)
+    
+        If lMsErroAuto
+            MostraErro()
+        Else
+            (cAliasTab)->(DbGoTop())
+            While (cAliasTab)->(!eof()) 
+                If (cAliasTab)->XXXOPPAI == cOpPai
+                    (cAliasTab)->XXXD3FIM := ""
+                    (cAliasTab)->XXXD3DOC := ""
+                    If (cAliasTab)->XXD7STAT == "F"
+                        (cAliasTab)->XXD7STAT := "L"
+                    EndIf
+                EndIf
+                (cAliasTab)->(DbSkip())
+            EndDo
+            (cAliasTab)->(DbGoTop())
+            MsgAlert("Estorno de movimentação multipla efetuada com sucesso","Atenção!")
+            
+
+            SC2->(DbSetOrder(1))
+            SC2->(DbSeek(xFilial("SC2")+cOpPai))
+            SC2->(RecLock("SC2",.f.))
+            SC2->C2_XD3DOC := ""
+            SC2->C2_XD3FIM := ""
+            SC2->(MsUnlock())
+        EndIf
+
+    EndIf
+    refreshGrid()
+Return
+
+Static Function RefreshGrid()
+    oGetGrid:DeActivate()
+    (cAliasTab)->(DbGoTop())
+    oGetGrid:SetAlias(cAliasTab)
+    oDlgGrp:Refresh()
+    oPanGrid:Refresh()
+    oGetGrid:Refresh()
+    oGetGrid:Activate()
+Return

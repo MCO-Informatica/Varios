@@ -1,0 +1,85 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+
+/*
+Workflow de Margem abaixo de 15%
+Desenvolvido por Denis varella
+*/
+
+User Function WFMARGEM(aCol,aInfo, nMargemLim)
+    Private cTo := SuperGetMV("MV_XMARGML",,"")
+    Private cHTML := ""
+
+    SetHTML(aCol, aInfo, nMargemLim)
+    // cTo := "denis@pharosit.com.br;bruno@pharosit.com.br" 
+    U_zEnvMail(cTo, "Aviso de Margem abaixo de "+cValtoChar(nMargemLim)+"% - Pedido: "+M->C5_NUM, cHTML, {}, .f., .t., .t.)
+
+Return
+
+Static Function SetHTML(aCol, aInfo, nMargemLim)
+  cHTML := "<html>
+  cHTML += "<head>
+  cHTML += "<style>
+  cHTML += "* {outline: none;border:none;margin: 0;padding:0;box-sizing: border-box;font-family: Arial;}
+  cHTML += "table { width: 100%;max-width: 900px;font-size:10px;}
+  cHTML += "table thead {background: #C0D9D9;text-align: center;}
+  cHTML += "table td {padding: 5px;border:1px solid #222;}
+  cHTML += "p {margin-bottom: 15px;padding:5px;}
+  cHTML += "h4 {padding:5px;margin:10px 0;}
+  cHTML += "</style>
+  cHTML += "</head>
+  cHTML += "<body>
+
+  cHTML += "<p>Prezados,</p>
+  cHTML += "<p>O item abaixo do pedido "+M->C5_NUM+" se encontra com margem abaixo de "+cValtoChar(nMargemLim)+"%.</p>
+  cHTML += "<p style='font-weight: bold;'>Portando, encontra-se <span style='background:yellow;'>BLOQUEADO e somente será liberado para o sistema de pedidos no Protheus quando, pelo menos, uma das duas ações ocorrer:</span></p>
+ 
+  cHTML += "<p style='font-weight: bold;padding-left: 15px;'>1. <span style='background:yellow;'>O setor Comercial negocie um novo preço de venda, com margem superior a 15%; ou</span></p>
+  cHTML += "<p style='font-weight: bold;padding-left: 15px;'>2. <span style='background:yellow;'>A Diretoria Executiva aprove o pedido como está, ou seja, com margem abaixo de 15%.</span></p>"
+  cHTML += "<h4>Informações do pedido:</h4>
+  cHTML += "<table>
+  cHTML += "	<thead>
+  cHTML += "		<tr>
+  cHTML += "			<td align='center'>DATA</td>
+  cHTML += "      <td align='center'>COD_CLI</td>
+  cHTML += "      <td align='center'>CLIENTE</td>
+  cHTML += "      <td align='center'>COD PROD</td>
+  cHTML += "      <td align='center'>PRODUTO</td>
+  cHTML += "      <td align='center'>QUANT</td>
+  cHTML += "      <td align='right'>CUSTO KG NET</td>
+  cHTML += "      <td align='right'>VENDA KG NET</td>
+  cHTML += "      <td align='center'>VENDA TOTAL NET</td>
+  cHTML += "      <td align='center'>MARGEM BRUTA</td>
+  cHTML += "      <td align='center'>MARGEM %</td>
+  cHTML += "			<td align='center'>PREVISÃO FAT.</td>
+  cHTML += "		</tr>
+  cHTML += "	</thead>
+  cHTML += "	<tbody>
+    cHTML += "		<tr>
+    cHTML += "			<td align='center'>"+DtoC(M->C5_EMISSAO)+"</td>
+    cHTML += "			<td align='center'>"+M->C5_CLIENTE+"/"+M->C5_LOJACLI+"</td>
+    cHTML += "			<td align='center'>"+SA1->A1_NREDUZ+"</td>
+    cHTML += "			<td align='center'>"+SB1->B1_COD+"</td>
+    cHTML += "			<td align='center'>"+SB1->B1_DESC+"</td>
+    cHTML += "			<td align='center'>"+TRANSFORM(aInfo[10], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>R$ "+TRANSFORM(aInfo[9], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>R$ "+TRANSFORM(aInfo[4] / aInfo[10], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>R$ "+TRANSFORM(aInfo[4], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>"+TRANSFORM(aInfo[7], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>"+TRANSFORM(aInfo[8], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>"+DtoC(M->C5_FECENT)+"</td>
+    cHTML += "		</tr>
+
+  cHTML += "	</tbody>
+  cHTML += "</table>
+  cHTML += "<br/>"
+  cHTML += "<p>Vendedor: "+Trim(Posicione("SA3",1,xFilial("SA3")+M->C5_VEND1,"A3_NOME"))+"<br/>"
+  cHTML += "Taxa utilizada: "+Trim(TRANSFORM(aInfo[12], "@E 999.9999"))+" | Preço NET: "+Trim(TRANSFORM(aInfo[11], "@E 999,999.99"))+"</p>"
+
+  cHTML += "</body>
+  cHTML += "</html>
+
+Return

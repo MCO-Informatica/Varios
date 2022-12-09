@@ -1,0 +1,24 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina |           | Autor | Lucas Baia          | Data |    //2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+
+User Function MTA200()
+
+Local _lRet := .t.
+
+If !INCLUI .OR. !ALTERA
+    If !__cUserID$"000000/000274/000275" // Admin/UPDUO01/UPDUO02
+        _lRet := .f.
+        MsgStop("Você não tem permissão para excluir a estrutura do produto", "EXCLUSÃO NÃO PERMITIDA")
+    EndIf
+Endif
+
+Return(_lRet)

@@ -1,0 +1,240 @@
+#include "rwmake.ch"
+#INCLUDE "PROTHEUS.CH"
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ************************************************************************************************************ //
+// PE UTILIZADO NO MOMENTO DA GRAVAÇÃO DO PEDIDO DE VENDA PARA VALIDAR O PERCENTUAL DA COMISSAO DO VENDEDOR     //
+// ************************************************************************************************************ //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+USER FUNCTION MT410TOK()
+
+PUBLIC cRet		:= .T.
+
+IF INCLUI .OR. ALTERA
+	
+	IF M->C5_VEND1 == '000031' .OR. ALLTRIM(M->C5_VEND1) == ''
+		
+	ELSE
+		
+		IF M->C5_COMIS1 == 0
+			
+			MSGBOX("INFORME O PERCENTUAL DE COMISSAO NO CADASTRO DO VENDEDOR")
+			
+			cRet	:= .F.
+			
+		ENDIF
+		
+	ENDIF
+	
+ENDIF
+
+//inicio
+IF M->C5_TIPO == 'D'
+	
+	Private _aArea := GetArea()
+	Private _lRet  := .T.
+	//Private aCOLS  := {}
+	
+	IF INCLUI .OR. ALTERA
+		
+		For I := 1 To Len(aCols)
+			
+			LVALIDA 	:= .T.
+			nPosDoc 	:= aScan(aHeader,{ |x| AllTrim(x[2]) == 'C6_NFORI'} )
+			nPosSeri 	:= aScan(aHeader,{ |x| AllTrim(x[2]) == 'C6_SERIORI'} )
+			cCodFor 	:= M->C5_CLIENTE 	// aScan(aHeader,{ |x| AllTrim(x[2]) == 'C6_NFORI'} )
+			cLoja	 	:= M->C5_LOJA 		// aScan(aHeader,{ |x| AllTrim(x[2]) == 'C6_SERIORI'} )
+			
+			
+			IF NPOSDOC == 0
+				
+				//ALERT("CAMPO NAO ESTA COMO 'USADO' NO DICIONARIO DE DADOS 'SX3'")
+				MSGINFO("Por favor entre em contato com o administrador do sistema")
+				
+			ELSE
+				//If (SC6->C6_NFORI) <> " "
+				if ALLTRIM(acols[I][NPOSDOC]) <> ""
+					// Alert( 'Deve ser informada a Chave da NFE' )
+					// sf1
+					_cQuery := " "
+					_cQuery += "     SELECT COUNT(*) AS CHAVE FROM SF1010        			"
+					_cQuery += "     WHERE F1_DOC		=  '"+ACOLS[I][NPOSDOC]+"'        	"
+					_cQuery += "     AND F1_SERIE 		=  '"+ACOLS[I][NPOSSERI]+"'       	"
+					_cQuery += "     AND F1_FILIAL 		=  '01'                            	"
+					_cQuery += "     AND F1_FORNECE 	=  '"+M->C5_CLIENTE+"'				"
+					_cQuery += "     AND F1_LOJA 		=  '"+M->C5_LOJACLI+"'				"
+					_cQuery += "     AND D_E_L_E_T_ 	!= '*'                           	"
+					_cQuery += "     AND LTRIM(RTRIM(F1_CHVNFE)) = ''                    	"
+					
+					DbUseArea( .t., "TOPCONN", TcGenQry(,,_cQuery), "cQrySF1" )
+					
+					If (cQrySF1->CHAVE > 0)
+						lValida = .F.
+					Endif
+					cQrySF1->(dbCloseArea())
+					//sf3
+					
+					_cQrySF3 := " "
+					_cQrySF3 += "   SELECT COUNT(*) AS CHAVE FROM SF3010        	"
+					_cQrySF3 += "   WHERE F3_NFISCAL 	= '"+ACOLS[I][NPOSDOC]+"'  	"
+					_cQrySF3 += "   AND F3_SERIE 		= '"+ACOLS[I][NPOSSERI]+"'	"
+					_cQrySF3 += "   AND F3_FILIAL 		= '01'  					"
+					_cQrySF3 += "   AND F3_CLIEFOR 		= '"+M->C5_CLIENTE+"'		"
+					_cQrySF3 += "   AND F3_LOJA 		= '"+M->C5_LOJACLI+"'		"
+					_cQrySF3 += "   AND D_E_L_E_T_ 		!= '*'                		"
+					_cQrySF3 += "   AND LTRIM(RTRIM(F3_CHVNFE)) = ''              	"
+					DbUseArea( .t., "TOPCONN", TcGenQry(,,_cQrySF3), "cQrySF3" )
+					
+					If (cQrySF3->CHAVE > 0)
+						lValida = .F.
+						//				cQrySF3->(dbCloseArea())
+					Endif
+					cQrySF3->(dbCloseArea())
+					
+					//SFT
+					
+					_cQrySFT := " "
+					_cQrySFT += "   SELECT COUNT(*) AS CHAVE FROM SFT010        	"
+					_cQrySFT += "   WHERE FT_NFISCAL 	= '"+ACOLS[I][NPOSDOC]+"' 	"
+					_cQrySFT += "   AND FT_SERIE 		= '"+ACOLS[I][NPOSSERI]+"'	"
+					_cQrySFT += "   AND FT_FILIAL 		= '01' 						"
+					_cQrySFT += "   AND FT_CLIEFOR 		= '"+M->C5_CLIENTE+"'		"
+					_cQrySFT += "   AND FT_LOJA 		= '"+M->C5_LOJACLI+"'		"
+					_cQrySFT += "   AND D_E_L_E_T_ 		!= '*'                		"
+					_cQrySFT += "   AND LTRIM(RTRIM(FT_CHVNFE)) = ''              	"
+					
+					DbUseArea( .t., "TOPCONN", TcGenQry(,,_cQrySFT), "cQrySFT" )
+					
+					If (cQrySFT->CHAVE > 0)
+						lValida = .F.
+					Endif
+					cQrySFT->(dbCloseArea())
+					//-------------------------------------------------------
+					IF LVALIDA == .F.
+						// acho que talvez seria bom passar como parametro o fonecedor e loja também
+						// pra melhorar os filtros e consultas que vc faz depois também
+						u_CHKCHV1(aCols[I,nPosDoc],aCols[I,nPosSeri])
+					ENDIF
+				Endif
+			ENDIF
+			
+		Next I
+	Endif
+	restarea(_aArea)
+ENDIF
+
+Return cRet
+
+/////////////////////////////////////////////////////////////////////////////
+// *********************************************************************** //
+/////////////////////////////////////////////////////////////////////////////
+User Function CHKCHV1(cDocOri, cSerieOri)
+
+//+----------------------------------------------------------------------------
+//| Declarações das varáveis
+//+----------------------------------------------------------------------------
+
+Local oFld   	:= Nil
+Local dData   	:= Ctod(Space(8))
+Local cChave   	:= Space(44)
+Local cCombo  	:= Space(10)
+Local cViaF3  	:= Space(10)
+Local lChk    	:= .F.
+Private oDlg    := Nil
+
+//+----------------------------------------------------------------------------
+//| Definição da janela e seus conteúdos
+//+----------------------------------------------------------------------------
+
+DEFINE MSDIALOG oDlg TITLE "Chave da NF-e de Origem Vazia" FROM 0,0 TO 200,552 OF oDlg PIXEL
+
+@ 06,06 TO 46,271 LABEL "Digite a Chave NF-e Valida" OF oDlg PIXEL
+@ 15, 15 Say   "Nota Fiscal/Serie: "+cDocOri+" / "+cSerieOri
+@ 20, 15 SAY   "Chave NF-e" SIZE 45,8 PIXEL OF oDlg
+@ 30, 15 MSGET cChave PICTURE "@!" WHEN .T. VALID chave(cChave) SIZE 160,10 PIXEL OF oDlg
+
+
+//+----------------------------------------------------------------------------
+//| Botoes da MSDialog
+//+----------------------------------------------------------------------------
+
+@ 080,230 BUTTON "&Ok"       SIZE 36,16 PIXEL ACTION PrepSair(1)
+//@ 093,235 BUTTON "&Ok"       SIZE 36,16 PIXEL ACTION oDlg:End()
+//@ 113,235 BUTTON "&Cancelar" SIZE 36,16 PIXEL ACTION oDlg:End()
+
+ACTIVATE MSDIALOG oDlg CENTER
+
+If lRet
+	dbselectarea("SF1")
+	dbsetorder(1)
+	If dbseek(xfilial("SF1")+ACOLS[I][NPOSDOC]+ACOLS[I][NPOSSERI]+M->C5_CLIENTE+M->C5_LOJACLI)
+		RecLock("SF1",.F.)
+		SF1->F1_CHVNFE	:= cChave
+		SF1->(MsUnLock())
+	ENDIF
+	
+	
+	DbSelectArea("SFT")
+	DbSetOrder(4)
+	If DbSeek(xFilial("SFT")+"E"+M->C5_CLIENTE+M->C5_LOJACLI+cSerieOri+cDocOri) // ACRESCENTADO O IF QUE VERIFICA A EXISTENCIA DA NOTA FISCAL
+		While !(EoF()).And. SFT->FT_NFISCAL+SFT->FT_SERIE == cDocOri+cSerieOri .And. SFT->FT_CLIEFOR+SFT->FT_LOJA == M->C5_CLIENTE+M->C5_LOJACLI
+			RecLock("SFT",.F.)
+			SFT->FT_CHVNFE	:= cChave
+			SFT->(MsUnLock())
+			SFT->(DbSkip())
+		EndDo
+	Else
+		//Alert("Nota Fiscal não Existe") // ACRESCENTADO A MENSAGEM EM CASO NÃO EXISTA A NOTA FISCAL
+		Alert("Por favor entre em contato com o administrador do sistema")
+	EndIf
+	DbSelectArea("SF3")
+	//Endif
+	DbSetOrder(5)
+	If DbSeek(xFilial("SF3")+cSerieOri+cDocOri+M->C5_CLIENTE+M->C5_LOJACLI)
+		RecLock("SF3",.F.)
+		SF3->F3_CHVNFE	:= cChave
+		SF3->(MsUnLock())
+	EndIf
+EndIf
+
+Return
+
+/////////////////////////////////////////////////////////////////////////////
+// *********************************************************************** //
+/////////////////////////////////////////////////////////////////////////////
+Static Function PrepSair (nOpc)
+
+Public lRet := .T.
+
+If nOpc == 1
+	lRet := .T.
+	Close(oDlg)
+Else
+	lRet := .F.
+EndIf
+
+Return lRet
+
+/////////////////////////////////////////////////////////////////////////////
+// *********************************************************************** //
+/////////////////////////////////////////////////////////////////////////////
+Static Function CHAVE (cChave)
+
+If Empty(ALLTRIM(cChave))
+	
+	Alert("CHAVE NÃO PODE SER EM BRANCO")
+	
+	lRet1 := .F.
+	
+Else
+	
+	lRet1 := .T.
+	
+EndIf
+
+Return lRet1
+
+//Fim
+
+//RETURN cRet

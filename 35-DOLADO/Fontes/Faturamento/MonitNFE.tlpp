@@ -1,0 +1,72 @@
+#Include 'Protheus.ch'
+#Include "totvs.ch"
+
+User Function MonitNFE( Serie, NotaIni, NotaFim,cParam )
+local cURL          := alltrim(PadR(GetNewPar("MV_SPEDURL","http://"),250))
+Local Serie         := Iif(cParam$"SF2",SF2->F2_SERIE,SC5->C5_SERIE)
+Local NotaIni       := Iif(cParam$"SF2",SF2->F2_DOC,SC5->C5_NOTA)
+Local NotaFim       := Iif(cParam$"SF2",SF2->F2_DOC,SC5->C5_NOTA)
+local aParam        := { Serie, NotaIni, NotaFim }
+local nTpMonitor    := 1 // por intervalo de notas
+local cModelo       := "55" // NFe
+local lCte          := .F.
+local cAviso        := ""
+local lUsaColab     := .F.
+local aRetorno
+local cIdEnt, cError, cIdeENT
+Local aArea         := GetArea()
+
+
+     If CTIsReady(,,,lUsaColab)
+          //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+          //³Obtem o codigo da entidade                                              ³
+          //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+          cIdEnt := getCfgEntidade(@cError)
+
+          //Pega o IDENT da empresa
+		cIdeENT := RetIdEnti()
+          
+          if !empty(cError)
+               Alert(cError)
+               return
+          endif
+     Endif
+
+     aRetorno := procMonitorDoc(cIdeENT, cUrl, aParam, nTpMonitor, cModelo, lCte, @cAviso, lUsaColab)
+
+     aRetorno := procMonitorDoc(cIdeENT, cUrl, aParam, nTpMonitor, cModelo, lCte, @cAviso, lUsaColab)
+
+     if empty(cAviso) // tudo certo
+          // faz a varredura no aRetorno
+
+     else // ocorreu alguma falha
+          Alert(cAviso)
+     endif
+
+     DbSelectArea('SF3')
+    SF3->(DbSetOrder(6)) //F3_FILIAL + F3_NFISCAL + F3_SERIE
+    SF3->(DbGoTop())
+
+     IF SF3->(DbSeek(FWxFilial('SF3') + NotaIni + Serie))
+               IF empty(SF3->F3_DESCRET)
+                    //MsgAlert("Realize o processo manual de consulta, Nota Fiscal N° "+NotaIni+" e Série "+Serie,"Serviço indisponivel!")
+                    Return
+               ELSE
+                    MsgInfo("Foi transmitida a Nota Fiscal "+NotaIni+" Série "+Serie+chr(13)+;
+                         chr(13)+;
+                         "Mensagem de Retorno SEFAZ: "+chr(13)+;
+                         chr(13)+;
+                         SF3->F3_DESCRET)
+
+                    _lRetSF3 := .t.
+               Endif
+     ENDIF
+        
+/*MsgInfo("Foi transmitida a Nota Fiscal "+NotaIni+" Série "+Serie+chr(13)+;
+          chr(13)+; 
+          "Mensagem de Retorno SEFAZ: "+chr(13)+;
+          chr(13)+;
+          _cRetorno)*/
+
+RestArea(aArea)
+return

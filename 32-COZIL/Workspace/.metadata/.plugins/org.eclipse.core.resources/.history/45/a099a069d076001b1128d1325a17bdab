@@ -1,0 +1,52 @@
+//Bibliotecas
+#Include "Totvs.ch"
+
+#Define CRLF CHR(13) + CHR(10)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ FA040INC ºAutor  Marcos Souza         º Data ³  24/02/2021 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de Entrada ao incluir título a receber                º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ FINA040                                                           º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+/*--------------------------------------------------------------------------------*
+| P.E.:  FA040INC                                                                |
+| Desc:  Função chamada ao incluir título a receber                              |
+| Link:  http://tdn.totvs.com/display/public/mp/FA040INC+-+Valida+dados+--+11845 |
+*--------------------------------------------------------------------------------*/
+
+User Function FA040INC()
+	Local aArea := GetArea()
+	Local lRet  := .T.
+
+	If Empty(M->E1_VEND1)
+		MsgAlert("O campo 'Vendedor 1' deve ser preenchido !", "FA040INC")
+		lRet  := .F.
+	EndIf
+
+	If Empty(M->E1_PEDIDO)
+		MsgAlert("O campo 'Pedido' deve ser preenchido !", "FA040INC")
+		lRet  := .F.
+	EndIf
+
+	If lRet
+		cMsg  := "Vendedor"+ FO2->FO2_VEND1 + CRLF
+		cMsg  += "Pedido"+ FO2->FO2_PEDIDO + CRLF
+		apMsgInfo(cMsg,"FA040INC")
+		//Vendedor
+		aAdd(aAux,{"E1_VEND1",FO2->FO2_VEND1, Nil})
+		//Pedido
+		aAdd(aAux,{"E1_VEND1",FO2->FO2_PEDIDO, Nil})
+	Endif
+
+	RestArea(aArea)
+Return lRet

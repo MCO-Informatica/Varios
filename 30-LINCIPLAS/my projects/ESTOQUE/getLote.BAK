@@ -1,0 +1,13 @@
+User Function getLote(cTpLote)
+
+cLote := ""
+
+IF cTpLote == "100"
+	cLote := GETMV("ST_LOTEMP")
+	PUTMV("ST_LOTEMP", SOMA1(cLote) )
+ELSEIF cTpLote == "101"
+	cLote := GETMV("ST_LOTETRI")
+	PUTMV("ST_LOTETRI", SOMA1(cLote) )
+ENDIF
+
+Return cLote

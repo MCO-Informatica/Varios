@@ -1,0 +1,30 @@
+/*
+Relatório de SZR Simplificada.
+Denis Varella ~ 15/12/2021
+*/
+
+User Function RelSZR()
+    Local aPergs   := {}
+    Local dDataDe  := CtoD("  /  /    ")
+    Local dDataAte := CtoD("  /  /    ")
+    
+    aAdd(aPergs, {1, "Emissão De",  dDataDe,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Emissão Até",  dDataAte,  "", ".T.", "", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| Gerar(MV_PAR01,MV_PAR02) }, "Aguarde...", "Gerando relatório...",.F.)
+    EndIf
+Return
+
+Static Function Gerar(cDataDe,cDataAte)
+    Local cQry := ""
+
+    cQry := " SELECT Year(ZR_EMISSAO) Ano,Month(ZR_EMISSAO) Periodo, ZR_TPOPER, ZR_EMISSAO,ZR_DOC,ZR_COD,ZR_NREDUZ, ZR_EST, ZR_MUN, ZA1_DESC Segmento,ZR_UNIDVEN,ZR_VREDUZ,ZR_CODPROD,ZR_DESCINT, ZR_LOTECTL,ZR_DTVALID, ZR_QUANT 
+    cQry += " FROM "+RetSqlName("SZR")+" ZR 
+    cQry += " LEFT JOIN "+RetSqlName("SA7")+" A7 ON A7_CLIENTE = ZR_COD AND A7_LOJA = ZR_LJCLIFO AND ZR_CODPROD = A7_PRODUTO AND A7.D_E_L_E_T_ = ''
+    cQry += " LEFT JOIN "+RetSqlName("ZA1")+" ZA1 ON ZA1_COD = A7_XSEG2 AND ZA1.D_E_L_E_T_ = ''
+    cQry += " WHERE ZR_EMISSAO between '"+DtoS(MV_PAR01)+"' AND '"+DtoS(MV_PAR02)+"' and ZR.D_E_L_E_T_ = ''
+
+    U_zQry2Excel(cQry,"SZR Simplificada "+DtoS(MV_PAR01)+"_"+DtoS(MV_PAR02),"szr_simplificada")
+
+Return

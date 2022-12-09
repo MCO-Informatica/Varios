@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="selectSmartClientFSSelectionDialog">
+		<item value="C:\TOTVS12\Microsiga\Protheus\bin\smartclient_ide" key="filterPath"/>
+	</section>
+	<section name="rpoInspectorDialog">
+		<item value="C:\TOTVS12\TotvsDeveloperStudio-11.3" key="filterPath"/>
+	</section>
+	<section name="selectImportSmartClientServersWizardPage">
+		<item value="C:\TOTVS12\TotvsDeveloperStudio-11.3" key="filterPath"/>
+	</section>
+	<section name="applyPathPage">
+		<item value="C:\TOTVS12\Microsiga\protheus_data\update" key="filterPath"/>
+	</section>
+</section>

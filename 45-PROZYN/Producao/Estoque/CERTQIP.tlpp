@@ -1,0 +1,457 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "FwPrintSetup.CH"
+
+#DEFINE IMP_SPOOL 2
+#DEFINE IMP_PDF 6
+
+/*ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³ CERTQIP     º Autor ³ Denis Varella  Data ³ 20/07/2021     º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³ RELATÓRIO DE CERFICICAÇÃO DE ANÁLISE 	   			      º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Protheus 12 - Específico para a empresa Prozyn     		  º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßPßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+
+User Function CERTQIP(cOP,cProduto,cLote,nIdioma,cDoc,cSerie,cDocAte)
+	Local nDoc := 0
+
+	Private cPerg		:= PadR("CERTQIP",10)
+
+	Default cOP := ""
+	Default cProduto := ""
+	Default cLote := ""
+	Default cDoc := ""
+	Default cSerie := ""
+	Default nIdioma := 1
+	Private lQQ7 := .F.
+
+	If trim(FunName()) == 'CERTQIP'
+		AjustaSX1(cPerg)
+		If Pergunte(cPerg,.T.)
+
+			cOP := MV_PAR01
+			cProduto := MV_PAR02
+			cLote := MV_PAR03
+			nIdioma := MV_PAR04
+
+			Processa( {|| GeraCertif(cOP,cProduto,cLote,nIdioma,cDoc,cSerie) },"Aguarde" ,"Gerando Certificado...")
+		EndIf
+	Else
+		For nDoc := val(cDoc) to val(cDocAte)
+			lQQ7 := .F.
+			Processa( {|| GeraCertif(cOP,cProduto,cLote,nIdioma,PadL(cValtoChar(nDoc),9,"0"),cSerie) },"Aguarde" ,"Gerando Certificado...")
+		Next nDoc
+	EndIf
+Return
+
+Static Function GeraCertif(cOP,cProduto,cLote,nIdioma,cDoc,cSerie)
+	Local nI 			:= 0
+	Private aArea    	:= GetArea()
+	Private oPrn 		:= Nil
+	Private cTime 		:= Time()
+	Private aArray 		:= {}
+	Private _cRotina	:= cPerg
+	Private oBrush1 	:= TBrush():New( , CLR_BLACK)
+	Private oBrush2 	:= TBrush():New( , CLR_WHITE)
+	Private oBrush3 	:= TBrush():New( , CLR_GRAY)
+	Private oBrush4 	:= TBrush():New( , CLR_HGRAY)
+	Private oBrush5 	:= TBrush():New( , CLR_LIGHTGRAY)
+	Private oFont01		:= TFont():New( "Arial",,16,,.T.,,,,.T.,.F.) //Arial 18 - Negrito
+	Private oFont02N	:= TFont():New( "Arial",,12,,.T.,,,,.F.,.F.) //Arial 11 - Negrito
+	Private oFont02		:= TFont():New( "Arial",,12,,.F.,,,,.F.,.F.) //Arial 11 - Negrito
+	Private oFont03		:= TFont():New( "Arial",,11,,.F.,,,,.F.,.F.) //Arial 12 - Normal
+	Private oFont04		:= TFont():New( "Arial",,10,,.F.,,,,.F.,.F.) //Arial 09 - Normal
+	Private oFont04N	:= TFont():New( "Arial",,10,,.T.,,,,.F.,.F.) //Arial 09 - Normal
+	Private oFont05		:= TFont():New( "Arial",,09,,.F.,,,,.F.,.F.)
+	Private oFont05I	:= TFont():New( "Arial",,09,,.F.,,,,.F.,.T.)
+	Private oFont05N	:= TFont():New( "Arial",,09,,.T.,,,,.F.,.F.)
+	Private oFont06		:= TFont():New( "Arial",,10,,.T.,,,,.F.,.F.)
+	Private oFont07		:= TFont():New( "Arial",,07,,.F.,,,,.F.,.F.)
+	Private oFont08		:= TFont():New( "Arial",,06,,.F.,,,,.F.,.F.)
+	Private oFont03n	:= TFont():New( "Arial",,12,,.T.,,,,.F.,.F.)
+	Private nLine 		:= 0
+	Private nPag 		:= 0
+	Private nW 			:= 600/1000
+	Private cCodCli 	:= ""
+
+	cHour := SubStr( cTime, 1, 2 )
+	cMin  := SubStr( cTime, 4, 2 )
+	cSecs := SubStr( cTime, 7, 2 )
+	cName := "Certificado_Analise_" + cHour + cMin + cSecs
+
+	oPrn := FWMSPrinter():New(cName,IMP_PDF,.F.,"C:\temp\",.T.,,,,,.F.)
+	oPrn:setDevice(IMP_PDF)
+	oPrn:cPathPDF:="C:\temp\"
+	oPrn:SetPortrait()//SetPortrait() //SetLandScape()
+	oPrn:SetPaperSize(9) // <==== ajuste para papel A4
+
+	aArray := GetInfos(cOP,cProduto,cLote,nIdioma,cDoc,cSerie)
+	If len(aArray[1]) > 0
+		For nI := 1 to len(aArray)
+		oPrn:StartPage()      
+			Cabecalho(aArray[nI],cOP,cProduto,cLote,nIdioma,cDoc,cSerie)
+		oPrn:EndPage()
+		Next nI
+	oPrn:Preview()
+	__CopyFile(oPrn:cPathPDF+cName+'.pdf', "\CERTIFIQ\"+cName+'.pdf')
+	FreeObj(oPrn)
+	EndIf
+
+	RestArea(aArea)
+
+Return()
+
+Static Function GetInfos(cOP,cProduto,cLote,nIdioma,cDoc,cSerie)
+	Local cQry := ""
+	Local cB1Desc := " B1_DESC "
+	Local cAHDesc := " AH_DESCPO "
+	Local cQP1Desc := " QP1_DESCPO "
+	Private aInfos := {}
+	Private cAnterior := ""
+	Private aEnsaio := {}
+	cQry += " SELECT distinct QPK_PRODUT CODPRODUTO, "
+	cQry += " QPK_LOTE LOTE, "
+
+	If nIdioma == 2
+		cB1Desc := " B1_DESCIN "
+		cAHDesc := " AH_DESCIN "
+		cQP1Desc := " QP1_DESCIN "
+	ElseIf nIdioma == 3
+		cB1Desc := " B1_DESCES "
+		cAHDesc := " AH_DESCES "
+		cQP1Desc := " QP1_DESCES "
+	EndIf
+	cQry += " "+cB1Desc+" PRODUTO, "
+	cQry += " B8_DFABRIC FABRICAC, "
+	cQry += " B8_DTVALID VALIDADE, "
+	cQry += " '' RECEBIME, "
+	cQry += " QPR_XMETOD, "
+	cQry += " QP7_UNIMED, "
+	cQry += " QP7_MINMAX, "
+	cQry += " QP7_LIC, "
+	cQry += " QP7_LIC as LICNUM, "
+	cQry += " QP7_LSC, " 
+	cQry += " QP7_LSC AS LSCNUM, "
+	cQry += " "+cAHDesc+", "
+	cQry += " QPS_MEDICA, "
+	cQry += " QPS_MEDICA as MEDICANUM, "
+	cQry += " CASE WHEN QPQ_MEDICA IS NOT NULL THEN QPQ_MEDICA ELSE CASE WHEN QPS_MEDICA IS NULL  THEN CASE WHEN QPR_RESULT IS NULL THEN '' WHEN QPR_RESULT = 'A' THEN 'APROVADO' ELSE 'REPROVADO' END ELSE  LTRIM(RTRIM(QPS_MEDICA))+ ' '+ "+cAHDesc+"  END END RESULTAD, "
+	cQry += " QP1_XMETOD ENSAIO, "
+	cQry += " "+cQP1Desc+" CARACTER, "
+	cQry += " CASE WHEN QP8_TEXTO IS NULL  THEN CASE WHEN QP7_MINMAX = 1  THEN RTRIM(LTRIM(QP7_LIC))+' a '+RTRIM(LTRIM(QP7_LSC)) + ' '+ "+cAHDesc+"  WHEN QP7_MINMAX = 2  THEN RTRIM(LTRIM(QP7_LIC)) + ' '+ "+cAHDesc+"  ELSE  RTRIM(LTRIM(QP7_LSC)) + ' '+ "+cAHDesc+" END  ELSE  QP8_TEXTO  END ESPECIF, "
+	cQry += " QPL_JUSTLA OBSERVAC,
+	cQry += " isnull(QQ7_ENSAIO,'') QQ7_ENSAIO
+
+	cQry += " FROM QPK010 QPK   "
+	cQry += " INNER JOIN SB1010 B1 ON B1_COD = QPK_PRODUT AND B1.D_E_L_E_T_ = ''   "
+	cQry += " INNER JOIN SB8010 B8 ON B8_PRODUTO = QPK_PRODUT AND B8_LOTECTL = QPK_LOTE AND B8.D_E_L_E_T_ = ''   "
+	cQry += " LEFT JOIN QPR010 QPR ON QPR_OP = QPK_OP AND QPK_PRODUT = QPR_PRODUT AND QPR_LOTE = QPK_LOTE AND QPR.D_E_L_E_T_ = ''   "
+	cQry += " LEFT JOIN QP1010 QP1 ON QP1_ENSAIO = QPR_ENSAIO AND QP1.D_E_L_E_T_ = ''   "
+	cQry += " LEFT JOIN QP7010 QP7 ON QP7_PRODUT = QPK_PRODUT AND QP7_ENSAIO = QPR_ENSAIO AND QPK_REVI = QP7_REVI AND QP7_CODREC = QPR_ROTEIR AND  QP7.D_E_L_E_T_ = ''    
+ 	cQry += " LEFT JOIN QP8010 QP8 ON QP8_PRODUT = QPK_PRODUT AND QP8_ENSAIO = QPR_ENSAIO AND QPK_REVI = QP8_REVI AND QP8_CODREC = QPR_ROTEIR AND QP8.D_E_L_E_T_ = ''  
+	cQry += " LEFT JOIN QPQ010 QPQ ON QPQ_CODMED = QPR_CHAVE AND QPQ.D_E_L_E_T_ = '' "
+	cQry += " LEFT JOIN QPS010 QPS ON QPS_CODMED = QPR_CHAVE AND QPS.D_E_L_E_T_ = ''   "
+	cQry += " LEFT JOIN QPL010 QPL ON QPL_PRODUT = QPK_PRODUT AND QPL_OP = QPK_OP AND QPL_LOTE = QPK_LOTE AND QPL_LABOR = '' AND QPL.D_E_L_E_T_ = '' "
+	cQry += " LEFT JOIN SAH010 SAH ON AH_UNIMED = QP7_UNIMED AND SAH.D_E_L_E_T_ = '' 
+
+	if !empty(trim(cDoc))
+		cQry += " INNER JOIN SD2010 D2 ON D2_COD = QPK_PRODUT AND D2_LOTECTL = QPK_LOTE AND D2.D_E_L_E_T_ = ''
+		cQry += " LEFT JOIN QQ7010 QQ7 ON QQ7_PRODUT = QPK_PRODUT AND QQ7_CLIENT = D2_CLIENTE AND QQ7_LOJA = D2_LOJA AND QQ7_ENSAIO = QPR_ENSAIO AND QQ7.D_E_L_E_T_ = ''
+	else
+		cQry += " LEFT JOIN QQ7010 QQ7 ON QQ7_PRODUT = QPK_PRODUT AND QQ7_ENSAIO = QPR_ENSAIO AND QQ7.D_E_L_E_T_ = ''
+	EndIf
+
+	cQry += " WHERE QPK.D_E_L_E_T_ = ''  "
+
+		If !empty(cOP)
+			cQry += " AND QPK_OP = '"+cOP+"' "
+		ElseIf !empty(cProduto)
+			cQry += " AND QPK_PRODUT = '"+cProduto+"'
+			If !empty(cLote)
+				cQry += " AND QPK_LOTE = '"+cLote+"'
+			EndIf
+		ElseIf !empty(trim(cDoc))
+			cQry += " AND D2_DOC = '"+cDoc+"'
+		EndIf
+
+
+	cQry += " ORDER BY QPK_PRODUT,QPK_LOTE "
+
+	MemoWrite('Qry_NBCertifQIP.txt',cQry)
+
+	dbUseArea(.T.,"TOPCONN", TCGenQry(,,cQry),'CERTIF',.T.,.T.)
+
+	CERTIF->(DbGoTop())
+	While CERTIF->(!EOF())
+
+		If (CERTIF->CODPRODUTO+CERTIF->LOTE != cAnterior .and. !empty(cAnterior))
+			aAdd(aInfos,{})
+			aInfos[len(aInfos)] := aEnsaio
+			aEnsaio := {}
+			cAnterior := ""
+		EndIf
+		cESPECIF := CERTIF->ESPECIF 
+		cResult := CERTIF->RESULTAD
+		aAdd(aEnsaio, {CERTIF->CODPRODUTO,;
+		CERTIF->PRODUTO,;
+		CERTIF->LOTE,;
+		CERTIF->FABRICAC,;
+		CERTIF->VALIDADE,;
+		CERTIF->RECEBIME,;
+		cResult,;
+		CERTIF->ENSAIO,;
+		CERTIF->CARACTER,;
+		cESPECIF,;
+		CERTIF->OBSERVAC,;
+		"",;
+		CERTIF->FABRICAC,;
+		CERTIF->QQ7_ENSAIO})
+
+		If !lQQ7 .and. !empty(trim(CERTIF->QQ7_ENSAIO)) .and. !empty(trim(cDoc))
+			lQQ7 := .T.
+		EndIf
+
+		cAnterior := CERTIF->CODPRODUTO+CERTIF->LOTE
+		CERTIF->(DbSkip())
+	EndDo
+
+	aAdd(aInfos,{})
+	aInfos[len(aInfos)] := aEnsaio
+	aEnsaio := {}
+	cAnterior := ""
+
+	CERTIF->(DbCloseArea())
+Return aInfos
+
+Static Function Cabecalho(aArray,cOP,cProduto,cLote,nIdioma,cDoc,cSerie,cCodCli,cPedComp)
+	Local nA
+	Default cCodCli := ""
+	Default cPedComp := ""
+
+
+	ImpLogo(1,10)
+	DbSelectArea("SM0")
+	SM0->(DbSetOrder(1))
+	SM0->(DbSeek('01'+cFilAnt))
+	nLine := 20
+	oPrn:SayAlign(nLine,nW*20, trim(SM0->M0_NOMECOM), 	oFont05N, nW*940,0040,,1,2)
+	oPrn:SayAlign(nLine+8,nW*20, trim(SM0->M0_ENDCOB)+", "+trim(SM0->M0_BAIRCOB)+", "+trim(SM0->M0_CIDCOB)+","+trim(SM0->M0_ESTCOB)+", Brasil, "+ Transform(SM0->M0_CEPCOB,"@R 99999-999"), 	oFont05, nW*940,0040,,1,2)
+	oPrn:SayAlign(nLine+16,nW*20, "Telefone: "+ AllTrim(Transform(SM0->M0_TEL,"@R (99) 9999-9999")), 	oFont05, nW*940,0040,,1,2)
+
+	nLine+=50
+
+	If nIdioma == 2
+		oPrn:SayAlign(nLine,nW*20, "CERTIFICATE OF ANALYSIS", 	oFont01, nW*980,0040,,2,1)
+	ElseIf nIdioma == 3
+		oPrn:SayAlign(nLine,nW*20, "CERTIFICADO DE ANÁLISIS", 	oFont01, nW*980,0040,,2,1)
+	Else
+		oPrn:SayAlign(nLine,nW*20, "CERTIFICADO DE ANÁLISE", 	oFont01, nW*980,0040,,2,1)
+	EndIf
+	oPrn:Line(nLine+18,nW*360,nLine+18,nW*660,CLR_BLACK,"-4")
+	nLine += 25
+	If nIdioma == 2
+		oPrn:SayAlign(nLine,nW*20, "Product: "+trim(aArray[1][1]) + " | " + trim(aArray[1][2]),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Batch: "+trim(aArray[1][3]),           		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		oPrn:SayAlign(nLine,nW*20, "MFG Date: "+DtoC(StoD(aArray[1][4])),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Expire Date: "+DtoC(StoD(aArray[1][5])),          		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		If !empty(trim(cCodCli))
+			oPrn:SayAlign(nLine,nW*20, "Client Code: "+cCodCli,           		oFont04N, nW*580,0020,,0,2)
+			nLine += 10
+		EndIf
+		If !empty(cDoc)
+			oPrn:SayAlign(nLine,nW*600, "Invoice: "+trim(cDoc)+"/"+trim(cSerie),           		oFont04N, nW*400,0020,,0,2)
+		EndIf
+		If !empty(cPedComp)
+			oPrn:SayAlign(nLine,nW*20, "Purchase Order: "+cPedComp,           		oFont04N, nW*580,0020,,0,2)
+		EndIf
+	ElseIf nIdioma == 3
+		oPrn:SayAlign(nLine,nW*20, "Producto: "+trim(aArray[1][1]) + " | " + trim(aArray[1][2]),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Lote: "+trim(aArray[1][3]),           		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		oPrn:SayAlign(nLine,nW*20, "Fecha de Elaboración: "+DtoC(StoD(aArray[1][4])),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Fecha de Vencimento: "+DtoC(StoD(aArray[1][5])),          		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		If !empty(trim(cCodCli))
+			oPrn:SayAlign(nLine,nW*20, "Código do Cliente: "+cCodCli,           		oFont04N, nW*580,0020,,0,2)
+			nLine += 10
+		EndIf
+		If !empty(cDoc)
+			oPrn:SayAlign(nLine,nW*600, "Nota Fiscal: "+trim(cDoc)+"/"+trim(cSerie),           		oFont04N, nW*400,0020,,0,2)
+		EndIf
+		If !empty(cPedComp)
+			oPrn:SayAlign(nLine,nW*20, "Pedido de Compra: "+cPedComp,           		oFont04N, nW*580,0020,,0,2)
+		EndIf
+	Else
+		oPrn:SayAlign(nLine,nW*20, "Produto: "+trim(aArray[1][1]) + " | " + trim(aArray[1][2]),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Lote: "+trim(aArray[1][3]),           		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		oPrn:SayAlign(nLine,nW*20, "Data de Fabricação: "+DtoC(StoD(aArray[1][4])),           		oFont04N, nW*580,0020,,0,2)
+		oPrn:SayAlign(nLine,nW*600, "Data de Validade: "+DtoC(StoD(aArray[1][5])),          		oFont04N, nW*400,0020,,0,2)
+		nLine += 10
+		If !empty(trim(cCodCli))
+			oPrn:SayAlign(nLine,nW*20, "Código do Cliente: "+cCodCli,           		oFont04N, nW*580,0020,,0,2)
+			nLine += 10
+		EndIf	
+		If !empty(cDoc)
+			oPrn:SayAlign(nLine,nW*600, "Nota Fiscal: "+trim(cDoc)+"/"+trim(cSerie),           		oFont04N, nW*400,0020,,0,2)
+		EndIf
+		If !empty(cPedComp)
+			oPrn:SayAlign(nLine,nW*20, "Pedido de Compra: "+cPedComp,           		oFont04N, nW*580,0020,,0,2)
+		EndIf
+	EndIf
+
+
+	nLine += 15
+
+	oPrn:Fillrect({nLine,nW*20,nLine+20,nW*960},oBrush5,"-2")
+	oPrn:Line(nLine,nW*20,nLine+20,nW*20,CLR_BLACK,"-2")
+	oPrn:Line(nLine,nW*350,nLine+20,nW*350,CLR_BLACK,"-2")
+	oPrn:Line(nLine,nW*500,nLine+20,nW*500,CLR_BLACK,"-2")
+	oPrn:Line(nLine,nW*720,nLine+20,nW*720,CLR_BLACK,"-2")
+	oPrn:Line(nLine,nW*960,nLine+20,nW*960,CLR_BLACK,"-2")
+
+
+	oPrn:Line(nLine,nW*20,nLine,nW*960,CLR_BLACK,"-2")
+	oPrn:Line(nLine+20,nW*20,nLine+20,nW*960,CLR_BLACK,"-2")
+
+	If nIdioma == 2
+		oPrn:SayAlign(nLine+3,nW*20, "ANALYSIS",           		oFont02N, nW*330,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*350, "METHOD",           		oFont02N, nW*150,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*500, "ESPECIFICATION",         oFont02N, nW*220,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*720, "RESULT",           		oFont02N, nW*260,0060,,2,2)
+	ElseIf nIdioma == 3
+		oPrn:SayAlign(nLine+3,nW*20, "ANÁLISIS",           		oFont02N, nW*330,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*350, "MÉTODO",           		oFont02N, nW*150,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*500, "SPECIFICATIÓN",          oFont02N, nW*220,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*720, "RESULTADO",           	oFont02N, nW*260,0060,,2,2)
+	Else
+		oPrn:SayAlign(nLine+3,nW*20, "CARACTERÍSTICAS",         oFont02N, nW*330,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*350, "MÉTODO",           		oFont02N, nW*150,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*500, "ESPECIFICAÇÕES",         oFont02N, nW*220,0060,,2,2)
+		oPrn:SayAlign(nLine+3,nW*720, "RESULTADO",           	oFont02N, nW*260,0060,,2,2)
+	EndIf
+
+	For nA := 1 to len(aArray)
+		If (lQQ7 .and. !empty(aArray[nA][len(aArray[nA])])) .or. !lQQ7
+			nLine+=20
+			oPrn:Line(nLine,nW*20,nLine+20,nW*20,CLR_BLACK,"-2")
+			oPrn:Line(nLine,nW*350,nLine+20,nW*350,CLR_BLACK,"-2")
+			oPrn:Line(nLine,nW*500,nLine+20,nW*500,CLR_BLACK,"-2")
+			oPrn:Line(nLine,nW*720,nLine+20,nW*720,CLR_BLACK,"-2")
+			oPrn:Line(nLine,nW*960,nLine+20,nW*960,CLR_BLACK,"-2")
+			oPrn:Line(nLine+20,nW*20,nLine+20,nW*960,CLR_BLACK,"-2")
+			oPrn:SayAlign(nLine+4,nW*20, alltrim(aArray[nA][9]),           		oFont07, nW*330,0060,,2,2)
+			oPrn:SayAlign(nLine+11,nW*20, alltrim(aArray[nA][12]),           		oFont07, nW*330,0060,,2,2)
+			oPrn:SayAlign(nLine+6,nW*350, alltrim(aArray[nA][8]),           		oFont07, nW*150,0060,,2,2)
+			oPrn:SayAlign(nLine+6,nW*500, alltrim(aArray[nA][10]),           	oFont07, nW*220,0060,,2,2)
+			oPrn:SayAlign(nLine+6,nW*720, alltrim(aArray[nA][7]),           		oFont07, nW*260,0060,,2,2)
+		EndIf
+	Next nA
+
+	nLine += 35
+
+	If nIdioma == 2
+		oPrn:SayAlign(nLine,nW*20, "Observations: "+alltrim(aArray[1][11]),           		oFont04N, nW*940,0200,,0,2)
+		nLine += 30
+		oPrn:SayAlign(nLine,nW*20, "Print Date: "+DtoC(date()),           		oFont05N, nW*940,0200,,0,2)
+	
+	ElseIf nIdioma == 3
+
+		oPrn:SayAlign(nLine,nW*20, "Observaciónes: "+alltrim(aArray[1][11]),           		oFont04N, nW*940,0200,,0,2)
+		nLine += 30
+		oPrn:SayAlign(nLine,nW*20, "Fecha de Impresion: "+DtoC(date()),           		oFont05N, nW*940,0200,,0,2)
+	
+	Else
+		oPrn:SayAlign(nLine,nW*20, "Observações: "+alltrim(aArray[1][11]),           		oFont04N, nW*940,0200,,0,2)
+		nLine += 30
+		oPrn:SayAlign(nLine,nW*20, "Data de Impressão: "+DtoC(date()),           		oFont05N, nW*940,0200,,0,2)
+	
+	EndIf
+
+	ImpLogo(2,nLine)
+	nLine+= 50 
+	aRespons := StrTokArr(SuperGetMv("MV_RESCERT",.F.,"Jadyr Mendes de Oliveira;CRQ 04366891;Responsável Técnico;jadyr@prozyn.com.br"),";")
+	oPrn:SayAlign(nLine+5,nW*20, aRespons[1],  oFont05N, nW*940,0200,,2,2)
+	oPrn:SayAlign(nLine+15,nW*20, aRespons[2],  oFont05I, nW*940,0200,,2,2)
+	oPrn:SayAlign(nLine+25,nW*20, aRespons[3],  oFont05I, nW*940,0200,,2,2)
+	oPrn:SayBitmap(nLine+35,nW*450, GetSrvProfString("Startpath","") + "/assinatura_jadyr.png",50,50)
+	nLine+= 35
+	oPrn:Line(nLine+40,nW*400,nLine+40,nW*600,CLR_BLACK,"-4")	
+	oPrn:SayAlign(nLine+55,nW*20, "PABX: +55 (11) 3732-0000",  oFont05, nW*940,0200,,2,2)
+	oPrn:SayAlign(nLine+65,nW*20, "FAX: +55 (11) 3732-0000",  oFont05, nW*940,0200,,2,2)
+	oPrn:SayAlign(nLine+75,nW*20, aRespons[4],  oFont05, nW*940,0200,,2,2)
+	oPrn:SayAlign(nLine+85,nW*20, "www.prozyn.com.br",  oFont05, nW*940,0200,,2,2)
+
+Return
+
+Static Function ImpLogo(nOpc,nLin)
+
+	Local cLogo      	:= FisxLogo("1")
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Logotipo                                     						   ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+	cLogo := GetSrvProfString("Startpath","") + "lgrl0101.BMP"
+
+	aPos := {}
+	If nOpc == 1
+		aPos := {nLin,nW*20}
+	ElseIf nOpc == 2
+		aPos := {nLin,(nW*500-25)}
+	EndIf
+
+	oPrn:SayBitmap(aPos[1],aPos[2],cLogo,50,50)
+
+Return()
+
+Static Function AjustaSX1(cPerg)
+	Local j
+	Local i
+	_sAlias := Alias()
+	dbSelectArea("SX1")
+	dbSetOrder(1)
+	cPerg   := PADR(cPerg,10)
+	aSx1   := {}
+
+	AADD(	aSx1,{ cPerg,"01","Ordem de Produção:"		,"","","mv_ch1","C",14,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","SC2",""})
+	AADD(	aSx1,{ cPerg,"02","Produto:"				,"","","mv_ch2","C",15,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","SB1",""})
+	AADD(	aSx1,{ cPerg,"03","Lote:"	   				,"","","mv_ch3","C",16,0,0,"G","","mv_par03","","","","","","","","","","","","","","","","","","","","","","","","","CB8",""})
+	AADD(	aSx1,{ cPerg,"04","Idioma:"					,"","","mv_ch4","C",03,0,0,"C","","mv_par04","POR - Português","","","","","ING - Inglês","","","","","ESP - Espanhol","","","","","","","","","","","","","","",""})
+	For i := 1 to Len(aSx1)
+		If !dbSeek(cPerg+aSx1[i,2])
+			RecLock("SX1",.T.)
+			For j := 1 To FCount()
+				If j <= Len(aSx1[i])
+					FieldPut(j,aSx1[i,j])
+				Else
+					Exit
+				EndIf
+			Next
+			MsUnlock()
+		Else
+			RecLock("SX1",.F.)
+			For j := 1 To FCount()
+				If j <= Len(aSx1[i])
+					FieldPut(j,aSx1[i,j])
+				Else
+					Exit
+				EndIf
+			Next
+			MsUnlock()
+		EndIf
+	Next
+
+	dbSelectArea(_sAlias)
+
+Return(cPerg)

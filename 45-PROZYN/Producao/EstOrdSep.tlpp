@@ -1,0 +1,82 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+
+User Function EstOrdSep()
+Local aPergs   := {}
+Local cTipo    := "1"
+Local cOrdSep  := Space(TamSX3('CB7_ORDSEP')[01])
+ 
+aAdd(aPergs, {2, "Estorno de O.Separação",  cTipo,  {"1=Sem Embarque", "2=Com Embarque"}, 122, ".T.", .F.})
+aAdd(aPergs, {1, "Ordem de Separação",  cOrdSep,  "", ".T.", "CB7", ".T.", 80,  .F.})
+ 
+    If ParamBox(aPergs, "Informe os parâmetros")
+        DbSelectArea("CB7")
+        CB7->(DbSetOrder(1))
+        If CB7->(DbSeek(xFilial("CB7")+MV_PAR02))
+            
+            If MV_PAR01 == "1" //Sem Embarque
+
+                CB7->(RecLock("CB7",.F.))
+                CB7->CB7_STATUS := '0'
+                CB7->(MsUnlock())
+
+                cQry := " SELECT R_E_C_N_O_ REC FROM "+RetSqlName("CB0")+" WHERE CB0_PEDVEN = '"+CB7->CB7_PEDIDO+"' AND D_E_L_E_T_ = '' "
+                dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),"TMPCB0",.T.,.F.)
+
+                DbSelectArea("CB0")
+
+                While TMPCB0->(!EOF())
+
+                    CB0->(DbGoTo(TMPCB0->REC))
+
+                    CB0->(RecLock("CB0",.F.))
+                    CB0->CB0_PEDVEN := ""
+                    CB0->(MsUnlock())
+
+                    TMPCB0->(DbSkip())
+                EndDo
+
+                DbSelectArea("CB9")
+                CB9->(DbSetOrder(1))
+                If CB9->(DbSeek(xFilial("CB9") + CB7->CB7_ORDSEP))
+                    While CB9->(!EOF()) .AND. CB9->CB9_ORDSEP == CB7->CB7_ORDSEP
+
+                        CB9->(RecLock("CB9",.f.))
+                        CB9->(DbDelete())
+                        CB9->(MsUnlock())
+
+                        CB9->(DbSkip())
+                    EndDo
+                EndIf
+
+            
+            ElseIf MV_PAR01 == "2" //Com Embarque
+
+                CB7->(RecLock("CB7",.F.))
+                CB7->CB7_XDTEMB := CtoD("  /  /    ")
+                CB7_XHREMB := ""
+                CB7_XUSEMB := ""
+                CB7->(MsUnlock())
+
+                DbSelectArea("CB9")
+                CB9->(DbSetOrder(1))
+                If CB9->(DbSeek(xFilial("CB9") + CB7->CB7_ORDSEP))
+                    While CB9->(!EOF()) .AND. CB9->CB9_ORDSEP == CB7->CB7_ORDSEP
+
+                        CB9->(RecLock("CB9",.f.))
+                        CB9->CB9_QTEEBQ := 0
+                        CB9->(MsUnlock())
+
+                        CB9->(DbSkip())
+                    EndDo
+                EndIf
+            EndIf
+
+            MsgAlert("Atualizado com sucesso!","Atenção!")
+        Else
+            MsgAlert("Ordem de Separação não encontrada.","Atenção!")
+        EndIf
+        
+    EndIf
+
+Return

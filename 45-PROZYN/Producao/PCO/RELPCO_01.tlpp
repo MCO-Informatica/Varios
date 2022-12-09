@@ -1,0 +1,90 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+
+/*/{RELPCO_01()} Relatorio de Lan�amentos Or�amentarios
+    (Imprimir por usuario o relatorio dos Lan�amentos Or�amentarios)
+    @type  Function
+    @Ricardo Massao Kodama
+    @since 23/01/2022
+/*/
+
+
+Function U_RELPCO_01()
+    Local cQry := ""
+    Private _cPergun := 'RELPCO_01'
+
+    AJUSTASX1(_cPergun)
+    
+
+	If Pergunte(_cPergun, .T. )
+
+        cQry := "SELECT AKD.AKD_CODPLA, AKD.AKD_VERSAO, AKD.AKD_CO, K5.AK5_DESCRI, AKD.AKD_CC , TT.CTT_DESC01 Centro_Custo, "
+        cQry += "CAST((SELECT ISNULL(SUM(KD1.AKD_VALOR1),0) FROM AKD010 KD1 WHERE KD1.D_E_L_E_T_ = '' AND KD1.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD1.AKD_VERSAO = AKD.AKD_VERSAO AND KD1.AKD_CO = AKD.AKD_CO AND KD1.AKD_CC = AKD.AKD_CC  AND KD1.AKD_STATUS = '1' " 
+        cQry += "AND KD1.AKD_TPSALD = 'OR' AND KD1.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2)) AS ORCAMENTO, "
+        cQry += "CAST((SELECT ISNULL(SUM(KD2.AKD_VALOR1),0) FROM AKD010 KD2 WHERE KD2.D_E_L_E_T_ = '' AND KD2.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD2.AKD_VERSAO = AKD.AKD_VERSAO AND KD2.AKD_CO = AKD.AKD_CO AND KD2.AKD_CC = AKD.AKD_CC  AND KD2.AKD_STATUS = '1' "
+        cQry += "AND KD2.AKD_TPSALD = 'EM' AND KD2.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2)) AS EMPENHADOS, "
+        cQry += "CAST((SELECT ISNULL(SUM(KD3.AKD_VALOR1),0) FROM AKD010 KD3 WHERE KD3.D_E_L_E_T_ = '' AND KD3.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD3.AKD_VERSAO = AKD.AKD_VERSAO AND KD3.AKD_CO = AKD.AKD_CO AND KD3.AKD_CC = AKD.AKD_CC  AND KD3.AKD_STATUS = '1' "
+        cQry += "AND KD3.AKD_TPSALD = 'RE' AND KD3.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2)) AS REALIZADO, "
+        cQry += "(CAST((SELECT ISNULL(SUM(KD1.AKD_VALOR1),0) FROM AKD010 KD1 WHERE KD1.D_E_L_E_T_ = '' AND KD1.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD1.AKD_VERSAO = AKD.AKD_VERSAO AND KD1.AKD_CO = AKD.AKD_CO AND KD1.AKD_CC = AKD.AKD_CC  AND KD1.AKD_STATUS = '1' "
+        cQry += "AND KD1.AKD_TPSALD = 'OR' AND KD1.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2)) - "
+        cQry += "( CAST((SELECT ISNULL(SUM(KD2.AKD_VALOR1),0) FROM AKD010 KD2 WHERE KD2.D_E_L_E_T_ = '' AND KD2.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD2.AKD_VERSAO = AKD.AKD_VERSAO AND KD2.AKD_CO = AKD.AKD_CO AND KD2.AKD_CC = AKD.AKD_CC  AND KD2.AKD_STATUS = '1' "
+        cQry += "AND KD2.AKD_TPSALD = 'EM' AND KD2.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2))  + "
+        cQry += "CAST((SELECT ISNULL(SUM(KD3.AKD_VALOR1),0) FROM AKD010 KD3 WHERE KD3.D_E_L_E_T_ = '' AND KD3.AKD_CODPLA = AKD.AKD_CODPLA "
+        cQry += "AND KD3.AKD_VERSAO = AKD.AKD_VERSAO AND KD3.AKD_CO = AKD.AKD_CO AND KD3.AKD_CC = AKD.AKD_CC  AND KD3.AKD_STATUS = '1' "
+        cQry += "AND KD3.AKD_TPSALD = 'RE' AND KD3.AKD_DATA BETWEEN'" + DTOS(MV_PAR07) + "' AND '" + DTOS(MV_PAR08) + "') AS DECIMAL(15,2)))) SALDO "
+        cQry += "FROM AKD010 AKD "
+        IF RetCodUsr() $ '000000;000052' /// SEM RESTRICAO DE C_O
+        cQry += "LEFT JOIN AKG010 KG ON KG.D_E_L_E_T_ = '' AND KG.AKG_FILIAL = '01' AND AKD.AKD_CO = KG.AKG_CO "
+        ELSE
+        cQry += "INNER JOIN AKG010 KG ON KG.D_E_L_E_T_ = '' AND KG.AKG_FILIAL = '01' AND AKD.AKD_CO = KG.AKG_CO "
+        ENDIF
+        cQry += "INNER JOIN AKX010 KX ON KX.D_E_L_E_T_ = '' AND KX.AKX_FILIAL = '01' AND AKD.AKD_CC BETWEEN KX.AKX_CC_INI AND KX.AKX_CC_FIN "
+        cQry += "INNER JOIN AK5010 K5 ON K5.D_E_L_E_T_ = '' AND K5.AK5_CODIGO = AKD.AKD_CO "
+        cQry += "INNER JOIN CTT010 TT ON TT.D_E_L_E_T_ = '' AND TT.CTT_CUSTO  = AKD.AKD_CC "
+        cQry += "WHERE AKD.D_E_L_E_T_ = '' AND AKD.AKD_CODPLA = '" + MV_PAR01 + "' AND AKD.AKD_VERSAO = '" + MV_PAR02 + "' "
+        cQry += "AND AKD.AKD_CO BETWEEN '" + MV_PAR03 + "' AND '" + MV_PAR04 + "' AND AKD.AKD_CC BETWEEN '" + MV_PAR05 + "' AND '" + MV_PAR06 + "' "
+        If RetCodUsr() $ '000000;000052' // Nao filtra
+        Else
+        cQry += "AND KG.AKG_USER = '" + RetCodUsr() + "' AND KX.AKX_USER = '" + RetCodUsr() +"' "
+        EndIf
+        cQry += "GROUP BY AKD.AKD_CODPLA, AKD.AKD_VERSAO, AKD.AKD_CO,K5.AK5_DESCRI, AKD.AKD_CC, TT.CTT_DESC01 "
+
+        cQry += "ORDER BY AKD.AKD_CODPLA, AKD.AKD_VERSAO, AKD.AKD_CO, AKD.AKD_CC " 
+
+        MemoWrite('RELPCO_01_01.txt',cQry)
+
+        U_zQry2Excel(cQry,"Relatorio de Lancamentos Orcamentarios","lancamentos_orcamentarios")
+
+    EndIf
+
+	    
+Return
+
+/*/ AJUSTASX1
+    (Cria as perguntas para uso do relatorio)
+    @type  Static Function
+    @Ricardo Massao Kodama
+    @since 23/11/2021
+/*/
+
+
+Static Function AJUSTASX1(_cPergun)
+
+    PutSX1(_cPergun,"01","Planilha?","Planilha?","Planilha?","mv_ch1","C",15,0,0,"G","","AK1","","","mv_par01","","","","","","","","","","")
+	PutSX1(_cPergun,"02","Vers�o?","Vers�o?","Vers�o?","mv_ch2","C",4,0,0,"G","","AKE1","","","mv_par02","","","","","","","","","","")
+	PutSX1(_cPergun,"03","C.O. de ?","C.O. de ?","C.O. de ?","mv_ch3","C",15,0,0,"G","","AK2","","","mv_par03","","","","","","","","","","")
+	PutSX1(_cPergun,"04","C.O. ate ? ","C.O. ate ? ","C.O. ate ? ","mv_ch4","C",15,0,0,"G","","AK2","","","mv_par04","","","","","","","","","","")
+	PutSX1(_cPergun,"05","Centro de Custo de ?","Centro de Custo de ?","Centro de Custo de ?","mv_ch5","C",15,0,0,"G","","AK2","","","mv_par05","","","","","","","","","","")
+	PutSX1(_cPergun,"06","Centro de Custo ate ? ","Centro de Custo ate ? ","Centro de Custo ate ? ","mv_ch6","C",15,0,0,"G","","AK2","","","mv_par06","","","","","","","","","","")
+	PutSX1(_cPergun,"07","Periodo de ?","Periodo de ?","Periodo de ?","mv_ch7","D",8,0,0,"G","","","","","mv_par07","","","","","","","","","","")
+	PutSX1(_cPergun,"08","Periodo ate ?","Periodo ate ?","Periodo ate ?","mv_ch8","D",8,0,0,"G","","","","","mv_par08","","","","","","","","","","")
+
+    
+Return 
+

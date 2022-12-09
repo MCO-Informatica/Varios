@@ -1,0 +1,33 @@
+User Function PVComplem()
+    Local aPergs    := {}
+    Local cTitle    := "Pedido: "+SC5->C5_NUM
+    If !empty(trim(SC5->C5_NOTA))
+        cTitle += " - Nota: "+SC5->C5_NOTA
+    EndIf
+    aAdd(aPergs,{9,cTitle,150,7,.T.})
+    aAdd(aPergs, {2, "Tipo Frete",      SC5->C5_TPFRETE,    {"C=CIF","F=FOB","T=Por conta terceiros","R=Por conta remetente","D=Por conta destinatario","S=Sem frete"},                                       090, ".T.", .F.})
+    aAdd(aPergs, {1, "Tranportadora",   SC5->C5_TRANSP,     "",             ".T.",        "SA4", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Peso Líquido",    SC5->C5_PESOL,      "@E 999,999.9999",     "Positivo()", "",    ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Peso Bruto",      SC5->C5_PBRUTO,     "@E 999,999.9999",     "Positivo()", "",    ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Volume",          SC5->C5_VOLUME1,    "@E 99,999",     "Positivo()", "",    ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Espécie",         SC5->C5_ESPECI1,    "",          ".T.",        "",    ".T.", 80,  .F.})
+    aAdd(aPergs,{11,"Obs. Complem.",    SC5->C5_OBSCLI,     ".T.",  ".T.",  .F.})
+    
+    If ParamBox(aPergs, "Informações Complementares")
+
+        SC5->(RecLock("SC5",.F.))
+
+        SC5->C5_TPFRETE := MV_PAR02
+        SC5->C5_TRANSP := MV_PAR03
+        SC5->C5_PESOL := MV_PAR04
+        SC5->C5_PBRUTO := MV_PAR05
+        SC5->C5_VOLUME1 := MV_PAR06
+        SC5->C5_ESPECI1 := MV_PAR07
+        SC5->C5_OBSCLI := MV_PAR08
+
+        SC5->(MsUnlock())
+
+        MsgAlert("Alterado com sucesso!","Atenção!")
+
+    EndIf
+Return

@@ -1,0 +1,15 @@
+// PROGRAMA PARA CONTROLAR A NUMERAÇÃO DE LOTES DE PRODUTOS MP E TRIAL
+// THIAGO QUEIROZ - STCH - 03/08/2017
+User Function getLote(cTpLote)
+
+cLote := ""
+
+IF cTpLote == "100"
+	cLote := GETMV("ST_LOTEMP")
+	PUTMV("ST_LOTEMP", SOMA1(cLote) )
+ELSEIF cTpLote == "101"
+	cLote := GETMV("ST_LOTETRI")
+	PUTMV("ST_LOTETRI", SOMA1(cLote) )
+ENDIF
+
+Return cLote

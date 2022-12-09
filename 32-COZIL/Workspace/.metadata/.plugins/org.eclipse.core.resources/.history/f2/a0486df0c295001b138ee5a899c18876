@@ -1,0 +1,86 @@
+//Bibliotecas
+#Include "Totvs.ch"
+#Include "Protheus.ch"
+#Include "RwMake.ch"
+
+// #########################################################################################
+// Projeto: COZIL Equipamentos
+// Modulo : SIGAFAT
+// Fonte  : MT410TOK.prw
+// ---------+-------------------------------+-----------------------------------------------
+// Data     | Autor                         | Descricao
+// ---------+-------------------------------+-----------------------------------------------
+// 23/12/15 |  MGS  | Marcos Souza         | Criação do Programa
+// ---------+-------------------------------+-----------------------------------------------
+
+//------------------------------------------------------------------------------------------
+/*/{Protheus.doc} U_MT410TOK()
+Ponto de Entrada na Validação do Pedido de Venda que verifica se possue amarração com adiantamentos.
+
+@author    Marcos Gonçalves (MGS)
+@version   1.00
+@since     29/03/2021
+    @return Lógico, Verdadeiro se houver titulos de adiantamento (BA) vinculados
+    @example U_MT410TOK()
+    @obs Depende da informação do campo E4_CTRADT (Adiantamento) = 1 (Sim)
+/*/
+//------------------------------------------------------------------------------------------
+
+User Function MT410TOK()
+
+    //--< variáveis >---------------------------------------------------------------------------
+    //parâmetros recebidos
+    Local nOpc        := PARAMIXB[1]	// Operação: 1-Pesquisa, 2-Visualização, 3-Inclusão, 4-Alteração, 5-Exclusão
+    Local aRecnoSE1RA := PARAMIXB[2]    // Array com os titulos selecionados pelo Adiantament 
+        //trabalho/apoio
+    Local lRetorno	 := .T.
+    Local aAreaAtu	 := GetArea()
+    Local cCTRADT    := Posicione("SE4",1,xFilial("SE4")+M->C5_CONDPAG,"E4_CTRADT")
+    Local cJADTTP    := Alltrim(GetMv("MV_JADTTP"))
+    //--< procedimentos >-----------------------------------------------------------------------
+    apMsgInfo("Entrei","MT410TOK")
+    If cCTRADT <> "1"
+    	apMsgInfo("Não passei CTRADT - "+cCTRADT,"MT410TOK - "+M->C5_CONDPAG)
+        RestArea(aAreaAtu)
+        Return lRetorno
+    EndIf
+    If nOpc < 3 .or. nOpc > 4
+    	apMsgInfo("Não passei nOpc","MT410TOK")
+        RestArea(aAreaAtu)
+        Return lRetorno
+    EndIf
+
+    //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+    //³Valida se há relacionamentos de Adiantamentos³
+    //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+    IF SELECT("HSE1") <> 0
+        DBSELECTAREA("HSE1")
+        HSE1->(DBCLOSEAREA())
+    ENDIF
+    BEGINSQL ALIAS "HSE1"
+							SELECT TOP 1 E1_PREFIXO, E1_NUM, E1_TIPO, E1_PEDIDO
+							FROM %Table:SE1% SE1
+							WHERE E1_PEDIDO = %EXP:M->C5_NUM% AND E1_TIPO = %EXP:cJADTTP% AND SE1.D_E_L_E_T_ = ''
+    ENDSQL
+    lRetorno := .F.
+    DBSELECTAREA("HSE1")
+    If !Empty(HSE1->E1_PEDIDO)
+    	EECVIEW(HSE1->E1_PEDIDO,"Pedido")
+        lRetorno := .T.
+    Else
+        apMsgAlert("Não foram relacionados Adiantamentos para este pedido.","Inconsistência")
+        lRetorno := .F.
+    Endif
+
+    HSE1->(DBCLOSEAREA())
+
+/*	If Len(aRecnoSE1RA) <= 0
+        apMsgAlert("Não foram relacionados Adiantamentos para este pedido.","Inconsistência")
+        lRetorno := .F.
+	Endif
+*/
+    RestArea(aAreaAtu)
+
+Return lRetorno
+//--< fim de arquivo >----------------------------------------------------------------------

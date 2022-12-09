@@ -1,0 +1,18 @@
+User Function VldBlqSB1(cVal)
+    Local lRet := .T.
+    Local nA := 0
+
+    If cVal $ 'N,1' .AND. M->B1_TIPO == 'PA'
+
+        aArm := {'03','20'}
+        For nA := 1 to len(aArm)
+            If Posicione("SB2",1,xFilial("SB2")+M->B1_COD+aArm[nA],"B2_QATU") > 0
+                MsgAlert("Impossível inativar/bloquear produto com saldo disponível nos armazéns [03,20].","Atenção!")
+                lRet := .F.
+                EXIT
+            EndIf
+        Next nA
+
+    EndIf
+
+Return lRet

@@ -1,0 +1,24 @@
+#Include 'Protheus.ch'
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+FONTE CUSTOMIZADO PARA ATENDER O BROWSER ENTRE FORNECEDOR E CLIENTE NO PEDIDO DE VENDA.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*/
+
+User Function RFATG02()
+Local aAreaSC5  := SC5->(GetArea())
+Local cTipoNFS  := M->C5_TIPO //CAMPO TIPO
+Local cCliente  := M->C5_CLIENTE //CAMPO CÓDIGO DE CLIENTE/FORNECEDOR
+Local cLojaCli  := M->C5_LOJACLI
+Local cNomeClie
+
+IF cTipoNFS $ "D/B" //D - DEVOLUÇÃO DE COMPRA, B - UTILIZA FORNECEDOR
+    cNomeClie := Posicione("SA2",1,xFilial("SA2")+cCliente+cLojaCli,'A2_NOME') //GATILHO PARA TRAZER O NOME DE FORNECEDOR
+ELSE
+    cNomeClie := Posicione("SA1",1,xFilial("SA1")+cCliente+cLojaCli,'A1_NOME') //GATILHO PARA TRAZER O NOME DE CLIENTE
+ENDIF
+
+RestArea(aAreaSC5)
+
+Return(cNomeClie)

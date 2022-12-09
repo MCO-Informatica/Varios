@@ -1,0 +1,51 @@
+#Include "Protheus.ch"
+#INCLUDE "rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCalcDig   บAutor  ณRicardo Nunes       บ Data ณ  27/03/03   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณCalculo do digito verificador do nosso numero.              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Uso especifico para o BankBoston                           บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบParametrosณ01-_cNum - Numero do Titulo (Nosso Numero)                  บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+User Function Mod11(cStr,nMultIni,nMultFim)
+Local i, nModulo := 0, cChar, nMult
+
+nMultIni := Iif( nMultIni==Nil,2,nMultIni )
+nMultFim := Iif( nMultFim==Nil,9,nMultFim )
+nMult := nMultIni
+cStr := AllTrim(cStr)
+
+For i := Len(cStr) to 1 Step -1
+	cChar := Substr(cStr,i,1)
+	If isAlpha( cChar )
+		Help(" ", 1, "ONLYNUM")
+		Return .f.
+	End
+	nModulo += Val(cChar)*nMult
+	nMult:= IIf(nMult==nMultfim,2,nMult+1)
+Next
+nRest := nModulo % 11
+IF nRest == 0
+	nRest := 0
+ELSEIF nRest == 1
+	nRest := 10
+ELSE
+	nRest := 11-nRest
+	//nRest := IIf(nRest==0 .or. nRest==1,0,11-nRest)
+ENDIF
+
+Return(Str(nRest,2))
+
+
+//Return(Str(_cDigito,1))

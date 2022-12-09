@@ -1,0 +1,137 @@
+#Include 'Protheus.ch'
+
+User Function Lp610()
+	local cConta
+
+cTipo:=POSICIONE("SF2",1,xFilial("SF2")+ SD2->D2_DOC, "F2_TIPO")
+
+IF cTipo <> "D" .AND.  cTipo <> "B"  	
+	
+	IF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "411010001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "411020001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "411040001"                             
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "412010001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "411020001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "411040001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "CM" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "416030001"     
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "CM" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "416020001"   
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "CM" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "416010001"   
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "CM" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "416010001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT" .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN"  .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "2"
+		cConta := "413010001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT" .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA1->A1_EST <> "EX" .AND. SA1->A1_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "2"
+		cConta:= "413020001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA1->A1_EST == "EX" .AND. SA1->A1_XXGR == "1"
+		cConta:= "411040001"
+		
+	ELSE
+		cConta:=""		
+	
+	ENDIF
+EndIf
+	 
+IF cTipo == "B"	
+	
+	IF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA2->A2_EST <> "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta := "411010001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA2->A2_COD =="000022" .AND. SA2->A2_EST <> "EX"  //.AND. SA2->A2_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA2->A2_EST == "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta := "411020001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "EQ" .OR. SUBSTR(SD2->D2_ITEMCC,1,2) == "ST" .AND. SA2->A2_COD =="000022" .AND. SA2->A2_EST <> "EX" //SA2->A2_EST == "EX" //.AND. SA2->A2_XXGR == "1"
+		cConta := "411040001"                             
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA2->A2_EST <> "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta := "412010001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA2->A2_COD =="000022" .AND. SA2->A2_EST <> "EX" //.AND. SA2->A2_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA2->A2_EST == "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta := "411020001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "PR" .AND. SA2->A2_EST == "EX" .AND. SA2->A2_COD =="000022"//.AND. SA2->A2_XXGR == "1"
+		cConta := "411040001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA2->A2_EST <> "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta := "413010001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA2->A2_EST <> "EX" //.AND. SA2->A2_XXGR == "1"
+		cConta := "411040001"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA2->A2_EST == "EX" //.AND. SA2->A2_XXGR == "2"
+		cConta:= "413020001"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) == "AT"  .OR.SUBSTR(SD2->D2_ITEMCC,1,2) == "EN" .AND. SA2->A2_EST == "EX" //.AND. SA2->A2_XXGR == "1"
+		cConta:= "411040001"
+		
+	ELSE
+		cConta:=""	
+	ENDIF             
+ENDIF
+	
+IF cTipo == "D"
+	
+	IF SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "MP"
+		cConta := "113020002"
+	
+	ELSEIF ! SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "MP" // *************
+		cConta := "113010002"
+		
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "PI"
+		cConta := "113050002"
+		
+	ELSEIF ! SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "PI" // **************
+		cConta := "113010002"
+	
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "PA"
+		cConta := "113040016"
+		
+	ELSEIF ! SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "PA" // ************
+		cConta := "113010002"
+
+	ELSEIF SUBSTR(SD2->D2_ITEMCC,1,2) $ "EN/AT/EQ/ST/GR/PR" .AND. ALLTRIM(SB1->B1_TIPO) == "SV"
+		cConta := "113060003"
+	ELSE
+		cConta:=""		
+	ENDIF
+	
+ENDIF
+	
+Return cConta
+
+

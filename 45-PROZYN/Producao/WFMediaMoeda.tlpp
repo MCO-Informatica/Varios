@@ -1,0 +1,35 @@
+#Include "Topconn.ch"
+#include "TOTVS.CH"
+#Include "TbiConn.ch"
+
+User Function WFMediaMoeda()
+    Local cMonth := MesExtenso(Month(date()))
+    Local cYear := Year2Str(Date())
+    Local cNextMonth := MesExtenso(Month(MonthSum(date(),1)))
+    Local cNextYear := Year2Str(MonthSum(date(),1))
+
+    Private cFolder := "\"
+    Private cFile := "media_dolar_"+DtoS(date())
+    Private aFile := {cFolder+cFile+".xml"}
+
+    Prepare Environment Empresa '01' Filial '01'
+
+    cQry := " SELECT dbo.fConverteData(M2_DATA) 'Data','USD' 'Moeda',M2_MOEDA2 'Taxa' FROM SM2010 WHERE D_E_L_E_T_ = '' AND M2_DATA BETWEEN '"+DtoS(FirstDate(date()))+"' AND '"+DtoS(LastDate(date()))+"' AND M2_MOEDA2 > 0 
+    cQry += " UNION ALL 
+    cQry += " SELECT 'MÉDIA','',Round((SELECT AVG(M2_MOEDA2) FROM SM2010 WHERE D_E_L_E_T_ = '' AND M2_DATA BETWEEN '"+DtoS(FirstDate(date()))+"' AND '"+DtoS(LastDate(date()))+"' AND M2_MOEDA2 > 0 ),4) "
+
+
+    U_zQry2Excel(cQry,"Média "+cMonth+"/"+cYear,cFile,cFolder,"xml",{'Data','Moeda','Taxa'},,.f.)
+
+    cQry := " SELECT AVG(M2_MOEDA2) MEDIA FROM SM2010 WHERE D_E_L_E_T_ = '' AND M2_DATA BETWEEN '"+DtoS(FirstDate(date()))+"' AND '"+DtoS(LastDate(date()))+"' AND M2_MOEDA2 > 0  "
+    TcQuery cQry New Alias 'MEDIAMOEDA'
+
+    cTo := "nailson.paixao@prozyn.com.br"
+    cHTML := "<p>Prezados,</p>"
+    cHTML += "<p>Média do dólar do mês de "+cMonth+"/"+cYear+" a ser utilizada em "+cNextMonth+"/"+cNextYear+" é $ "+Transform(MEDIAMOEDA->MEDIA, "@E 9.9999" )+".</p>"
+
+    U_zEnvMail(cTo, "Média do Dólar - "+DtoC(Date()), cHTML, aFile, .f., .t., .t.)
+
+    Reset Environment
+
+Return

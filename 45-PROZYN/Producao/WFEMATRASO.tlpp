@@ -1,0 +1,133 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+
+/*
+Workflow de Títulos em Atraso
+Desenvolvido por Denis varella
+*/
+
+User Function WFEmAtraso()
+  Local cTo := ""
+  PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+  cTo := "luana.souto@prozyn.com.br;nailson.paixao@prozyn.com.br"
+  // cTo := "denis@pharosit.com.br;bruno@pharosit.com.br"
+
+  Envia(cTo,"Aviso de títulos em aberto - Gerencial")
+  Sleep(2000)
+  cQry := "SELECT A3_COD,A3_EMAIL,A3_NREDUZ FROM "+RetSqlName("SA3")+" WHERE A3_MSBLQL != '1' AND D_E_L_E_T_ = '' AND A3_XTIPO = 'V'"
+  TcQuery cQry New Alias 'VENDS'
+
+  While VENDS->(!EOF())
+    Envia(cTo,"Aviso de títulos em aberto - Vendedor "+Trim(VENDS->A3_NREDUZ),VENDS->A3_COD)
+    Sleep(2000)
+    VENDS->(DbSkip())
+  EndDo
+  VENDS->(DbCloseArea())
+
+  RESET ENVIRONMENT
+Return
+
+Static Function Envia(cTo,cSubject,cVendedor,cCliente)
+    Private cHTML := ""
+    Default cTo := ""
+    Default cSubject := ""
+    Default cVendedor := ""
+    Default cCliente := ""
+
+
+    cQry := " SELECT E1_CLIENTE,E1_LOJA,A1_NREDUZ,E1_NUM,E1_PARCELA,E1_EMISSAO,
+    cQry += " E1_VENCREA,E1_VALOR,
+    cQry += " Round(E1_VALOR + (("+cValtoChar(GetMv("MV_TXPER "))+" * E1_VALOR / 100) * DATEDIFF(DAY,E1_VENCREA ,'"+DtoS(date())+"' )),2) CORRIGIDO,
+    cQry += " DATEDIFF(DAY,E1_VENCREA ,'"+DtoS(date())+"' ) ATRASO,A1_VEND,A3_NREDUZ
+    cQry += " FROM "+RetSqlName("SE1")+" E1
+    cQry += " INNER JOIN "+RetSqlName("SA1")+" A1 ON A1_FILIAL = '"+xFilial("SA1")+"' AND A1_COD = E1_CLIENTE AND A1_LOJA = E1_LOJA AND A1.D_E_L_E_T_ = ''
+    cQry += " LEFT JOIN "+RetSqlName("SA3")+" A3 ON A3_FILIAL = '"+xFilial("SA3")+"' AND A3_COD = A1_VEND AND A3.D_E_L_E_T_ = ''
+    cQry += " WHERE E1_FILIAL = '"+xFilial("SE1")+"' AND E1_BAIXA = '' AND E1.D_E_L_E_T_ = '' AND E1_VENCREA < '"+DtoS(date())+"' and E1_SALDO > 0
+    If !Empty(Trim(cVendedor))
+      cQry += " AND A1_VEND = '"+cVendedor+"'
+    EndIf
+    If !Empty(Trim(cCliente))
+      cQry += " AND A1_COD = '"+cCliente+"'
+    EndIf
+    cQry += " ORDER BY A3_NREDUZ,A1_NREDUZ,E1_VENCREA,E1_NUM,E1_PARCELA
+
+    TcQuery cQry New Alias 'ATRASO'
+
+    If !ATRASO->(EOF())
+      IniHTML()
+      While !ATRASO->(EOF())
+
+          cHTML += "		<tr>
+          cHTML += "			<td>"+ATRASO->E1_CLIENTE+"</td>
+          cHTML += "      <td>"+ATRASO->E1_LOJA+"</td>
+          cHTML += "      <td>"+ATRASO->A1_NREDUZ+"</td>
+          cHTML += "      <td>"+ATRASO->E1_NUM+"</td>
+          cHTML += "      <td align='center'>"+ATRASO->E1_PARCELA+"</td>
+          cHTML += "      <td align='center'>"+DtoC(StoD(ATRASO->E1_EMISSAO))+"</td>
+          cHTML += "      <td align='center'>"+DtoC(StoD(ATRASO->E1_VENCREA))+"</td>
+          cHTML += "      <td>R$ "+Transform(ATRASO->E1_VALOR,"@E 99,999,999,999.99")+"</td>
+          cHTML += "      <td>R$ "+Transform(ATRASO->CORRIGIDO,"@E 99,999,999,999.99")+"</td>
+          cHTML += "      <td align='center'>"+cValtoChar(ATRASO->ATRASO)+"</td>
+          cHTML += "      <td>"+ATRASO->A1_VEND+"</td>
+          cHTML += "      <td>"+ATRASO->A3_NREDUZ+"</td>
+          cHTML += "		</tr>
+
+          ATRASO->(DbSkip())
+      EndDo
+      EndHTML()
+
+      U_zEnvMail(cTo, cSubject, cHTML, {}, .f., .t., .t.)
+
+    EndIf
+    ATRASO->(DbCloseArea())
+
+Return
+
+Static Function IniHTML()
+  cHTML := "<html>
+  cHTML += "<head>
+  cHTML += "<style>
+  cHTML += "* {outline: none;border:none;margin: 0;padding:0;box-sizing: border-box;font-family: Arial;}
+  cHTML += "table { width: 100%;max-width: 900px;font-size:10px;}
+  cHTML += "table thead {background: #C0D9D9;text-align: center;}
+  cHTML += "table td {padding: 5px;border:1px solid #222;}
+  cHTML += "p {margin-bottom: 15px;padding:5px;}
+  cHTML += "h4 {padding:5px;margin:10px 0;}
+  cHTML += "</style>
+  cHTML += "</head>
+  cHTML += "<body>
+
+  cHTML += "<p>Prezados,</p>
+  cHTML += "<p>Não identificamos o pagamento do(s) título(s) abaixo, por favor verificar se houve o pagamento e enviar o comprovante para o e-mail: <a href='mailto:cobranca@prozyn.com.br'>cobranca@prozyn.com.br</a></p>"
+  cHTML += "<h4>Títulos em Aberto:</h4>
+  cHTML += "<table>
+  cHTML += "	<thead>
+  cHTML += "		<tr>
+  cHTML += "			<td>Código</td>
+  cHTML += "      <td>Loja</td>
+  cHTML += "      <td>Nome do Cliente</td>
+  cHTML += "      <td>Título</td>
+  cHTML += "      <td align='center'>Parcela</td>
+  cHTML += "      <td align='center'>Emissão</td>
+  cHTML += "      <td align='center'>Vencimento</td>
+  cHTML += "      <td>Valor Original</td>
+  cHTML += "      <td>Valor Corrigido</td>
+  cHTML += "      <td align='center'>Dias em Atraso</td>
+  cHTML += "      <td>Cód. Gerente</td>
+  cHTML += "      <td>Gerente</td>
+  cHTML += "		</tr>
+  cHTML += "	</thead>
+  cHTML += "	<tbody>
+
+Return
+
+Static Function EndHTML()
+  cHTML += "	</tbody>
+  cHTML += "</table>
+
+  cHTML += "</body>
+  cHTML += "</html>
+Return

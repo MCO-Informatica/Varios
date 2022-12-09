@@ -1,0 +1,53 @@
+#INCLUDE "PROTHEUS.CH"
+#include "rwmake.ch"
+#include "TbiConn.ch"          
+#include 'protheus.ch'
+#include 'topconn.ch'
+
+User Function WFValidacaoFCI()
+    Local aPergs   := {}
+    
+    aAdd(aPergs, {1, "Ano",  Year2Str(dDatabase),  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Mes",  Month2Str(dDatabase),  "", ".T.", "", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| Gerar(MV_PAR01,MV_PAR02) }, "Aguarde...", "Gerando relatório...",.F.)
+    EndIf
+Return
+
+Static Function Gerar(cAno,cMes)
+    dPeriodo := MonthSub(StoD(cAno+cMes+'01'),1)
+    cAnterior := Month2Str(dPeriodo)+Year2Str(dPeriodo)
+    
+    cQry := " SELECT
+    cQry += " RTRIM(CFD_COD) AS CFD_COD,
+    cQry += " CFD_PERCAL,
+    cQry += " CFD_PERVEN,
+    cQry += " CFD_CONIMP,
+    cQry += " CFD_FCICOD,
+    cQry += " CFD_ORIGEM,
+    cQry += " CASE WHEN B1_MSBLQL = '1' THEN 'S' ELSE 'N' END BLOQUEADO,
+    cQry += " SUM(B2_QATU) SALDO,
+    cQry += " dbo.fConverteData((SELECT TOP 1 D3_EMISSAO FROM "+RetSqlName("SD3")+" D3 WITH (NOLOCK) WHERE D3_COD = B1_COD AND D3.D_E_L_E_T_ = '' ORDER BY D3_EMISSAO DESC)) ULT_PRODUCAO
+    cQry += " FROM
+    cQry += " "+RetSqlName("CFD")+" CFD WITH (NOLOCK)
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 WITH (NOLOCK) ON B1_COD = CFD_COD AND B1.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SB2")+" B2 WITH (NOLOCK) ON B2_COD = B1_COD AND B2.D_E_L_E_T_ = ''
+    cQry += " WHERE
+    cQry += " CFD.D_E_L_E_T_ <> '*'
+    cQry += " AND CFD_PERCAL = '"+cAnterior+"' 
+    cQry += " AND CFD_CONIMP > 0
+    cQry += " AND CFD_COD NOT IN
+    cQry += " (
+    cQry += " 	SELECT CFD_COD FROM "+RetSqlName("CFD")+" CFD WHERE CFD.D_E_L_E_T_ <> '*' 
+    cQry += " 	AND CFD_PERCAL = '"+cMes+cAno+"'
+    cQry += " )
+    cQry += " GROUP BY CFD_COD,CFD_PERCAL,CFD_PERVEN,CFD_CONIMP,CFD_FCICOD,CFD_ORIGEM,B1_COD,B1_MSBLQL
+    cQry += " ORDER BY 1
+		
+    U_zQry2Excel(cQry,"Validação FCI - "+cMes+"/"+cAno,"validacao_fci_"+cAno+"_"+cMes)
+
+
+Return
+
+

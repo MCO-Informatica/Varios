@@ -1,0 +1,1883 @@
+#line 1 "D:\PROTHE~2\INCLUDE\FINR720.CH"
+#line 18 "d:\PROTHE~2\MYPROJ~1\rdmake\PROGRA~1\finr720.prx"
+Function U_XFINR720()
+
+
+
+LOCAL cDesc1 := "Emissäo do relatório comparativo entre Orçados x Reais."
+LOCAL cDesc2 := "Será analisado o mês de referência da data base"
+LOCAL cDesc3 :=""
+LOCAL wnrel
+LOCAL cString:="SED"
+LOCAL tamanho:="M"
+Local cTexto
+Local dOldDtBase := dDataBase
+
+PRIVATE aReturn := { "Zebrado", 1,"Administracao", 1, 2, 1, "",1 }
+PRIVATE nomeprog:="FINR720"
+PRIVATE nLastKey := 0
+PRIVATE cPerg   :="FIN720"
+Private Titulo
+
+
+
+cbtxt    := SPACE(10)
+cbcont   := 0
+li       := 80
+m_pag    := 1
+
+
+
+
+
+
+AjustaSx1()
+PutDtBase()
+pergunte("FIN720", .F. )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Titulo:= "Mapa Comparativo - Valores Orcados x Reais em "
+
+
+
+
+wnrel := "FINR720"
+
+wnrel := SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3, .F. ,"",,Tamanho)
+
+If nLastKey == 27
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Return
+Endif
+
+cTexto	:= GetMv("MV_MOEDA"+Str(mv_par06,1))
+Titulo	+= (cTexto + " " + MesExtenso( mv_par08 ) + "-" + Str(Year(mv_par08),4,0))
+
+Do Case
+	Case mv_par02 < mv_par01
+		HELP (" ",1,"R720NAT")
+		Return
+	Case mv_par04 < mv_par03
+		HELP (" ",1,"R720NAT")
+		Return
+	Case mv_par01 == mv_par03
+		HELP (" ",1,"R720NAT")
+		Return
+	Case mv_par01 > mv_par03 .and.  (mv_par01 <= mv_par04 .or.  mv_par02 <= mv_par03)
+		HELP (" ",1,"R720NAT")
+		Return
+	Case mv_par01 < mv_par03 .and.  (mv_par01 >= mv_par04 .or.  mv_par02 >= mv_par03)
+		HELP (" ",1,"R720NAT")
+		Return
+EndCase
+
+dDataBase := mv_par11
+RptStatus({|lEnd| Fr720Imp(@lEnd,wnRel,cString)},Titulo)
+dDataBase := dOldDtBase
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function fr720Imp(lEnd,wnRel,cString)
+LOCAL aNiveis		:= {}
+LOCAL aQuebras		:= {}
+LOCAL nLaco			:= 0
+LOCAL nByte			:= 0
+LOCAL cMapa			:= ""
+LOCAL nLimite		:= 0
+
+LOCAL cabec1		:= 	"Cod Natureza    Descricao" + space(27) + "A Realizar          Realizado              Orcado              %   " +						if(mv_par07==1,space(20)+"Acumulado          Acumulado            Acumulado            %","")
+LOCAL cabec2		:= space(54)+"   (A)                 (B)                (C)        (A+B)/C    B/C"+if(mv_par07==1,space(18)+"A Realizar (D)     Realizado (E)        Orcado(F)    (D+E)/F    E/F","")
+LOCAL tamanho		:=if(mv_par07==1,"G","M")
+Local nOrcAcm		:= 0
+Local nLaco2
+Local aOacumu
+
+
+
+
+
+
+
+
+
+Local aRCols		:= { 	048,							067,							088,							105,							115,							134,							153,							174,							191,							201}
+
+
+Local aTCols		:= {	{000,074,148},							{000,044,088}}
+Local aTotais 		:= {0,0,0,0,0,0,0,0,0,0,0,0}
+Local cArqTmp 		:= cIndex1 := cIndex2 := cIndex3 := ""
+Local nQuebras
+
+Private nDecs     	:= MsDecimais(mv_par06)
+
+Fin720Cria(@cArqTmp, @cIndex1, @cIndex2, @cIndex3)
+
+
+
+
+cMascNat := GetMV("MV_MASCNAT")
+cMapa    := "123456789"
+
+
+
+
+
+aNiveis  := {}
+
+
+
+
+
+
+aQuebras := {}
+For nLaco := 1 to len( cMascNat )
+	nByte := Val( Substr( cMascNat,nLaco,1 ) )
+	If nByte > 0
+		AAdd( aNiveis  , { Val(Left(cMapa,1)) , nByte} )
+		AAdd( aQuebras , { "", 0, 0, 0 ,0 ,0 ,0} )
+		cMapa := Subst(cMapa,nByte+1,Len(cMapa)-nByte)
+	Endif
+next
+nLimite := IIf(Len(aNiveis) > 1, Len(aNiveis)-1, 1)
+
+
+
+
+dbSelectArea("cArqTmp")
+
+dbGoTop()
+
+While !cArqTmp->( Eof() )
+
+
+
+
+	For nLaco := 1 to Len( aQuebras )
+		aQuebras[nLaco,1] := Subst( cArqTmp->Natur,aNiveis[nLaco,1],aNiveis[nLaco,2] )
+	next
+
+	IF li > 58
+		cabec(titulo,cabec1,cabec2,nomeprog,tamanho,Getmv("MV_COMP"))
+	EndIF
+
+	nOrcado := 0
+	nOrcAcm := 0
+
+	If SE7->(dbSeek(xFilial("SE7")+cArqTmp->NATUR+Str(Year(mv_par08),4)))
+		nOrcado:=GetOrcado(month(mv_par08))
+
+
+
+		If ( cArqTmp-> Tipo == "R")
+			aTotais[5] += nOrcado
+		Else
+			aTotais[6] += nOrcado
+		End
+
+
+
+		If mv_par07 == 1
+			For nLaco2:=1 to month(mv_par08)
+				nOrcAcm += GetOrcado(nLaco2)
+			Next
+			If ( cArqTmp-> Tipo == "R")
+				aTotais[11] += nOrcAcm
+			Else
+				aTotais[12] += nOrcAcm
+			End
+		Endif
+	Endif
+
+	PrintOut(li,0,Mascnat(cArqTmp->Natur),,)
+	PrintOut(li,16,cArqTmp->DESCR,,)
+	PrintOut(li,aRcols[1],cArqTmp->aEntr+cArqTmp->aSaid,TM(aEntr,14,nDecs),)
+	PrintOut(li,aRcols[2],cArqTmp->rEntr+cArqTmp->rSaid,TM(rEntr,14,nDecs),)
+	PrintOut(li,aRcols[3],nOrcado,TM(nOrcado,14,nDecs),)
+
+   If nOrcado # 0
+	   If ( cArqTmp-> Tipo == "R" )
+   	   PrintOut(Li,aRcols[4],transform(((cArqTmp->aEntr+cArqTmp->rEntr)*100)/nOrcado,"@E 9999.99")+" %",,)
+   	   PrintOut(Li,aRcols[5],transform((cArqTmp->rEntr*100)/nOrcado,"@E 9999.99")+" %",,)
+	   Else
+   	   PrintOut(Li,aRcols[4],transform(((cArqTmp->aSaid+cArqTmp->rSaid)*100)/nOrcado,"@E 9999.99")+" %",,)
+   	   PrintOut(Li,aRcols[5],transform((cArqTmp->rSaid*100)/nOrcado,"@E 9999.99")+" %",,)
+		Endif
+	Else
+
+
+
+
+	   If ( cArqTmp-> Tipo == "R" )
+			PrintOut(Li,aRcols[4],"B/(A+B) = "+transform((cArqTmp->rEntr*100)/(cArqTmp->aEntr+cArqTmp->rEntr),"@E 9999.99")+" %",,)
+		Else
+			PrintOut(Li,aRcols[4],"B/(A+B) = "+transform((cArqTmp->rSaid*100)/(cArqTmp->aSaid+cArqTmp->rSaid),"@E 9999.99")+" %",,)
+		Endif
+   Endif
+
+	If mv_par07 == 1
+		PrintOut(li,aRcols[6],cArqTmp->AEACM+cArqTmp->ASACM,TM(cArqTmp->AEACM,14,nDecs),)
+		PrintOut(li,aRcols[7],cArqTmp->REACM+cArqTmp->RSACM,TM(cArqTmp->REACM,14,nDecs),)
+		PrintOut(li,aRcols[8],nOrcAcm,TM(nOrcAcm,14,nDecs),)
+
+	   If nOrcAcm # 0
+		   If ( cArqTmp-> Tipo == "R" )
+	   	   PrintOut(Li,aRcols[9],transform(((cArqTmp->aEacm+cArqTmp->rEacm)*100)/nOrcAcm,"@E 9999.99")+" %",,)
+	   	   PrintOut(Li,aRcols[10],transform((cArqTmp->rEacm*100)/nOrcAcm,"@E 9999.99")+" %",,)
+		   Else
+	   	   PrintOut(Li,aRcols[9],transform(((cArqTmp->aSacm+cArqTmp->rSacm)*100)/nOrcAcm,"@E 9999.99")+" %",,)
+	   	   PrintOut(Li,aRcols[10],transform((cArqTmp->rSacm*100)/nOrcAcm,"@E 9999.99")+" %",,)
+			Endif
+		Else
+
+
+
+
+		   If ( cArqTmp-> Tipo == "R" )
+				PrintOut(Li,aRcols[9],"E/(D+E) = "+transform((cArqTmp->rEacm*100)/(cArqTmp->aEacm+cArqTmp->rEacm),"@E 9999.99")+" %",,)
+			Else
+				PrintOut(Li,aRcols[9],"E/(D+E) = "+transform((cArqTmp->rSacm*100)/(cArqTmp->aSacm+cArqTmp->rSacm),"@E 9999.99")+" %",,)
+			Endif
+	   Endif
+	Endif
+
+	Li ++
+
+	If ( cArqTmp-> Tipo == "R" )
+
+		aTotais[1]  += cArqTmp->aEntr+cArqTmp->aSaid
+		aTotais[3]  += cArqTmp->rEntr+cArqTmp->rSaid
+		aTotais[7]  += cArqTmp->aEacm+cArqTmp->aSacm
+		aTotais[9]  += cArqTmp->rEacm+cArqTmp->rSacm
+	Else
+
+		aTotais[2]  += cArqTmp->aEntr+cArqTmp->aSaid
+		aTotais[4]  += cArqTmp->rEntr+cArqTmp->rSaid
+		aTotais[8]  += cArqTmp->aEacm+cArqTmp->aSacm
+		aTotais[10] += cArqTmp->rEacm+cArqTmp->rSacm
+	End
+
+
+
+
+	For nLaco := 1 to Len(aQuebras)
+
+		aQuebras[nLaco,2] += cArqTmp->aEntr+cArqTmp->aSaid
+		aQuebras[nLaco,3] += cArqTmp->rEntr+cArqTmp->rSaid
+		aQuebras[nLaco,4] += nOrcado
+
+		If mv_par07 == 1
+			aQuebras[nLaco,5] += cArqTmp->AEACM+cArqTmp->ASACM
+			aQuebras[nLaco,6] += cArqTmp->REACM+cArqTmp->RSACM
+			aQuebras[nLaco,7] += nOrcAcm
+		Endif
+	next
+
+	dbSelectArea("cArqTmp")
+	dbSkip()
+
+
+
+
+	lQuebra := .F. 
+	For nLaco := 1 to nLimite
+		If aQuebras[nLaco,1] # Subst( cArqTmp->NATUR, aNiveis[nLaco,1], aNiveis[nLaco,2] )
+
+			For nQuebras := nLimite to nLaco Step -1
+
+
+				If aQuebras[nQuebras,2] == 0 .and.  aQuebras[nQuebras,3] == 0 .and.  aQuebras[nQuebras,4] == 0 .and.  aQuebras[nQuebras,5] == 0 .and.  aQuebras[nQuebras,6] == 0 .and.  aQuebras[nQuebras,7] == 0
+					Loop
+				Endif
+				Li ++
+				PrintOut(li,31,"Total - "+aQuebras[nQuebras,1],,)
+				PrintOut(li,aRcols[1],aQuebras[nQuebras,2],TM(aQuebras[nQuebras,2],14,nDecs),)
+				PrintOut(li,aRcols[2],aQuebras[nQuebras,3],TM(aQuebras[nQuebras,3],14,nDecs),)
+				PrintOut(li,aRcols[3],aQuebras[nQuebras,4],TM(aQuebras[nQuebras,4],14,nDecs),)
+
+				If aQuebras[nQuebras,4] # 0
+
+					PrintOut(li,aRcols[4],transform(((aQuebras[nQuebras,2]+aQuebras[nQuebras,3])*100)/aQuebras[nQuebras,4],"@E 9999.99")+" %",,)
+
+					PrintOut(li,aRcols[5],transform((aQuebras[nQuebras,3]*100)/aQuebras[nQuebras,4],"@E 9999.99")+" %",,)
+				Else
+
+
+
+
+
+					PrintOut(li,aRcols[4],"B/(A+B) = "+transform(((aQuebras[nQuebras][2]+aQuebras[nQuebras,3])*100)/aQuebras[nQuebras,3],"@E 9999.99")+" %",,)
+				Endif
+
+
+
+
+
+				If mv_par07 == 1
+					PrintOut(li,aRcols[6],aQuebras[nQuebras,5],TM(aQuebras[nQuebras,5],14,nDecs),)
+					PrintOut(li,aRcols[7],aQuebras[nQuebras,6],TM(aQuebras[nQuebras,6],14,nDecs),)
+					PrintOut(li,aRcols[8],aQuebras[nQuebras,7],TM(aQuebras[nQuebras,7],14,nDecs),)
+					If aQuebras[nQuebras,7] # 0
+
+						PrintOut(li,aRcols[9],transform(((aQuebras[nQuebras,5]+aQuebras[nQuebras][6])*100)/aQuebras[nQuebras,7],"@E 9999.99")+" %",,)
+
+						PrintOut(li,aRcols[10],transform(((aQuebras[nQuebras,6])*100)/aQuebras[nQuebras,7],"@E 9999.99")+" %",,)
+					Else
+
+
+
+
+
+						PrintOut(li,aRcols[9],"E/(D+E)"+transform(((aQuebras[nQuebras,5]+aQuebras[nQuebras][6])*100)/(aQuebras[nQuebras,6]),"@E 9999.99")+" %",,)
+					Endif
+				Endif
+
+
+
+				aQuebras[nQuebras,2] := 0
+				aQuebras[nQuebras,3] := 0
+				aQuebras[nQuebras,4] := 0
+				aQuebras[nQuebras,5] := 0
+				aQuebras[nQuebras,6] := 0
+				aQuebras[nQuebras,7] := 0
+
+				Li ++
+			next
+			Li ++
+		Endif
+	next
+End
+
+dbGoTop()
+
+IF ( Li > 55 )
+	Cabec(titulo,cabec1,cabec2,nomeprog,tamanho,GetMv("MV_COMP"))
+End
+
+
+
+
+
+nMaxCol:=if(Tamanho=="M",132,220)
+
+PrintOut(Li,00,PadC("[ TOTAIS NO MES ]",nMaxCol,"-"),,)
+
+Li++
+PrintOut(Li,aTCols[mv_par07][1],"Receber",,)
+PrintOut(Li,aTCols[mv_par07][2],"Pagar",,)
+PrintOut(Li,aTCols[mv_par07][3],"Saldos",,)
+Li++
+
+aATotal := DevCred( aTotais[1], aTotais[2] )
+
+PrintOut(Li,aTCols[mv_par07][1],"A Realizar  : "+Transform(aTotais[1],"@E 9,999,999,999.99"),,)
+PrintOut(Li,aTCols[mv_par07][2],"A Realizar  : "+Transform(aTotais[2],"@E 9,999,999,999.99"),,)
+
+PrintOut(Li,aTCols[mv_par07][3],"A Realizar  : "+Transform(aATotal[1],"@E 9,999,999,999.99")+aATotal[2],,)
+Li ++
+
+aRTotal := DevCred( aTotais[3], aTotais[4] )
+
+PrintOut(Li,aTCols[mv_par07][1],"Realizado   : "+Transform(aTotais[3],"@E 9,999,999,999.99"),,)
+PrintOut(Li,aTCols[mv_par07][2],"Realizado   : "+Transform(aTotais[4],"@E 9,999,999,999.99"),,)
+
+PrintOut(Li,aTCols[mv_par07][3],"Realizado   : "+Transform(aRTotal[1],"@E 9,999,999,999.99")+aRTotal[2],,)
+Li++
+
+nTotReceb := aTotais[1] + aTotais[3]
+nTotPagar := aTotais[2] + aTotais[4]
+
+aTotSaldo := DevCred( nTotReceb, nTotPagar )
+
+PrintOut(Li,aTCols[mv_par07][1],"Total       : "+Transform(nTotReceb,"@E 9,999,999,999.99"),,)
+PrintOut(Li,aTCols[mv_par07][2],"Total       : "+Transform(nTotPagar,"@E 9,999,999,999.99"),,)
+
+PrintOut(Li,aTCols[mv_par07][3],"Total       : "+Transform(aTotSaldo[1],"@E 9,999,999,999.99")+aTotSaldo[2],,)
+
+Li++
+
+aSdoOrc := DevCred( aTotais[5], aTotais[6] )
+PrintOut(Li,aTCols[mv_par07][1],"Orcado      : "+Transform(aTotais[5],"@E 9,999,999,999.99"),,)
+PrintOut(Li,aTCols[mv_par07][2],"Orcado      : "+Transform(aTotais[6],"@E 9,999,999,999.99"),,)
+
+PrintOut(Li,aTCols[mv_par07][3],"Orcado      : "+Transform(aSdoOrc[1],"@E 9,999,999,999.99")+aSdoOrc[2],,)
+
+
+If ( aTotais[5] - aTotais[6] > 0 )
+
+	Li ++
+	If Li > 55
+		Cabec(titulo,cabec1,cabec2,nomeprog,tamanho,GetMv("MV_COMP"))
+	End
+
+	PrintOut(Li,00,PadC("[ COMPARATIVO - ORCADO / REAIS ]",nMaxCol,"-"),,)
+	Li ++
+
+	nA := aTotais[5] - aTotais[3]
+	nB := ( aTotais[3] / aTotais[5] ) * 100
+
+	nC := aTotais[5] - nTotReceb
+	nD := ( nTotReceb / aTotais[5] ) * 100
+
+	nE := aTotais[4] - aTotais[6]
+	nF := ( aTotais[4] / aTotais[6] ) * 100
+
+	nG := nTotPagar - aTotais[6]
+	nH := ( nTotPagar / aTotais[6] ) * 100
+
+	PrintOut(Li,aTCols[mv_par07][1],"Receber",,)
+	PrintOut(Li,aTCols[mv_par07][2],"Pagar",,)
+	Li ++
+
+
+
+	PrintOut(Li,aTCols[mv_par07][1],"Realizado...:"+" "+Transform(nA,"@E 9,999,999,999.99")+" "+Transform(nB,"@E 9999.99")+"%",,)
+
+
+	PrintOut(Li,aTCols[mv_par07][2],"Realizado...:"+" "+Transform(nE,"@E 9,999,999,999.99")+" "+Transform(nF,"@E 9999.99")+"%",,)
+	Li ++
+
+
+
+	PrintOut(Li,aTCols[mv_par07][1],"Total.......:"+" "+Transform(nC,"@E 9,999,999,999.99")+" "+Transform(nD,"@E 9999.99")+"%",,)
+
+
+	PrintOut(Li,aTCols[mv_par07][2],"Total.......:"+" "+Transform(nG,"@E 9,999,999,999.99")+" "+Transform(nH,"@E 9999.99")+"%",,)
+
+End
+
+If mv_par07 == 1
+
+
+
+
+	Li++
+	If Li > 55
+		Cabec(titulo,cabec1,cabec2,nomeprog,tamanho,GetMv("MV_COMP"))
+	End
+	PrintOut(Li,00,PadC("[ TOTAIS ACUMULADOS ]",nMaxCol,"-"),,)
+	Li++
+	PrintOut(Li,aTCols[mv_par07][1],"Receber",,)
+	PrintOut(Li,aTCols[mv_par07][2],"Pagar",,)
+	PrintOut(Li,aTCols[mv_par07][3],"Saldos",,)
+	Li++
+
+	aAAcumu := DevCred( aTotais[7], aTotais[8] )
+
+	PrintOut(Li,aTCols[mv_par07][1],"A Realizar  : "+Transform(aTotais[7],"@E 9,999,999,999.99"),,)
+	PrintOut(Li,aTCols[mv_par07][2],"A Realizar  : "+Transform(aTotais[8],"@E 9,999,999,999.99"),,)
+
+	PrintOut(Li,aTCols[mv_par07][3],"A Realizar  : "+Transform(aAAcumu[1],"@E 9,999,999,999.99")+aAAcumu[2],,)
+	Li++
+
+	aRAcumu := DevCred( aTotais[9], aTotais[10] )
+
+	PrintOut(Li,aTCols[mv_par07][1],"Realizado   : "+Transform(aTotais[9],"@E 9,999,999,999.99"),,)
+	PrintOut(Li,aTCols[mv_par07][2],"Realizado   : "+Transform(aTotais[10],"@E 9,999,999,999.99"),,)
+
+	PrintOut(Li,aTCols[mv_par07][3],"Realizado   : "+Transform(aRAcumu[1],"@E 9,999,999,999.99")+aRAcumu[2],,)
+	Li++
+
+	nACMReceb := aTotais[7] + aTotais[9]
+	nACMPagar := aTotais[8] + aTotais[10]
+
+	aACMSaldo := DevCred( nACMReceb, nACMPagar )
+
+	PrintOut(Li,aTCols[mv_par07][1],"Total       : "+Transform(nACMReceb,"@E 9,999,999,999.99"),,)
+	PrintOut(Li,aTCols[mv_par07][2],"Total       : "+Transform(nACMPagar,"@E 9,999,999,999.99"),,)
+
+	PrintOut(Li,aTCols[mv_par07][3],"Total       : "+Transform(aACMSaldo[1],"@E 9,999,999,999.99")+aACMSaldo[2],,)
+	Li++
+
+	aOAcumu := DevCred( aTotais[11], aTotais[12] )
+
+	PrintOut(Li,aTCols[mv_par07][1],"Orcado      : "+Transform(aTotais[11],"@E 9,999,999,999.99"),,)
+	PrintOut(Li,aTCols[mv_par07][2],"Orcado      : "+Transform(aTotais[12],"@E 9,999,999,999.99"),,)
+
+	PrintOut(Li,aTCols[mv_par07][3],"Orcado      : "+Transform(aOAcumu[1],"@E 9,999,999,999.99")+aOAcumu[2],,)
+	Li++
+	PrintOut(Li,00,Repl("-",nMaxCol),,)
+
+Endif
+
+roda(cbcont,cbtxt,Tamanho)
+
+Set( 20, "SCREEN" )
+dbSelectArea("SE5")
+RetIndex("SE5")
+dbClearFilter()
+
+
+
+
+dbSelectarea("cArqTmp")
+cArqTmp->( dbCloseArea() )
+Ferase(cArqTmp+GetDBExtension())
+Ferase(cArqTmp+OrdBagExt())
+
+
+
+
+
+
+
+	Ferase(cIndex1+OrdBagExt())
+	Ferase(cIndex2+OrdBagExt())
+	Ferase(cIndex3+OrdBagExt())
+
+
+dbSelectArea("SE1")
+
+If aReturn[5] = 1
+	Set( 24, "" )
+	dbCommitAll()
+	ourspool(wnrel)
+Endif
+MS_FLUSH()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function FR720ChecF()
+Local cFiltro := 'E1_FILIAL="'+xFilial("SE1")+'" .AND. '
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	cFiltro += 'E1_NATUREZ >= "' + mv_par01 + '" .AND. '
+	cFiltro += 'E1_NATUREZ <= "' + mv_par02 + '" .AND. '
+	If mv_par07 == 1
+
+		cFiltro += 'dTos(E1_VENCREA) >= "' + dTos(ctod("01/01/"+str(year(mv_par08),4),"ddmmyy") ) + '" .AND. '
+	else
+
+		cFiltro += 'dTos(E1_VENCREA) >= "' + dTos(FirstDay(mv_par08)) + '" .AND. '
+	Endif
+	cFiltro += 'dtos(E1_VENCREA) <= "' + dTos( LastDay(mv_par08) ) + '" .AND. '
+	cFiltro += '(E1_NATUREZ != "11000102 " .OR. E1_NATUREZ != "11000104 " .OR. E1_NATUREZ != "12010708 " .OR E1_NATUREZ != "12010709 ") .AND. '
+
+	cFiltro += "E1_SALDO > 0 "
+
+Return cFiltro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function FR721ChecF()
+Local cFiltro := 'E2_FILIAL="'+xFilial("SE2")+'" .And. '
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	cFiltro += 'E2_NATUREZ >= "' + mv_par03 + '" .AND. '
+	cFiltro += 'E2_NATUREZ <= "' + mv_par04 + '" .AND. '
+	If mv_par07 == 1
+
+		cFiltro += 'dTos(E2_VENCREA) >= "' + dTos(ctod("01/01/"+str(year(mv_par08),4),"ddmmyy") ) + '" .AND. '
+	else
+
+		cFiltro += 'dTos(E2_VENCREA) >= "' + dTos(FirstDay(mv_par08)) + '" .AND. '
+	Endif
+	cFiltro += 'dTos(E2_VENCREA) <= "' + dTos(LastDay(mv_par08)) + '" .AND. '
+	cFiltro += "E2_SALDO > 0 "
+
+Return cFiltro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function FR722ChecF()
+Local cFiltro := "E5_FILIAL='"+xFilial("SE5")+"' .And. ", cInicio := "" , cFim := ""
+If mv_par07 == 1
+
+	cInicio := dTos( ctod("01/01/"+str(year(mv_par08),4),"ddmmyy") )
+Else
+
+	cInicio := dTos( FirstDay(mv_par08) )
+Endif
+cFim    := dTos( LastDay(mv_par08) )
+cFiltro += 'E5_NATUREZ >= "' + IIf(mv_par01<mv_par03,mv_par01,mv_par03)  + '" .AND. '
+cFiltro += 'E5_NATUREZ <= "' + IIf(mv_par02>mv_par04,mv_par02,mv_par04)  + '" .AND. '
+If mv_par05 == 1
+	cFiltro += 'dTos(E5_DATA) >= "' + cInicio  + '" .AND. '
+	cFiltro += 'dtos(E5_DATA) <= "' + cFim + '"'
+Else
+	cFiltro += 'dTos(E5_DTDIGIT) >= "' + cInicio  + '" .AND. '
+	cFiltro += 'dtos(E5_DTDIGIT) <= "' + cFim + '"'
+EndIf
+Return cFiltro
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function DevCred( nValor1, nValor2 )
+Local aRet := {}, cDevCred
+nRTotal := nValor1-nValor2
+Do Case
+	Case ( nRTotal < 0 )
+		nRTotal := nRTotal * (-1)
+		cDevCred := " (  Devedor   )"
+	Case ( nRTotal > 0 )
+		cDevCred := " (   Credor   )"
+	OtherWise
+		cDevCred := " "
+EndCase
+AAdd( aRet, nRTotal )
+AAdd( aRet, cDevCred)
+Return( aRet )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function GetOrcado(nMes)
+Local nValOrcado := 0
+
+Do Case
+	Case nMes == 1
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALJAN1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 2
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALFEV1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 3
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALMAR1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 4
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALABR1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 5
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALMAI1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 6
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALJUN1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 7
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALJUL1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 8
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALAGO1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 9
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALSET1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 10
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALOUT1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 11
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALNOV1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+	Case nMes == 12
+		nValOrcado := Round(NoRound(xMoeda(SE7->E7_VALDEZ1,SE7->E7_MOEDA,mv_par06,mv_par08,nDecs+1),nDecs+1),nDecs+1)
+EndCase
+Return nValOrcado
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function Fin720Cria(cArqTmp, cIndex1, cIndex2, cIndex3, lRelato, aNiveis, aQuebras)
+
+Local aTotais	:= {0,0,0,0,0,0,0,0,0,0,0,0}
+Local nMoedaBco	:= 1, aArrayQ := {}
+Local aArray 	:= { }, aTotal, aAcumu
+
+
+
+
+
+
+Local nLaco
+Local nQuebras
+Local nLaco2
+Local bProp
+Local bWhile
+Local nProp
+Local nWhiles := 1
+Local lTemSev := .F. 
+Local nRecSed
+Local aSaldoTit
+
+lRelato := If( lRelato == nil, .T. , lRelato ) ;
+
+cFilterUser:= Iif(Type("aReturn[7]") == "U"," ",aReturn[7])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+aCampos:={ 	{"NATUR"  , "C" , Len(SED->ED_CODIGO),0},			{"FILIAL" , "C" , 02,0},			{"DESCR"  , "C" , 30,0},			{"AENTR"  , "N" , 17,2},			{"ASAID"  , "N" , 17,2},			{"RENTR"  , "N" , 17,2},			{"RSAID"  , "N" , 17,2},			{"AEACM"  , "N" , 17,2},			{"ASACM"  , "N" , 17,2},			{"REACM"  , "N" , 17,2},			{"RSACM"  , "N" , 17,2},			{"TIPO"   , "C" , 01,0} }
+
+cArqTmp := CriaTrab(aCampos)
+dbUseArea( .T. ,, cArqTmp, "cArqTmp", .F. , .F. )
+IndRegua ( "cArqTmp",cArqTmp,"NATUR",,,"Selecionando Registros...")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	cIndex1 := CriaTrab(nil, .f. )
+	dbSelectArea("SE1")
+	dbSetOrder(3)
+	cChave  := IndexKey()
+	IndRegua("SE1",cIndex1,cChave,,FR720ChecF(),"Selecionando Registros...")
+	nIndex := RetIndex("SE1")
+	dbSelectArea("SE1")
+
+		dbSetIndex(cIndex1+OrdBagExt())
+
+	dbSetOrder(nIndex+1)
+	dbGoTop()
+
+
+
+
+
+	cIndex2 := CriaTrab(nil, .f. )
+	dbSelectArea("SE2")
+	dbSetOrder(2)
+	cChave  := IndexKey()
+	IndRegua("SE2",cIndex2,cChave,,FR721ChecF(),"Selecionando Registros...")
+	nIndex := RetIndex("SE2")
+	dbSelectArea("SE2")
+
+		dbSetIndex(cIndex2+OrdBagExt())
+
+	dbSetOrder(nIndex+1)
+	dbGoTop()
+
+
+
+
+
+	dbSelectArea("SED")
+	dbSetOrder(1)
+
+	nTregs := 	SED->(Reccount()) + SE1->(Reccount()) + SE2->(Reccount()) + SE5->(Reccount())
+
+    If lRelato
+		SetRegua(nTregs)
+	Else
+		ProcRegua(nTregs)
+	Endif
+
+	If !Empty(mv_par01) .or.  !Empty(mv_par03)
+		dbSeek( xFilial("SED") + Iif(mv_par01 < mv_par03,mv_par01,mv_par03) , .t.  )
+	Else
+		dbSeek(xFilial("SED"))
+	Endif
+
+	While !Eof() .and.  SED->ED_FILIAL==xFilial("SED") .and.  SED->ED_CODIGO <= IIf(mv_par02 > mv_par04,mv_par02,mv_par04)
+
+	    If lRelato
+			IncRegua()
+		Else
+			IncProc()
+		Endif
+
+		IF SED->ED_CODIGO >= mv_par01 .and.  SED->ED_CODIGO <= mv_par02
+			cTIPO := "R"
+		ElseIF SED->ED_CODIGO >= mv_par03 .and.  SED->ED_CODIGO <= mv_par04
+			cTIPO := "P"
+		Else
+			dbSelectArea("SED")
+			dbSkip()
+			Loop
+		Endif
+
+		dbSelectArea( "cArqTmp" )
+		If ! cArqTmp->(MsSeek(SED->ED_CODIGO))
+			RecLock("cArqTmp", .T. )
+			cArqTmp->NATUR := SED->ED_CODIGO
+			cArqTmp->DESCR := SED->ED_DESCRIC
+			cArqTmp->TIPO  := cTipo
+		Endif
+
+
+
+
+
+		If SED->ED_CODIGO >= mv_par01 .and.  SED->ED_CODIGO <= mv_par02
+			dbSelectArea("SE1")
+			dbSeek(xFilial("SE1")+SED->ED_CODIGO)
+			While !Eof() .and.  SE1->E1_FILIAL==xFilial("SE1") .and.  SE1->E1_NATUREZA==SED->ED_CODIGO .and.  cArqTmp->TIPO == "R"
+
+			    If lRelato
+					IncRegua()
+				Else
+					IncProc()
+				Endif
+
+
+				If SE1->E1_TIPO $ MVABATIM+"/"+MVRECANT+"/"+MV_CRNEG
+					dbSkip()
+					Loop
+				Endif
+
+				If SE1->E1_TIPO $ MVPROVIS .and.  mv_par10 == 2
+					dbSkip()
+					Loop
+				Endif
+
+				If mv_par09 == 2
+					If SE1->E1_MOEDA <> mv_par06
+						SE1->(DbSkip())
+							Loop
+					EndIf
+				EndIf
+
+
+
+
+
+
+
+				If SE1->E1_MULTNAT == "1"
+					If !PesqNatSev("SE1","E1", MV_PAR01, MV_PAR02)
+						SE1->(DbSkip())
+						Loop
+					Endif
+				Endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				aSaldoTit := SdoTitNat(	SE1->E1_PREFIXO	, SE1->E1_NUM			, SE1->E1_PARCELA	, SE1->E1_TIPO		, SE1->E1_CLIENTE	, SE1->E1_LOJA  		,	, "R"					, "SE1"					, MV_PAR06				, .F. 	)
+
+
+
+				lNoMes:= (SE1->E1_VENCREA >= FirstDay(mv_par08)) .and.  (SE1->E1_VENCREA <= LastDay(mv_par08))
+
+				For nLaco := 1 To Len( aSaldoTit )
+					If ! cArqTmp->(MsSeek(aSaldoTit[nLaco][1]))
+						RecLock("cArqTmp", .T. )
+						cArqTmp->NATUR := aSaldoTit[nLaco][1]
+						nRecSed := SED->(Recno())
+						SED->(MsSeek(xFilial("SED")+cArqTmp->NATUR))
+						cArqTmp->DESCR := SED->ED_DESCRIC
+						cArqTmp->TIPO  := "R"
+						SED->(MsGoto(nRecSed))
+					Else
+						RecLock("cArqTmp", .F. )
+					Endif
+					cArqTmp->aEacm += aSaldoTit[nLaco][2]
+					IF lNoMes
+						cArqTmp->aEntr += aSaldoTit[nLaco][2]
+					Endif
+				Next
+				dbSelectArea("SE1")
+				dbSkip()
+			End
+		Endif
+
+
+
+
+		If SED->ED_CODIGO >= mv_par03 .and.  SED->ED_CODIGO <= mv_par04
+			dbSelectArea("SE2")
+			dbSeek(xFilial("SE2")+SED->ED_CODIGO)
+			While !Eof() .and.  SE2->E2_FILIAL==xFilial("SE2") .and.  SE2->E2_NATUREZA==SED->ED_CODIGO .and.  cArqTmp->TIPO == "P"
+
+			    If lRelato
+					IncRegua()
+				Else
+					IncProc()
+				Endif
+
+
+				If SE2->E2_TIPO $ MVABATIM+"/"+MVPAGANT+"/"+MV_CPNEG
+					dbSkip()
+					Loop
+				Endif
+
+				If SE2->E2_TIPO $ MVPROVIS .and.  mv_par10 == 2
+					dbSkip()
+					Loop
+				Endif
+
+				If mv_par09 == 2
+					If SE2->E2_MOEDA <> mv_par06
+						SE2->(DbSkip())
+						Loop
+					EndIf
+				EndIf
+
+
+
+
+
+
+
+				If SE2->E2_MULTNAT == "1"
+					If !PesqNatSev("SE2","E2", MV_PAR03, MV_PAR04)
+						SE2->(DbSkip())
+						Loop
+					Endif
+				Endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				aSaldoTit := SdoTitNat(	SE2->E2_PREFIXO	, SE2->E2_NUM			, SE2->E2_PARCELA	, SE2->E2_TIPO		, SE2->E2_FORNECE	, SE2->E2_LOJA  		,	, "P"					, "SE2"					, MV_PAR06				, .F. 	)
+
+
+				lNoMes:= (SE2->E2_VENCREA >= FirstDay(mv_par08)) .and.  (SE2->E2_VENCREA <= LastDay(mv_par08))
+
+				For nLaco := 1 To Len( aSaldoTit )
+					If ! cArqTmp->(MsSeek(aSaldoTit[nLaco][1]))
+						RecLock("cArqTmp", .T. )
+						cArqTmp->NATUR := aSaldoTit[nLaco][1]
+						nRecSed := SED->(Recno())
+						SED->(MsSeek(xFilial("SED")+cArqTmp->NATUR))
+						cArqTmp->DESCR := SED->ED_DESCRIC
+						cArqTmp->TIPO  := "P"
+						SED->(MsGoto(nRecSed))
+					Else
+						RecLock("cArqTmp", .F. )
+					Endif
+					cArqTmp->aSacm += aSaldoTit[nLaco][2]
+					IF lNoMes
+						cArqTmp->aSaid += aSaldoTit[nLaco][2]
+					Endif
+				Next
+				dbSelectArea("SE2")
+				dbSkip()
+			End
+		Endif
+
+		dbSelectArea("SED")
+		dbSkip()
+	End
+
+
+
+
+
+	RetIndex("SE1")
+	dbClearFilter()
+	RetIndex("SE2")
+	dbClearFilter()
+
+
+
+
+
+
+
+
+
+
+
+
+cIndex3 := CriaTrab(nil, .f. )
+dbSelectArea("SE5")
+dbSetOrder(4)
+cChave  := IndexKey()
+IndRegua("SE5",cIndex3,cChave,,FR722ChecF(),"Selecionando Registros...")
+nIndex := RetIndex("SE5")
+dbSelectArea("SE5")
+
+
+
+
+
+
+
+
+
+
+	dbSetIndex(cIndex3+OrdBagExt())
+
+
+dbSetOrder(nIndex+1)
+dbGoTop()
+DbSeek(xFilial("SE5"))
+
+aTotais[1] := 0
+aTotais[2] := 0
+
+aTotais[3] := 0
+aTotais[4] := 0
+
+aTotais[5] := 0
+aTotais[6] := 0
+
+aTotais[7] := 0
+aTotais[8] := 0
+
+aTotais[9] := 0
+aTotais[10] := 0
+
+aTotais[11] := 0
+aTotais[12] := 0
+
+While SE5->(!Eof()) .and.  SE5->E5_FILIAL==xFilial("SE5")
+
+    If lRelato
+		IncRegua()
+	Else
+		IncProc()
+	Endif
+
+	If cPaisLoc	# "BRA"
+	   SA6->(DbSetOrder(1))
+	   SA6->(DbSeek(xFilial()+SE5->E5_BANCO+SE5->E5_AGENCIA+SE5->E5_CONTA))
+	   nMoedaBco	:=	Max(SA6->A6_MOEDA,1)
+	Endif
+
+
+
+
+	If TemBxCanc(SE5->(E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA+E5_SEQ))
+		SE5->(dbSkip())
+		Loop
+	EndIf
+
+
+
+
+	IF SE5->E5_TIPODOC $ "DCüJRüMTüCM/D2/J2/M2/C2/TL/CP/BL" .or.  SE5->E5_SITUACA $ "C/X/E"
+		SE5->(dbSkip())
+		Loop
+	EndIF
+
+	If SE5->E5_TIPODOC == "CH"
+		dbSelectArea("SEF")
+		dbSetOrder(1)
+		If dbSeek(xFilial("SEF")+SE5->(E5_BANCO+E5_AGENCIA+E5_CONTA+E5_NUMCHEQ))
+			If SEF->EF_ORIGEM <> "FINA390AVU"
+			   dbSelectArea("SE5")
+				SE5->(dbSkip())
+				Loop
+			Endif
+		Endif
+	Endif
+
+	If !Empty(SE5->E5_MOTBX)
+		If !MovBcoBx(SE5->E5_MOTBX)
+			SE5->(dbSkip())
+			LOOP
+		EndIf
+	End
+
+    If mv_par09 == 2
+       If nMoedaBco <> mv_par06
+          SE5->(DbSkip())
+          Loop
+       EndIf
+    EndIf
+
+	lNoMes := .T. 
+	dVencto:=SE5->E5_DATA
+
+	lRet := .T. 
+	If mv_par05 == 2
+		If !Empty(SE5->E5_NUMERO)
+			If SE5->E5_RECPAG == "R"
+				If SE1->(dbSeek(xFilial("SE1")+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO))
+					dVencto:=SE1->E1_EMIS1
+
+					If SE1->E1_EMIS1 < if(mv_par07==2,FirstDay(dDataBase),ctod("01/01/"+str(year(dDataBase),4))) .OR.  SE1->E1_EMIS1 > LastDay(dDatabase)
+						lRet := .F. 
+					Endif
+				Endif
+			Else
+				If SE2->(dbSeek(xFilial("SE2")+SE5->E5_PREFIXO+SE5->E5_NUMERO+SE5->E5_PARCELA+SE5->E5_TIPO+SE5->E5_CLIFOR))
+					dVencto:=SE2->E2_EMIS1
+
+					If SE2->E2_EMIS1 < if(mv_par07==2,FirstDay(dDataBase),ctod("01/01/"+str(year(dDataBase),4))) .OR.  SE2->E2_EMIS1 > LastDay(dDatabase)
+						lRet := .F. 
+					Endif
+				Endif
+			Endif
+		Else
+			lRet := .F. 
+		Endif
+	Endif
+
+
+
+
+
+	lNoMes:= (dVencto >= FirstDay(mv_par08)) .and.  (dVencto <= LastDay(mv_par08))
+
+	If lRet
+
+
+		If SED->(dbSeek(xFilial("SED")+SE5->E5_NATUREZ)) .And.  ((SE5->E5_NATUREZ >= mv_par01 .And.  SE5->E5_NATUREZ <= mv_par02) .Or.  (SE5->E5_NATUREZ >= mv_par03 .And.  SE5->E5_NATUREZ <= mv_par04))
+			If !cArqTmp->(dbSeek(SE5->E5_NATUREZ))
+				RecLock("cArqTmp", .T. )
+				cArqTmp->NATUR := SE5->E5_NATUREZ
+				cArqTmp->DESCR := SED->ED_DESCRIC
+			Endif
+
+			RecLock("cArqTmp")
+
+
+
+			nValor := Round(NoRound(xMoeda(SE5->E5_VALOR,nMoedaBco,mv_par06,SE5->E5_DATA,nDecs+1),nDecs+1),nDecs+1)
+			nValor *= If( SE5->E5_TIPODOC = "TE", -1,1)
+
+			bProp := { || 1 }
+			bWhile := { || nWhiles++ <= 1 }
+			lTemSev := .F. 
+
+			If SEV->(MsSeek(xFilial("SEV")+SE5->(E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA)))
+				bProp := { || SEV->EV_PERC }
+
+
+				bWhile := { ||	SEV->(!Eof()) .And.  xFilial("SEV")+SEV->(EV_PREFIXO+EV_NUM+EV_PARCELA+EV_TIPO+EV_CLIFOR+EV_LOJA) == SEV->EV_FILIAL + SE5->(E5_PREFIXO+E5_NUMERO+E5_PARCELA+E5_TIPO+E5_CLIFOR+E5_LOJA) }
+				lTemSev := .T. 
+			Endif
+			While Eval(bWhile)
+				nProp := Eval(bProp)
+				If lTemSev
+
+					If !cArqTmp->(dbSeek(SEV->EV_NATUREZ))
+						RecLock("cArqTmp", .T. )
+						cArqTmp->NATUR := SEV->EV_NATUREZ
+						SED->(MsSeek(xFilial("SED")+cArqTmp->NATUR))
+						cArqTmp->DESCR := SED->ED_DESCRIC
+					Else
+						RecLock("cArqTmp")
+					Endif
+				Endif
+
+				IF lNoMes
+					If cArqTmp->NATUR >= mv_par01 .and.  cArqTmp->NATUR	<= mv_par02
+						cArqTmp->rEntr += (nValor * nProp)
+					Else
+						cArqTmp->rSaid += (nValor * nProp)
+					Endif
+				Endif
+
+
+
+				if mv_par07 == 1
+					If cArqTmp->NATUR >= mv_par01 .and.  cArqTmp->NATUR	<= mv_par02
+						cArqTmp->REACM += (nValor * nProp)
+					Else
+						cArqTmp->RSACM += (nValor * nProp)
+					Endif
+				Endif
+
+				If cPaisLoc = "BRA" .or.  Empty(cArqTmp->Tipo)
+					cArqTmp-> Tipo := SE5->E5_RECPAG
+				EndIf
+
+				If lTemSev
+					SEV->(DbSkip())
+				Endif
+
+			End
+		Endif
+	Endif
+	nWhiles:=1
+	dbSelectArea("SE5")
+	dbSkip()
+End
+
+If ! lRelato
+	cArqTmp->( DbGoTop() )
+	If aNiveis <> Nil
+		nLimite := IIf(Len(aNiveis) > 1, Len(aNiveis)-1, 1)
+	Endif
+Endif
+
+While ! lRelato .And.  !cArqTmp->( Eof() )
+
+	nOrcado := 0
+	nOrcAcm := 0
+
+	If SE7->(dbSeek(xFilial("SE7")+cArqTmp->NATUR+Str(Year(mv_par08),4)))
+		nOrcado:=GetOrcado(month(mv_par08))
+
+
+
+		If ( cArqTmp-> Tipo == "R")
+			aTotais[5] += nOrcado
+		Else
+			aTotais[6] += nOrcado
+		End
+
+
+
+		If mv_par07 == 1
+			For nLaco2:=1 to month(mv_par08)
+				nOrcAcm += GetOrcado(nLaco2)
+			Next
+			If ( cArqTmp-> Tipo == "R")
+				aTotais[11] += nOrcAcm
+			Else
+				aTotais[12] += nOrcAcm
+			End
+		Endif
+	Endif
+
+	If ( cArqTmp-> Tipo == "R" )
+
+		aTotais[1]  += cArqTmp->aEntr+cArqTmp->aSaid
+		aTotais[3]  += cArqTmp->rEntr+cArqTmp->rSaid
+		aTotais[7]  += cArqTmp->aEacm+cArqTmp->aSacm
+		aTotais[9]  += cArqTmp->rEacm+cArqTmp->rSacm
+	Else
+
+		aTotais[2]  += cArqTmp->aEntr+cArqTmp->aSaid
+		aTotais[4]  += cArqTmp->rEntr+cArqTmp->rSaid
+		aTotais[8]  += cArqTmp->aEacm+cArqTmp->aSacm
+		aTotais[10] += cArqTmp->rEacm+cArqTmp->rSacm
+	End
+
+	If aQuebras <> Nil
+
+
+
+		For nLaco := 1 to Len( aQuebras )
+			aQuebras[nLaco,1] := Subst( cArqTmp->Natur,aNiveis[nLaco,1],aNiveis[nLaco,2] )
+		next
+
+
+
+
+		For nLaco := 1 to Len(aQuebras)
+
+			aQuebras[nLaco,2] += cArqTmp->aEntr+cArqTmp->aSaid
+			aQuebras[nLaco,3] += cArqTmp->rEntr+cArqTmp->rSaid
+			aQuebras[nLaco,4] += nOrcado
+
+			If mv_par07 == 1
+				aQuebras[nLaco,5] += cArqTmp->AEACM+cArqTmp->ASACM
+				aQuebras[nLaco,6] += cArqTmp->REACM+cArqTmp->RSACM
+				aQuebras[nLaco,7] += nOrcAcm
+			Endif
+		next
+
+	Endif
+
+	cArqTmp->(DbSkip())
+
+	If aQuebras <> Nil
+
+
+
+		lQuebra := .F. 
+		For nLaco := 1 to nLimite
+			If aQuebras[nLaco,1] # Subst( cArqTmp->NATUR, aNiveis[nLaco,1], aNiveis[nLaco,2] )
+
+				For nQuebras := nLimite to nLaco Step -1
+
+
+					If 	aQuebras[nQuebras,2] == 0 .and.  aQuebras[nQuebras,3] == 0 .and.  aQuebras[nQuebras,4] == 0 .and.  aQuebras[nQuebras,5] == 0 .and.  aQuebras[nQuebras,6] == 0 .and.  aQuebras[nQuebras,7] == 0
+						Loop
+					Endif
+
+					Aadd(aArrayQ, Aclone(aQuebras[nQuebras]))
+					aArrayQ[Len(aArrayQ)][1] := "Total - "+ aQuebras[nQuebras,1]
+
+
+
+
+					aQuebras[nQuebras,2] := 0
+					aQuebras[nQuebras,3] := 0
+					aQuebras[nQuebras,4] := 0
+					aQuebras[nQuebras,5] := 0
+					aQuebras[nQuebras,6] := 0
+					aQuebras[nQuebras,7] := 0
+				next
+			Endif
+		Next
+	Endif
+End
+
+If ! lRelato
+	If mv_par07 = 1
+		Aadd(aArray, { "Receber", "Mes", "Acumulado", "Pagar", "Mes", "Acumulado", "Saldos", "Mes", "Acumulado" })
+	Else
+		Aadd(aArray, { "Receber", "", "Pagar", "", "Saldos", "" })
+	Endif
+
+	aTotal := DevCred( aTotais[1], aTotais[2] )
+	aAcumu := DevCred( aTotais[7], aTotais[8] )
+
+	If mv_par07 = 1
+
+
+
+
+
+
+		Aadd(aArray, { 	StrTran("A Realizar  : ", ":", ""), Transform( aTotais[1], "@E 9,999,999,999.99" ),						Transform( aTotais[7], "@E 9,999,999,999.99" ), StrTran("A Realizar  : ", ":", ""), Transform( aTotais[2], "@E 9,999,999,999.99" ),						Transform( aTotais[8], "@E 9,999,999,999.99" ), StrTran("A Realizar  : ", ":", ""), Transform( aTotal[1], "@E 9,999,999,999.99" ) +						aTotal[2], Transform( aAcumu[1], "@E 9,999,999,999.99" ) + aAcumu[2] })
+	Else
+
+
+
+		Aadd(aArray, { 	StrTran("A Realizar  : ", ":", ""), Transform( aTotais[1], "@E 9,999,999,999.99" ),						StrTran("A Realizar  : ", ":", ""), Transform( aTotais[2], "@E 9,999,999,999.99" ),						StrTran("A Realizar  : ", ":", ""), Transform( aTotal[1] , "@E 9,999,999,999.99" ) +						aTotal[2] })
+	Endif
+
+	aTotal := DevCred( aTotais[3], aTotais[4] )
+	aAcumu := DevCred( aTotais[9], aTotais[10] )
+
+	If mv_par07 = 1
+
+
+
+
+
+
+		Aadd(aArray, { 	StrTran("Realizado   : ", ":", ""),  Transform( aTotais[3], "@E 9,999,999,999.99" ),						Transform( aTotais[9], "@E 9,999,999,999.99" ), StrTran("Realizado   : ", ":", ""),  Transform( aTotais[4], "@E 9,999,999,999.99" ),						Transform( aTotais[10], "@E 9,999,999,999.99" ), StrTran("Realizado   : ", ":", ""),  Transform( aTotal[1], "@E 9,999,999,999.99" ) +						aTotal[2], Transform( aAcumu[1], "@E 9,999,999,999.99" ) + aAcumu[2] })
+    Else
+
+
+
+		Aadd(aArray, { 	StrTran("Realizado   : ", ":", ""),  Transform( aTotais[3], "@E 9,999,999,999.99" ),						StrTran("Realizado   : ", ":", ""),  Transform( aTotais[4], "@E 9,999,999,999.99" ),						StrTran("Realizado   : ", ":", ""),  Transform( aTotal[1], "@E 9,999,999,999.99" ) +						aTotal[2] })
+	Endif
+
+	nTotReceb := aTotais[1] + aTotais[3]
+	nTotPagar := aTotais[2] + aTotais[4]
+
+	nAcuReceb := aTotais[7] + aTotais[9]
+	nAcuPagar := aTotais[8] + aTotais[10]
+
+	aTotal := DevCred( nTotReceb, nTotPagar )
+	aAcumu := DevCred( nAcuReceb, nAcuPagar )
+
+	If mv_par07 = 1
+
+
+
+
+
+
+		Aadd(aArray, { 	StrTran("Total       : ", ":", ""),  Transform( nTotReceb, "@E 9,999,999,999.99" ),						Transform( nAcuReceb, "@E 9,999,999,999.99" ), StrTran("Total       : ", ":", ""),  Transform( nTotPagar, "@E 9,999,999,999.99" ),						Transform( nAcuPagar, "@E 9,999,999,999.99" ), StrTran("Total       : ", ":", ""),  Transform( aTotal[1],"@E 9,999,999,999.99") +						aTotal[2], Transform( aAcumu[1],"@E 9,999,999,999.99") + aAcumu[2] } )
+	Else
+
+
+
+		Aadd(aArray, { 	StrTran("Total       : ", ":", ""),  Transform( nTotReceb, "@E 9,999,999,999.99" ),						StrTran("Total       : ", ":", ""),  Transform( nTotPagar, "@E 9,999,999,999.99" ),						StrTran("Total       : ", ":", ""),  Transform( aTotal[1],"@E 9,999,999,999.99")+						aTotal[2] })
+	Endif
+
+	aTotal := DevCred( aTotais[5], aTotais[6] )
+	aAcumu := DevCred( aTotais[11], aTotais[12] )
+	If mv_par07 = 1
+
+
+
+
+
+
+		Aadd(aArray, { 	StrTran("Orcado      : ", ":", ""),  Transform( aTotais[5], "@E 9,999,999,999.99"),						Transform( aTotais[11], "@E 9,999,999,999.99"), StrTran("Orcado      : ", ":", ""),  Transform( aTotais[6], "@E 9,999,999,999.99"),						Transform( aTotais[12], "@E 9,999,999,999.99"), StrTran("Orcado      : ", ":", ""),  Transform( aTotal[1],"@E 9,999,999,999.99") +						aTotal[2], Transform( aAcumu[1],"@E 9,999,999,999.99") + aAcumu[2] })
+	Else
+
+
+
+		Aadd(aArray, { 	StrTran("Orcado      : ", ":", ""),  Transform( aTotais[5], "@E 9,999,999,999.99"),						StrTran("Orcado      : ", ":", ""),  Transform( aTotais[6], "@E 9,999,999,999.99"),						StrTran("Orcado      : ", ":", ""),  Transform( aTotal[1],"@E 9,999,999,999.99")+						aTotal[2] })
+	Endif
+Endif
+
+Return { aTotais, aArrayQ, aArray }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function AjustaSX1()
+
+Local aHelpPor	:= {}
+Local aHelpEng	:= {}
+Local aHelpSpa	:= {}
+
+Aadd( aHelpPor, "Informe a data base do sistema a ser "  )
+Aadd( aHelpPor, "considerada para não ter que alterá-la "  )
+Aadd( aHelpPor, "antes de imprimir este relatório" )
+
+Aadd( aHelpSpa, "Digite la fecha base del sistema que se"	)
+Aadd( aHelpSpa, "debe considerar para no tener que ")
+Aadd( aHelpSpa, "modificarla antes de imprimir este informe")
+
+Aadd( aHelpEng, "Enter the system base date to be considered")
+Aadd( aHelpEng, " so it won´t be necessary to change it " )
+Aadd( aHelpEng, "before printing this report")
+
+PutSx1( "FIN720", "11","Data Base","Fecha Base","Base Date","mv_chb","D",8,0,0,"G","","","","","mv_par11","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function PutDtBase()
+Local _sAlias	:= Alias()
+
+dbSelectArea("SX1")
+dbSetOrder(1)
+If MsSeek("FIN72011")
+
+	RecLock("SX1", .F. )
+	_FIELD->x1_cnt01 := "'"+DTOC(dDataBase)+"'"
+	MsUnlock()
+Endif
+
+dbSelectArea(_sAlias)
+Return

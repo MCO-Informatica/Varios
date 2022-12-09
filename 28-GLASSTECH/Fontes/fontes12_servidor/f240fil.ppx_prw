@@ -1,0 +1,94 @@
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Dialog.ch"
+#line 28 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Font.ch"
+#line 29 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PTMenu.ch"
+#line 31 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Print.ch"
+#line 33 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Colors.ch"
+#line 35 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Folder.ch"
+#line 37 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\msobject.ch"
+#line 38 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\VKey.ch"
+#line 42 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\WinApi.ch"
+#line 44 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCommand.ch"
+#line 47 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCSS.CH"
+#line 50 "PROTHEUS.CH"
+#line 3 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\f240fil.prw"
+Function U_F240FIL()
+
+Local _cFiltro := Nil
+
+If cModPgto = "30"
+
+   _cFiltro := "((SUBSTR(E2_CODBAR,1,3) = '341') .Or. (SUBSTR(E2_LINDIG,1,3) = '341'))"
+
+ElseIf cModPgto = "31"
+
+   _cFiltro := "(((SUBSTR(E2_CODBAR,1,3) <> '341') .And. (SUBSTR(E2_CODBAR,1,1) <> ' ')) .Or. ((SUBSTR(E2_LINDIG,1,3) <> '341') .And. (SUBSTR(E2_LINDIG,1,1) <> ' ')))"
+
+ElseIf cModPgto = "13"
+
+   _cFiltro := "( (LEN(ALLTRIM(E2_LINDIG)) = 48) .Or. (LEN(ALLTRIM(E2_CODBAR)) = 48))"
+
+ElseIf cModPgto = "01"
+
+   _cFiltro := "(E2_FORMPAG = '01')"
+
+ElseIf cModPgto = "05"
+
+   _cFiltro := "(E2_FORMPAG = '05')"
+
+ElseIf cModPgto = "03"
+
+   _cFiltro := "(E2_FORMPAG = '03')"
+
+ElseIf cModPgto = "41"
+
+   _cFiltro :=  "(E2_FORMPAG = '41')"
+
+ElseIf cModPgto = "43"
+
+   _cFiltro := "(E2_FORMPAG = '43')"
+
+
+
+ElseIf cModPgto = "16"
+
+   _cFiltro := "(E2_FORMPAG = '16')"
+
+ElseIf cModPgto = "17"
+
+   _cFiltro := "(E2_FORMPAG = '17')"
+
+ElseIf cModPgto = "18"
+
+   _cFiltro := "(E2_FORMPAG = '18')"
+
+ElseIf cModPgto = "21"
+
+   _cFiltro := "(E2_FORMPAG = '21')"
+
+ElseIf cModPgto = "35"
+
+   _cFiltro := "(E2_FORMPAG = '35')"
+
+
+ElseIf cModPgto = "91"
+
+   _cFiltro := "(E2_FORMPAG = '91')"
+
+ElseIf cModPgto = "02"
+
+   _cFiltro := "(E2_FORMPAG = '02')"
+
+End
+
+Return _cFiltro

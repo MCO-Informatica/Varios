@@ -1,0 +1,101 @@
+#Include "TbiConn.ch"
+User Function CriarCampo()
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+    aSX3 := {}
+
+    aAdd(aSX3,{})
+    aAdd(aSX3[len(aSX3)],"ZA2_MOEDPV")
+    aAdd(aSX3[len(aSX3)],.f.)
+    aAdd(aSX3[len(aSX3)],5)
+    aAdd(aSX3[len(aSX3)],4)
+    aAdd(aSX3[len(aSX3)],"N")
+    aAdd(aSX3[len(aSX3)],"Taxa Moeda PV")
+    aAdd(aSX3[len(aSX3)],"Taxa Moeda PV")
+    aAdd(aSX3[len(aSX3)],"@E 9.9999")
+    aAdd(aSX3[len(aSX3)],1)
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],.t.)
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"A")
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],.F.)
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"")
+    aAdd(aSX3[len(aSX3)],"")
+
+
+    // aAdd(aSX3,{})
+    // aAdd(aSX3[len(aSX3)],"ZA2_MARGPV")
+    // aAdd(aSX3[len(aSX3)],.f.)
+    // aAdd(aSX3[len(aSX3)],10)
+    // aAdd(aSX3[len(aSX3)],4)
+    // aAdd(aSX3[len(aSX3)],"N")
+    // aAdd(aSX3[len(aSX3)],"Mar Con % R$")
+    // aAdd(aSX3[len(aSX3)],"Mar Con % R$")
+    // aAdd(aSX3[len(aSX3)],"@E 9,999.9999")
+    // aAdd(aSX3[len(aSX3)],1)
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],.t.)
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"A")
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],.F.)
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"")
+    // aAdd(aSX3[len(aSX3)],"")
+    
+    /*
+      [nLinha][01] - Campo
+      [nLinha][02] - Filial?
+      [nLinha][03] - Tamanho
+      [nLinha][04] - Decimais
+      [nLinha][05] - Tipo
+      [nLinha][06] - Título
+      [nLinha][07] - Descrição
+      [nLinha][08] - Máscara
+      [nLinha][09] - Nível
+      [nLinha][10] - Vld.User
+      [nLinha][11] - Usado?
+      [nLinha][12] - Ini.Padr.
+      [nLinha][13] - Cons.F3
+      [nLinha][14] - Visual
+      [nLinha][15] - Contexto
+      [nLinha][16] - Browse
+      [nLinha][17] - Obrigatório?
+      [nLinha][18] - Lista Opções
+      [nLinha][19] - Modo de Edição
+      [nLinha][20] - Ini Browse
+      [nLinha][21] - Pasta
+    */
+
+    /*
+      // aSIX := {}
+      // aAdd(aSIX, {})
+      // aAdd(aSIX[1],'SZC')
+      // aAdd(aSIX[1],'2')
+      // aAdd(aSIX[1],'ZC_FILIAL+ZC_TIPO+ZC_ANO+ZC_MOEDA')
+      // aAdd(aSIX[1],'Tipo+Ano Referenc+Moeda')
+      // aAdd(aSIX[1],'U')
+      // aAdd(aSIX[1],'ZC_TIPO')
+      // aAdd(aSIX[1],'S')
+        [nLinha][01] - Índice
+        [nLinha][02] - Ordem
+        [nLinha][03] - Chave
+        [nLinha][04] - Descrição
+        [nLinha][05] - Propriedade
+        [nLinha][06] - NickName
+        [nLinha][07] - Mostr.Pesq
+    */
+    U_zCriaTab({"ZA2"}, aSX3, {})
+
+
+    RESET ENVIRONMENT
+
+Return

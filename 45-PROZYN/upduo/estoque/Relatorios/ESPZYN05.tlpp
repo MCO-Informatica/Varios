@@ -1,0 +1,164 @@
+//Bibliotecas
+#Include "Totvs.ch"
+
+/*/{Protheus.doc} User Function ESPZYN05
+Analise Reprocesso
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+User Function ESPZYN05()
+	Local aArea := FWGetArea()
+	Local oReport
+	Local aPergs   := {}
+	Local MV_PAR01 := sToD("")
+	Local MV_PAR02 := sToD("")
+	
+	//Adicionando os parametros do ParamBox
+	aAdd(aPergs, {1, "Emissão de ?", MV_PAR01,  "", ".T.", "", ".T.", 80,  .F.})
+	aAdd(aPergs, {1, "Emissão ate?", MV_PAR02,  "", ".T.", "", ".T.", 80,  .F.})
+	
+	//Se a pergunta for confirma, cria as definicoes do relatorio
+	If ParamBox(aPergs, "Informe os parametros")
+		oReport := fReportDef()
+		oReport:PrintDialog()
+	EndIf
+	
+	FWRestArea(aArea)
+Return
+
+/*/{Protheus.doc} fReportDef
+Definicoes do relatorio ESPZYN05
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fReportDef()
+	Local oReport
+	Local oSection := Nil
+	
+	//Criacao do componente de impressao
+	oReport := TReport():New( "ESPZYN05",;
+		"Analise Reprocesso",;
+		,;
+		{|oReport| fRepPrint(oReport),};
+		)
+	oReport:SetTotalInLine(.F.)
+	oReport:lParamPage := .F.
+	oReport:oPage:SetPaperSize(9)
+	
+	//Orientacao do Relatorio
+	oReport:SetLandscape()
+	
+	//Definicoes da fonte utilizada
+	oReport:cFontBody := "Arial"
+	oReport:SetLineHeight(40)
+	oReport:nFontBody := 10
+	
+	//Criando a secao de dados
+	oSection := TRSection():New( oReport,;
+		"Dados",;
+		{"QRY_REP"})
+	oSection:SetTotalInLine(.F.)
+	
+	//Colunas do relatorio
+	TRCell():New(oSection, "D3_OP", "QRY_REP", "D3_OP", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_TM", "QRY_REP", "D3_TM", /*cPicture*/, 3, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_COD", "QRY_REP", "D3_COD", /*cPicture*/, 7, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_QUANT", "QRY_REP", "D3_QUANT", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_CF", "QRY_REP", "D3_CF", /*cPicture*/, 3, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_LOCAL", "QRY_REP", "D3_LOCAL", /*cPicture*/, 2, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_TIPO", "QRY_REP", "D3_XTIPO", /*cPicture*/, 2, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "D3_CUSTO1", "QRY_REP", "D3_CUSTO1", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	
+Return oReport
+
+/*/{Protheus.doc} fRepPrint
+Impressao do relatorio ESPZYN05
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fRepPrint(oReport)
+	Local aArea    := FWGetArea()
+	Local cQryReport  := ""
+	Local oSectDad := Nil
+	Local nAtual   := 0
+	Local nTotal   := 0
+	
+	//Pegando as secoes do relatorio
+	oSectDad := oReport:Section(1)
+	
+	//Montando consulta de dados
+	cQryReport += "SELECT * FROM ( "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "SELECT D3_OP,D3_TM, D3_COD, D3_QUANT,D3_CF,D3_LOCAL,D3_TIPO, D3_XTIPO, D3_CUSTO1/ D3_QUANT "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "as custo,D3_CUSTO1, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CASE WHEN D3_CF IN ('DE4','RE4') THEN 'TRF' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += " WHEN D3_CF IN ('RE1','RE2') THEN 'PRD' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += " WHEN D3_CF IN ('DE0') THEN 'GAN' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += " WHEN D3_CF IN ('RE0') THEN 'PER' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += " ELSE 'FALSO' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += " END+'-'+TRIM(D3_CF)+'-'+TRIM(D3_TIPO)+'-'+TRIM(D3_XTIPO)+'-'+TRIM(D3_LOCAL) AS CHAVE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "FROM SD3010 "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "WHERE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "D_E_L_E_T_<> '*' AND "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "D3_EMISSAO BETWEEN '" + dtos(MV_PAR01) + "' AND '" + dtos(MV_PAR02) + "') AS TEMP "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "WHERE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "TEMP.D3_CF = 'RE1' AND "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "TEMP.D3_COD LIKE '%R' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "order by custo"		+ CRLF
+	
+	//Executando consulta e setando o total da regua
+	PlsQuery(cQryReport, "QRY_REP")
+	DbSelectArea("QRY_REP")
+	Count to nTotal
+	oReport:SetMeter(nTotal)
+	
+	//Enquanto houver dados
+	oSectDad:Init()
+	QRY_REP->(DbGoTop())
+	While ! QRY_REP->(Eof())
+	
+		//Incrementando a regua
+		nAtual++
+		oReport:SetMsgPrint("Imprimindo registro " + cValToChar(nAtual) + " de " + cValToChar(nTotal) + "...")
+		oReport:IncMeter()
+		
+		//Imprimindo a linha atual
+		oSectDad:PrintLine()
+		
+		QRY_REP->(DbSkip())
+	EndDo
+	oSectDad:Finish()
+	QRY_REP->(DbCloseArea())
+	
+	FWRestArea(aArea)
+Return

@@ -1,0 +1,179 @@
+//Bibliotecas
+#Include "Totvs.ch"
+
+/*/{Protheus.doc} User Function ESPZYN01
+Analise Conta Déb e Cré
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+User Function ESPZYN01()
+	Local aArea := FWGetArea()
+	Local oReport
+	Local aPergs   := {}
+	Local xPar0 := sToD("")
+	Local xPar1 := sToD("")
+	
+	//Adicionando os parametros do ParamBox
+	aAdd(aPergs, {1, "DATA DE ?", xPar0,  "", ".T.", "", ".T.", 80,  .T.})
+	aAdd(aPergs, {1, "DATA ATÉ ?", xPar1,  "", ".T.", "", ".T.", 80,  .T.})
+	
+	//Se a pergunta for confirma, cria as definicoes do relatorio
+	If ParamBox(aPergs, "Informe os parametros")
+		oReport := fReportDef()
+		oReport:PrintDialog()
+	EndIf
+	
+	FWRestArea(aArea)
+Return
+
+/*/{Protheus.doc} fReportDef
+Definicoes do relatorio ESPZYN01
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fReportDef()
+	Local oReport
+	Local oSection := Nil
+	
+	//Criacao do componente de impressao
+	oReport := TReport():New( "ESPZYN01",;
+		"Analise Conta Déb e",;
+		,;
+		{|oReport| fRepPrint(oReport),};
+		)
+	oReport:SetTotalInLine(.F.)
+	oReport:lParamPage := .F.
+	oReport:oPage:SetPaperSize(9)
+	
+	//Orientacao do Relatorio
+	oReport:SetLandscape()
+	
+	//Definicoes da fonte utilizada
+	oReport:cFontBody := "Arial"
+	oReport:SetLineHeight(40)
+	oReport:nFontBody := 10
+	
+	//Criando a secao de dados
+	oSection := TRSection():New( oReport,;
+		"Dados",;
+		{"QRY_REP"})
+	oSection:SetTotalInLine(.F.)
+	
+	//Colunas do relatorio
+	TRCell():New(oSection, "CT2_DATA", "QRY_REP", "DATA", /*cPicture*/, 8, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_DEBITO", "QRY_REP", "DEBITO", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT1_DESC01", "QRY_REP", "CT1_DESC01", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT1_DESC01", "QRY_REP", "CT1_DESC01", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT1_DESC01", "QRY_REP", "CT1_DESC01", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_CCD", "QRY_REP", "CT2_CCD", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CTT_DESC01", "QRY_REP", "CTT_DESC01", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_HIST", "QRY_REP", "HISTORICO", /*cPicture*/, 60, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_VALOR", "QRY_REP", "VALOR", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	
+Return oReport
+
+/*/{Protheus.doc} fRepPrint
+Impressao do relatorio ESPZYN01
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fRepPrint(oReport)
+	Local aArea    := FWGetArea()
+	Local cQryReport  := ""
+	Local oSectDad := Nil
+	Local nAtual   := 0
+	Local nTotal   := 0
+	
+	//Pegando as secoes do relatorio
+	oSectDad := oReport:Section(1)
+	
+	//Montando consulta de dados
+	cQryReport += "select SUBSTRING(CT2_DATA,7,2)+'/'+SUBSTRING(CT2_DATA,5,2)+'/'+SUBSTRING(CT2_DATA,1,4) "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "AS CT2_DATA, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_DEBITO,DEB1.CT1_DESC01,CT2_CREDIT,CRED1.CT1_DESC01, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_CCD,DEB.CTT_DESC01, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_HIST, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_VALOR "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "from CT2010 CT2 "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "INNER JOIN CT1010 DEB1 ON CT2_DEBITO = DEB1.CT1_CONTA AND DEB1.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "INNER JOIN CT1010 CRED1 ON CT2_CREDIT = CRED1.CT1_CONTA AND CRED1.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "LEFT JOIN CTT010 DEB ON CT2_CCD = CTT_CUSTO AND DEB.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "WHERE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_DATA BETWEEN '" + dtos(MV_PAR01) + "' AND '" + dtos(MV_PAR02) + "' AND CT2.D_E_L_E_T_<>'*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "UNION ALL "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "select SUBSTRING(CT2_DATA,7,2)+'/'+SUBSTRING(CT2_DATA,5,2)+'/'+SUBSTRING(CT2_DATA,1,4) "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "AS CT2_DATA, CT2_DEBITO,DEB1.CT1_DESC01,CT2_CREDIT,CRED1.CT1_DESC01, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_CCC,CRED.CTT_DESC01, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_HIST, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "(CT2_VALOR*-1) AS CT2_VALOR "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "from CT2010 CT2 "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "INNER JOIN CT1010 DEB1 ON CT2_DEBITO = DEB1.CT1_CONTA AND DEB1.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "INNER JOIN CT1010 CRED1 ON CT2_CREDIT = CRED1.CT1_CONTA AND CRED1.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "LEFT JOIN CTT010 CRED ON CT2_CCC = CRED.CTT_CUSTO AND CRED.D_E_L_E_T_<> '*' "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "WHERE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_DATA BETWEEN '" + dtos(MV_PAR01) + "' AND '" + dtos(MV_PAR02) + "' AND CT2.D_E_L_E_T_<>'*'"		+ CRLF
+	
+	//Executando consulta e setando o total da regua
+	PlsQuery(cQryReport, "QRY_REP")
+	DbSelectArea("QRY_REP")
+	Count to nTotal
+	oReport:SetMeter(nTotal)
+	
+	//Enquanto houver dados
+	oSectDad:Init()
+	QRY_REP->(DbGoTop())
+	While ! QRY_REP->(Eof())
+	
+		//Incrementando a regua
+		nAtual++
+		oReport:SetMsgPrint("Imprimindo registro " + cValToChar(nAtual) + " de " + cValToChar(nTotal) + "...")
+		oReport:IncMeter()
+		
+		//Imprimindo a linha atual
+		oSectDad:PrintLine()
+		
+		QRY_REP->(DbSkip())
+	EndDo
+	oSectDad:Finish()
+	QRY_REP->(DbCloseArea())
+	
+	FWRestArea(aArea)
+Return

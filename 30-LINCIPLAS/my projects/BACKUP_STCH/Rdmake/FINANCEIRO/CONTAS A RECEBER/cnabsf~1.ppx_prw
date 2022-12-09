@@ -1,0 +1,13 @@
+#line 1 "D:\PROTHE~2\INCLUDE\Rwmake.ch"
+#line 1 "D:\PROTHE~2\INCLUDE\stdwin.ch"
+#line 14 "Rwmake.ch"
+#line 18 "d:\PROTHE~2\MYPROJ~1\rdmake\FINANC~1\CONTAS~2\CNABSF~1.PRW"
+Function U_CNABSFR01
+
+Private cRet := ""
+
+
+
+cRet := "02600"+STRZERO(VAL(ALLTRIM(SA6->A6_NUMCON)),9,0)
+
+Return(cRet)

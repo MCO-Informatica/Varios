@@ -1,0 +1,47 @@
+#Include "Rwmake.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³CNABSFR01 ºAutor  Thiago Queiroz       º Data ³  02/09/2010 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Realiza o calculo do digito verificador do arquivo CNAB    º±±
+±±º          ³ e do Boleto Bradesco                                       º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Protheus 10 - LINCIPLAS                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function CNABBRAD
+/* ABRE OLD
+Private cRet //:= ""
+//EXECBLOCK("CNABBRAD",.F.,.F.) --> função que estava no cnab
+//		modulo11(Conjunto de Números                  , 2 (início dos pesos), Base)
+cRet := MODULO11("02"+=STRZERO(VAL(SE1->E1_NUMBCO),11), 2                   , 7)
+If cRet == "0"
+cRet := "0"
+ElseIf cRet == "1"
+cRet := "P"
+Else
+return (cRet)
+EndIf
+FECHA OLD */
+//IF EMPTY(SE1->E1_NUMBCO)
+	xcpo := "0200"+SE1->E1_NUMBCO
+	_cDig := U_MOD11(xcpo,2,7)
+	IF val(_cDig) == 10
+		_cDig := "P"
+	ELSE
+		_cDig := SUBSTR(_cDig,2,1)
+	ENDIF
+//ELSE
+//	_cDig := SUBSTR(SE1->E1_NUMBCO,12,1)
+	
+//ENDIF
+
+
+
+Return(_cDig)

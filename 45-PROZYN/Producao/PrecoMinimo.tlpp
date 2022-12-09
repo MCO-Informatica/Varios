@@ -1,0 +1,342 @@
+#include "protheus.ch"
+#Include "TbiConn.ch"
+#Include "TopConn.ch"
+
+User Function ParmPrecoMin()
+    Local aPergs   := {}
+    Local cProdDe  := Space(TamSX3('B1_COD')[01])
+    Local cProdAt  := PadL('', TamSX3('B1_COD')[01], 'Z')
+    Local cGrpCDe  := Space(TamSX3('ZU_COD')[01])
+    Local cGrpCAt  := PadL('', TamSX3('ZU_COD')[01], 'Z')
+    Local cSegmDe  := Space(TamSX3('ZA1_COD')[01])
+    Local cSegmAt  := PadL('', TamSX3('ZA1_COD')[01], 'Z')
+    
+    aAdd(aPergs, {1, "Produto De",  cProdDe,  "", ".T.", "SB1", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Produto Até", cProdAt,  "", ".T.", "SB1", ".T.", 80,  .T.})
+
+    aAdd(aPergs, {1, "Grp. Comercial De",  cGrpCDe,  "", ".T.", "SZU", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Grp. Comercial Até", cGrpCAt,  "", ".T.", "SZU", ".T.", 80,  .T.})
+
+    aAdd(aPergs, {1, "Segmentação De",  cSegmDe,  "", ".T.", "ZA1", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Segmentação Até", cSegmAt,  "", ".T.", "ZA1", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| U_PrecoMinimo(MV_PAR01,MV_PAR02,MV_PAR03,MV_PAR04,MV_PAR05,MV_PAR06) },"Aguarde" ,"Processando...")
+        MsgAlert("Recálculo de Preço Mínimo atualizado.","Atenção!")
+    EndIf
+Return
+
+User Function PrecoMinimo(cProdDe,cProdAt,cGrpCDe,cGrpCAt,cSegmDe,cSegmAt)
+    Local aArea := GetArea()
+    Local nCusto := 0
+    Local aProducts := {}
+
+    Private nGGFFixo := 0
+    Private dUlMes := CtoD("  /  /    ")
+    Private nTxCusto := 1
+
+    Private cFolder := "\Preco Minimo\"
+    Private cArquivo  := "preco_minimo_"+DtoS(Date())+".XML"
+    Private aFile := {cFolder+cArquivo}
+
+    Default cProdDe  := ""
+    Default cProdAt  := "ZZZZZZ"
+    Default cGrpCDe  := ""
+    Default cGrpCAt  := "ZZZZ"
+    Default cSegmDe  := ""
+    Default cSegmAt  := "ZZZZ"
+    
+    If !ExistDir( cFolder )
+        MakeDir( cFolder )
+    EndIf
+    
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    nTxCusto := U_GetMoeda()
+    dUlMes := GetMV("MV_ULMES")
+    nGGFFixo := SuperGetMv("MV_GGFFIXO",,0.25)
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))
+
+    DbSelectArea("DA1")
+    DA1->(DbSetOrder(2))
+    
+    DbSelectArea("DA0")
+    DA0->(DbSetOrder(1))
+
+    DbSelectArea("SA1")
+    SA1->(DbSetOrder(1))
+
+    DbSelectArea("SA7")
+    SA7->(DbSetOrder(1))
+
+    DbSelectArea("SE4")
+    SE4->(DbSetOrder(1))
+
+    DbSelectArea("SZU")
+    SZU->(DbSetOrder(1))
+    
+    DbSelectArea("AOV")
+    AOV->(DbSetOrder(1))
+    
+    DbSelectArea("ADK")
+    ADK->(DbSetOrder(1))
+
+    cQry := " SELECT DISTINCT B9_COD,B9_CM1 FROM "+RetSqlName("SB9")+" B9
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_COD = B9_COD AND B1.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SZU")+" ZU ON ZU_COD = B1_XGRPCOM AND ZU.D_E_L_E_T_ = ''
+    cQry += " WHERE B9_DATA = '"+DtoS(dUlMes)+"' AND B9_CM1 > 0 AND B9_LOCAL = B1_LOCPAD AND B9.D_E_L_E_T_ = ''
+
+    cQry += " AND B9_COD BETWEEN '"+cProdDe+"' and '"+cProdAt+"' 
+    cQry += " AND ZU_COD BETWEEN '"+cGrpCDe+"' and '"+cGrpCAt+"' 
+
+    cQry += " order by B9_COD
+    TcQuery cQry New Alias 'B9ULMES'
+
+
+    While B9ULMES->(!EOF())
+        SB1->(DbSeek(xFilial("SB1")+B9ULMES->B9_COD))        
+        
+        nPrcMin := 0
+
+        If DA1->(DbSeek(xFilial("DA1")+SB1->B1_COD))
+
+            While DA1->(!EOF()) .AND. DA1->DA1_CODPRO == SB1->B1_COD
+
+                DA0->(DbSeek(xFilial("DA0")+DA1->DA1_CODTAB))
+
+                SA1->(DbSeek(xfilial("SA1")+DA0->DA0_YCODCL+DA0->DA0_YLJCLI))
+                
+                nCusto := Iif(DA1->DA1_MOEDA == 1, B9ULMES->B9_CM1, B9ULMES->B9_CM1 / nTxCusto)
+                If nCusto == 0
+                    //Custo da última entrada
+                    nCusto := GetUlCusto(DA1->DA1_MOEDA)
+                EndIf
+
+                If nCusto == 0
+                    DA1->(DbSkip())
+                    LOOP
+                EndIf
+
+                If !(SB1->B1_TIPO $ 'ME')
+                    nGGF := U_GetGGF(SB1->B1_COD)
+                    If DA1->DA1_MOEDA == 1
+                        nCusto := nCusto - nGGF + (nGGFFixo * nTxCusto)
+                    Else
+                        nCusto := nCusto - (nGGF / nTxCusto) + nGGFFixo
+                    EndIf
+                EndIf
+
+                nICMS := DA1->DA1_YICMS
+                nPIS := DA1->DA1_YPIS
+                nCOFINS := DA1->DA1_YCOFIN
+                nIPI := SB1->B1_IPI
+
+                SA7->(DbSeek(xfilial("SA7")+SA1->A1_COD+SA1->A1_LOJA+SB1->B1_COD))
+
+                AOV->(DbSeek(xFilial("AOV")+SA7->A7_XSEGMEN))
+                cUnidNeg := "OUTROS"
+                If(ADK->(DbSeek(xFilial("ADK")+PadL(SubStr(AOV->AOV_XUNEG,1,1),6,"0"))))
+                    cUnidNeg := Trim(ADK->ADK_NOME)
+                EndIf
+
+                If !(SA7->A7_XSEG2 >= cSegmDe .and. SA7->A7_XSEG2 <= cSegmAt)
+                    DA1->(DbSkip())
+                    LOOP
+                EndIf
+
+                nMargemComercial := 0
+                If SZU->(DbSeek(xFilial("SZU")+SB1->B1_XGRPCOM))
+
+                    If SA7->A7_XSEG2 == '0001' //Bakery
+                        nMargemComercial := SZU->ZU_BAKERY
+                    ElseIf SA7->A7_XSEG2 == '0002' //Diary
+                        nMargemComercial := SZU->ZU_DIARY
+                    ElseIf SA7->A7_XSEG2 == '0003' //Cervejaria
+                        nMargemComercial := SZU->ZU_CERVEJA
+                    ElseIf SA7->A7_XSEG2 == '0004' //HP
+                        nMargemComercial := SZU->ZU_HP
+                    ElseIf SA7->A7_XSEG2 == '0005' //Usina
+                        nMargemComercial := SZU->ZU_USINA
+                    ElseIf SA7->A7_XSEG2 == '0006' //Fármaco
+                        nMargemComercial := SZU->ZU_FARMACO
+                    ElseIf SA7->A7_XSEG2 == '0007' //Outros
+                        nMargemComercial := SZU->ZU_OUTROS
+                    ElseIf SA7->A7_XSEG2 == '0008' //Comissão
+                        nMargemComercial := SZU->ZU_COMISSA
+                    ElseIf SA7->A7_XSEG2 == '0009' //Miscelânea
+                        nMargemComercial := SZU->ZU_MISCELA
+                    EndIf
+                
+                EndIf
+
+                nPrcMin := nCusto
+                nPrcFix := nCusto
+
+                If nMargemComercial > 0
+                    nPrcMin := nPrcMin / ((100 - nMargemComercial) / 100)
+                EndIf
+
+                nPrcFix := nPrcFix / ((100 - 15) / 100) //Valor chumbado 15%
+
+                /* 0,38% - Commodity | 1,5% - Solução */
+                If SB1->B1_COMOD == 'S' .OR. SA7->A7_XTPNEGO $ 'B;S'
+                    nPrcMin := nPrcMin / ((100 - 0.38) / 100)
+                    nPrcFix := nPrcFix / ((100 - 0.38) / 100)
+                Else
+                    nPrcMin := nPrcMin / ((100 - 1.5) / 100)
+                    nPrcFix := nPrcFix / ((100 - 1.5) / 100)
+                EndIf
+
+                If SE4->(DbSeek(xFilial("SE4")+DA0->DA0_CONDPG))
+                    nPrcMin := nPrcMin * ((100 + SE4->E4_ACRVEN1) / 100)
+                    nPrcFix := nPrcFix * ((100 + SE4->E4_ACRVEN1) / 100)
+                EndIf
+
+                If SA1->A1_TPFRET == 'C'
+                    nPrcMin += Iif(DA1->DA1_MOEDA == 1, 0.25 * nTxCusto, 0.25)
+                    nPrcFix += Iif(DA1->DA1_MOEDA == 1, 0.25 * nTxCusto, 0.25)
+                EndIf
+
+                If nPrcMin < 0
+                    nPrcMin := 0
+                EndIf
+
+                If nPrcFix < 0
+                    nPrcFix := 0
+                EndIf
+
+                aAdd(aProducts,;
+                {Trim(SB1->B1_COD),;
+                SB1->B1_DESC,; //BR
+                DA1->DA1_CODTAB,;
+                DA0->DA0_YCODCL,;
+                DA0->DA0_YLJCLI,;
+                Trim(SA1->A1_NREDUZ),;
+                POSICIONE("ACY",1,xFilial("ACY")+SA1->A1_GRPVEN,"ACY_DESCRI"),;//BR
+                POSICIONE("SA3",1,xFilial("SA3")+SA1->A1_VEND,"A3_NOME"),;//BR
+                SB1->B1_TIPO,;
+                DA1->DA1_PRNET,;
+                DA1->DA1_MOEDA,;
+                nTxCusto,;
+                nCusto,;
+                nICMS,;
+                nPIS,;
+                nCOFINS,;
+                nIPI,;
+                SB1->B1_COMOD,;
+                SA7->A7_XTPNEGO,;
+                cUnidNeg,;
+                SB1->B1_XGRPCOM,;
+                POSICIONE("SZU",1,xFilial("SZU")+SB1->B1_XGRPCOM,"ZU_DESCRI"),;//BR
+                SA7->A7_XSEG2,;
+                POSICIONE("ZA1",1,xFilial("ZA1")+SA7->A7_XSEG2,"ZA1_DESC"),;//BR
+                nMargemComercial,;
+                SE4->E4_ACRVEN1,;
+                SA1->A1_TPFRET,;
+                nPrcMin,;
+                nPrcFix})
+
+                DA1->(RecLock("DA1",.F.))
+                DA1->DA1_XPRCMI := nPrcMin
+                DA1->(MsUnlock())
+                
+                DA1->(DbSkip())
+            EndDo
+        
+        EndIf
+
+        B9ULMES->(DbSkip())
+    EndDo
+
+    B9ULMES->(DbCloseArea())
+
+    GeraRelatorio(aProducts,cProdDe,cProdAt,cGrpCDe,cGrpCAt,cSegmDe,cSegmAt)
+
+    RestArea(aArea)
+
+    RESET ENVIRONMENT
+Return
+
+//Obtenção do custo da última compra
+Static Function GetUlCusto(nMoeda)
+    Local nUlCusto := 0
+    
+    cQry := " SELECT ISNULL((SELECT TOP 1 isnull((D1_CUSTO / D1_QUANT),0) CUSTO from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(SB1->B1_COD)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),0) CUSTO,
+    cQry += " ISNULL((SELECT TOP 1 D1_DTDIGIT from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(SB1->B1_COD)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),'') DTDIGIT "
+    TcQuery cQry New Alias 'XCUSTO'
+
+
+    If !XCUSTO->(EOF())
+        nUlCusto := XCUSTO->CUSTO / Iif(nMoeda != 1, Posicione("SM2",1,XCUSTO->DTDIGIT,"M2_MOEDA2"),1)
+    EndIf
+    XCUSTO->(DbCloseArea())
+Return nUlCusto
+
+Static Function GeraRelatorio(aProducts,cProdDe,cProdAt,cGrpCDe,cGrpCAt,cSegmDe,cSegmAt)
+    Local oFWMsExcel
+    Local nP := 0
+    Default aProducts := {}
+
+    oFWMsExcel := FWMSExcel():New()
+    
+    cTitulo := "Preço Mínimo"
+    cAba := "Preço Mínimo"
+    oFWMsExcel:AddworkSheet(cTitulo)
+
+    oFWMsExcel:AddTable(cTitulo,cAba)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Produto", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Desc. Produto", 1,1)//BR
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Tabela", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Cód. Cliente", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Loja", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Nome Fantasia", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Grupo de Vendas", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Vendedor", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Tipo", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Preço NET", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Moeda", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Taxa Moeda", 2,2)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Custo", 2,2)
+    
+    oFWMsExcel:AddColumn(cTitulo,cAba,"ICMS", 2,2)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"PIS", 2,2)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"COFINS", 2,2)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"IPI", 2,2)
+
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Commodity", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Negociação", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Unid. Negócio", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Grupo Comercial", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Nome Grp Comercial", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Cod. Segmentação", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Desc. Segmentação", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Margem Comercial", 2,2) 
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Acrésc. Venda", 2,2) 
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Frete", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Preço Mínimo", 3,3)
+     oFWMsExcel:AddColumn(cTitulo,cAba,"Preço 15% Margem", 3,3)
+    
+    For nP := 1 to len(aProducts)
+        oFWMsExcel:AddRow(cTitulo,cAba,aProducts[nP])
+    Next nP
+
+    oFWMsExcel:Activate()
+    oFWMsExcel:GetXMLFile(cFolder+cArquivo)
+
+    cTo := "nailson.paixao@prozyn.com.br"
+    // cTo := "denis@pharosit.com.br"
+    cHTML := "<p>Prezado(a),<br/>Segue relação de recálculo do Preço Mínimo.</p>"
+    cHTML += "<p><strong>Parâmetros utilizados</strong>
+    cHtml += "<br/>Produto De: "+cProdDe
+    cHtml += "<br/>Produto Até: "+cProdAt
+    cHtml += "<br/>Grp. Comercial De: "+cGrpCDe
+    cHtml += "<br/>Grp. Comercial Até: "+cGrpCAt
+    cHtml += "<br/>Segmentação De: "+cSegmDe
+    cHtml += "<br/>Segmentação Até: "+cSegmAt
+    cHTML += "</p>"
+    U_zEnvMail(cTo, "Preço Mínimo - "+DtoC(Date()), cHTML, aFile, .f., .t., .t.)
+    FERASE(cFolder+cArquivo)
+
+Return

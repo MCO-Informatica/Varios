@@ -1,0 +1,1137 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+#Include "Topconn.ch"
+#include "TOTVS.CH"
+#Include "TbiConn.ch"
+#Include "RPTDEF.CH"
+#Include "FWMVCDef.ch"
+
+User Function FormacaoPreco()
+	//ÃšÃ„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Â¿
+    //Â³ Declaracao de Variaveis                                             Â³
+    //Ã€Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã„Ã™
+    Private _cEnter   := CHR(10)+CHR(13)
+    Private cCadastro := "Formação de Preço"
+    Private lComercial  := Iif(RetCodUsr() $ SuperGetMv("MV_FPCOMER",,"",),.T.,.F.)
+    Private lPeD        := Iif(RetCodUsr() $ SuperGetMv("MV_FPPED",,"000000",) .or. RetCodUsr() $ "000000",.T.,.F.)
+    //P&D: 000001;000117;000052;
+    //Com: 000084;
+
+    
+    Private aRotina := { 	{"Pesquisar"	, "AxPesqui"	, 0, 1},;
+                            {"Visualizar"	, "U_FPreco"	, 0, 2},;
+                            {"Incluir"		, "U_FPreco"	, 0, 3},;
+                            {"Alterar"		, "U_FPreco"	, 0, 4},;
+                            {"Excluir"		, "U_FPreco"	, 0, 5},;
+                            {"Legenda"		, "U_ZA2Leg"	, 0, 5}} 
+
+    Private aCores    := {{"ZA2_STATUS == '1' ", "BR_AMARELO" },;
+                            {"ZA2_STATUS == '2' ", "BR_VERDE" },;
+                            {"ZA2_STATUS == '3' ", "BR_CINZA" }}
+    //Montando as cores da legenda
+
+    //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+    //³ Monta array com os campos para o Browse                             ³
+    //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+    Private aCampos := {	{"Status"			,"ZA2_STATUS"		,"C"},;
+                            {"Cód. F.P."		,"ZA2_COD"	,"C"},;
+                            {"Data"			    ,"ZA2_DATA"	,"D"},;
+                            {"Cliente"			,"ZA2_CLIENT"	,"C"},;
+                            {"Loja"			    ,"ZA2_LOJA"	,"C"},;
+                            {"Nome"			    ,"ZA2_NOME"	,"C"},;
+                            {"Produto"			,"ZA2_PRODUT"	,"C"},;
+                            {"Descrição"	    ,"ZA2_DESCRI"	,"C"},;
+                            {"Preço NET"		,"ZA2_PRCVEN"	,"N"},;
+                            {"Margem %"			,"ZA2_MARGPE"	,"N"},;
+                            {"Frete"			,"ZA2_TPFRET"	,"C"},;
+                            {"Prazo"			,"ZA2_DESCPG"	,"C"}}
+                            //Cod -Produto / Nome - Produto/ Preço Net Usd / Margem % / Frete / Prazo
+
+    Private cDelFunc := ".T." // Validacao para a exclusao. Pode-se utilizar ExecBlock
+
+    Private cString := "ZA2"
+
+    If !lComercial .and. !lPeD
+        aRotina := { 	{"Pesquisar"	, "AxPesqui"	, 0, 1},;
+                        {"Visualizar"	, "U_FPreco"	, 0, 2},;
+                        {"Legenda"		, "U_ZA2Leg"	, 0, 5}} 
+    EndIf
+
+    DbSelectArea("ZA2")
+    ZA2->(DbSetOrder(1))
+    ZA2->(DbGoTop())
+
+    MBrowse(6, 1, 22, 75, cString, aCampos, , , , , aCores )
+Return
+
+//Legendas
+User Function ZA2Leg()
+    Local aLegenda := {}
+    aAdd(aLegenda,{"BR_CINZA",   "Cancelado"})
+    aAdd(aLegenda,{"BR_AMARELO", "Em Andamento"})
+    aAdd(aLegenda,{"BR_VERDE",   "Concluído"})
+     
+    //Chama a função que monta a tela de legenda
+    BrwLegenda("Status da Formação de Preço", "Legenda", aLegenda)
+Return
+
+//Montagem da tela
+User Function FPreco(cAlias, nReg, nOpcx)
+    Local cOpcao        as character
+    Local nOpcE         as numeric
+    Local nOpcG         as numeric
+    Local nUsado        as numeric
+    Local _ni           as numeric
+    Local nA            as numeric
+
+    Private aHeader     as array
+    // Private aRotina     as array
+    Private aCols       as array
+    Private _lRet       := .f.
+    
+    //+--------------------------------------------------------------+
+    //| Opcoes de acesso para a Modelo 3                             |
+    //+--------------------------------------------------------------+
+    If nOpcx == 2
+        cOpcao:= "VISUALIZAR"
+    ElseIf nOpcx == 3
+        cOpcao:= "INCLUIR"
+    ElseIf nOpcx == 4
+        cOpcao:= "ALTERAR"
+    ElseIf nOpcx == 5
+        cOpcao:= "EXCLUIR"
+    EndIf
+    
+    Do Case
+        Case cOpcao=="INCLUIR"; nOpcE:=3 ; nOpcG:=3
+        Case cOpcao=="ALTERAR"; nOpcE:=3 ; nOpcG:=3
+        Case cOpcao=="VISUALIZAR"; nOpcE:=2 ; nOpcG:=2
+        Case cOpcao=="EXCLUIR"; nOpcE:=5 ; nOpcG:=5
+    EndCase
+    
+    RegToMemory("ZA2", (cOpcao=="INCLUIR"))
+    //+--------------------------------------------------------------+
+    //| Cria aHeader e aCols da GetDados                             |
+    //+--------------------------------------------------------------+
+    nUsado := 0
+    
+    dbSelectArea("SX3")
+    DbSetOrder(1)
+    DbSeek("ZA3")
+    aHeader := {}
+    While !Eof() .And. (X3_ARQUIVO == "ZA3")   
+        If Alltrim(X3_CAMPO) == "ZA3_COD"      
+            dbSkip()       
+            Loop
+        Endif
+        If X3USO(X3_USADO) .And. cNivel >= X3_NIVEL     
+            nUsado := nUsado+1       
+            Aadd(aHeader,{ TRIM(X3_TITULO),;
+                            AllTrim(X3_CAMPO),;
+                            X3_PICTURE,;
+                            X3_TAMANHO,;
+                            X3_DECIMAL,;
+                            "AllwaysTrue()",;
+                            X3_USADO,;
+                            X3_TIPO,;
+                            X3_ARQUIVO,;
+                            X3_CONTEXT } ) 
+        Endif
+        dbSkip()
+    EndDo
+    
+    dbSelectArea("ZA3")
+    ZA3->(dbSetOrder(1))
+    ZA3->(DbGoTop())
+    
+    If cOpcao == "INCLUIR" 
+        aCols:={Array(nUsado+1)}   
+        aCols[1, nUsado+1] := .F.  
+    
+        For _ni := 1 to nUsado     
+            aCols[1, _ni] := CriaVar(aHeader[_ni, 2])  
+        Next
+    ElseIf cOpcao == "ALTERAR" .or.  cOpcao == "VISUALIZAR" 
+        aCols := {}
+        ZA3->(dbSeek(xFilial("ZA3")+ZA2->ZA2_COD))
+        While ZA3->(!eof()) .and. ZA3->ZA3_COD == ZA2->ZA2_COD      
+            AADD(aCols, Array(nUsado+1))
+    
+            For _ni := 1 to nUsado         
+                aCols[Len(aCols), _ni] := FieldGet(FieldPos(aHeader[_ni, 2])) 
+            Next
+            // If ExistTrigger('ZA3_PRODUT') .and. !empty(trim(aCols[len(aCols), GdFieldPos("ZA3_PRODUT")]))
+            //     RunTrigger(2,Len(aCols),nil,,'ZA3_PRODUT')
+            // Endif
+            If ExistTrigger('ZA3_CUSTO') .and. aCols[len(aCols), GdFieldPos("ZA3_CUSTO")] > 0 .and. aCols[len(aCols), GdFieldPos("ZA3_PORCEN")] > 0
+                RunTrigger(2,Len(aCols),nil,,'ZA3_CUSTO')
+            Endif
+            aCols[Len(aCols), nUsado+1] := .F.
+            ZA3->(dbSkip())
+        EndDo
+    ElseIf cOpcao == "EXCLUIR"
+        If ZA2->ZA2_STATUS > '1'
+            MsgAlert("Impossível excluir uma formação de preço cancelada ou concluída!","Atenção!")
+            Return
+        EndIf
+
+        If MsgYesNo("Tem certeza que deseja excluir?","Atenção!")
+            ZA2->(RecLock("ZA2",.F.))
+            ZA2->(DbDelete())
+            ZA2->(MsUnlock())
+
+            ZA3->(dbSeek(xFilial("ZA3")+ZA2->ZA2_COD))
+            While ZA3->(!eof()) .and. ZA3->ZA3_COD == ZA2->ZA2_COD    
+
+                ZA3->(RecLock("ZA3",.f.))
+                ZA3->(DbDelete())
+                ZA3->(MsUnlock())
+
+                ZA3->(dbSkip())
+            EndDo
+        EndIf
+        MsgAlert("Excluído com sucesso!","Atenção!")
+        Return
+        
+    Endif
+        
+    If Len(aCols) > 0   
+    //+--------------------------------------------------------------+ 
+    //| Executa a Modelo 3                                           | 
+    //+--------------------------------------------------------------+ 
+        cTitulo := "Formação de Preço"  
+        cAliasEnchoice := "ZA2"
+        cAliasGetD := "ZA3"
+        cLinOk := "u_ZA3LINE()"  
+        cTudOk := "VerifyPerc()"  
+        cFieldOk := "AllwaysTrue()"
+        _lRet:= Modelo3(cTitulo, cAliasEnchoice, cAliasGetD,, cLinOk, cTudOk, nOpcE, nOpcG, cFieldOk)  
+        //+--------------------------------------------------------------+ 
+        //| Executar processamento                                       | 
+        //+--------------------------------------------------------------+ 
+        If _lRet
+            If ZA2->ZA2_COD == M->ZA2_COD .and. ZA2->ZA2_STATUS > '1'
+                MsgAlert("Formação já concluída ou cancelada, impossível sofrer alterações.","Atenção!")
+                Return .F.
+            EndIf
+
+            If ZA2->ZA2_COD != M->ZA2_COD
+                ZA2->(RecLock("ZA2",.T.))
+                    ZA2FIELDS()
+                ZA2->(MsUnlock())
+                DbSelectArea("ZA3")
+                For nA := 1 to len(aCols)
+                    ZA3->(RecLock("ZA3",.T.))
+                        ZA3FIELDS(nA)
+                    ZA3->(MsUnlock())
+                Next nA
+                MsgAlert("Incluí­do com sucesso!","Atenção!")
+            else
+                ZA2->(RecLock("ZA2",.F.))
+                    ZA2FIELDS()
+                ZA2->(MsUnlock())
+                DbSelectArea("ZA3")
+                ZA3->(DbSetOrder(1))
+                For nA := 1 to len(aCols)
+                    If aCols[nA][len(aCols[nA])]
+                        If ZA3->(DbSeek(xFilial("ZA3")+M->ZA2_COD+aCols[nA, GdFieldPos("ZA3_ITEM")]))
+                            ZA3->(RecLock("ZA3",.F.))
+                            ZA3->(DbDelete())
+                            ZA3->(MsUnlock())
+                        EndIf
+                    Else
+                        If ZA3->(DbSeek(xFilial("ZA3")+M->ZA2_COD+aCols[nA, GdFieldPos("ZA3_ITEM")]))
+                            ZA3->(RecLock("ZA3",.F.))
+                                ZA3FIELDS(nA)
+                            ZA3->(MsUnlock())
+                        Else
+                            ZA3->(RecLock("ZA3",.T.))
+                                ZA3FIELDS(nA)
+                            ZA3->(MsUnlock())
+                        EndIf
+                    EndIf
+                Next nA
+                MsgAlert("Alterado com sucesso!","Atenção!")
+            EndIf
+        Else
+            If M->ZA2_CUSTOT != ZA2->ZA2_CUSTOT .OR. M->ZA2_MARGPE != ZA2->ZA2_MARGPE
+                MsgAlert("Você não salvou! Caso tenha feito alterações, os valores mostrados não têm valor comercial.","Atenção!")
+            EndIf
+        Endif
+    Endif
+Return
+
+//Gravação da tabela ZA2
+Static Function ZA2FIELDS()
+    ZA2->ZA2_FILIAL := M->ZA2_FILIAL
+    ZA2->ZA2_COD    := M->ZA2_COD
+    ZA2->ZA2_DATA   := M->ZA2_DATA
+    ZA2->ZA2_ULMES  := M->ZA2_ULMES
+    ZA2->ZA2_TIPO   := M->ZA2_TIPO
+    ZA2->ZA2_PRODUT := M->ZA2_PRODUT
+    ZA2->ZA2_DESCRI := M->ZA2_DESCRI
+    ZA2->ZA2_CLIENT := M->ZA2_CLIENT
+    ZA2->ZA2_LOJA   := M->ZA2_LOJA
+    ZA2->ZA2_NOME   := M->ZA2_NOME
+    ZA2->ZA2_QUANT  := M->ZA2_QUANT
+    ZA2->ZA2_CUSTO  := M->ZA2_CUSTO
+    ZA2->ZA2_PRCVEN := M->ZA2_PRCVEN
+    ZA2->ZA2_IPI    := M->ZA2_IPI
+    ZA2->ZA2_ICMS   := M->ZA2_ICMS
+    ZA2->ZA2_PIS    := M->ZA2_PIS
+    ZA2->ZA2_COFINS := M->ZA2_COFINS
+    ZA2->ZA2_PRAZO  := M->ZA2_PRAZO
+    ZA2->ZA2_ENCARG := M->ZA2_ENCARG
+    ZA2->ZA2_TOTENC := M->ZA2_TOTENC
+    ZA2->ZA2_ENCAKG := M->ZA2_ENCAKG
+    ZA2->ZA2_COMIKG := M->ZA2_COMIKG
+    ZA2->ZA2_FRETE  := M->ZA2_FRETE
+    ZA2->ZA2_EMBALA := M->ZA2_EMBALA
+
+    ZA2->ZA2_PRCNET := M->ZA2_PRCNET
+    ZA2->ZA2_MARGPV := M->ZA2_MARGPV
+    ZA2->ZA2_MOEDPV := M->ZA2_MOEDPV
+    
+    ZA2->ZA2_GGF    := M->ZA2_GGF
+    ZA2->ZA2_COMIS  := M->ZA2_COMIS
+    ZA2->ZA2_COMIST := M->ZA2_COMIST
+    ZA2->ZA2_CFIXO  := M->ZA2_CFIXO
+    ZA2->ZA2_CUSTOT := M->ZA2_CUSTOT
+    ZA2->ZA2_PRECO  := M->ZA2_PRECO
+    ZA2->ZA2_IMPOST := M->ZA2_IMPOST
+    ZA2->ZA2_FATNET := M->ZA2_FATNET
+    ZA2->ZA2_MARGPE := M->ZA2_MARGPE
+    ZA2->ZA2_MARGCO := M->ZA2_MARGCO
+    ZA2->ZA2_OBS    := M->ZA2_OBS
+
+    ZA2->ZA2_CFUTUR    := M->ZA2_CFUTUR
+    ZA2->ZA2_CENTRA    := M->ZA2_CENTRA
+    ZA2->ZA2_PERCFU    := M->ZA2_PERCFU
+    ZA2->ZA2_MARGFU    := M->ZA2_MARGFU
+    ZA2->ZA2_PERCEN    := M->ZA2_PERCEN
+    ZA2->ZA2_MARGEN    := M->ZA2_MARGEN
+    
+    ZA2->ZA2_ENCARM := M->ZA2_ENCARM
+    ZA2->ZA2_SEGMEN := M->ZA2_SEGMEN
+    ZA2->ZA2_DSEGME := M->ZA2_DSEGME
+    ZA2->ZA2_STATUS := M->ZA2_STATUS
+
+    ZA2->ZA2_CONDPG := M->ZA2_CONDPG
+    
+    ZA2->ZA2_CUSTBR := M->ZA2_CUSTBR
+    ZA2->ZA2_MARGBR := M->ZA2_MARGBR
+    ZA2->ZA2_MARCBR := M->ZA2_MARCBR
+
+    ZA2->ZA2_CUSTPV := M->ZA2_CUSTPV
+    
+Return
+
+//Gravação da tabela ZA3
+Static Function ZA3FIELDS(nA)
+    ZA3->ZA3_FILIAL := M->ZA2_FILIAL
+    ZA3->ZA3_COD    := M->ZA2_COD
+    ZA3->ZA3_ITEM   := StrZero(nA,2)
+    ZA3->ZA3_PRODUT := aCols[nA, GdFieldPos("ZA3_PRODUT")]
+    ZA3->ZA3_DESCRI := aCols[nA, GdFieldPos("ZA3_DESCRI")]
+    ZA3->ZA3_TIPO   := aCols[nA, GdFieldPos("ZA3_TIPO")]
+    ZA3->ZA3_PORCEN := aCols[nA, GdFieldPos("ZA3_PORCEN")]
+    ZA3->ZA3_CUSTO  := aCols[nA, GdFieldPos("ZA3_CUSTO")]
+    ZA3->ZA3_PCUSTO  := aCols[nA, GdFieldPos("ZA3_PCUSTO")]
+    ZA3->ZA3_CFUTUR  := aCols[nA, GdFieldPos("ZA3_CFUTUR")]
+    ZA3->ZA3_VCFUTU  := aCols[nA, GdFieldPos("ZA3_VCFUTU")]
+    ZA3->ZA3_UCUSTO  := aCols[nA, GdFieldPos("ZA3_UCUSTO")]
+    ZA3->ZA3_XCKGFU  := aCols[nA, GdFieldPos("ZA3_XCKGFU")]
+    ZA3->ZA3_XCKGUE  := aCols[nA, GdFieldPos("ZA3_XCKGUE")]
+Return
+
+//Verificações de Custo abaixo de 15% e porcentagem
+Static Function VerifyPerc()
+    Local lVerif := .T.
+    Local nPerc := 0
+    Local nA := 0
+
+    If M->ZA2_MARGPE < 15
+        MsgAlert("A margem de custo atual não pode ser inferior a 15%.","Atenção!")
+        lVerif := .F.
+    EndIf
+
+	For nA := 1 to len(aCols)
+        If !aCols[nA, len(aHeader)+1]
+            If aCols[nA, GdFieldPos("ZA3_TIPO")] $ 'MP;PI'
+                nPerc += aCols[nA, GdFieldPos("ZA3_PORCEN")]
+            EndIf
+        EndIf
+    Next nA
+    
+    If nPerc != 100
+        MsgAlert("A porcentagem deve ser exatamente de 100%."+Chr(10)+Chr(13)+"Atualmente: "+cValtoChar(nPerc)+"%","Atenção!")
+        lVerif := .F.
+    EndIf
+Return lVerif
+
+//Modelo3 customizado
+Static Function Modelo3(cTitulo,cAlias1,cAlias2,aMyEncho,cLinOk,cTudoOk,nOpcE,nOpcG,cFieldOk,lVirtual,nLinhas,aAltEnchoice,nFreeze,aButtons,aCordW,nSizeHeader,aAlGetDad,cIniCpos,cSuperDel,cDelOk)
+    Local lRet, nOpca := 0,nReg:=(cAlias1)->(Recno()),oDlg
+    Local nDlgHeight   
+    Local nDlgWidth
+    Local nDiffWidth := 0          
+    Local nDiffHeight := 0 
+    Local lMDI := .F.      
+    Local lPlugin := .F.
+    Local nTop := 32
+    Local aSize := {}
+    
+    Private oEnchoice, oGetDados
+    Private Altera:=.t.,Inclui:=.t.,lRefresh:=.t.,aTELA:=Array(0,0),aGets:=Array(0),bCampo:={|nCPO|Field(nCPO)},nPosAnt:=9999,nColAnt:=9999
+    Private cSavScrVT,cSavScrVP,cSavScrHT,cSavScrHP,CurLen,nPosAtu:=0
+
+    If IsPlugin() 
+        lPlugin := .T.
+    EndIf
+    nOpcE := If(nOpcE==Nil,3,nOpcE)
+    nOpcG := If(nOpcG==Nil,3,nOpcG)
+    lVirtual := Iif(lVirtual==Nil,.F.,lVirtual)
+    nLinhas:=Iif(nLinhas==Nil,5000,nLinhas)
+    
+    Default cLinOk     := "AllwaysTrue"
+    Default cTudoOk     := "AllwaysTrue"
+    Default cFieldOk := "AllwaysTrue"
+    Default aButtons := {}
+    
+    If SetMDIChild()
+        oMainWnd:ReadClientCoors()
+        nDlgHeight := oMainWnd:nHeight
+        nDlgWidth := oMainWnd:nWidth
+        lMdi := .T.
+        nDiffWidth := 2
+        If lPlugin
+            nDiffHeight := 25
+        EndIf
+    Else           
+        If lPlugin
+            nDlgHeight := oMainWnd:nHeight-55
+            nDlgWidth    := oMainWnd:nWidth-12
+            nDiffHeight := 80
+            nTop := 10
+        Else        
+            nDlgHeight := oMainWnd:nHeight-50
+            nDlgWidth    := oMainWnd:nWidth-27
+        Endif
+        nDiffWidth := 7
+    EndIf
+    Default aCordW := {nTop,000,nDlgHeight,nDlgWidth}
+    Default nSizeHeader := Iif(!lPeD,800, 240)
+    Aadd(aSize,nSizeHeader)
+    DEFINE MSDIALOG oDlg TITLE cTitulo From aCordW[1],aCordW[2] to aCordW[3],aCordW[4] Pixel of oMainWnd STYLE nOR( WS_VISIBLE, WS_POPUP )
+
+    oDlg:lMaximized := .T.
+    aButtons := {}
+    // Aadd( aButtons, {"REAIS", {|| Processa( {|| emReais()},"Aguarde", "Recalculando...") }, "Recalculando...", "Valores em R$" , {|| .T.}} ) 
+    
+    oEnchoice := Msmget():New(cAlias1,nReg,nOpcE,,,,aMyEncho,{13,1,(nSizeHeader/2)+13,If(lMdi, (oMainWnd:nWidth/2)-2,__DlgWidth(oDlg)-nDiffWidth)},aAltEnchoice,3,,,,oDlg,,lVirtual,,,,,,,,.F.)       
+    oGetDados := MsGetDados():New((nSizeHeader/2)+13+2,1,(oMainWnd:nHeight/2)-nDiffHeight,oMainWnd:nWidth/2-nDiffWidth,nOpcG,cLinOk,cTudoOk,cIniCpos,.T.,aAlGetDad,nFreeze,,nLinhas,cFieldOk,cSuperDel,,cDelOk,oDlg)
+    If !lPeD
+        oGetDados:Hide()
+    EndIf
+    ACTIVATE MSDIALOG oDlg ON INIT (EnchoiceBar(oDlg,{||nOpca:=1,If(oGetDados:TudoOk(),If(!obrigatorio(aGets,aTela),nOpca := 0,oDlg:End()),nOpca := 0)},{||oDlg:End()},,aButtons),AlignObject(oDlg,{oEnchoice:oBox,oGetDados:oBrowse},1,,aSize) .and. U_ZA3LINE())
+    lRet:=(nOpca==1)
+Return lRet
+
+//Cálculo principal linha a linha da grid
+User Function ZA3LINE()
+	Local nA := 0
+	Local nCusto := 0
+    Local nUlCusto := 0
+    Local nLPW := 1
+    Local nCustoFuturo := 0
+    Local lCompFound := .F.
+    Local nPrcCom := 0
+    Local nMoeda := 1
+    Local nTxMoeda := 1
+	// Local nGGFFixo 	:= SuperGetMv("MV_GGFFIXO",,0.25)
+    Local nEmbalagem := 0
+    Local nPorcen := 0
+    Local nTotCustoFuturo := 0
+    Local nTotCustoEntrada := 0
+    Local nTotCustoFuturoEmb := 0
+    Local nTotCustoEntradaEmb := 0
+    Local aArea := GetArea()
+    Default oEnchoice := Nil
+
+    DbSelectArea("SC7")
+    SC7->(DbSetOrder(2))
+
+    DbSelectArea("SM2")
+    SM2->(DbSetOrder(1))
+    SM2->(DbSeek(DtoS(Date())))
+
+    nTxMoeda := SM2->M2_MOEDA2
+
+    nTxCusto := U_GetMoeda()
+    
+    nTxHoje := Posicione("SM2",1,DtoS(M->ZA2_DATA),"M2_MOEDA2")
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+	For nA := 1 to len(aCols)
+        lCompFound := .f.
+        nUlCusto := 0
+
+        //aCols não deletado
+        If !aCols[nA, len(aHeader)+1]
+            SB1->(DbSeek(xFilial("SB1")+aCols[nA, GdFieldPos("ZA3_PRODUT")]))
+            nCustoFuturo := 0
+            If aCols[nA, GdFieldPos("ZA3_TIPO")] $ 'MP;EM;PI'
+                lCompFound := .F.
+                nLPW := 1
+
+                If SC7->(DbSeek(xFilial("SC7")+aCols[nA, GdFieldPos("ZA3_PRODUT")])) .and. aCols[nA, GdFieldPos("ZA3_TIPO")] $ 'MP;EM'
+                    
+                    //Dados do último custo
+                    aUlCusto := GetUlCusto(SB1->B1_COD)
+                    If aUlCusto[1] > 0
+                        nUlCusto := aUlCusto[1]
+                        nTxHoje := aUlCusto[2]
+                    EndIf
+
+                    //Busco um pedido de compra em aberto
+                    While SC7->(!EOF()) .AND. SC7->C7_PRODUTO == aCols[nA, GdFieldPos("ZA3_PRODUT")]
+                        If SC7->C7_CONAPRO == 'L' .AND. SC7->C7_QUJE < SC7->C7_QUANT .AND. SC7->C7_RESIDUO != 'S'
+                            lCompFound := .T.
+                            nPrcCom := SC7->C7_PRECO
+                            nMoeda := SC7->C7_MOEDA
+
+                            //Caso seja produto importado, aplico o LPW digitado manualmente no pedido de compra
+                            If  SB1->B1_IMPORT == 'S'
+                                nLPW := Iif(SC7->C7_XLPW == 0, 1, SC7->C7_XLPW)
+                            EndIf
+
+                            //Caso não seja nem R$ e nem USD, converto para real
+                            If nMoeda > 2
+                                nPrcCom := nPrcCom * Posicione("SM2",1,DtoS(SC7->C7_EMISSAO),"M2_MOEDA"+cValtoChar(nMoeda))
+                            EndIf
+
+                            //Converto de R$ para USD
+                            If nMoeda != 2
+                                nPrcCom := nPrcCom / Posicione("SM2",1,DtoS(SC7->C7_EMISSAO),"M2_MOEDA2")
+                            EndIf
+
+                            EXIT
+                        EndIf
+                        SC7->(DbSkip())
+                    EndDo
+                EndIf
+                
+                If aCols[nA, GdFieldPos("ZA3_TIPO")] == 'EM'
+                    nEmbalagem += (aCols[nA, GdFieldPos("ZA3_CUSTO")] * aCols[nA, GdFieldPos("ZA3_PORCEN")] / 100)
+                Else
+                    nCusto += (aCols[nA, GdFieldPos("ZA3_CUSTO")] * aCols[nA, GdFieldPos("ZA3_PORCEN")] / 100)
+                    nPorcen += aCols[nA, GdFieldPos("ZA3_PORCEN")]
+                EndIf
+
+            EndIf
+
+            nCustoFuturo := nUlCusto / nTxHoje
+            nCustoEntrada := nUlCusto / nTxHoje
+
+            If lCompFound
+                nCustoFuturo := Iif(nPrcCom == 0, nCustoFuturo,nPrcCom) * nLPW
+            EndIf
+
+            If aCols[nA, GdFieldPos("ZA3_TIPO")] == 'PI'
+                nCustoFuturo := aCols[nA, GdFieldPos("ZA3_CUSTO")]
+                nCustoEntrada := aCols[nA, GdFieldPos("ZA3_CUSTO")]
+            EndIf
+
+            If aCols[nA, GdFieldPos("ZA3_XCKGFU")] > 0
+                nCustoFuturo := aCols[nA, GdFieldPos("ZA3_XCKGFU")]
+            EndIf
+
+            aCols[nA, GdFieldPos("ZA3_XCKGFU")] := nCustoFuturo
+            aCols[nA, GdFieldPos("ZA3_XCKGUE")] := nCustoEntrada
+
+            nCustoFuturo := nCustoFuturo * aCols[nA, GdFieldPos("ZA3_PORCEN")] / 100
+            nCustoEntrada := nCustoEntrada * aCols[nA, GdFieldPos("ZA3_PORCEN")] / 100
+
+            aCols[nA, GdFieldPos("ZA3_CFUTUR")] := nCustoFuturo
+            aCols[nA, GdFieldPos("ZA3_UCUSTO")] := nCustoEntrada
+
+            aCols[nA, GdFieldPos("ZA3_VCFUTU")] := ((nCustoFuturo / aCols[nA, GdFieldPos("ZA3_CTOTAL")]) - 1) * 100
+            
+
+            If aCols[nA, GdFieldPos("ZA3_TIPO")] == 'EM'
+                nTotCustoFuturoEmb += nCustoFuturo
+                nTotCustoEntradaEmb += nCustoEntrada
+            Else
+                nTotCustoFuturo += nCustoFuturo
+                nTotCustoEntrada += nCustoEntrada
+            EndIf
+            // nTotCustoFuturo += nCustoFuturo
+            // nTotCustoEntrada += nCustoEntrada
+        EndIf
+	Next nA
+
+    If nPorcen > 100
+        MsgAlert("O somatório das matérias primas não pode ultrapassar 100%","Atenção!")
+    EndIf
+
+    M->ZA2_CENTRA   := nTotCustoEntrada + nTotCustoEntradaEmb
+    M->ZA2_CFUTUR   := nTotCustoFuturo + nTotCustoFuturoEmb
+    M->ZA2_EMBALA   := nEmbalagem
+	M->ZA2_CUSTO    := nCusto
+    
+    nA := 1
+	For nA := 1 to len(aCols)
+        If !aCols[nA, len(aHeader)+1]
+            If aCols[nA, GdFieldPos("ZA3_TIPO")] $ 'MP;PI'
+
+                aCols[nA, GdFieldPos("ZA3_PCUSTO")] := Round((aCols[nA, GdFieldPos("ZA3_CUSTO")] * aCols[nA, GdFieldPos("ZA3_PORCEN")] / 100) * 100 / M->ZA2_CUSTO,2)
+
+            EndIf
+        EndIf
+    Next nA
+
+	M->ZA2_FATNET   := Round(M->ZA2_PRCVEN * M->ZA2_QUANT,2)
+
+    M->ZA2_IMPOST   := (M->ZA2_PRCVEN / ( 1 - ((M->ZA2_IPI / 100) + (M->ZA2_ICMS / 100) + (M->ZA2_PIS / 100) + (M->ZA2_COFINS / 100)))) - M->ZA2_PRCVEN
+    M->ZA2_PRECO    := M->ZA2_IMPOST + M->ZA2_PRCVEN
+    
+    M->ZA2_COMIST   := M->ZA2_FATNET * M->ZA2_COMIS / 100
+    M->ZA2_COMIKG   := M->ZA2_COMIST / M->ZA2_QUANT
+
+	M->ZA2_CFIXO    := M->ZA2_FRETE + M->ZA2_ENCAKG + M->ZA2_GGF + M->ZA2_EMBALA + M->ZA2_COMIKG
+	M->ZA2_CUSTOT   := M->ZA2_CFIXO + M->ZA2_CUSTO
+    M->ZA2_CENTRA   := M->ZA2_CFIXO + M->ZA2_CENTRA
+    M->ZA2_CFUTUR   := M->ZA2_CFIXO + M->ZA2_CFUTUR
+
+    //% Margem = (Faturamento - Custo) / Faturamento
+    nMargPerc := (M->ZA2_PRCVEN - M->ZA2_CUSTOT) / M->ZA2_PRCVEN * 100
+    nMargPercFuturo := (M->ZA2_PRCVEN - M->ZA2_CFUTUR) / M->ZA2_PRCVEN * 100
+    nMargPercEntrada := (M->ZA2_PRCVEN - M->ZA2_CENTRA) / M->ZA2_PRCVEN * 100
+
+    If nMargPerc > 0
+        M->ZA2_MARGPE := nMargPerc
+        M->ZA2_MARGCO  := (M->ZA2_PRCVEN - M->ZA2_CUSTOT) * M->ZA2_QUANT
+    Else
+        M->ZA2_MARGPE := 0
+        M->ZA2_MARGCO  := 0
+    EndIf
+
+    M->ZA2_PERCFU := nMargPercFuturo
+    M->ZA2_PERCEN := nMargPercEntrada
+
+    M->ZA2_MARGFU := (M->ZA2_PRCVEN - M->ZA2_CFUTUR) * M->ZA2_QUANT
+    M->ZA2_MARGEN := (M->ZA2_PRCVEN - M->ZA2_CENTRA) * M->ZA2_QUANT
+    
+    M->ZA2_CUSTBR := ((M->ZA2_EMBALA + M->ZA2_CUSTO) * nTxCusto) + ((M->ZA2_CFIXO - M->ZA2_EMBALA) * nTxMoeda)
+    M->ZA2_MARGBR := ((M->ZA2_PRCVEN * nTxMoeda) - M->ZA2_CUSTBR) / (M->ZA2_PRCVEN * nTxMoeda) * 100
+    M->ZA2_MARCBR := (M->ZA2_PRCVEN * M->ZA2_QUANT * nTxMoeda) *  M->ZA2_MARGBR / 100
+    
+    M->ZA2_CENTRA   := nTotCustoEntrada + nTotCustoEntradaEmb
+    M->ZA2_CFUTUR   := nTotCustoFuturo + nTotCustoFuturoEmb
+
+    M->ZA2_FCUSTB := ((nTotCustoFuturo + nTotCustoFuturoEmb) * nTxCusto) + ((M->ZA2_CFIXO - M->ZA2_EMBALA) * nTxMoeda)
+    M->ZA2_FMARGB := ((M->ZA2_PRCVEN * nTxMoeda) - M->ZA2_FCUSTB) / (M->ZA2_PRCVEN * nTxMoeda) * 100
+    M->ZA2_FMARCB := (M->ZA2_PRCVEN * M->ZA2_QUANT * nTxMoeda) *  M->ZA2_FMARGB / 100
+    
+    M->ZA2_ECUSTB := ((nTotCustoEntrada + nTotCustoEntradaEmb) * nTxCusto) + ((M->ZA2_CFIXO - M->ZA2_EMBALA) * nTxMoeda)
+    M->ZA2_EMARGB := ((M->ZA2_PRCVEN * nTxMoeda) - M->ZA2_ECUSTB) / (M->ZA2_PRCVEN * nTxMoeda) * 100
+    M->ZA2_EMARCB := (M->ZA2_PRCVEN * M->ZA2_QUANT * nTxMoeda) *  M->ZA2_EMARGB / 100
+    
+
+    If ValType(oEnchoice) == "O"
+        oEnchoice:EnchRefreshAll()
+    EndIf
+
+    M->ZA2_MARGPV := U_CalcMargPV(M->ZA2_PRODUT)
+
+    RestArea(aArea)
+
+Return .t.
+
+//[Gatilho] - Atualização de período com base no parâmetro MV_ULMES
+Static Function GetULMes()
+    Local dUlMes := GetMV("MV_ULMES")
+
+    If Inclui .or. (Altera .AND. ZA2->ZA2_STATUS == '1' .and. len(aCols) == 1)
+
+        If Empty(Trim(DtoS(M->ZA2_ULMES)))
+            M->ZA2_ULMES := dUlMes
+        EndIf
+
+        If M->ZA2_ULMES != dUlMes
+            MsgAlert("Foi realizado um novo fechamento de estoque, por tanto, os custos serão atualizado.","Atenção!")
+            M->ZA2_ULMES := dUlMes
+        EndIf
+    
+    EndIf
+
+Return .t.
+
+//[Gatilho] - Atualização de cálculo
+User Function AtuZA3(cProd)
+    Local aArea := GetArea()
+    U_ZA3LINE()
+    RestArea(aArea)
+Return cProd
+
+//[Gatilho] - Inclusão da estrutura do PA engatilhado
+User Function SEPASG1(cProd)
+    Local nA := 0
+    Local aArea := GetArea()
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+cProd))
+
+    M->ZA2_IPI := SB1->B1_IPI
+    M->ZA2_TIPO := SB1->B1_TIPO
+
+    U_InfoCliente()
+
+    If M->ZA2_TIPO == 'PA'
+        If lComercial .or. MsgYesNo("Deseja adicionar a estrutura deste PA na grid abaixo?","Atenção!")
+
+            //Removo todos os itens da grid.
+            For nA := len(aCols) TO 1 STEP -1
+                aDel(aCols,nA)
+                aSize(aCols, nA-1)
+                oGetDados:oBrowse:nAt := len(aCols)
+            Next nA
+
+            //Busco a estrutura na SG1  
+            DbSelectArea("SG1")
+            SG1->(DbSetOrder(1))
+            SG1->(DbSeek(xFilial("SG1")+cProd))
+            While SG1->(!EOF()) .AND. SG1->G1_COD == cProd
+                //Somente PI;EM;MP
+                If Posicione("SB1",1,xFilial("SB1")+SG1->G1_COMP,"B1_TIPO") $ 'PI;EM;MP'
+                
+                    oGetDados:addLine()
+                    aCols[len(aCols), GdFieldPos("ZA3_ITEM")] := StrZero(len(aCols),2)
+                    aCols[len(aCols), GdFieldPos("ZA3_PRODUT")] := SB1->B1_COD
+                    aCols[len(aCols), GdFieldPos("ZA3_DESCRI")] := SB1->B1_DESC
+                    aCols[len(aCols), GdFieldPos("ZA3_TIPO")] := SB1->B1_TIPO
+                    aCols[len(aCols), GdFieldPos("ZA3_PORCEN")] := SG1->G1_QUANT
+                    aCols[len(aCols), GdFieldPos("ZA3_CUSTO")] := 0
+
+                    //Execução de gatilhos
+                    If ExistTrigger('ZA3_PRODUT')
+                        RunTrigger(2,Len(aCols),nil,,'ZA3_PRODUT')
+                    Endif
+                    
+                EndIf
+
+                SG1->(DbSkip())
+            EndDo
+
+            //Atualização da tela
+            oGetDados:oBrowse:nAt := len(aCols)
+            oGetDados:ForceRefresh()
+            oGetDados:oBrowse:Refresh()
+            U_ZA3LINE()
+            Alert("Estrutura Adicionada!","Atenção!")
+        EndIf
+    ElseIf M->ZA2_TIPO == 'ME'
+
+            //Removo todos os itens da grid.
+            For nA := len(aCols) TO 1 STEP -1
+                aDel(aCols,nA)
+                aSize(aCols, nA-1)
+                oGetDados:oBrowse:nAt := len(aCols)
+            Next nA
+
+            M->ZA2_GGF := 0
+
+            cQry := " SELECT B1_COD FROM SB5010 B5
+            cQry += " INNER JOIN SB1010 B1 ON B1_COD = B5_MPXME AND B1.D_E_L_E_T_ = ''
+            cQry += " WHERE B5_COD = '"+cProd+"' AND B5.D_E_L_E_T_ = ''"
+            TcQuery cQry New Alias 'MPXME'
+
+            If !MPXME->(EOF()) .and. SB1->(DbSeek(xFilial("SB1")+MPXME->B1_COD))
+                oGetDados:addLine()
+                aCols[len(aCols), GdFieldPos("ZA3_ITEM")] := StrZero(len(aCols),2)
+                aCols[len(aCols), GdFieldPos("ZA3_PRODUT")] := SB1->B1_COD
+                aCols[len(aCols), GdFieldPos("ZA3_DESCRI")] := SB1->B1_DESC
+                aCols[len(aCols), GdFieldPos("ZA3_TIPO")] := SB1->B1_TIPO
+                aCols[len(aCols), GdFieldPos("ZA3_PORCEN")] := 100
+                aCols[len(aCols), GdFieldPos("ZA3_CUSTO")] := 0
+            Else
+                SB1->(DbSeek(xFilial("SB1")+cProd))
+                oGetDados:addLine()
+                aCols[len(aCols), GdFieldPos("ZA3_ITEM")] := StrZero(len(aCols),2)
+                aCols[len(aCols), GdFieldPos("ZA3_PRODUT")] := SB1->B1_COD
+                aCols[len(aCols), GdFieldPos("ZA3_DESCRI")] := SB1->B1_DESC
+                aCols[len(aCols), GdFieldPos("ZA3_TIPO")] := SB1->B1_TIPO
+                aCols[len(aCols), GdFieldPos("ZA3_PORCEN")] := 100
+                aCols[len(aCols), GdFieldPos("ZA3_CUSTO")] := 0
+            EndIf
+
+            If Select("MPXME") > 0
+                MPXME->(DbCloseArea())
+            EndIf
+
+            //Execução de gatilhos
+            If ExistTrigger('ZA3_PRODUT')
+                RunTrigger(2,Len(aCols),nil,,'ZA3_PRODUT')
+            Endif
+
+            //Atualização da tela
+            oGetDados:oBrowse:nAt := len(aCols)
+            oGetDados:ForceRefresh()
+            oGetDados:oBrowse:Refresh()
+            
+            U_ZA3LINE()
+
+    EndIf
+    RestArea(aArea)
+Return cProd
+
+User Function CalcMargPV(cProd)
+    Local aImpostos := {}
+    Local nGGF := 0
+    Local nTxCusto := U_GetMoeda()
+
+    SB1->(DbSeek(xFilial("SB1") + cProd))
+    SB2->(DbSeek(xFilial("SB2")+cProd+SB1->B1_LOCPAD))
+
+    aImpostos := {M->ZA2_IPI,M->ZA2_ICMS,M->ZA2_PIS,M->ZA2_COFINS}
+    
+    CUSTOVND := GetB9Custo(SB1->B1_COD,SB1->B1_LOCPAD)
+    nGGF := U_GetGGF(SB1->B1_COD)
+
+    If !(SB1->B1_TIPO $ 'ME') //Apenas para produtos que não são de revenda
+        CUSTOVND := CUSTOVND - nGGF + (M->ZA2_GGF * nTxCusto)
+    EndIf
+
+    TOTALFAT :=	(M->ZA2_PRECO * M->ZA2_QUANT) * M->ZA2_MOEDPV
+
+    PRCNET 	 := M->ZA2_PRCVEN
+    QTDVEN 	 := M->ZA2_QUANT
+    NETSALES := PRCNET * QTDVEN * M->ZA2_MOEDPV
+    IMPOSTOS := TOTALFAT - NETSALES
+
+    CUSTOFIN := TOTALFAT * M->ZA2_TOTENC / 100
+    FRTCIF   := M->ZA2_FRETE
+
+    // MARGBRUT := (NETSALES - ((CUSTOVND * QTDVEN) + FRTCIF + CUSTOFIN))
+
+    CUSTOPV := ((CUSTOVND * QTDVEN) + FRTCIF + CUSTOFIN)
+    M->ZA2_CUSTPV := CUSTOPV / QTDVEN
+    MARGPORC := ((NETSALES - CUSTOPV)/NETSALES)*100
+
+    // CUSTOKG  := CUSTOVND + ((FRTCIF + CUSTOFIN) / QTDVEN)
+
+Return MARGPORC
+
+Static Function GetB9Custo(cCod,cLocal)
+    Local nCusto := 0
+    Default cCod := ""
+    Default cLocal := "01"
+
+	DbSelectArea("SB9")
+	SB9->(DbSetOrder(1))
+	If SB9->(DbSeek(xFilial("SB9")+cCod+cLocal+DtoS(SuperGetMV("MV_ULMES",,CtoD("30/09/2021")))))
+		nCusto := SB9->B9_CM1
+	EndIf
+
+
+Return nCusto
+
+User Function InfoCliente(cRet)
+    Local aArea := GetArea()
+
+    DbSelectArea("SA1")
+    SA1->(DbSetOrder(1))
+    SA1->(DbSeek(xFilial("SA1")+M->ZA2_CLIENT+M->ZA2_LOJA))
+
+    M->ZA2_COMIS  := 1.5
+
+    M->ZA2_NOME := SA1->A1_NREDUZ
+
+    If M->ZA2_MOEDPV == 0
+        M->ZA2_MOEDPV := U_MoedaFat('1',0)
+    EndIf
+
+    U_ZA2CONDPG(SA1->A1_COND)
+
+    U_ZA2PRCLI(M->ZA2_PRODUT,M->ZA2_CLIENT,M->ZA2_LOJA)
+
+    If AllTrim(SA1->A1_VEND) $ SuperGetMV("MV_COMIS0",,"")
+        M->ZA2_COMIS := 0
+    EndIf
+    
+    U_ZA3LINE()
+    RestArea(aArea)
+Return cRet
+
+User Function ZA2PRCLI(cProduto,cCliente,cLoja)
+    Local aArea := GetArea()
+
+    If Empty(cProduto) .or. Empty(cCliente) .or. Empty(cLoja)
+        return cProduto
+    EndIf
+
+    M->ZA2_ICMS := 0
+    M->ZA2_PIS := 0
+    M->ZA2_COFINS := 0
+    M->ZA2_PRCNET := 0
+
+    M->ZA2_SEGMEN := space(4)
+    M->ZA2_DSEGME := ""
+
+    DbSelectArea("SA1")
+    SA1->(DbSetOrder(1))
+    SA1->(DbSeek(xFilial("SA1")+cCliente+cLoja))
+
+    DbSelectArea("DA0")
+    DA0->(DbSetOrder(1))
+    DA0->(DbSeek(xFilial("DA0")+SA1->A1_TABELA))
+
+    M->ZA2_FRETE := Iif(DA0->DA0_XTPFRE=='C',0.25,0)
+
+    If !Empty(trim(SA1->A1_TABELA)) .AND. DA1->(DbSeek(xFilial("DA1")+SA1->A1_TABELA+cProduto))
+        M->ZA2_ICMS := DA1->DA1_YICMS
+        M->ZA2_PIS := DA1->DA1_YPIS
+        M->ZA2_COFINS := DA1->DA1_YCOFIN
+        M->ZA2_PRCNET := DA1->DA1_PRNET
+    EndIf
+    
+    DbSelectArea("SA7")
+    SA7->(DbSetOrder(1))
+
+    If SA7->(DbSeek(xFilial("SA7")+cCliente+cLoja+cProduto))
+        M->ZA2_SEGMEN := SA7->A7_XSEG2
+        M->ZA2_DSEGME := Posicione("ZA1",1,xFilial("ZA1")+SA7->A7_XSEG2,"ZA1_DESC")
+        If !Empty(trim(SA7->A7_XTPNEGO))
+            M->ZA2_COMIS  := 0.38
+        EndIf
+        If SB1->B1_COMOD=='S'
+            M->ZA2_COMIS  := 0.38
+        EndIf
+    EndIf
+
+    RestArea(aArea)
+    
+Return cProduto
+
+User Function ZA2CONDPG(cCond)
+    Local aArea := GetArea()
+
+    M->ZA2_CONDPG := cCond
+    DbSelectArea("SE4")
+    SE4->(DbSetOrder(1))
+    SE4->(DbSeek(xFilial("SE4")+cCond))
+    M->ZA2_TOTENC := SE4->E4_ACRVEN1
+    M->ZA2_ENCAKG := M->ZA2_PRECO * M->ZA2_TOTENC / 100
+
+    U_ZA3LINE()
+
+    RestArea(aArea)
+Return cCond
+
+//[Gatilho] - Obtenção do custo de cada matéria prima da grid
+User Function CustoB9(cProd,nPerc, nDefCusto)
+    Local dData := CtoD("  /  /    ")
+    Local nBack := 0
+    Local nTxCusto := 1
+	Local nCusto := 0
+    Local aArea := GetArea()
+	Default nDefCusto := 0
+    Default cProd := ""
+    Default nPerc := 0
+
+    GetULMes()
+    dData := M->ZA2_ULMES
+
+    nTxCusto := U_GetMoeda()
+    
+    //Para produtos não cadastrados adicionados manualmente
+    If empty(trim(cProd)) .AND. M->ZA3_CUSTO > 0
+        return M->ZA3_CUSTO * nPerc / 100
+    EndIf
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))
+	SB1->(DbSeek(xFilial("SB1")+cProd))
+
+	DbSelectArea("SB9")
+	SB9->(DbSetOrder(1))
+
+    While nCusto == 0 .and. nBack < 5
+        If SB9->(DbSeek(xFilial("SB9")+SB1->B1_COD+SB1->B1_LOCPAD+DtoS(LastDate(MonthSub(FirstDate(dData),nBack)))))
+            nCusto := SB9->B9_CM1 / nTxCusto
+            exit
+        EndIf
+        nBack++
+    EndDo
+
+    If SB1->B1_TIPO == 'PI'
+        nGGF := U_GetGGF(SB1->B1_COD)
+        nGGFFixo := SuperGetMv("MV_GGFFIXO",,0.25)
+
+        nCusto := nCusto - (nGGF / nTxCusto) + nGGFFixo
+    EndIf
+
+    If nPerc > 0
+        nCusto := nCusto * nPerc / 100
+    EndIf
+
+    If nDefCusto > 0
+        nCusto := nDefCusto * nPerc / 100
+    EndIf
+    RestArea(aArea)
+
+Return nCusto
+
+//[Gatilho] - Cálculo reverso levando em consideração a % de margem desejada
+User Function FormMarg(nMargem)
+    Local nPrcVen := 0
+    Local lFound1 := .F.
+    Local lFound2 := .F.
+    Local lFound3 := .F.
+    Local nFatNet := nImpostos := nPreco := nComist := nComisKg := nCFixo := nCTotal := nCalcMargem := nValMargem := 0
+    Default nMargem := 0
+
+    If nMargem > 0
+        While nCalcMargem < nMargem
+            If nCalcMargem == 0
+                nPrcVen := M->ZA2_CUSTO
+            EndIf
+
+            nPrcVen += 0.01
+            
+            nFatNet     := Round(nPrcVen * M->ZA2_QUANT,2)
+
+            nImpostos   := (nPrcVen / ( 1 - ((M->ZA2_IPI / 100) + (M->ZA2_ICMS / 100) + (M->ZA2_PIS / 100) + (M->ZA2_COFINS / 100)))) - nPrcVen
+            nPreco      := nImpostos+nPrcVen
+            
+            nComist     := nFatNet * M->ZA2_COMIS / 100
+            nComisKg    := nComist / M->ZA2_QUANT
+
+            nCFixo    := M->ZA2_FRETE + M->ZA2_ENCAKG + M->ZA2_GGF + M->ZA2_EMBALA + nComisKg
+            nCTotal   := nCFixo + M->ZA2_CUSTO
+
+            nCalcMargem   := (nPrcVen - nCTotal) / nPrcVen * 100
+            nValMargem   := (nPrcVen - nCTotal) * M->ZA2_QUANT
+            
+            If Round(nCalcMargem,2) == Round(nMargem,2)
+                lFound1 := .T.
+            EndIf
+
+            If lFound1 .and. Round(nCalcMargem,3) == Round(nMargem,3)
+                lFound2 := .T.
+            EndIf
+
+            If lFound1 .and. lFound2 .and. Round(nCalcMargem,4) == Round(nMargem,4)
+                lFound3 := .T.
+            EndIf
+
+            If (lFound1 .and. Round(nCalcMargem,2) != Round(nMargem,2)) .or. (lFound2 .and. Round(nCalcMargem,3) != Round(nMargem,3)) .or. (lFound3 .and. Round(nCalcMargem,4) != Round(nMargem,4))
+                EXIT
+            EndIf
+
+        EndDo
+    EndIf
+
+	M->ZA2_FATNET   := nFatNet
+
+    M->ZA2_IMPOST   := nImpostos
+    M->ZA2_PRECO    := nPreco
+    
+    M->ZA2_COMIST   := nComist
+    M->ZA2_COMIKG   := nComisKg
+
+	M->ZA2_CFIXO    := nCFixo
+	M->ZA2_CUSTOT   := nCTotal
+
+    M->ZA2_MARGPE   := nCalcMargem
+    M->ZA2_MARGCO   := nValMargem
+
+Return nPrcVen
+
+//Verificação de porcentagem da grid
+User Function VerifyZA2()
+    Local nPorcen := 0
+    Local nA := 0
+
+    For nA := 1 to len(aCols)
+        If !aCols[nA, len(aHeader)+1] .and. aCols[nA, GdFieldPos("ZA3_TIPO")] $ 'MP;PI'
+            nPorcen += aCols[nA, GdFieldPos("ZA3_PORCEN")]
+        EndIf
+    Next nA
+    If nPorcen > 100
+        MsgAlert("O somatório das matérias primas não pode ultrapassar 100%","Atenção!")
+        return .f.
+    EndIf
+Return .T.
+
+//Bloqueio de alteração com relação a status da formação de preço
+User Function ZA2STATS()
+    If ZA2->ZA2_STATUS > '1' .and. ZA2->ZA2_STATUS != M->ZA2_STATUS
+        MsgAlert("Impossível alterar o status de uma formação de preço concluída ou cancelada.","Atenção!")
+        Return .F.
+    EndIf
+Return .T.
+
+//Obtenção do custo da última compra
+Static Function GetUlCusto(cProd)
+    Local nUlCusto := 0
+    Local nTaxa := 1
+    
+    cQry := " SELECT ISNULL((SELECT TOP 1 isnull((D1_CUSTO / D1_QUANT),0) CUSTO from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(cProd)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),0) CUSTO,
+    cQry += " ISNULL((SELECT TOP 1 D1_DTDIGIT from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(cProd)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),'') DTDIGIT "
+    TcQuery cQry New Alias 'XCUSTO'
+
+
+    If !XCUSTO->(EOF())
+        nTaxa := Posicione("SM2",1,XCUSTO->DTDIGIT,"M2_MOEDA2")
+        nUlCusto := XCUSTO->CUSTO
+    EndIf
+    XCUSTO->(DbCloseArea())
+Return {nUlCusto,nTaxa}
+
+//Grid temporariamente inativada contendo os valores em R$
+Static Function emReais()
+    Local nMoeda := Posicione("SM2",1,DtoS(M->ZA2_DATA),"M2_MOEDA2")
+    Private oDlg, oSay
+	Private aBrowse := {}
+	Private oBrowse
+
+    nH := 390
+    nW := 450
+	DEFINE DIALOG oDlg TITLE "Valores em Reais" FROM 50,50 TO nH,nW PIXEL // Vetor com elementos do Browse
+
+    aAdd(aBrowse, {"Data da Moeda",DtoC(M->ZA2_DATA)})
+    aAdd(aBrowse, {"Taxa da Moeda",allTrim(Transform(nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Preço de Venda",allTrim(Transform(M->ZA2_PRCVEN * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Encargos",allTrim(Transform(M->ZA2_ENCARG * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Encargo Tot.",allTrim(Transform(M->ZA2_TOTENC * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Encargo / Kg",allTrim(Transform(M->ZA2_ENCAKG * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Comissão / Kg",allTrim(Transform(M->ZA2_COMIKG * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Frete",allTrim(Transform(M->ZA2_FRETE * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Embalagem",allTrim(Transform(M->ZA2_EMBALA * nMoeda,"@E 99,999,999,999.9999"))})
+
+    aAdd(aBrowse, {"Comissão Fat",allTrim(Transform(M->ZA2_COMIST * nMoeda,"@E 99,999,999,999.99"))})
+
+    aAdd(aBrowse, {"Impostos",allTrim(Transform(M->ZA2_IMPOST * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Preco + Imp.",allTrim(Transform(M->ZA2_PRECO * nMoeda,"@E 99,999,999,999.99"))})
+
+    aAdd(aBrowse, {"Faturam. NET",allTrim(Transform(M->ZA2_FATNET * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Margem de Contrib.",allTrim(Transform(M->ZA2_MARGCO * nMoeda,"@E 99,999,999,999.99"))})
+
+    aAdd(aBrowse, {"Margem Futura",allTrim(Transform(M->ZA2_MARGFU * nMoeda,"@E 99,999,999,999.99"))})
+    aAdd(aBrowse, {"Margem Entrada",allTrim(Transform(M->ZA2_MARGEN * nMoeda,"@E 99,999,999,999.99"))})
+
+    nW := 200
+    nH := 170
+	oBrowse := TCBrowse():New( 01 , 01, nW, nH,,;
+	{'Descrição','Valor em Reais'},{100,30},;
+	oDlg,,,,,{||},,,,,,,.F.,,.T.,,.F.,,, )		// Seta vetor para a browse
+
+	oBrowse:SetArray(aBrowse)
+	oBrowse:bLine := {||{ aBrowse[oBrowse:nAt,01],;
+    aBrowse[oBrowse:nAt,02] } }		// Evento de clique no cabeçalho da browse
+	ACTIVATE DIALOG oDlg CENTERED
+Return

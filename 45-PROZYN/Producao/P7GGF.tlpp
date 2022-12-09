@@ -1,0 +1,74 @@
+#include "protheus.ch"
+
+User Function P7GGF()
+    Local aPergs   := {}
+    Local dDataAt  := LastDate(MonthSub(FirstDate(dDatabase),1))
+    
+    aAdd(aPergs, {1, "Data Fechamento", dDataAt,  "", ".T.", "", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        If MV_PAR01 != LastDate(MV_PAR01)
+            MsgAlert("Data de fechamento incorreta.","Atenção!")
+            Return
+        EndIf
+		Processa( {|| Gerar(MV_PAR01) },"Aguarde" ,"Gerando relatório P7 c/ GGF...")
+        
+    EndIf
+
+Return
+
+Static Function Gerar(dData)
+    Local cQry := ""
+    cQry := " SELECT B9_COD AS COD, B1_DESC AS DESCR, B9_LOCAL AS ARMAZEM,
+    cQry += " dbo.fConverteData(B9_DATA) AS DTFECH,
+    cQry += " BJ_LOTECTL AS LOTE,
+    cQry += " dbo.fConverteData(BJ_DTVALID) AS DTVALID,
+    cQry += " B1_TIPO AS TIPO,
+    cQry += " ROUND(BJ_QINI,3) AS QUANT,
+    cQry += " ROUND(B9_CM1,4) AS CMEDIO ,
+    cQry += " ROUND(BJ_QINI*B9_CM1,4) AS TOTAL,
+    cQry += " ISNULL((select SUM(D3_CUSTO1) D3_CUSTO1 FROM "+RetSqlName("SD3")+" D3 WHERE 
+    cQry += " D3_OP IN (SELECT DISTINCT D3_OP FROM "+RetSqlName("SD3")+" SD3 WHERE D3_COD = B1_COD AND SD3.D3_EMISSAO BETWEEN '"+DtoS(FirstDate(MV_PAR01))+"' AND '"+DtoS(MV_PAR01)+"' AND SD3.D3_CF = 'PR0' AND SD3.D3_ESTORNO != 'S' AND SD3.D_E_L_E_T_ = ' ' ) 
+    cQry += " AND D3_COD LIKE '%MOD%'  AND D3.D_E_L_E_T_ = ''),0)
+    cQry += " / 
+    cQry += " isnull((SELECT SUM(D3_QUANT) D3_QUANT FROM "+RetSqlName("SD3")+" SD3
+    cQry += " WHERE D3_COD = B1_COD AND SD3.D3_EMISSAO BETWEEN '"+DtoS(FirstDate(dData))+"' AND '"+DtoS(dData)+"'
+    cQry += " AND SD3.D3_CF = 'PR0' AND SD3.D3_ESTORNO != 'S' AND SD3.D_E_L_E_T_ = ' ' ),1) GGF
+    cQry += " FROM "+RetSqlName("SB9")+" B9
+    cQry += " LEFT JOIN "+RetSqlName("SBJ")+" BJ ON B9_DATA = BJ_DATA AND B9_COD = BJ_COD AND BJ_LOCAL = B9_LOCAL AND BJ.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_COD = BJ_COD and B1.D_E_L_E_T_ = ''
+    cQry += " WHERE BJ_DATA = '"+DtoS(dData)+"' AND BJ_QINI <> 0 AND B9.D_E_L_E_T_ = ''
+
+    cQry += " union all
+
+    cQry += " SELECT B9_COD AS COD, B1_DESC AS DESCR, B9_LOCAL AS ARMAZEM,
+    cQry += " dbo.fConverteData(B9_DATA) AS DTFECH,
+    cQry += " ''AS LOTE,
+    cQry += " ''AS DTVALID,
+    cQry += " B1_TIPO AS TIPO,
+    cQry += " ROUND(B9_QINI,3) AS QUANT,
+    cQry += " ROUND(B9_CM1,4) AS CMEDIO ,
+    cQry += " ROUND(B9_QINI*B9_CM1,4) AS TOTAL,
+    cQry += " ISNULL((select SUM(D3_CUSTO1) D3_CUSTO1 FROM "+RetSqlName("SD3")+" D3 WHERE D3_OP IN (
+    cQry += " SELECT DISTINCT D3_OP FROM "+RetSqlName("SD3")+" SD3
+    cQry += " 	 WHERE 
+    cQry += " 	  D3_COD = B1_COD
+    cQry += "      AND SD3.D3_EMISSAO BETWEEN '"+DtoS(FirstDate(dData))+"' AND '"+DtoS(dData)+"'
+    cQry += " 	 AND SD3.D3_CF = 'PR0' 
+    cQry += " 	 AND SD3.D3_ESTORNO != 'S' 
+    cQry += " 	 AND SD3.D_E_L_E_T_ = '' 
+    cQry += " )
+    cQry += " AND D3_COD LIKE '%MOD%'  AND D3.D_E_L_E_T_ = ''),0) /
+    cQry += " isnull((SELECT SUM(D3_QUANT) D3_QUANT FROM "+RetSqlName("SD3")+" SD3
+    cQry += " WHERE 
+    cQry += " D3_COD = B1_COD
+    cQry += " AND SD3.D3_EMISSAO BETWEEN '"+DtoS(FirstDate(dData))+"' AND '"+DtoS(dData)+"'
+    cQry += " AND SD3.D3_CF = 'PR0' 
+    cQry += " AND SD3.D3_ESTORNO != 'S' 
+    cQry += " AND SD3.D_E_L_E_T_ = '' ),1) GGF
+    cQry += " FROM "+RetSqlName("SB9")+" B9
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_COD = B9_COD and B1.D_E_L_E_T_ = ''
+    cQry += " WHERE B9_DATA = '"+DtoS(dData)+"' AND B9_QINI <> 0 AND B1_RASTRO <> 'L' AND B9.D_E_L_E_T_ = ''
+    aTitulos := {'COD','DESCR','ARMAZEM','DTFECH','LOTE','DTVALID','TIPO','QUANT','CMEDIO','TOTAL','GGF'}
+    U_zQry2Excel(cQry,"P7 com GGF - "+DtoC(dData),"P7_Custo_"+DtoS(dData),,"xml",aTitulos)
+Return

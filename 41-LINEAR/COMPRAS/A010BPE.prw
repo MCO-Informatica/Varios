@@ -1,0 +1,18 @@
+#Include 'Protheus.ch'
+
+// Ponto de Entrada O Ponto de Entrada A010BPE deve ser utilizado para tratamentos 
+// de validações de conteúdo de caracteres especiais no código do produto ou descrição, 
+// ou validações especificas. 
+// Sidney Oliveira - Supertech - 06/02/2017
+   
+User Function A010BPE()
+   
+local cCampo := ParamIXB[1]
+Local cconteudo:= ParamIXB[2]
+Local lRet := .F.
+   
+If cCampo = 'M->B1_DESC'
+   lRet:= .T.
+EndiF
+ 
+Return lRet

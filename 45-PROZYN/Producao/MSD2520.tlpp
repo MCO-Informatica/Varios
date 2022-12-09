@@ -1,0 +1,10 @@
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "TOPCONN.CH"
+
+User Function MSD2520()
+    Local aArea := GetArea()
+    
+    
+
+    RestArea(aArea)
+Return

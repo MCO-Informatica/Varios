@@ -1,0 +1,29 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function FichaAtivo(cBaseIni,cBaseFim)
+    Default cBaseIni := ""
+    Default cBaseFim := ""
+
+    // DbSelectArea("SF1")
+    // SF1->(DbGoTo(32700))
+
+    // cBaseIni := SN1->N1_CBASE
+    // cBaseFim := cBaseIni
+    // While SN1->(!EOF()) .AND. SN1->N1_FILIAL == SF1->F1_FILIAL .AND. SN1->N1_FORNEC == SF1->F1_FORNECE .AND. SN1->N1_LOJA == SF1->F1_LOJA .AND. SN1->N1_NFESPEC == SF1->F1_ESPECIE .AND. SN1->N1_NFISCAL == SF1->F1_DOC .AND. SN1->N1_NSERIE == SF1->F1_SERIE
+
+    //         cBaseFim := SN1->N1_CBASE
+
+    //     SN1->(DbSkip())
+    // EndDo
+
+    // If val(cBaseFim) < val(cBaseIni)
+    //     cBase := cBaseIni
+    //     cBaseIni := cBaseFim
+    //     cBaseFim := cBase
+    // EndIf
+
+    U_GravaSX1(PadR("AFR030", 10),"01",cBaseIni)
+    U_GravaSX1(PadR("AFR030", 10),"02",cBaseFim)
+
+    ATFR030()
+Return

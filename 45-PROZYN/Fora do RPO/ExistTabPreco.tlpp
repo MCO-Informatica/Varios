@@ -1,0 +1,11 @@
+User Function ExistTabPreco(cCli,cLoja)
+    Local lRet := .T.
+    
+    DbSelectArea("DA0")
+    DA0->(DbSetOrder(4))
+    If DA0->(DbSeek(cCli+cLoja))
+        lRet := .F.
+        MsgAlert("Já existe a tabela "+Trim(DA0->DA0_CODTAB)+" para este cliente.","Atenção!")
+    EndIf
+
+Return lRet

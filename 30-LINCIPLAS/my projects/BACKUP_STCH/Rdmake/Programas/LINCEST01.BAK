@@ -1,0 +1,298 @@
+#INCLUDE "rwmake.ch"
+#include "topconn.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณLINCEST01 บ Autor ณ RODRIGO DEMETRIOS  บ Data ณ  07/01/07   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ Extrai do sistema a relacao de Entrada de Notas Fiscais    บฑฑ
+ฑฑบ          ณ por data de digitacao com todos os impostos.               บฑฑ
+ฑฑ                                                                        บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Financeiro                                                 บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function LIEST01()
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Declaracao de Variaveis                                             ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+SetPrvT("_cVENDDe,_cVENDAte")
+SetPrvT("dEmissDe,_dEmissAte")
+
+cDesc1       := "Este programa tem como objetivo imprimir relatorio "
+cDesc2       := "de acordo com os parametros informados pelo usuario."
+cDesc3       := "Relacao de Entrada de Notas Fiscais com Impostos"
+cPict        := ""
+titulo       := "Relacao de Entrada de Notas Fiscais com Impostos"
+nLin         := 80
+imprime      := .T.
+//aOrd         := {"Cliente","Prefixo+Data+Cliente","Data+Cliente","Data+Prefixo+Numero","Sintetio:Data","Sintetio:Data+Cliente"}
+lEnd       := .F.
+lAbortPrint:= .F.
+CbTxt      := ""
+limite     := 220
+tamanho    := "G"
+nomeprog   := "LIEST01" // Coloque aqui o nome do programa para impressao no cabecalho
+nTipo      := 15
+aReturn    := { "Zebrado", 1, "Administracao", 1, 2, 1, "", 1}
+nLastKey   := 0
+_cPerg      := "LIES01"
+cbtxt      := Space(10)
+cbcont     := 00
+CONTFL     := 01
+m_pag      := 01
+wnrel      := "LIEST01" // Coloque aqui o nome do arquivo usado para impressao em disco
+cString    := "SD1"
+_nTotCli   := 0
+_nTotal    := 0
+nOrdem     := 1
+Cabec1     := " Nota    Data      Cliente-Loja  Descricao  Cliente                                      Valor Total"
+Cabec2     := " Fiscal  Emissao                                                                                                                                                   "
+
+dbSelectArea("SD1")
+dbSetOrder(1)
+
+ValidPerg() // Valida as Perguntas
+
+pergunte(_cPerg,.F.)
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Monta a interface padrao com o usuario...                           ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+wnrel := SetPrint(cString,NomeProg,_cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,,.T.,Tamanho,,.T.)
+//wnrel := SetPrint(cString,NomeProg,_cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,aOrd,.T.,Tamanho,,.T.)
+
+If nLastKey == 27
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Return
+Endif
+
+nTipo := If(aReturn[4]==1,15,18)
+nOrdem:= aReturn[8]
+
+RptStatus({|| REST01(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบFuno    ณREST01    บ Autor ณ ANDRE ELIAS        บ Data ณ  05/02/03   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescrio ณ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS บฑฑ
+ฑฑบ          ณ monta a janela com a regua de processamento.               บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Programa principal                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+Static Function REST01(Cabec1,Cabec2,Titulo,nLin)
+
+
+_dDIGITDe    := mv_par01             // Data Emissao de
+_dDIGITAte   := mv_par02             // Data Emissao Ate
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Filtra o Arquivo utilizando um Select                        ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+
+dbSelectArea("SD1")
+dbSetOrder(1)
+
+cFilTrab   := CriaTrab(NIL,.F.)
+cCondicao  := " D1_FILIAL == '"+xFilial()+"' .And. "   
+cCondicao  += " DTOS(D1_DTDIGIT) >= '" +DTOS(_dDIGITDe)+ "' .And. DTOS(D1_DTDIGIT) <= '"+DTOS(_dDIGITAte)+ "' " 
+cCondicao  += " .And.(D1_TES $'001/002/013/017/022') "
+cChave := "D1_FILIAL+DTOS(D1_DTDIGIT)"
+IndRegua("SD1",cFilTrab,cChave,,cCondicao,"Filtrando")    // "Selecionando Registros..."
+
+dbSelectArea("SD1")
+DbGoTop()
+SetRegua(RecCount())
+_NTOTGGER := 0
+_NTOTGICM := 0
+_NTOTGIPI := 0
+_NTOTGPIS := 0
+_NTOTGCOF := 0
+
+While !Eof()
+	IncRegua()
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณ Verifica o cancelamento pelo usuario...                             ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	
+	If lAbortPrint
+		@nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+		Exit
+	Endif
+	
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//ณ Impressao do cabecalho do relatorio. . .                            ณ
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	
+	
+	
+	Cabec1     := " Nota    Data      Fornec - Lj   Descricao  Fornecedor                           IMCS             IPI             PIS          COFINS           TOTAL "
+	Cabec2     := " Fiscal  Digitac                                                                                                                                 NOTA"
+	
+	//          1         2         3         4         5         6         7         8         9         0         11        12        13        14        15        16
+	// 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+	// Nota    Data      Fornec - Lj   Descricao  Fornecedor                           IMCS             IPI             PIS          COFINS           TOTAL 
+	// Fiscal  Digitac                                                                                                                                 NOTA
+	// 999999  99/99/99  999999 - 99   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX      99,999,999,99   99,999,999,99   99,999,999,99   99,999,999,99   99,999,999,99
+	
+	
+	_NTOTGER := 0
+	_NTOTICM := 0
+	_NTOTIPI := 0
+	_NTOTPIS := 0
+	_NTOTCOF := 0
+	_cNOTA := SD1->D1_DOC
+	
+	DBSELECTAREA("SD1")
+	While !Eof() .AND. SD1->D1_DOC == _cNOTA
+		IncRegua()
+		
+		If nLin > 55 // Salto de Pแgina. Neste caso o formulario tem 55 linhas...
+			Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+			nLin := 10
+		Endif
+		
+		
+		DBSELECTAREA("SA2")
+		DBSETORDER(1)
+		DBSEEK(XFILIAL("SA2")+ SD1->D1_FORNECE)
+		cDescCli := SA2->A2_NOME
+		
+	    DBSELECTAREA("SF4")
+		DBSETORDER(1)
+		DBSEEK(XFILIAL("SF4")+ SD1->D1_TES)
+		cTes := SF4->F4_PISECOF
+		
+	
+	
+		_NTOTGER += (SD1->D1_TOTAL + SD1->D1_VALIPI) 
+		_NTOTICM += (SD1->D1_VALICM)
+		_NTOTIPI += (SD1->D1_VALIPI)
+		
+		IF cTes = "N"
+		ELSE
+			_NTOTPIS += (SD1->D1_TOTAL * 1.65) / 100  //PIS       
+			_NTOTCOF += (SD1->D1_TOTAL * 7.60) / 100  //PIS
+        ENDIF
+        
+		_cDoc     := SD1->D1_DOC
+		_dDtDigit := SD1->D1_DTDIGIT
+		_cFORNECE := SD1->D1_FORNECE + " - " + SD1->D1_LOJA
+		
+
+
+		DBSELECTAREA("SD1")
+		dbSkip()
+	EndDo
+	
+	@nLin,001 PSAY _cDoc
+	@nLin,009 PSAY _dDtDigit
+	@nLin,019 PSAY substr(_cFornece,1,30)
+	@nLin,033 PSAY cDescCli
+	@nLin,072 PSAY _NTOTICM  PICTURE "@E 99,999,999.99"
+	@nLin,088 PSAY _NTOTIPI  PICTURE "@E 99,999,999.99"
+	@nLin,104 PSAY _NTOTPIS  PICTURE "@E 99,999,999.99"
+	@nLin,120 PSAY _NTOTCOF  PICTURE "@E 99,999,999.99"
+	@nLin,136 PSAY _NTOTGER  PICTURE "@E 99,999,999.99"
+
+	nLin := nLin + 1
+	
+	_NTOTGGER += _NTOTGER
+	_NTOTGICM += _NTOTICM
+	_NTOTGIPI += _NTOTIPI
+	_NTOTGPIS += _NTOTPIS
+	_NTOTGCOF += _NTOTCOF
+	
+EndDo
+
+nLin := nLin + 1
+nLin := nLin + 1
+
+@nLin,000 PSAY "TOTAL GERAL" + " --------------------------------> "
+	@nLin,074 PSAY _NTOTGICM  PICTURE "@E 99,999,999.99"
+	@nLin,090 PSAY _NTOTGIPI  PICTURE "@E 99,999,999.99"
+	@nLin,106 PSAY _NTOTGPIS  PICTURE "@E 99,999,999.99"
+	@nLin,122 PSAY _NTOTGCOF  PICTURE "@E 99,999,999.99"
+	@nLin,138 PSAY _NTOTGGER  PICTURE "@E 99,999,999.99"
+
+    dbSelectArea("SD1")
+    retindex()
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Finaliza a execucao do relatorio...                                 ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+SET DEVICE TO SCREEN
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Se impressao em disco, chama o gerenciador de impressao...          ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+SET PRINTER TO
+OurSpool(wnrel)
+MS_FLUSH()
+
+Return
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑฺฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฟฑฑ
+ฑฑณFunao    ณ ValidPerg ณ Autor ณ Denilson Correa      ณ Data ณ          ณฑฑ
+ฑฑรฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤดฑฑ
+ฑฑณDescriao ณ Valida se existe as Perguntas no SX1                       ณฑฑ
+ฑฑภฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤูฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function ValidPerg()
+
+_cAlias := Alias()
+DbSelectArea("SX1")
+DbSetOrder(1)
+aRegs :={}
+//+--------------------------------------------------------------+
+//ฆ Variaveis utilizadas para parametros                         ฆ
+//ฆ mv_par01             // EMISSAO DE                           ฆ
+//ฆ mv_par02             // EMISSAO ATE                          ฆ
+//ฆ mv_par03             // VENDEDOR DE                          ฆ
+//ฆ mv_par04             // VENDEDOR ATE                         ฆ
+//+--------------------------------------------------------------+
+
+Aadd(aRegs,{_cPerg,"01","Emissao de              ?","","","mv_ch1","D",08,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"02","Emissao ate             ?","","","mv_ch2","D",08,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+For i:=1 to Len(aRegs)
+	If !dbSeek(_cPerg+aRegs[i,2])
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			EndIf
+		Next
+		MsUnlock()
+	EndIf
+Next
+DbSelectArea(_cAlias)
+Return
+

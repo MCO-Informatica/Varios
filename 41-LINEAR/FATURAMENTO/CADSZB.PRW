@@ -1,0 +1,10 @@
+#include "rwmake.ch"
+
+// THIAGO QUEIROZ - SUPERTECH - 24/08/2017
+// CADASTRO DE NÚMEROS DE SÉRIE X NOTA FISCAL X PRODUTO X CLIENTE
+
+User Function CadSZB()
+
+AxCadastro("SZB","NUMEROS DE SERIE")
+
+Return

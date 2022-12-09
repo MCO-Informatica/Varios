@@ -1,0 +1,57 @@
+#include "protheus.ch"
+#include "topconn.ch"
+
+User Function RelConEst()
+    Local aPergs   := {}
+    Local cProdDe  := Space(TamSX3('CT1_CONTA')[01])
+    Local cProdAt  := "ZZZZZZZZZZZZZZZZZZZZ"
+    Local dDataDe  := FirstDate(Date())
+    Local dDataAt  := LastDate(Date())
+    
+    aAdd(aPergs, {1, "Data De",  dDataDe,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Data Até", dDataAt,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Conta Contábil De",  cProdDe,  "", ".T.", "CT1", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Conta Contábil Até", cProdAt,  "", ".T.", "CT1", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| Gerar() }, "Aguarde...", "Gerando relatório...",.F.)
+    EndIf
+
+Return
+
+Static Function Gerar()
+    Local cQry := ""
+
+    cQry := " SELECT 'ENTRADA' MOVIMENTO,F1_DTDIGIT EMISSAO,F1_DOC NOTA,F1_SERIE SERIE,F1_VALBRUT-F1_VALICM-F1_VALIPI-F1_VALIMP5-F1_VALIMP6 LIQUIDO,0 CUSTO,F1_VALBRUT BRUTO,F1_VALICM+F1_VALIPI+F1_VALIMP5+F1_VALIMP6 IMPOSTOS,(SELECT TOP 1 D1_CONTA FROM SD1010 D1 WHERE D1_DOC = F1_DOC AND D1_SERIE = F1_SERIE AND D1_FORNECE = F1_FORNECE AND D1_LOJA = F1_LOJA AND D1.D_E_L_E_T_ = '') CONTA,A2_NOME CLIENTE_FORNECEDOR, F1_VALICM ICMS, F1_VALIPI IPI, F1_VALIMP5 COFINS, F1_VALIMP6 PIS
+    cQry += " FROM SF1010 F1
+    cQry += " INNER JOIN SA2010 A2 ON A2_COD = F1_FORNECE AND A2_LOJA = F1_LOJA AND A2.D_E_L_E_T_ = ''
+    cQry += " WHERE 
+    cQry += " F1_DTDIGIT BETWEEN '"+DtoS(MV_PAR01)+"' AND '"+DtoS(MV_PAR02)+"' AND
+    cQry += " (SELECT TOP 1 D1_CONTA FROM SD1010 D1 WHERE D1_DOC = F1_DOC AND D1_SERIE = F1_SERIE AND D1_FORNECE = F1_FORNECE AND D1_LOJA = F1_LOJA AND D1.D_E_L_E_T_ = '') between '"+MV_PAR03+"' AND '"+MV_PAR04+"' AND
+    cQry += " F1.D_E_L_E_T_ = '' AND F1_TIPO = 'N' 
+    cQry += " UNION ALL
+    cQry += " SELECT 'SAÍDA' MOVIMENTO,F2_EMISSAO,F2_DOC,F2_SERIE, 0,
+    cQry += " (SELECT SUM(D2_CUSTO1) FROM SD2010 D2 WHERE D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA AND D2.D_E_L_E_T_ = ''),
+    cQry += " 0,
+    cQry += " (SELECT SUM(D2_CUSTO1) FROM SD2010 D2 WHERE D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA AND D2.D_E_L_E_T_ = ''),
+    cQry += " (SELECT TOP 1 D2_CONTA FROM SD2010 D2 WHERE D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA AND D2.D_E_L_E_T_ = ''),
+    cQry += " A1_NOME CLIENTE, 0,0,0,0
+    cQry += " FROM SF2010 F2 
+    cQry += " INNER JOIN SA1010 A1 ON A1_COD = F2_CLIENTE AND A1_LOJA = F2_LOJA AND A1.D_E_L_E_T_ = ''
+    cQry += " WHERE 
+    cQry += " F2_EMISSAO BETWEEN '"+DtoS(MV_PAR01)+"' AND '"+DtoS(MV_PAR02)+"' AND
+    cQry += " (SELECT TOP 1 D2_CONTA FROM SD2010 D2 WHERE D2_DOC = F2_DOC AND D2_SERIE = F2_SERIE AND D2_CLIENTE = F2_CLIENTE AND D2_LOJA = F2_LOJA AND D2.D_E_L_E_T_ = '') between '"+MV_PAR03+"' AND '"+MV_PAR04+"' AND
+    cQry += " F2.D_E_L_E_T_ = '' AND F2_TIPO = 'N'
+    cQry += " ORDER BY MOVIMENTO,EMISSAO "
+
+    U_zQry2Excel(cQry,"Conciliação de Estoque","conciliacao_estoque")
+    // dbUseArea(.T.,"TOPCONN", TCGenQry(,,cQry),'RELCONEST',.T.,.T.)
+
+    // While RELCONEST->(!Eof())
+    //     aAdd(aNotas, {RELCONEST->NOTA,RELCONEST->SERIE,RELCONEST->LIQUIDO,RELCONEST->CUSTO,RELCONEST->BRUTO,RELCONEST->IMPOSTOS,RELCONEST->CONTA})
+    //     RELCONEST->(DbSkip())
+    // EndDo
+
+    // RELCONEST->(DbCloseArea())
+
+Return

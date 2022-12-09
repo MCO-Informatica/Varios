@@ -1,0 +1,36 @@
+#Include 'Protheus.ch'
+
+
+User Function M410STTS()
+
+Local _aArea    := GetArea()
+Local _nOper    := PARAMIXB[1]
+
+/*
+3 - Inclusão
+4 - Alteração
+5 - Exclusão
+6 - Cópia
+7 - Devolução de Compras
+*/
+
+IF _nOper <> 5
+    IF SC5->C5_TIPO $ "D/B" //D - DEVOLUÇÃO DE COMPRA, B - UTILIZA FORNECEDOR
+        RecLock("SC5", .F.)
+            SC5->C5_XCLIFOR := Posicione("SA2",1,xFilial("SA2")+SC5->C5_CLIENTE+SC5->C5_LOJACLI,'A2_NOME')
+        MsUnlock()
+    ELSE
+        RecLock("SC5", .F.)
+            SC5->C5_XCLIFOR := Posicione("SA1",1,xFilial("SA1")+SC5->C5_CLIENTE+SC5->C5_LOJACLI,'A1_NOME')
+        MsUnlock()
+    ENDIF
+
+    RecLock("SC5", .F.)
+        SC5->C5_XDTATU := date()
+        SC5->C5_XHRATU := replace(time(),":","")
+    MsUnlock()
+ENDIF
+
+RestArea(_aArea)
+
+Return Nil 

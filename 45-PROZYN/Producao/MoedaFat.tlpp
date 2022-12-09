@@ -1,0 +1,46 @@
+#Include 'Protheus.ch'
+
+User Function MoedaFat(cMoeda,nTxNeg)
+    Local nTxMoeda := 0
+    Local nDia := 0
+    Local aArea := GetArea()
+    Default cMoeda := ""
+    Default nTxNeg := 0
+
+    DbSelectArea("SM2")
+    SM2->(DbSetOrder(1))
+
+    If cMoeda == '1'
+        //PTAX dia anterior
+        For nDia := 0 to 2
+            SM2->(DbSeek(DtoS(DaySub(dDatabase,nDia))))
+            If SM2->M2_MOEDA2 > 0
+                EXIT
+            EndIf
+        Next nDia
+        nTxMoeda := SM2->M2_MOEDA2
+    
+    ElseIf cMoeda == '2'
+        //2=Moeda Negociada
+        nTxMoeda := nTxNeg
+        
+    ElseIf cMoeda == '3'
+        //3=PTAX mês anterior
+        For nDia := 1 to 3
+            SM2->(DbSeek(DtoS(DaySub(FirstDate(dDatabase),nDia))))
+            If SM2->M2_MOEDA2 > 0
+                EXIT
+            EndIf
+        Next nDia
+        
+        nTxMoeda := SM2->M2_MOEDA2
+    
+    ElseIf cMoeda == '4'
+        //4=Média últimos 3 meses
+        nTxMoeda := U_GetMoeda()
+
+    EndIf
+
+    RestArea(aArea)
+
+Return nTxMoeda

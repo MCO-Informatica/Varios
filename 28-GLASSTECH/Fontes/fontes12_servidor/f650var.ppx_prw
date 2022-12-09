@@ -1,0 +1,172 @@
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Dialog.ch"
+#line 28 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Font.ch"
+#line 29 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PTMenu.ch"
+#line 31 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Print.ch"
+#line 33 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Colors.ch"
+#line 35 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Folder.ch"
+#line 37 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\msobject.ch"
+#line 38 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\VKey.ch"
+#line 42 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\WinApi.ch"
+#line 44 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCommand.ch"
+#line 47 "PROTHEUS.CH"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCSS.CH"
+#line 50 "PROTHEUS.CH"
+#line 2 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\f650var.prw"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\TOPCONN.CH"
+#line 20 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\f650var.prw"
+Function U_F650VAR()
+Local cE1_NUM	:= ""
+Local cE1_PARC	:= ""
+Local _aValores := ParamIxb
+Local cAux		:= ""
+
+If Empty( _aValores[1][4] )
+
+   _aValores[1][4] := Substr( _aValores[ 1 ][14], 63, 8 ) + Space( 2 )
+   cTipo           := "NF "
+   _aValores[1][3] := "NF"
+   SE1->( dbSetOrder( 19 ) )
+   SE1->( dbSeek( _aValores[1][4], .F.  ) )
+
+   While SE1->E1_IDCNAB = _aValores[1][4]
+
+      If ( SE1->E1_VALOR <> ( Val( Substr( xBuffer, 154, 12 ) ) / 100 ) )
+
+         SE1->( dbSkip() )
+
+      Else
+
+         cNumTit := _aValores[1][4]
+         Exit
+
+      End
+
+   End
+
+End
+
+
+If MV_PAR07 = 1 .AND.  AllTrim(Upper(MV_PAR02))$ "BRDFAC.RET|"
+	If At("/", cNumTit) > 0
+		cE1_NUM 	:=	StrZero(Val(Substring(cNumTit, 1, At("/", cNumTit)-1)),TamSx3("E1_NUM")[1])
+		cE1_PARC	:=	U_ConvParc(Substring(cNumTit, At("/", cNumTit)+1, 3))
+
+		cNumTit		:=	U_AchaTitu(cE1_NUM, cE1_PARC, cTipo, _aValores[1][8])
+	Else
+		cE1_NUM 	:=	StrZero(Val(Substring(cNumTit, 1, 7)),TamSx3("E1_NUM")[1])
+		cE1_PARC	:=	Substring(cNumTit, 8, 1)
+
+		cAux	:=	U_AchaTitu(cE1_NUM, cE1_PARC, cTipo, _aValores[1][8])
+
+
+
+
+
+
+
+
+
+
+		If Empty(cAux) .AND.  Substring(cNumTit, 1, 1) $ "2/1"
+			cE1_NUM 	:=	StrZero(Val(Substring(cNumTit, 2, LEN(AllTrim(cNumTit))-2)),TamSx3("E1_NUM")[1])
+			cE1_PARC	:=	Right(cNumTit, 1)
+
+			cAux		:=	U_AchaTitu(cE1_NUM, cE1_PARC, cTipo, _aValores[1][8])
+		EndIf
+
+		cNumTit := cAux
+	EndIf
+EndIf
+
+Return( NIL )
+
+
+
+
+
+
+
+
+
+
+
+Static Function CriaIdCnab()
+Local cIdCnab 	:= GetSxENum("SE1", "E1_IDCNAB","E1_IDCNAB"+cEmpAnt,19)
+Local aAreaSE1	:= SE1->(GetArea())
+
+dbSelectArea("SE1")
+dbSetOrder(16)
+
+While SE1->(dbSeek(xFilial("SE1")+cIdCnab))
+	If ( __lSx8 )
+		ConfirmSX8()
+	EndIf
+	cIdCnab := GetSxENum("SE1", "E1_IDCNAB","E1_IDCNAB"+cEmpAnt,19)
+EndDo
+
+ConfirmSx8()
+
+RestArea(aAreaSE1)
+Return cIdCnab
+
+Function U_ConvParc(cParc)
+Local cConst	:= "0123456789"
+Local cRet		:= "A"
+Local nI		:= 0
+Local nParc		:= Val(Substring(cNumTit, At("/", cNumTit)+1, 3))
+
+For nI := 1 to nParc
+	If nI > 1
+		cRet := Soma1(cRet)
+	EndIf
+next
+
+Return cRet
+
+Function U_AchaTitu(cE1_NUM,cE1_PARC,cTipoT,nVlr,nEncargo)
+Local cQry 		:= ""
+Local cIdCnab	:= ""
+Local cTMPAlia	:= GetNextAlias()
+nEncargo := If( nEncargo == nil, 0, nEncargo ) ;
+
+cQry := "SELECT E1_IDCNAB, R_E_C_N_O_ AS RECN "+Chr(13)+Chr(10)
+cQry += "FROM "+RetSqlName("SE1")+"           "+Chr(13)+Chr(10)
+cQry += "WHERE E1_NUM       = '"+cE1_NUM +"'  "+Chr(13)+Chr(10)
+cQry += "AND   E1_PARCELA   = '"+cE1_PARC+"'  "+Chr(13)+Chr(10)
+cQry += "AND   E1_PORTADO   = '"+MV_PAR06+"'  "+Chr(13)+Chr(10)
+cQry += "AND   E1_AGEDEP    = '"+MV_PAR07+"'  "+Chr(13)+Chr(10)
+cQry += "AND   E1_CONTA     = '"+MV_PAR08+"'  "+Chr(13)+Chr(10)
+
+If lFDVldVl
+	cQry += "AND   E1_VALOR 	= "+cValToChar(nvlr-nEncargo)+Chr(13)+Chr(10)
+EndIf
+cQry += "AND   D_E_L_E_T_  <> '*'             "+Chr(13)+Chr(10)
+
+
+dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQry),cTMPAlia, .T. , .T. )
+
+If (cTMPAlia)->(!Eof())
+	cIdCnab := (cTMPAlia)->E1_IDCNAB
+	DbSelectArea("SE1")
+	SE1->(DbGoTo((cTMPAlia)->RECN))
+
+	If Empty(cIdCnab)
+		cIdCnab := CriaIdCnab()
+
+		RecLock("SE1", .F. )
+			SE1->E1_IDCNAB := cIdCnab
+		SE1->(MsUnlock())
+	EndIf
+EndIf
+
+Return cIdCnab

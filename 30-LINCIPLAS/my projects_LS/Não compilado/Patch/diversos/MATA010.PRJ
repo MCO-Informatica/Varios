@@ -1,0 +1,25 @@
+Group MATA010.PRX
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project MATA010.PRX
+      FoldersCount=1
+      Folder MATA010.PRX
+         VSSPath=Definições
+         FilesCount=1
+         File \TOTVS11\Microsiga\Protheus\my projects\Patch\MATA010.PRX
+             Type=T
+         End
+      End
+   End
+End

@@ -1,0 +1,18 @@
+User Function M410INIC()
+
+Local _aArea := GetArea()
+Local nITEM   := aScan(aHeader,{|x| AllTrim(x[2])=="C6_ITEM"})
+Local _nI :=Len(aCols)
+			For nHeader := 1 to len(aHeader)
+				If AllTrim(aHeader[nHeader,2]) == "C6_ITEM"
+					//aCols[Len(aCols),nHeader] := cItem
+					If Len(aCols) == 1
+						aCols[Len(aCols)][nHeader] := "0001"
+ 					Else
+ 					aCols[Len(aCols)][nHeader] := Soma1(alltrim(aCols[_nI,nItem]))
+ 					EndIf
+				EndIf
+
+			Next
+
+Return ()

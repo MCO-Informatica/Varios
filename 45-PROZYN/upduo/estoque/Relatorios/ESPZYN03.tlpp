@@ -1,0 +1,144 @@
+//Bibliotecas
+#Include "Totvs.ch"
+
+/*/{Protheus.doc} User Function ESPZYN03
+Analise FullData CT2
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+User Function ESPZYN03()
+	Local aArea := FWGetArea()
+	Local oReport
+	Local aPergs   := {}
+	Local MV_PAR01 := sToD("")
+	Local MV_PAR02 := sToD("")
+	
+	//Adicionando os parametros do ParamBox
+	aAdd(aPergs, {1, "DATA DE ?", MV_PAR01,  "", ".T.", "", ".T.", 80,  .F.})
+	aAdd(aPergs, {1, "DATA ATE ?", MV_PAR02,  "", ".T.", "", ".T.", 80,  .F.})
+	
+	//Se a pergunta for confirma, cria as definicoes do relatorio
+	If ParamBox(aPergs, "Informe os parametros")
+		oReport := fReportDef()
+		oReport:PrintDialog()
+	EndIf
+	
+	FWRestArea(aArea)
+Return
+
+/*/{Protheus.doc} fReportDef
+Definicoes do relatorio ESPZYN03
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fReportDef()
+	Local oReport
+	Local oSection := Nil
+	
+	//Criacao do componente de impressao
+	oReport := TReport():New( "ESPZYN03",;
+		"Analise FullData CT2",;
+		,;
+		{|oReport| fRepPrint(oReport),};
+		)
+	oReport:SetTotalInLine(.F.)
+	oReport:lParamPage := .F.
+	oReport:oPage:SetPaperSize(9)
+	
+	//Orientacao do Relatorio
+	oReport:SetLandscape()
+	
+	//Definicoes da fonte utilizada
+	oReport:cFontBody := "Arial"
+	oReport:SetLineHeight(40)
+	oReport:nFontBody := 10
+	
+	//Criando a secao de dados
+	oSection := TRSection():New( oReport,;
+		"Dados",;
+		{"QRY_REP"})
+	oSection:SetTotalInLine(.F.)
+	
+	//Colunas do relatorio
+	TRCell():New(oSection, "TP", "QRY_REP", "TP", /*cPicture*/, 3, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_DEBITO", "QRY_REP", "CT2_DEBITO", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_CREDIT", "QRY_REP", "CT2_CREDIT", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+//	TRCell():New(oSection, "CT2_CCD", "QRY_REP", "CT2_CCD", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+//	TRCell():New(oSection, "CT2_CCC", "QRY_REP", "CT2_CCC", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_HIST", "QRY_REP", "CHAVE", /*cPicture*/, 30, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	TRCell():New(oSection, "CT2_VALOR", "QRY_REP", "VALOR", /*cPicture*/, 15, /*lPixel*/, /*{|| code-block de impressao }*/, "LEFT", /*lLineBreak*/, "LEFT", /*lCellBreak*/, /*nColSpace*/, /*lAutoSize*/, /*nClrBack*/, /*nClrFore*/, .F.)
+	
+Return oReport
+
+/*/{Protheus.doc} fRepPrint
+Impressao do relatorio ESPZYN03
+@author Fabio Favaretto
+@since 10/10/2022
+@version 1.0
+@type function
+@obs Codigo gerado automaticamente pelo Autumn Code Maker
+@see http://autumncodemaker.com
+/*/
+
+Static Function fRepPrint(oReport)
+	Local aArea    := FWGetArea()
+	Local cQryReport  := ""
+	Local oSectDad := Nil
+	Local nAtual   := 0
+	Local nTotal   := 0
+	
+	//Pegando as secoes do relatorio
+	oSectDad := oReport:Section(1)
+	
+	//Montando consulta de dados
+	cQryReport += "SELECT 'CTB'AS TP, CT2_DEBITO, CT2_CREDIT, CT2_CCD, CT2_CCC, TRIM (CT2_HIST) AS CHAVE, "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_VALOR AS VALOR FROM CT2010 CT "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "WHERE "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "D_E_L_E_T_<> '*' AND "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_LOTE = '008840' AND "		+ CRLF
+	cQryReport += " "		+ CRLF
+	cQryReport += "CT2_DATA BETWEEN '" + dtos(MV_PAR01) + "' AND '" + dtos(MV_PAR02) + "'"		+ CRLF
+	
+	//Executando consulta e setando o total da regua
+	PlsQuery(cQryReport, "QRY_REP")
+	DbSelectArea("QRY_REP")
+	Count to nTotal
+	oReport:SetMeter(nTotal)
+	
+	//Enquanto houver dados
+	oSectDad:Init()
+	QRY_REP->(DbGoTop())
+	While ! QRY_REP->(Eof())
+	
+		//Incrementando a regua
+		nAtual++
+		oReport:SetMsgPrint("Imprimindo registro " + cValToChar(nAtual) + " de " + cValToChar(nTotal) + "...")
+		oReport:IncMeter()
+		
+		//Imprimindo a linha atual
+		oSectDad:PrintLine()
+		
+	
+
+
+		QRY_REP->(DbSkip())
+	EndDo
+	oSectDad:Finish()
+	QRY_REP->(DbCloseArea())
+	
+	FWRestArea(aArea)
+Return

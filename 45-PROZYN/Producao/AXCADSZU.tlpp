@@ -1,0 +1,15 @@
+//Bibliotecas
+#Include "Protheus.ch"
+ 
+User Function AxCadSZU()
+    Local aArea    := GetArea()
+    Local aAreaSZU  := SZU->(GetArea())
+    Local cDelOk   := ".T."
+    Local cFunTOk  := ".T."
+ 
+    //Chamando a tela de cadastros
+    AxCadastro('SZU', 'Grupo Comercial', cDelOk, cFunTOk)
+ 
+    RestArea(aAreaSZU)
+    RestArea(aArea)
+Return

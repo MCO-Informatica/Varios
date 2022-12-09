@@ -1,0 +1,66 @@
+#include "protheus.ch"
+#include "topconn.ch"
+
+User Function M460MARK()
+
+    Local _cMark   := PARAMIXB[1] // MARCA UTILIZADA
+    Local _lInvert := PARAMIXB[2] // SELECIONOU "MARCA TODOS"
+    Local _lRet 	:= .T.
+    Local cQuery	:= ""
+    Local cQuery2   := ""
+    Local _cAlias 	:= CriaTrab(Nil,.F.)
+    Local _cSC9     := CriaTrab(Nil,.F.)
+
+        cQuery := "SELECT "
+        cQuery += " C9_OK, C9_PEDIDO, C9_BLEST, C9_BLCRED, C9_ITEM, C9_PRODUTO "
+        cQuery += " FROM "
+        cQuery += " SC9010 "
+        cQuery += " WHERE "
+        cQuery += " C9_FILIAL ="+"'"+cFilAnt+"' " //-----> Pegando a Filial logada do sistema.
+        cQuery += " AND D_E_L_E_T_ = '' "
+        cQuery += " AND C9_NFISCAL = '' "
+        cQuery += " AND C9_SERIENF = '' "
+        cQuery += " AND C9_OK ="+"'"+_cMark+"' "
+        //cQuery += " AND C9_PEDIDO  ="+"'"+SC9->C9_PEDIDO+"' " //-----> Pegando o Pedido Posicionado na tela.
+
+        TCQuery cQuery NEW ALIAS (_cAlias)
+
+        (_cAlias)->(dbGoTop())
+
+        While !(_cAlias)->(Eof())
+
+            cQuery2 := " SELECT "
+            cQuery2 += " C9_OK, C9_PEDIDO, C9_BLEST, C9_BLCRED, C9_ITEM, C9_PRODUTO "
+            cQuery2 += " FROM "
+            cQuery2 += " SC9010 "
+            cQuery2 += " WHERE "
+            cQuery2 += " C9_FILIAL ="+"'"+cFilAnt+"' " //-----> Pegando a Filial logada do sistema.
+            cQuery2 += " AND D_E_L_E_T_ = '' "
+            cQuery2 += " AND C9_NFISCAL = '' "
+            cQuery2 += " AND C9_SERIENF = '' "
+            cQuery2 += " AND C9_PEDIDO ="+"'"+(_cAlias)->C9_PEDIDO+"' "
+
+
+            TCQuery cQuery2 NEW ALIAS (_cSC9)          
+
+            While !(_cSC9)->(Eof())
+
+                If (_cSC9)->C9_BLEST == "02" //---> Produto bloqueado por Estoque.
+                    MsgStop("Pedido "+(_cSC9)->C9_PEDIDO+" não pode ser faturado pois o Produto "+(_cSC9)->C9_PRODUTO+" foi bloqueado por Estoque. Favor verificar.","ATENÇÃO")
+                    _lRet := .F.
+                ELSEIF (_cSC9)->C9_BLCRED == "02" //---> Produto bloqueado por Crédito de Cliente.
+                    MsgStop("Pedido "+(_cSC9)->C9_PEDIDO+" não pode ser faturado pois o Produto "+(_cSC9)->C9_PRODUTO+" foi bloqueado por Crédito de Cliente. Favor verificar.","ATENÇÃO")
+                    _lRet := .F.
+                EndIf
+
+                (_cSC9)->(dbSkip())
+            
+            Enddo
+            (_cSC9)->(dbCloseArea())
+            (_cAlias)->(dbSkip())
+
+        EndDo
+
+    (_cAlias)->(dbCloseArea())
+
+Return(_lRet)

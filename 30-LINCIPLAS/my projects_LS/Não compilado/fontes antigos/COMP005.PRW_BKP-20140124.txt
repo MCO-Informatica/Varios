@@ -1,0 +1,691 @@
+#INCLUDE "PROTHEUS.CH"
+
+/*
++=========================================================+
+|Programa: COMP005 |Autor: Antonio Carlos |Data: 03/03/10 |
++=========================================================+
+|Descricao: Rotina responsavel pela Aprovação/Bloqueio do |
+|Pedido de Compra via e-mail.                             |
++=========================================================+
+|Uso: Especifico Laselva                                  |
++=========================================================+
+*/
+
+User Function COMP005(oProcess)
+
+Local _cEmail
+Local _cHtm			:= ""
+Local _cRetorn		:= ""
+Local _cGrupo		:= Space(6)
+Local _cHtm			:= ""
+Local _cObs			:= ""
+Local _nValPed		:= 0
+Local _nSaldo		:= 0
+Local _nSaldoI		:= 0
+Local _nVlrPed		:= 0
+Local _nContr		:= 0
+Local nTotal		:= 0
+Local _lAprov		:= .T.
+Local _lAprova		:= .F.
+Local _cEmail
+Public _cNumPed		:= ""
+Public _aAprov		:= {}
+Public _cRespS		:= Space(6)
+Public _cRespSo		:= ""
+Public _cUser		:= Space(6)
+Public _cComprad	:= ""
+Public _cGrpApv		:= Space(6)
+
+ConOut("COMP005 - CNUMEMP: "  )
+ConOut("COMP005 - CNUMEMP: " + cNumEmp )
+ConOut("COMP005 - SIGAMAT: " + SM0->M0_FILIAL )
+
+_cFilial			:= oProcess:oHtml:RetByName("EMPRESA")
+_cNumPed			:= oProcess:oHtml:RetByName("PEDIDO")
+_cRetorn			:= oProcess:oHtml:RetByName("RBAPROVA")
+_cUser				:= oProcess:oHtml:RetByName("RESPUSR")
+_cComprad			:= oProcess:oHtml:RetByName("COMPRADOR")
+_cGrpApv			:= Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_COD")
+_cObsA				:= Alltrim(oProcess:oHtml:RetByName("S2"))
+
+/*
+_cFilial			:= "01"
+_cNumPed			:="588383"
+_cRetorn			:= "S"
+_cUser				:= "000312"
+_cComprad			:= "aguilherme"
+_cGrpApv			:= Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_COD")
+_cObsA				:= "TESTE"
+*/
+conout("COMP005 - Retorno: "+_cRetorn)
+If Substr(_cRetorn,1,1) == "S"
+	
+	DbSelectArea("SCR")
+	SCR->( DbSetOrder(2) )
+	If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+_cUser ) )
+		
+		_nValPed := SCR->CR_TOTAL
+		
+		conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+		conout("COMP005 ANTES  - CR_STATUS - "+SCR->CR_STATUS)
+		conout('COMP005 ANTES  - SCR->CR_NIVEL == "01" .And. SCR->CR_STATUS <> "03"')
+		If SCR->CR_NIVEL == "01" .And. SCR->CR_STATUS <> "03"
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS  - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 DEPOIS  - SCR->CR_NIVEL == "01" .And. SCR->CR_STATUS <> "03"')
+			
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB	:= dDataBase
+			SCR->CR_STATUS	:= "03"
+			SCR->CR_USERLIB := _cUser
+			SCR->CR_VALLIB	:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM := "D"
+			SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO 	:= _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"02" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "02"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			DbSelectArea("SC7")
+			SC7->( DbSetOrder(1) )
+			SC7->( DbSeek( Substr(_cFilial,1,2)+_cNumPed ) )
+			
+			_cGrupo	:= SC7->C7_APROV
+			
+			If Empty(SC7->C7_NUMSC)
+				_cResp := SC7->C7_USER
+			Else
+				DbSelectArea("SC1")
+				SC1->( DbsetOrder(1) )
+				SC1->( DbSeek( Substr(_cFilial,1,2)+SC7->C7_NUMSC ) )
+				_cResp := SC1->C1_USER
+			EndIf
+			
+			DbSelectArea("SY1")
+			SY1->( DbSetOrder(3) )
+			If SY1->( Dbseek(xFilial("SY1")+_cResp) )
+				
+				DbSelectarea("SAL")
+				SAL->( DbSetOrder(1) )
+				If SAL->( DbSeek(xFilial("SAL")+IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo ) ) )
+					While SAL->( !Eof() ) .And. xFilial("SAL") == SAL->AL_FILIAL .And. SAL->AL_COD == IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo ) //SY1->Y1_GRAPROV
+						If SAL->AL_NIVEL == "02"
+							Aadd(_aAProv,{SAL->AL_USER,UsrRetMail(SAL->AL_USER)})
+						EndIf
+						SAL->( Dbskip() )
+					EndDo
+				EndIf
+				
+			EndIf
+			
+			oProcess:Finish()
+			
+			For _nI := 1 To Len(_aAProv)
+				
+				// Chama função responsável por enviar o workflow para aprovação do PC
+				conout("COMP005 - WFPC1")
+				U_WFPC()
+				
+			Next _nI
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 ANTES - ElseIf SCR->CR_NIVEL == "02" .And. SCR->CR_STATUS <> "03"')
+		ElseIf SCR->CR_NIVEL == "02" .And. SCR->CR_STATUS <> "03"
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 DEPOIS - ElseIf SCR->CR_NIVEL == "02" .And. SCR->CR_STATUS <> "03"')
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB		:= dDataBase
+			SCR->CR_STATUS		:= "03"
+			SCR->CR_USERLIB 	:= _cUser
+			SCR->CR_VALLIB		:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM 	:= "D"
+			SCR->CR_LIBAPRO 	:= SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO 	:= _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"03" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "02"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			DbSelectArea("SC7")
+			SC7->( DbSetOrder(1) )
+			SC7->( DbSeek( Substr(_cFilial,1,2)+_cNumPed ) )
+			
+			DbSelectArea("SC7")
+			SC7->( DbSetOrder(1) )
+			SC7->( DbSeek( Substr(_cFilial,1,2)+_cNumPed ) )
+			
+			_cGrupo := SC7->C7_APROV
+			
+			If Empty(SC7->C7_NUMSC)
+				_cResp := SC7->C7_USER
+			Else
+				DbSelectArea("SC1")
+				SC1->( DbsetOrder(1) )
+				SC1->( DbSeek( Substr(_cFilial,1,2)+SC7->C7_NUMSC ) )
+				_cResp := SC1->C1_USER
+			EndIf
+			
+			DbSelectArea("SY1")
+			SY1->( DbSetOrder(3) )
+			If SY1->( Dbseek(xFilial("SY1")+_cResp) )
+				
+				DbSelectarea("SAL")
+				SAL->( DbSetOrder(1) )
+				If SAL->( DbSeek(xFilial("SAL")+IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo )) )
+					While SAL->( !Eof() ) .And. xFilial("SAL") == SAL->AL_FILIAL .And. SAL->AL_COD == IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo ) //SY1->Y1_GRAPROV
+						If SAL->AL_NIVEL == "03"
+							Aadd(_aAProv,{SAL->AL_USER,UsrRetMail(SAL->AL_USER)})
+						EndIf
+						SAL->( Dbskip() )
+					EndDo
+				EndIf
+				
+			EndIf
+			
+			oProcess:Finish()
+			
+			conout("COMP005 ANTES - _cGrupo - "+_cGrupo+"-"+GetMv("MV_GRPRFIN"))
+			conout("COMP005 ANTES - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 ANTES - _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRGER")')
+			//If _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRGER")
+			If SCR->CR_TOTAL <= GetMv("MV_VLRGER")
+				conout("COMP005 DEPOIS - _cGrupo - "+_cGrupo+"-"+GetMv("MV_GRPRFIN"))
+				conout("COMP005 DEPOIS - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+				conout('COMP005 DEPOIS - _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRGER")')
+				
+				// Chama função que envia alerta de aprovação do Workflow
+				conout("COMP005 - WFPCA1")
+				U_AWFPC()
+				
+			Else
+				
+				For _nI := 1 To Len(_aAProv)
+					
+					// Chama função responsável por enviar o workflow para aprovação do PC
+					conout("COMP005 - WFPC2")
+					U_WFPC()
+					
+				Next _nI
+				
+			EndIf
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout("COMP005 ANTES - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 ANTES - ( SCR->CR_NIVEL == "03" .And. SCR->CR_TOTAL > GetMv("MV_VLRGER") .And. SCR->CR_STATUS <> "03" )')
+		//ElseIf ( SCR->CR_NIVEL == "03" .And. SCR->CR_TOTAL > GetMv("MV_VLRGER") .And. SCR->CR_STATUS <> "03" )
+		ElseIf ( SCR->CR_NIVEL == "03" .And. SCR->CR_STATUS <> "03" )
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout("COMP005 DEPOIS - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 DEPOIS - ( SCR->CR_NIVEL == "03" .And. SCR->CR_TOTAL > GetMv("MV_VLRGER") .And. SCR->CR_STATUS <> "03" )')
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB	:= dDataBase
+			SCR->CR_STATUS	:= "03"
+			SCR->CR_USERLIB := _cUser
+			SCR->CR_VALLIB	:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM := "D"
+			SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO := _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"04" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "02"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			DbSelectArea("SC7")
+			SC7->( DbSetOrder(1) )
+			SC7->( DbSeek( Substr(_cFilial,1,2)+_cNumPed ) )
+			
+			_cGrupo := SC7->C7_APROV
+			
+			If Empty(SC7->C7_NUMSC)
+				_cResp := SC7->C7_USER
+			Else
+				DbSelectArea("SC1")
+				SC1->( DbsetOrder(1) )
+				SC1->( DbSeek( Substr(_cFilial,1,2)+SC7->C7_NUMSC ) )
+				_cResp := SC1->C1_USER
+			EndIf
+			
+			DbSelectArea("SY1")
+			SY1->( DbSetOrder(3) )
+			If SY1->( Dbseek(xFilial("SY1")+_cResp) )
+				
+				DbSelectarea("SAL")
+				SAL->( DbSetOrder(1) )
+				If SAL->( DbSeek(xFilial("SAL")+IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo )) )
+					While SAL->( !Eof() ) .And. xFilial("SAL") == SAL->AL_FILIAL .And. SAL->AL_COD == IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo ) //SY1->Y1_GRAPROV
+						If SAL->AL_NIVEL == "04"
+							Aadd(_aAProv,{SAL->AL_USER,UsrRetMail(SAL->AL_USER)})
+						EndIf
+						SAL->( Dbskip() )
+					EndDo
+				EndIf
+				
+			EndIf
+			
+			oProcess:Finish()
+			
+			conout("COMP005 ANTES - _cGrupo - "+_cGrupo+"-"+GetMv("MV_GRPRFIN"))
+			conout("COMP005 ANTES - CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 ANTES - _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRGER")')
+			//If _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRDIR")
+			If SCR->CR_TOTAL <= GetMv("MV_VLRDIR")
+				conout("COMP005 DEPOIS - _cGrupo - "+_cGrupo+"-"+GetMv("MV_GRPRFIN"))
+				conout("COMP005 DEPOIS - CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+				conout('COMP005 DEPOIS - _cGrupo $ GetMv("MV_GRPRFIN") .And. SCR->CR_TOTAL <= GetMv("MV_VLRGER")')
+				
+				DbSelectArea("SCR")
+				SCR->( DbSetOrder(1) )
+				SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed ) )
+				
+				While SCR->( !Eof() ) .And. Substr(_cFilial,1,2) == SCR->CR_FILIAL .And. Alltrim(SCR->CR_NUM) == _cNumPed
+					
+					If SCR->CR_STATUS <> "03"
+						
+						RecLock("SCR",.F.)
+						SCR->CR_DATALIB	:= dDataBase
+						SCR->CR_STATUS	:= "03"
+						SCR->CR_USERLIB := _cUser
+						SCR->CR_VALLIB	:= SCR->CR_TOTAL
+						SCR->CR_TIPOLIM := "D"
+						SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+						SCR->( MsUnLock() )
+						
+					EndIf
+					
+					SCR->( DbSkip() )
+					
+				EndDo
+				
+				DbSelectArea("SCS")
+				SCS->( DbSetOrder(1) )
+				If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+					_nSaldo := SCS->CS_SALDO
+					RecLock("SCS",.F.)
+					SCS->CS_FILIAL	:= xFilial("SCS")
+					SCS->CS_SALDO := _nSaldo - _nValPed
+					SCS->( MsUnLock() )
+				Else
+					_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+					RecLock("SCS",.T.)
+					SCS->CS_FILIAL	:= xFilial("SCS")
+					SCS->CS_COD		:= _cUser
+					SCS->CS_DATA	:= dDatabase
+					SCS->CS_MOEDA	:= 1
+					SCS->CS_SALDO	:= _nSaldoI - _nValPed
+					SCS->CS_APROV	:= _cGrpApv
+					SCS->( MsUnLock() )
+				EndIf
+				
+				// Chama função que envia alerta de aprovação do Workflow
+				conout("COMP005 - WFPCA2")
+				U_AWFPC()
+				
+			Else
+				
+				For _nI := 1 To Len(_aAProv)
+					
+					// Chama função responsável por enviar o workflow para aprovação do PC
+					conout("COMP005 - WFPC3")
+					U_WFPC()
+					
+				Next _nI
+				
+			EndIf
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 ANTES - SCR->CR_NIVEL == "03" .And. SCR->CR_STATUS <> "03"')
+		ElseIf SCR->CR_NIVEL == "03" .And. SCR->CR_STATUS <> "03"
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 DEPOIS - SCR->CR_NIVEL == "03" .And. SCR->CR_STATUS <> "03"')
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB	:= dDataBase
+			SCR->CR_STATUS	:= "03"
+			SCR->CR_USERLIB := _cUser
+			SCR->CR_VALLIB	:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM := "D"
+			SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO := _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"04" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "02"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			// Chama função que envia alerta de aprovação do Workflow
+			conout("COMP005 - WFPCA3")
+			U_AWFPC()
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout("COMP005 ANTES - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 ANTES - ( SCR->CR_NIVEL == "04" .And. SCR->CR_TOTAL > GetMv("MV_VLRDIR") .And. SCR->CR_STATUS <> "03" )')
+		ElseIf ( SCR->CR_NIVEL == "04" .And. SCR->CR_TOTAL > GetMv("MV_VLRDIR") .And. SCR->CR_STATUS <> "03" )
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout("COMP005 DEPOIS - SCR->CR_TOTAL - "+alltrim(str(SCR->CR_TOTAL))+"-"+alltrim(str(GetMv("MV_VLRGER"))))
+			conout('COMP005 DEPOIS - ( SCR->CR_NIVEL == "04" .And. SCR->CR_TOTAL > GetMv("MV_VLRDIR") .And. SCR->CR_STATUS <> "03" )')
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB	:= dDataBase
+			SCR->CR_STATUS	:= "03"
+			SCR->CR_USERLIB := _cUser
+			SCR->CR_VALLIB	:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM := "D"
+			SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO := _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"05" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "02"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			DbSelectArea("SC7")
+			SC7->( DbSetOrder(1) )
+			SC7->( DbSeek( Substr(_cFilial,1,2)+_cNumPed ) )
+			
+			_cGrupo := SC7->C7_APROV
+			
+			If Empty(SC7->C7_NUMSC)
+				_cResp := SC7->C7_USER
+			Else
+				DbSelectArea("SC1")
+				SC1->( DbsetOrder(1) )
+				SC1->( DbSeek( Substr(_cFilial,1,2)+SC7->C7_NUMSC ) )
+				_cResp := SC1->C1_USER
+			EndIf
+			
+			DbSelectArea("SY1")
+			SY1->( DbSetOrder(3) )
+			If SY1->( Dbseek(xFilial("SY1")+_cResp) )
+				
+				DbSelectarea("SAL")
+				SAL->( DbSetOrder(1) )
+				If SAL->( DbSeek(xFilial("SAL")+IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo )) )
+					While SAL->( !Eof() ) .And. xFilial("SAL") == SAL->AL_FILIAL .And. SAL->AL_COD == IIF(EMPTY(_cGrupo),SY1->Y1_GRAPROV,_cGrupo ) //SY1->Y1_GRAPROV
+						If SAL->AL_NIVEL == "05"
+							Aadd(_aAProv,{SAL->AL_USER,UsrRetMail(SAL->AL_USER)})
+						EndIf
+						SAL->( Dbskip() )
+					EndDo
+				EndIf
+				
+			EndIf
+			
+			oProcess:Finish()
+			
+			If _cGrupo $ GetMv("MV_GRPRFIN")
+				
+				// Chama função que envia alerta de aprovação do Workflow
+				conout("COMP005 - WFPCA4")
+				U_AWFPC()
+				
+			Else
+				
+				For _nI := 1 To Len(_aAProv)
+					
+					// Chama função responsável por enviar o workflow para aprovação do PC
+					conout("COMP005 - WFPC4")
+					U_WFPC()
+					
+				Next _nI
+				
+			EndIf
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 ANTES - SCR->CR_NIVEL == "04" .And. SCR->CR_STATUS <> "03"')
+		ElseIf SCR->CR_NIVEL == "04" .And. SCR->CR_STATUS <> "03"
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 DEPOIS - SCR->CR_NIVEL == "04" .And. SCR->CR_STATUS <> "03"')
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed ) )
+			
+			While SCR->( !Eof() ) .And. Substr(_cFilial,1,2) == SCR->CR_FILIAL .And. Alltrim(SCR->CR_NUM) == _cNumPed
+				
+				If SCR->CR_STATUS <> "03"
+					
+					RecLock("SCR",.F.)
+					SCR->CR_DATALIB	:= dDataBase
+					SCR->CR_STATUS	:= "03"
+					SCR->CR_USERLIB := _cUser
+					SCR->CR_VALLIB	:= SCR->CR_TOTAL
+					SCR->CR_TIPOLIM := "D"
+					SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+					SCR->( MsUnLock() )
+					
+				EndIf
+				
+				SCR->( DbSkip() )
+				
+			EndDo
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO := _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			DbSelectArea("SCR")
+			SCR->( DbSetOrder(1) )
+			If SCR->( DbSeek( Substr(_cFilial,1,2)+"PC"+_cNumPed+Space(44)+"05" ) )
+				
+				RecLock("SCR",.F.)
+				SCR->CR_STATUS	:= "03"
+				SCR->( MsUnLock() )
+				
+			EndIf
+			
+			// Chama função que envia alerta de aprovação do Workflow
+			conout("COMP005 - WFPCA5")
+			U_AWFPC()
+			
+			conout("COMP005 ANTES - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 ANTES - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 ANTES - SCR->CR_NIVEL == "05" .And. SCR->CR_STATUS <> "03"')
+		ElseIf SCR->CR_NIVEL == "05" .And. SCR->CR_STATUS <> "03"
+			conout("COMP005 DEPOIS - CR_NIVEL - "+SCR->CR_NIVEL)
+			conout("COMP005 DEPOIS - CR_STATUS - "+SCR->CR_STATUS)
+			conout('COMP005 DEPOIS - SCR->CR_NIVEL == "05" .And. SCR->CR_STATUS <> "03"')
+			
+			RecLock("SCR",.F.)
+			SCR->CR_DATALIB	:= dDataBase
+			SCR->CR_STATUS	:= "03"
+			SCR->CR_USERLIB := _cUser
+			SCR->CR_VALLIB	:= SCR->CR_TOTAL
+			SCR->CR_TIPOLIM := "D"
+			SCR->CR_LIBAPRO := SCR->CR_LIBAPRO
+			SCR->( MsUnLock() )
+			
+			DbSelectArea("SCS")
+			SCS->( DbSetOrder(1) )
+			If SCS->( DbSeek( xFilial("SCS")+_cUser+DToS(dDatabase) ) )
+				_nSaldo := SCS->CS_SALDO
+				RecLock("SCS",.F.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_SALDO := _nSaldo - _nValPed
+				SCS->( MsUnLock() )
+			Else
+				_nSaldoI := Posicione("SAK",2,xFilial("SAK")+_cUser,"AK_LIMITE")
+				RecLock("SCS",.T.)
+				SCS->CS_FILIAL	:= xFilial("SCS")
+				SCS->CS_COD		:= _cUser
+				SCS->CS_DATA	:= dDatabase
+				SCS->CS_MOEDA	:= 1
+				SCS->CS_SALDO	:= _nSaldoI - _nValPed
+				SCS->CS_APROV	:= _cGrpApv
+				SCS->( MsUnLock() )
+			EndIf
+			
+			// Chama função que envia alerta de aprovação do Workflow
+			conout("COMP005 - WFPCA6")
+			U_AWFPC()
+			
+		EndIf
+		
+	EndIf
+	
+Else
+	
+	// Chama função que envia alerta de reprovação do Workflow
+	conout("COMP005 - WFPCR1")
+	U_RWFPC()
+	
+EndIf
+
+Return

@@ -1,0 +1,261 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "COLORS.CH"
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+
+User Function EtiqAmostra()
+    Local aPergs := {}
+    Local cOP  := ''
+    Local cImp  := ''
+    Local cCodEtiq := ""
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+    // Local nQ := 0
+
+    cOP := Space(TamSX3('B1_COD')[01])
+    cImp := Space(TamSX3('CB5_CODIGO')[01])
+    // MV_PAR02 := 1.1
+    
+    aAdd(aPergs, {1, "Ordem de Produção",  cOP,  "", ".T.", "SC2AMO", ".T.", 120,  .T.})
+    aAdd(aPergs, {1, "Peso", 0,  "@E 999.999", "Positivo()", "", ".T.", 80,  .T.})
+    // aAdd(aPergs, {1, "Impressora",  cImp,  "", ".T.", "CB5PCP", ".T.", 120,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        DbSelectArea("SC2")
+        SC2->(DbSetOrder(1))
+        If !SC2->(DbSeek(xFilial("SC2")+MV_PAR01))
+            MsgAlert("Ordem de Produção não encontrada.","Atenção!")
+            Return
+        EndIf
+
+        // DbSelectArea("CB5")
+        // CB5->(DbSetOrder(1))
+        // If !CB5->(DbSeek(xFilial("CB5")+MV_PAR03))
+        //     MsgAlert("Impressora não encontrada.","Atenção!")
+        //     Return
+        // EndIf
+
+
+        cCodEtiq := CriarEtiqueta()
+        // cCodEtiq := "0001609040"
+
+        ImprimeFW(cCodEtiq)
+
+        RESET ENVIRONMENT
+
+
+        
+    EndIf
+
+Return
+
+Static Function CriarEtiqueta()
+    Local cCodEti := ""
+    GetSxeNum("CB0","CB0_CODETIQ")
+    ConfirmSx8()
+
+    //Realiza a gravação da tabela CB0
+    cCodEti := GravaCB0(SC2->C2_PRODUTO,;   //Produto
+    MV_PAR02,; 						//Quantidade
+    "",; 									//Usuario
+    "",; 									//Nf de Entrada
+    "",; 									//Serie de Entrada
+    "",; 									//Codigo do fornecedor
+    "",; 									//Loja
+    "",;									//Pedido compra
+    "",; 									//Localização
+    SC2->C2_LOCAL, ;					    //Armazem
+    SC2->(C2_NUM+C2_ITEM+C2_SEQUEN),;       //Codigo da OP
+    "",; 									//Sequencia
+    "",; 									//Nf de Saida
+    "",; 									//Serie de Saida
+    "",; 									//Etiqueta do cliente
+    SC2->C2_LOTECTL,; 				        //Lote
+    "",;									//Sub lote
+    SC2->C2_DTVALID,; 			            //Data de validade
+    "")	
+Return cCodEti
+
+Static Function ImprimeFW(cCodEtiq)
+	Local oPrint	:= Nil
+	// Local cSession	:= GetPrinterSession()
+	Local cNomeArq	:= "EtiqAmostra"+DtoS(MsDate())+STRTRAN(Time(), ":", "")
+	Local cLogo      	:= FisxLogo("1")
+
+	// Local oFnt32n	:= TFont():New("Arial Black",,32 ,,.T.,,,,,.F.,.F.)
+	Local oFnt10	:= TFont():New("Arial",9 ,,.F.,,,,,.F.,.F.)
+	Local oFnt12n	:= TFont():New("Arial",,12 ,,.T.,,,,,.F.,.F.)
+	Local oFnt14n	:= TFont():New("Arial",,12 ,,.T.,,,,,.F.,.F.)
+	Local oFnt14	:= TFont():New("Arial",,13 ,,.F.,,,,,.F.,.F.)
+	Local oFnt12	:= TFont():New("Arial",,11 ,,.F.,,,,,.F.,.F.)
+	// Local oFnt10	:= TFont():New("Arial",,10 ,,.F.,,,,,.F.,.F.)
+	Local oFnt18n	:= TFont():New("Arial",,16 ,,.T.,,,,,.F.,.F.)
+
+	cLogo := GetSrvProfString("Startpath","") + "lgrl0101.bmp"
+
+    DbSelectArea("CB0")
+    CB0->(DbSetOrder(1))
+    If !CB0->(DbSeek(xFilial("CB0")+cCodEtiq))
+        MsgAlert("Etiqueta não encontrada.","Atenção!")
+    EndIf
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+SC2->C2_PRODUTO))
+    
+    // CB5SetImp(MV_PAR03)
+
+    // fwWriteProfString( cSession, "LOCAL"    	,"SERVER"    , .T. )
+    // fwWriteProfString( cSession, "PRINTTYPE"	,"SPOOL" 	 , .T. )
+    // fwWriteProfString( cSession, "ORIENTATION"	,"LANDSCAPE" , .T. )
+    // fwWriteProfString( cSession, "DEFAULT"		, MV_PAR03, .T.)
+
+	oPrint 	:= FWMSPrinter():New(cNomeArq,IMP_PDF,.F.,,.T.,,,,,.F.)
+    // oPrint 	:= FWMSPrinter():New(cNomeArq,,.F.,,.T.,,,,.T.)
+	oPrint:setDevice(IMP_PDF)
+	oPrint:cPathPDF:="C:\TEMP\"
+    // oPrint:setDevice(IMP_SPOOL)
+    oPrint:SetLandscape()
+    oPrint:SetMargin(0,0,0,0)
+    // oPrint:Setup()
+    oPrint:setPaperSize(0,70,100)
+
+	//Inicia a pagina
+	oPrint:StartPage()
+
+    // oPrint:Box(000,000,215,266)
+	oPrint:SayBitmap(005,005, cLogo, 60, 60)//Imagem diversos
+    oPrint:SayAlign(030, 60, AllTrim(SB1->B1_DESC), oFnt18n, 206 ,060,,2,0)
+    oPrint:SayAlign(065, 000, "Amostra para teste sem valor comercial.", oFnt12, 266 ,15,,2,0)
+
+    oPrint:SayAlign(80, 000, "Código Produto", oFnt14n, 133 ,15,,2,2)
+    oPrint:SayAlign(92, 000, AllTrim(SB1->B1_COD), oFnt14, 133 ,15,,2,2)
+    oPrint:SayAlign(80, 133, "Peso", oFnt14n, 133 ,15,,2,2)
+    oPrint:SayAlign(92, 133, AllTrim(Transform(MV_PAR02,"@E 9,999.999"))+Trim(SC2->C2_UM), oFnt14, 133 ,15,,2,2)
+    
+    oPrint:SayAlign(105, 000, "Lote", oFnt14n, 133 ,15,,2,2)
+    oPrint:SayAlign(117, 000, AllTrim(SC2->C2_LOTECTL), oFnt14, 133 ,15,,2,2)
+    oPrint:SayAlign(105, 133, "Validade", oFnt14n, 133 ,15,,2,2)
+    oPrint:SayAlign(117, 133, DtoC(SC2->C2_DTVALID), oFnt14, 133 ,15,,2,2)
+
+	// oPrint:FWMSBAR("CODE128",12, 5,AllTrim(cCodEtiq),oPrint,,,, 0.025,1.0,.T.,,,.F.,,,)
+    oPrint:Code128(138/*nRow*/ ,66/*nCol*/, AllTrim(cCodEtiq)/*cCode*/,1/*nWidth*/,24/*nHeigth*/,.F./*lSay*/,,133)
+    oPrint:SayAlign(165, 66, AllTrim(cCodEtiq), oFnt10, 133 ,15,,2,2)
+    
+    oPrint:SayAlign(176, 000, "Prozyn Biosolutions", oFnt12N, 266 ,15,,2,2)
+    oPrint:SayAlign(188, 000, "Tel: 55.11.3732-0000 - www.prozyn.com.br", oFnt10, 266 ,15,,2,2)
+    oPrint:SayAlign(198, 000, "Rua Dr. Paulo Leite de Oliveira, 199 | 05551-020 | São Paulo", oFnt10, 266 ,15,,2,2)
+    
+	//Finaliza a pagina
+	oPrint:EndPage()
+    
+	oPrint:Preview()
+    FreeObj(oPrint)
+Return
+
+Static Function Imprime(cCodEtiq)
+    DbSelectArea("CB0")
+    CB0->(DbSetOrder(1))
+    If !CB0->(DbSeek(xFilial("CB0")+cCodEtiq))
+        MsgAlert("Etiqueta não encontrada.","Atenção!")
+    EndIf
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+SC2->C2_PRODUTO))
+
+    CB5SetImp(MV_PAR03)
+
+	MSCBLOADGRF("SIGA.PCX")
+	MSCBBEGIN(1,6)
+	MSCBGRAFIC(04,02,"SIGA")
+    cFonte1 := "0"
+    cFonte2 := "0"
+    cFonte3 := "0"
+    cFonte4 := "A"
+    cFonte5 := "0"
+    cTam1 := "062,062"
+    cTam2 := "035,035"
+    cTam3 := "045,045"
+    cTam4 := "032,022"
+    cTam5 := "028,28"
+
+    MSCBSAY(72,10,Trim(SB1->B1_DESC),"R",cFonte1,cTam1)
+    MSCBSAY(62,10,"Amostra para teste sem valor comercial","R",cFonte2,cTam2)
+
+    MSCBSAY(52,10,"Código Produto", "R", cFonte3, cTam3)
+    MSCBSAY(45,10,AllTrim(CB0->CB0_CODPRO), "R", cFonte4, cTam4)
+    MSCBSAY(37,10,"Lote", "R", cFonte3, cTam3)
+    MSCBSAY(30,10,AllTrim(CB0->CB0_LOTE), "R", cFonte4, cTam4)
+
+    
+    MSCBSAY(52,60,"Peso", "R", cFonte3, cTam3)
+    MSCBSAY(45,60,cValtoChar(CB0->CB0_QTDE)+Trim(SC2->C2_UM), "R", cFonte4, cTam4)
+    MSCBSAY(37,60,"Validade", "R", cFonte3, cTam3)
+    MSCBSAY(30,60,DtoC(CB0->CB0_DTVLD), "R", cFonte4, cTam4)
+
+    MSCBSAY(20,45,"Prozyn Biosolutions","R",cFonte2,cTam2)
+    MSCBSAY(15,30,"Tel: 55.11.2732-9000 - www.prozyn.com.br","R",cFonte5,cTam5)
+    MSCBSAY(10,15,"Rua Dr. Paulo Leite de Oliveira, 199 | 05551-020 | São Paulo","R",cFonte5,cTam5)
+
+	MSCBSAY(40,89,cCodEtiq,"N",cFonte5,cTam5)
+	MSCBSAYBAR(24,92,cCodEtiq,"N","MB07",11,.F.,.F.,.F.,,3,1,.F.,.F.,"1",.T.)
+    
+    MSCBInfoEti("Amostra","100X30")
+    sConteudo:=MSCBEND()
+    Conout(sConteudo)
+    
+    MSCBCLOSEPRINTER()
+Return
+
+Static Function GravaCB0(cProd, nQtd, cUsr, cNfEntr, cSerieEntr, cCodFor, cLoja, cPedCom,cLocaliz, cArmaz, ;
+	cOp, cNumSeq, cNfSaida, cSerieSaid, cEtiqCli, cLote, cSbLote, dDtValid, cCentroCust)
+
+	Local aArea 		:= GetArea()
+	Local aConteudo		:= {}
+
+	Default cProd 		:= ""
+	Default nQtd		:= 0
+	Default cUsr		:= ""
+	Default cNfEntr		:= ""
+	Default cSerieEntr	:= ""
+	Default cCodFor		:= ""
+	Default cLoja		:= ""
+	Default cLocaliz	:= ""
+	Default cArmaz		:= ""
+	Default cOp			:= ""
+	Default cNumSeq		:= ""
+	Default cNfSaida	:= ""
+	Default cSerieSaid	:= ""
+	Default cEtiqCli	:= ""
+	Default cLote		:= ""
+	Default cSbLote		:= ""
+	Default dDtValid	:= ""
+	Default cCentroCust	:= ""
+
+	aConteudo := {cProd,; 
+	nQtd,; 
+	cUsr,; 
+	cNfEntr,; 
+	cSerieEntr,; 
+	cCodFor,; 
+	cLoja,;
+	cPedCom,; 
+	cLocaliz,; 
+	cArmaz, ;
+	cOp,; 
+	cNumSeq,; 
+	cNfSaida,; 
+	cSerieSaid,; 
+	cEtiqCli,; 
+	cLote,; 
+	cSbLote,; 
+	dDtValid,; 
+	cCentroCust,;
+	Nil,Nil,Nil,Nil,Nil,Nil}
+
+	cRet := CBGrvEti("01",aConteudo, Nil)
+
+	RestArea(aArea)
+Return cRet

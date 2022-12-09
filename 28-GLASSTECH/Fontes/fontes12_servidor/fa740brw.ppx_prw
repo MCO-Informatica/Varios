@@ -1,0 +1,35 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function U_FA740BRW()
+
+LOCAL _aRotina := ParamIxb
+
+
+
+
+aRotPre :=	{ { "Emissão Individual", "U_P_FIR009( 'I' )", 0 , 4}, { "Pré-Nota"          , "U_P_FIR009( 'P' )", 0 , 4} }
+
+
+
+
+
+_aRotina := { { "Boletos Itaú"    , aRotPre     , 0, 6 }, { "Atualiza Cobr."  , "U_CTARCIMP", 0, 4 }, { "Consulta &título", "FINC040(2)", 0, 4 } }
+
+Return( _aRotina )

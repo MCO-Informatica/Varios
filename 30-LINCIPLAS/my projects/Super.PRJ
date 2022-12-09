@@ -1,0 +1,60 @@
+Group Super
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=2
+   Project Faturamento
+      FoldersCount=2
+      Folder Controle_Lote
+         VSSPath=Fontes
+         FilesCount=7
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\MT250EST.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\MT250GREST.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\SD1100E.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\SD3250I.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\SD1100I.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\INCLOT01.PRW
+             Type=T
+         End
+         File \TOTVS11\Microsiga\Protheus\my projects\LOTE\AXCADSC9.PRW
+             Type=T
+         End
+      End
+      Folder Etiquetas
+         VSSPath=Definições
+         FilesCount=1
+         File \TOTVS11\Microsiga\Protheus\my projects\ETIQUETAS\IMPETQ.prw
+             Type=T
+         End
+      End
+   End
+   Project PCP
+      FoldersCount=1
+      Folder Ponto_de_entrada
+         VSSPath=Nova Pasta1
+         FilesCount=1
+         File \TOTVS11\Microsiga\Protheus\my projects\PCP\MTA650I.PRW
+             Type=T
+         End
+      End
+   End
+End

@@ -1,0 +1,80 @@
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Dialog.ch"
+#line 28 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Font.ch"
+#line 29 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PTMenu.ch"
+#line 31 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Print.ch"
+#line 33 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Colors.ch"
+#line 35 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Folder.ch"
+#line 37 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\msobject.ch"
+#line 38 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\VKey.ch"
+#line 42 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\WinApi.ch"
+#line 44 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCommand.ch"
+#line 47 "protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCSS.CH"
+#line 50 "protheus.ch"
+#line 18 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\se5fi080.prw"
+Function U_SE5FI080()
+
+LOCAL _cOrigem := 0
+LOCAL _nResult := {}
+Local cCamposE5 := PARAMIXB
+
+If ProcName( 5 ) = "FINA080"
+
+    _cData := DtoS( dBaixa )
+    _cDta  := Substr( _cData, 1, 4 )
+    _cDta  += "-"
+    _cDta  += Substr( _cData, 5, 2 )
+    _cDta  += "-"
+    _cDta  += Substr( _cData, 7, 2 )
+
+    _cData := DtoS( dDatabase )
+    _cMvt  := Substr( _cData, 1, 4 )
+    _cMvt  += "-"
+    _cMvt  += Substr( _cData, 5, 2 )
+    _cMvt  += "-"
+    _cMvt  += Substr( _cData, 7, 2 )
+
+
+
+	DBSelectArea("SA6")
+	SA6->(DBSetOrder(1))
+	SA6->(DBSeek(xFilial("SA6") + CBANCO + CAGENCIA + CCONTA))
+
+
+
+
+
+
+
+
+
+
+
+
+
+	_nResult := TCSPExec("f300SE5", Val( SE2->E2_IDMOV ), cValToChar(SA6->A6_IDCONTA), _cDta, Val( cCheque ), rTrim( SE2->E2_NUM ) + "/" +SE2->E2_PARCELA + " " +rTrim( SE2->E2_NOMFOR ), nJuros  , nValPgto, _cMvt   , "P", "SE5FI080", SE2->E2_ORIGBD )
+
+
+
+
+
+
+
+
+
+
+
+
+EndIf
+
+Return cCamposE5

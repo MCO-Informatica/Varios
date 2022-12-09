@@ -1,0 +1,27 @@
+#include "rwmake.ch"
+
+//------------------------------------------------------------------------------------
+/*/{Protheus.doc} SD1100I
+Ponto de Entrada para automatizar o preenchimento de informacoes referentes a
+   Imposto ST no documento de entrada, utilizados para rotinas de Ressarcimento Cat17
+
+@author		DayHome
+@since		25/09/2015
+@version	P11
+@obs		Parametros: Nenhum
+/*/
+//-----------------------------------------------------------------------------------
+
+User Function SD1100I()
+
+LOCAL _aArea    := GetArea()
+
+
+RecLock("SD1",.F.)
+SD1->D1_CUSTO := Round((SD1->D1_TOTAL+SD1->D1_ICMSRET+SD1->D1_VALFRE+SD1->D1_DESPESA+SD1->D1_SEGURO+SD1->D1_VALIPI),2)
+MsUnLock()
+		
+
+RestArea( _aArea )
+
+Return( .T. )

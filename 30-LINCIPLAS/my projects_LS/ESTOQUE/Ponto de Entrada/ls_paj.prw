@@ -1,0 +1,23 @@
+#INCLUDE "rwmake.ch"
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Programa   	LS_PAJ
+// Autor 		Alexandre Dalpiaz
+// Data 		08/11/12
+// Descricao  	CADASTRO DE USUARIOS DOS ROMANEIOS X STATUS ACESSIVEIS
+// Uso         	LaSelva
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+User Function LS_PAJ()
+//////////////////////
+
+cVldAlt := ".T." // Validacao para permitir a alteracao. Pode-se utilizar ExecBlock.
+cVldExc := ".T." // Validacao para permitir a exclusao. Pode-se utilizar ExecBlock.
+
+Private cString := "PAJ"
+
+dbSelectArea('PAJ')
+dbSetOrder(1)
+
+AxCadastro(cString,"Cadastro de Usuários X Acessos de Romaneios",cVldExc,cVldAlt)
+
+Return

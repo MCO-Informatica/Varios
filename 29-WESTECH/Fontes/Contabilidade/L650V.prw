@@ -1,0 +1,13 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function L650V()
+	local nValor 
+	
+nValor:=0
+
+IF (!SUBS(SD1->D1_CF,2,3)$'925/924/921/920/916/915/913/912/906/903/902/949'.and. SA2->A2_TIPO<>"X" .and. SA2->A2_COD <>"000005" .AND.SA2->A2_COD<>"000593" .and. !SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN" ) .and. SD1->D1_RATEIO == "2" .AND. SD1->D1_II ==0   
+		nValor:=SD1->((D1_TOTAL+D1_VALIPI+D1_VALFRE+D1_DESPESA)-(D1_VALIPI+D1_VALICM+D1_VALIMP5+D1_VALIMP6))
+EndIf
+		                     				
+Return nvalor
+

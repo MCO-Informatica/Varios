@@ -1,0 +1,50 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function RelIBGE()
+    Local aPergs   := {}
+    Local dDataDe  := FirstDate(dDatabase)
+    Local dDataAt  := LastDate(dDatabase)
+    
+    aAdd(aPergs, {1, "Data De", dDataDe,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Data Até", dDataAt,  "", ".T.", "", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+		Processa( {|| Gerar(MV_PAR01,MV_PAR02) },"Aguarde" ,"Gerando relatório IBGE...")
+        
+    EndIf
+
+Return
+
+Static Function Gerar(dDataDe, dDataAte)
+    cQry := " SELECT
+    cQry += " RTRIM(B1_DESCINT) AS PRODUTO,
+    cQry += " RTRIM(B1_COD) AS COD,
+    cQry += " B1_TIPO,
+    cQry += " B1_UM,
+    cQry += " B1_IPI,
+    cQry += " B1_POSIPI AS NCM,
+    cQry += " ISNULL(SUM(D2_TOTAL),0) AS TOTAL_BRUTO_R$,
+    cQry += " ISNULL(SUM(D2_VALICM),0) AS ICMS,
+    cQry += " ISNULL(SUM(D2_VALIMP5),0) AS COFINS,
+    cQry += " ISNULL(SUM(D2_VALIMP6),0) AS PIS,
+    cQry += " ISNULL(SUM((D2_TOTAL - (D2_VALICM + D2_VALIMP5 + D2_VALIMP6))),0) AS TOTAL_NET,
+    cQry += " ISNULL(SUM(D2_QUANT),0) AS QUANT_VENDIDA,
+    cQry += " ( SELECT ISNULL(SUM(D3_QUANT),0) FROM "+RetSqlName("SD3")+" D3 WHERE D3_FILIAL = '"+xFilial("SD3")+"' AND D3_COD = B1_COD AND D3_CF = 'PR0' AND D3_EMISSAO BETWEEN '"+DtoS(dDataDe)+"' AND '"+DtoS(dDataAte)+"' AND D3.D_E_L_E_T_ = '' ) AS QUANT_PRODUZIDA
+    cQry += " FROM "+RetSqlName("SB1")+" B1
+    cQry += " LEFT JOIN "+RetSqlName("SD2")+" D2 ON D2_FILIAL = '"+xFilial("SD2")+"' AND D2_COD = B1_COD AND D2_TIPO = 'N' AND D2_EMISSAO BETWEEN '"+DtoS(dDataDe)+"' AND '"+DtoS(dDataAte)+"' AND D2.D_E_L_E_T_ = ''
+    cQry += " LEFT JOIN "+RetSqlName("SF4")+" F4 ON F4_FILIAL = '"+xFilial("SF4")+"' AND F4_CODIGO = D2_TES AND F4_DUPLIC = 'S' AND F4.D_E_L_E_T_ = ''
+    cQry += " WHERE B1_TIPO IN('PA','PI')
+    cQry += " AND B1_FILIAL = '"+xFilial("SB1")+"' AND B1.D_E_L_E_T_ = ''
+    cQry += " GROUP BY
+    cQry += " B1_DESCINT,
+    cQry += " B1_COD,
+    cQry += " B1_TIPO,
+    cQry += " B1_UM,
+    cQry += " B1_IPI,
+    cQry += " B1_POSIPI
+    cQry += " ORDER BY 1
+    
+    aTitulos := {'Produto','Código','Tipo','U.M.','IPI','NCM','Total Bruto R$','ICMS','COFINS','PIS','Total NET','Qtd. Vendida','Qtd. Produzida'}
+    U_zQry2Excel(cQry,"Relatório - IBGE","ibge_"+DtoS(date()),,"xml",aTitulos)
+
+Return

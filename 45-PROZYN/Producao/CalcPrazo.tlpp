@@ -1,0 +1,57 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "TBICONN.CH"
+
+User Function CalcPrazo()
+    Local nPrazo := 0
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    DbSelectArea("SE4")
+    SE4->(DbSetOrder(1))
+    While SE4->(!EOF())
+        nPrazo := 0
+        If SE4->E4_TIPO == '1'
+            aParcelas := StrTokArr(SE4->E4_COND,",")
+            nPrazo := val(aParcelas[len(aParcelas)])
+
+        ElseIf SE4->E4_TIPO == '3'
+            aParcelas := StrTokArr(SE4->E4_COND,",")
+            if(val(aParcelas[1])) > 1
+                nPrazo := Round((val(aParcelas[2]) + (val(aParcelas[1]) * val(aParcelas[3]) )),0)
+            else
+                nPrazo := val(aParcelas[2])
+            endif
+
+        ElseIf SE4->E4_TIPO == '4'
+            aParcelas := StrTokArr(SE4->E4_COND,",")
+            if(val(aParcelas[1])) > 1
+                nPrazo := Round(val(aParcelas[1]) * val(aParcelas[2]),0)
+            else
+                nPrazo := val(aParcelas[2])
+            endif
+            
+        ElseIf SE4->E4_TIPO == '5'
+            aParcelas := StrTokArr(SE4->E4_COND,",")
+                nPrazo := Round((val(aParcelas[1]) + (val(aParcelas[2]) * val(aParcelas[3]) )),0)
+
+        ElseIf SE4->E4_TIPO == '6'
+            aParcelas := StrTokArr(SE4->E4_COND,",")
+            if(val(aParcelas[1])) > 1
+                nPrazo := Round((val(aParcelas[1]) * val(aParcelas[4])) + val(aParcelas[4]),0)
+            else
+                nPrazo := val(aParcelas[4])
+            endif
+
+        EndIf
+        conout("Tipo: "+SE4->E4_TIPO+": "+trim(SE4->E4_COND)+": "+cValtoChar(nPrazo))
+        if nPrazo < 1000
+            SE4->(RecLock('SE4',.f.))
+                SE4->E4_XPRAZO := nPrazo
+            SE4->(MsUnlock())
+        EndIf
+
+        SE4->(DbSkip())
+    EndDo
+
+    RESET ENVIRONMENT
+Return

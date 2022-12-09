@@ -1,0 +1,34 @@
+#Include "TbiConn.ch"
+
+User Function WordBakery()
+    Local cArquivo := "C:\temp\FT Modelo Bakery - Template.dotx"
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+"011656"))
+
+    DbSelectArea("SZB")
+    SZB->(DbSetOrder(1))
+    SZB->(DbSeek(xFilial("SZB")+SB1->B1_ALERGEN))
+
+    //Cria um ponteiro e já chama o arquivo
+    nHandWord := OLE_CreateLink()
+    OLE_NewFile(nHandWord, cArquivo) //cArquivo deve conter o endereço que o dot está na máquina, por exemplo, C:\arquivos_dot\teste.dotx
+    
+    //Setando o conteúdo das DocVariables
+    OLE_SetDocumentVar(nHandWord, "NomeProduto", Trim(SB1->B1_DESC))
+    OLE_SetDocumentVar(nHandWord, "Dosagem", Trim(SB1->B1_DOSAGEM))
+    OLE_SetDocumentVar(nHandWord, "Alergenico", Trim(SZB->ZB_ALERPO))
+    
+    //Atualizando campos
+    OLE_UpdateFields(nHandWord)
+    
+    //Monstrando um alerta
+    MsgAlert('O arquivo gerado foi <b>Salvo</b>?<br>Ao clicar em OK o Microsoft Word será <b>fechado</b>!','Atenção')
+    
+    //Fechando o arquivo e o link
+    OLE_CloseFile(nHandWord)
+    OLE_CloseLink(nHandWord)
+
+
+Return

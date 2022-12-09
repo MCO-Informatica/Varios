@@ -1,0 +1,68 @@
+/*
+Relatório de quantidade de MP será necessária para atender o forecast.
+*/
+
+User Function RelMPForecast()
+    Local aPergs   := {}
+    Local cProdDe  := Space(TamSX3('B1_COD')[01])
+
+    Local dDate3   := MonthSum(Date(),2)
+    Local cDataDe  := Month2Str(Date())+"/"+Year2Str(Date())
+    Local cDataAte := Month2Str(dDate3)+"/"+Year2Str(dDate3)
+    
+    aAdd(aPergs, {1, "Mês/Ano De",  cDataDe,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Mês/Ano Até",  cDataAte,  "", ".T.", "", ".T.", 80,  .T.})
+
+    aAdd(aPergs, {1, "MP",  cProdDe,  "", ".T.", "SB1", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| Gerar(MV_PAR01,MV_PAR02,MV_PAR03) }, "Aguarde...", "Gerando relatório...",.F.)
+    EndIf
+Return
+
+Static Function Gerar(cDataDe,cDataAte,cMP)
+    Local cQry := ""
+    Local nD := 0
+
+    Local aDataDe := {}
+    Local aDataAte := {}
+    Local aDatas := {}
+    Local cCaseMeses := ""
+
+    aDataDe := StrTokArr(cDataDe,"/")
+    aDataAte := StrTokArr(cDataAte,"/")
+    dDataDe := StoD(aDataDe[2]+aDataDe[1]+"01")
+
+    aDataDe[1] := PadL( aDataDe[1], 2, "0" )
+    aDataAte[1] := PadL( aDataAte[1], 2, "0" )
+    dDataAte := StoD(aDataAte[2]+aDataAte[1]+"01")
+
+    dData := dDataDe
+    aAdd(aDatas, dData)
+
+    While dData != dDataAte
+        dData := MonthSum(dData,1)
+        aAdd(aDatas, dData)
+    EndDo
+
+    For nD := 1 to len(aDatas)
+        If !empty(trim(cCaseMeses))
+            cCaseMeses += " + "
+        EndIf
+        cCaseMeses += " CASE WHEN Z2_ANO = '"+Year2Str(aDatas[nD])+"' THEN Z2_QTM"+Month2Str(aDatas[nD])+" ELSE 0 END "
+    Next nD
+
+    cAno := " = '"+aDataDe[2]+"' "
+    If aDataDe[2] != aDataAte[2]
+        cAno := " IN ('"+aDataDe[2]+"','"+aDataAte[2]+"') "
+    EndIf
+
+    cQry := " SELECT Z2_PRODUTO,B1_DESC,sum("+cCaseMeses+") QTD_PA,G1_COMP,sum(("+cCaseMeses+") * G1_QUANT / 100) RESULTADO  FROM SG1010 G1 
+    cQry += " INNER JOIN SZ2010 Z2 ON Z2_PRODUTO = G1_COD AND Z2_ANO "+cAno+" AND Z2_TOPICO = 'F' AND Z2.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN SB1010 B1 ON B1_COD = Z2_PRODUTO AND B1.D_E_L_E_T_ = ''
+    cQry += " WHERE G1_COMP = '"+cMP+"' AND G1.D_E_L_E_T_ = '' and "+cCaseMeses+" > 0
+    cQry += " group BY Z2_PRODUTO,B1_DESC,G1_QUANT,G1_COMP
+    cQry += " ORDER BY Z2_PRODUTO "
+    U_zQry2Excel(cQry,"MP x Forecast "+aDataDe[1]+"_"+aDataDe[2]+" a "+aDataAte[1]+"_"+aDataAte[2],"mp_x_forecast")
+
+Return

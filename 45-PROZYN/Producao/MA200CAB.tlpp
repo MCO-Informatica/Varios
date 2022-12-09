@@ -1,0 +1,102 @@
+#include "rwmake.ch"
+#include "TbiConn.ch"
+#include "protheus.ch"
+
+User Function MA200CAB()
+    //Variáveis locais
+    Local aDados  := {}
+    // Local oFntTxt := TFont():New("Calibri",,017,,.F.,,,,,.F.,.F.)
+    // Local oPanelNv, oBtnNv1, oBtnNv2, oBtnNv3, oBtnNv4
+ 
+    //Pegando os parâmetros
+    // Local nOpc         := PARAMIXB[2]
+    Local oObj         := PARAMIXB[3]
+    // Local nLin1     := PARAMIXB[4]
+    // Local nLin2     := PARAMIXB[5]
+    // Local nColIni     := PARAMIXB[6]
+    Private cProduto:= PARAMIXB[1]
+     
+    //Descrições e ações dos botões
+    aAdd(aDados,{"FCI","Grid(cProduto)"})
+     
+    //Diminuindo a largura do cabeçaho
+    oObj:nWidth := oObj:nWidth - 200
+     
+    //Criando o painel
+    @ 000,000 MSPANEL oPanelNv SIZE 80,40 OF oObj
+     
+    //Botão 1
+    @ 010, 005 BUTTON oBtnNv1 PROMPT aDados[1][1] SIZE 070, 012 ACTION(&(aDados[1][2])) OF oPanelNv PIXEL
+     
+    //Alinhando o painel a direita do cabeçalho
+    oPanelNv:Align := CONTROL_ALIGN_RIGHT
+Return
+
+Static Function Grid(cProduto)
+    Local aArea := GetArea()
+    Private oDlg, oSay
+	Private aBrowse := {}
+	Private oBrowse
+
+    nH := 390
+    nW := 450
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+cProduto))
+    cOriPrin := SB1->B1_ORIGEM
+    
+	DEFINE DIALOG oDlg TITLE Trim(SB1->B1_COD)+" | "+Trim(SB1->B1_DESC)+" | NCM: "+Trim(SB1->B1_POSIPI) FROM 50,50 TO nH,nW PIXEL
+
+    DbSelectArea("SG1")
+    SG1->(DbSetOrder(1))
+    SG1->(DbSeek(xFilial("SG1")+SB1->B1_COD))
+
+    lGeraFCI := .F.
+    nOrigem := 0
+    nSum := 0
+    While SG1->(!EOF()) .AND. SG1->G1_FILIAL == xFilial("SG1") .and. Trim(SG1->G1_COD) == Trim(cProduto)
+        If SB1->(DbSeek(xFilial("SB1")+SG1->G1_COMP)) .and. SB1->B1_TIPO $ 'MP;ME;PI;EM'
+            lImportado := !(SB1->B1_ORIGEM $ '0,3,4,5,8')
+            aAdd(aBrowse, {Trim(SB1->B1_COD),Trim(SB1->B1_DESC),Round(SG1->G1_QUANT,2),Iif(lImportado, 'Sim','Não')})
+
+            If lImportado
+                nSum += SG1->G1_QUANT
+            EndIf
+
+            If nSum > 40 .and. cOriPrin != '7'
+                lGeraFCI := .T.
+                If nSum < 40
+                    nOrigem := 5
+                ElseIf nSum < 70
+                    nOrigem := 3
+                Else
+                    nOrigem := 8
+                EndIf
+            EndIf
+
+        EndIf
+
+        SG1->(DbSkip())
+    EndDo
+
+    nW := 200
+    nH := 150
+	oBrowse := TCBrowse():New( 01 , 01, nW, nH,,;
+	{'Cód. MP','Descrição','% MP','Importado?'},{30,95,20,20},;
+	oDlg,,,,,{||},,,,,,,.F.,,.T.,,.F.,,, )		// Seta vetor para a browse
+
+	oBrowse:SetArray(aBrowse)
+	oBrowse:bLine := {||{ aBrowse[oBrowse:nAt,01],;
+    aBrowse[oBrowse:nAt,02],;
+    AllTrim(Transform(aBrowse[oBrowse:nAt,03],"@E 999.99")),;
+    aBrowse[oBrowse:nAt,04] } }		// Evento de clique no cabeçalho da browse
+    nH := 137
+    nW := 005
+    oSay := TSay():New(nH+20,nW,{|| "Gera FCI: "+Iif(lGeraFCI,'Sim | Origem: '+cValtoChar(nOrigem),'Não') },oDlg,,/*oFont*/,,,,.T.,/*CLR_BLACK*/,/*CLR_WHITE*/,150,10)
+    nW := 160
+    oSay := TSay():New(nH+20,nW,{|| "% de MP: "+AllTrim(Transform(nSum,"@E 999.99")) },oDlg,,/*oFont*/,,,,.T.,/*CLR_BLACK*/,/*CLR_WHITE*/,150,10)
+	ACTIVATE DIALOG oDlg CENTERED
+
+    RestArea(aArea)
+Return

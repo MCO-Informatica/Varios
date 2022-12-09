@@ -1,0 +1,38 @@
+#INCLUDE "PROTHEUS.CH"
+
+User Function RelMaiorCusto()
+    Local aPergs   := {}
+    Local dDataDe  := FirstDate(dDatabase)
+    Local dDataAt  := LastDate(dDatabase)
+    
+    aAdd(aPergs, {1, "Mostrar até posição",  5,    "@E 99,999",     "Positivo()", "",    ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Data De", dDataDe,  "", ".T.", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {1, "Data Até", dDataAt,  "", ".T.", "", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+		Processa( {|| Gerar(MV_PAR01,MV_PAR02,MV_PAR03) },"Aguarde" ,"Gerando relatório IBGE...")
+        
+    EndIf
+
+Return
+
+Static Function Gerar(nTop,dDataDe, dDataAte)
+    cQry := " SELECT TOP "+cValtoChar(nTop)+" C7_DESCRI, 
+    cQry += " SUM(C7_TOTAL) AS 'TOTAL BRUTO EM R$',
+    cQry += " SUM(C7_VALIPI) 'IPI', 
+    cQry += " SUM(C7_VALICM) 'ICMS', 
+    cQry += " SUM(C7_VALIMP5) 'COFINS', 
+    cQry += " SUM(C7_VALIMP6) 'PIS',
+    cQry += " SUM(C7_TOTAL - C7_VALIPI - C7_VALICM - C7_VALIMP5 - C7_VALIMP6) 'TOTAL LIQUIDO EM R$'
+    cQry += " FROM "+RetSqlName("SC7")+" C7
+    cQry += " WHERE C7_FILIAL = '"+xFilial("SC7")+"' AND C7.D_E_L_E_T_ = '' 
+    cQry += " AND C7_CONAPRO = 'L'
+    cQry += " AND C7_RESIDUO != 'S'
+    cQry += " AND C7_EMISSAO BETWEEN '"+DtoS(dDataDe)+"' AND '"+DtoS(dDataAte)+"'
+    cQry += " GROUP BY C7_DESCRI
+    cQry += " ORDER BY 'TOTAL LIQUIDO EM R$' DESC
+    
+    aTitulos := {'Produto','Total Bruto em R$','IPI','ICMS','COFINS','PIS','Total Líquido em R$'}
+    U_zQry2Excel(cQry,"Relatório - Maior Custo","maior_custo_"+DtoS(date()),,"xml",aTitulos)
+    
+Return

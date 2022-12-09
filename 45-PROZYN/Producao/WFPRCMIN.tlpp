@@ -1,0 +1,78 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+
+/*
+Workflow de Preço Mínimo
+Desenvolvido por Denis varella
+*/
+
+User Function WFPRCMIN(aCol)
+    Private cTo := SuperGetMV("MV_XBLQMIN",,"nailson.paixao@prozyn.com.br")
+    Private cHTML := ""
+
+    SetHTML(aCol)
+    // cTo := "denis@pharosit.srv.br;bruno@pharosit.com.br"
+    U_zEnvMail(cTo, "Aviso de Preço Mínimo não atingido - Pedido: "+M->C5_NUM, cHTML, {}, .f., .t., .t.)
+
+Return
+
+Static Function SetHTML(aCol)
+  cHTML := "<html>
+  cHTML += "<head>
+  cHTML += "<style>
+  cHTML += "* {outline: none;border:none;margin: 0;padding:0;box-sizing: border-box;font-family: Arial;}
+  cHTML += "table { width: 100%;max-width: 900px;font-size:10px;}
+  cHTML += "table thead {background: #C0D9D9;text-align: center;}
+  cHTML += "table td {padding: 5px;border:1px solid #222;}
+  cHTML += "p {margin-bottom: 15px;padding:5px;}
+  cHTML += "h4 {padding:5px;margin:10px 0;}
+  cHTML += "</style>
+  cHTML += "</head>
+  cHTML += "<body>
+
+  cHTML += "<p>Prezados,</p>
+  cHTML += "<p>O item abaixo do pedido "+M->C5_NUM+" se encontra com preço de venda abaixo do mínimo estipulado na tabela de preço.</p>
+  cHTML += "<p style='font-weight: bold;'>Portando, encontra-se <span style='background:yellow;'>BLOQUEADO e somente será liberado para o sistema de pedidos no Protheus quando, pelo menos, uma das duas ações ocorrer:</span></p>
+ 
+  cHTML += "<p style='font-weight: bold;padding-left: 15px;'>1. <span style='background:yellow;'>O setor Comercial negocie um novo preço de venda, ou</span></p>
+  cHTML += "<p style='font-weight: bold;padding-left: 15px;'>2. <span style='background:yellow;'>A Diretoria Executiva aprove o pedido como está.</span></p>"
+  cHTML += "<h4>Informações do pedido:</h4>
+  cHTML += "<table>
+  cHTML += "	<thead>
+  cHTML += "		<tr>
+  cHTML += "			<td align='center'>DATA</td>
+  cHTML += "      <td align='center'>COD_CLI</td>
+  cHTML += "      <td align='center'>CLIENTE</td>
+  cHTML += "      <td align='center'>COD PROD</td>
+  cHTML += "      <td align='center'>PRODUTO</td>
+  cHTML += "      <td align='center'>QUANT</td>
+  cHTML += "      <td align='right'>PREÇO DE VENDA</td>
+  cHTML += "      <td align='center'>PREÇO MÍNIMO</td>
+  cHTML += "			<td align='center'>PREVISÃO FAT.</td>
+  cHTML += "		</tr>
+  cHTML += "	</thead>
+  cHTML += "	<tbody>
+    cHTML += "		<tr>
+    cHTML += "			<td align='center'>"+DtoC(M->C5_EMISSAO)+"</td>
+    cHTML += "			<td align='center'>"+M->C5_CLIENTE+"/"+M->C5_LOJACLI+"</td>
+    cHTML += "			<td align='center'>"+SA1->A1_NREDUZ+"</td>
+    cHTML += "			<td align='center'>"+SB1->B1_COD+"</td>
+    cHTML += "			<td align='center'>"+SB1->B1_DESC+"</td>
+    cHTML += "			<td align='center'>"+TRANSFORM(aCol[GDFieldPos("C6_QTDVEN")], "@E 999,999,999.9999")+"</td>
+    cHTML += "			<td align='center'>R$ "+TRANSFORM(aCol[GDFieldPos("C6_PRCVEN")], "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>R$ "+TRANSFORM(DA1->DA1_XPRCMI, "@E 999,999,999.99")+"</td>
+    cHTML += "			<td align='center'>"+DtoC(M->C5_FECENT)+"</td>
+    cHTML += "		</tr>
+
+  cHTML += "	</tbody>
+  cHTML += "</table>
+  cHTML += "<br/>"
+  cHTML += "<p>Vendedor: "+Trim(Posicione("SA3",1,xFilial("SA3")+M->C5_VEND1,"A3_NOME"))+"</p>"
+
+  cHTML += "</body>
+  cHTML += "</html>
+
+Return

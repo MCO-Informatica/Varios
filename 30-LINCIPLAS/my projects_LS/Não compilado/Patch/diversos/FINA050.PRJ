@@ -1,0 +1,25 @@
+Group FINA050.PRX
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project FINA050.PRX
+      FoldersCount=1
+      Folder FINA050.PRX
+         VSSPath=Definições
+         FilesCount=1
+         File \Protheus10\my projects\Patch\FINA050.prx
+             Type=T
+         End
+      End
+   End
+End

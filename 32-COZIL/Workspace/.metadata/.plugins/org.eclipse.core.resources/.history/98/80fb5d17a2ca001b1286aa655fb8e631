@@ -1,0 +1,603 @@
+//Bibliotecas
+#Include "Totvs.ch"
+#INCLUDE "RWMAKE.CH"
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "COLORS.CH"
+
+#define DF_FILIAL  01
+#define DF_CODIGO  02
+#Define CRLF       chr(13) + chr(10)
+
+/*
+รรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรร
+ยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑ
+ยฑยฑยบPrograma  ยณ IMPSB1 ยบAutor  ยณMarcos Souza (MGS)  ยบ Data ยณ  11/02/2021   ยบยฑยฑ
+ยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑ
+ยฑยฑยบDesc.     ยณ Importa็ใo de produtos e/ou estruturas atraves de arquivo CSV  ยนยฑยฑ
+ยฑยฑยบ          ยณ .                                                          ยบยฑยฑ
+ยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑ
+ยฑยฑยบUso       ยณEspecifico COZIL   				                           ยฑยฑ
+ยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑ
+ยฑยฑยบPrรฉ-requi-ยณImprotar dados do SOLID para arquivo em formto CSV          ยบยฑยฑ
+ยฑยฑยบsitos     ยณ                                                            ยบยฑยฑ
+ยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑยฑ
+รรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรร
+*/
+
+User Function ImpSolid()
+    Local cArqAux := ""
+    Private nOpc := 0
+    Private nCols := 0
+    If UPPER(alltrim(GetEnvServer())) == "COZILTST"
+        cDir := 'C:\ProtheusTST\protheus_data\data_integracao\'
+    else
+        cDir := 'C:\TOTVS12\Microsiga\protheus_data\data_integracao\'
+    Endif
+
+    cArqAux := cGetFile("Arquivo CSV|*.CSV","Selecione arquivo",0,cDir,.T.,,.F.)
+
+    If MsgNoYes("Cinirma a imporata็ใo do arquivo "+cArqAux+" ?","Intera็ใo")
+        If !File(cArqAux)
+            MsgStop("O arquivo " + cArqAux + " nใo foi encontrado. A importa็ใo serแ abortada!","[RFINM01] - ATENCAO")
+            Return
+        EndIf
+        cArqCSV  := MEMOREAD(cArqAux)
+        //EECVIEW(cArqCSV,"Arquivo Texto")
+        If LEFT(cArqCSV,9) == "B1_FILIAL"
+            nOpc := 1   // Importa produto
+            nCols := 10
+        ElseIf LEFT(cArqCSV,9) == "G1_FILIAL"
+            If  SUBS(cArqCSV,26,8) == "G1_QUANT"
+                nOpc := 2   // Importa estrutura GERAL
+                nCols := 5
+            Else
+                nOpc := 3   // Importa estrutura PEวAS
+                nCols := 12
+            Endif
+        else
+            apMsgAlert("Esse arquivo nใo possue um formato valido, nenhum arquivo foi importado !",SUBS(cArqCSV,26,8))
+        Endif
+        If nOpc <> 0
+            ImpCSV(cArqAux,nOpc,nCols)
+        Endif
+    else
+        apMsgAlert("Processo cancelado, nenhum arquivo foi importado !","Aten็ใo")
+    Endif
+
+Return
+
+Static Function ImpCSV(cArqAux,nOpc,nCols)
+    Local cLinha  := ""
+    Local lPrim   := .T.
+    Local l_PrNCad :=.F.
+    Local n_I     := 0
+    Local nHdlArqIR:= 0
+    Local cArqTXT:=Criatrab(,.f.)+".LOG"
+
+    Private aCampos := {}
+    Private a_Dados  := {}
+    Private aErro := {}
+    Private lMsErroAuto := .F.
+
+    If !File(cArqTXT)
+        nHdlArqIR := MSFCREATE( cArqTXT )
+    Else
+        FErase(cArqTXT)
+        nHdlArqIR := MSFCREATE( cArqTXT )
+    EndIf
+    FT_FUSE(cArqAux)
+    ProcRegua(FT_FLASTREC())
+    FT_FGOTOP()
+    While !FT_FEOF()
+
+        IncProc("Lendo planilha de dados...")
+
+        cLinha := FT_FREADLN()
+
+        If lPrim
+            aCampos := Separa(cLinha,",",.T.)
+            lPrim := .F.
+        Else
+            AADD(a_Dados,Separa(cLinha,",",.T.))
+        EndIf
+
+        FT_FSKIP()
+    EndDo
+
+    If Empty(a_Dados)
+        MsgAlert("Nao ha dados a serem Atualizados")
+        Return(NIL)
+    EndIf
+
+    If len(a_Dados[1]) <> nCols
+        apMsgAlert("Arquivo .CSV nao contem o numero exato de colunas. ","Aten็ใo")
+        Return(NIL)
+    EndIf
+
+    If nOpc == 1
+        SB1->(DbSetOrder(1))
+        For n_I := 1 to len(a_Dados)
+            If !SB1->(dbSeek(xFilial("SB1") + PADR(a_Dados[n_I,02],TAMSX3("B1_COD")[1])))
+                Processa({|| GRAVASB1(3,n_I) },"Importando Produto(s)")
+            Else
+                l_PrNCad := .T.
+                fWrite(nHdlArqIR, "==============================================" + Chr(13) + Chr(10))
+                fWrite(nHdlArqIR, "Filial/Produto "+a_Dados[n_I,DF_FILIAL  ]+"/"+a_Dados[n_I,DF_CODIGO  ]+;
+                    " encontrado na Base de Dados. Linha" +Alltrim(str(n_I+1))+ Chr(13) + Chr(10))
+            EndIf
+        Next
+        fClose(nHdlArqIR)
+
+        If l_PrNCad
+            ShowLog(cArqTXT)
+            FErase(cArqTXT)
+        EndIf
+
+        MsgAlert("Leitura de "+ALLTRIM(STR(len(a_Dados)))+" itens concluํda.")
+    Else
+        If nOpc == 2
+            Processa({|| GRAVAG1G(a_Dados) },"Importando Estrutura (GERAL)")
+        ElseIf nOpc == 3
+            Processa({|| GRAVAG1P(a_Dados) },"Importando Estrutura (PEวAS)")
+        Else
+            apMsgAlert("Arquivo .CSV nao contem o campos necessแrios. ","Aten็ใo")
+        Endif
+        If l_PrNCad
+            ShowLog(cArqTXT)
+            FErase(cArqTXT)
+        EndIf
+
+        MsgAlert("Leitura de "+ALLTRIM(STR(len(a_Dados)))+" itens concluํda.")
+    Endif
+Return(NIL)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณGRAVASB1บAutor  ณMarcos Souza (MGS)  บ Data ณ  11/02/2021   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importa็ใo de produtos atraves de planilha CSV             นฑฑ
+ฑฑบ          ณ .                                                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณEspecifico COZIL   				                           ฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑP
+ฑฑบPr้-requi-ณExportar dados do SOLID para arquivo em formto CSV          บฑฑ
+ฑฑบsitos     ณ                                                            บฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function GRAVASB1(nOpcE,n_I)
+    Local aDadosCad := {}
+    Private lMsErroAuto := .F.
+
+    ProcRegua(len(a_Dados))
+
+    cFilSB1   := FWxFilial("SB1") //Se for compartilhada, retorna " ", senใo retorna "01", "0101" ou a nomenclatura criada no grupo de empresas
+    cCod      := ALLTRIM(a_Dados[n_I,02])
+    cDesc     := FWNOACCENT(ALLTRIM(a_Dados[n_I,03]))
+    cTipo     := ALLTRIM(a_Dados[n_I,04])
+    cUM       := ALLTRIM(a_Dados[n_I,05])
+    cGrupo    := ALLTRIM(a_Dados[n_I,06])
+    cXPcp     := ALLTRIM(a_Dados[n_I,07])
+    cXOrigem  := ALLTRIM(a_Dados[n_I,08])
+    cGarant   := ALLTRIM(a_Dados[n_I,09])
+    cFantasm  := ALLTRIM(a_Dados[n_I,10])
+    cLocPad   := "01"
+    cNCM      := ""
+
+    SYD->(DbSetOrder(2))
+    If SYD->(dbSeek(xFilial("SYD") + PADR(a_Dados[n_I,03],TAMSX3("B1_DESC")[1])))
+        cNCM := SYD->YD_TEC
+    Else
+        //cNCM := TELANCM()
+        cNCM := "00000000"
+    Endif
+    aadd(aDadosCad, {"B1_COD"	   ,cCod	 ,Nil})
+    aadd(aDadosCad, {"B1_DESC"    ,cDesc    ,Nil})
+    aadd(aDadosCad, {"B1_TIPO"    ,cTipo    ,Nil})
+    aadd(aDadosCad, {"B1_UM"      ,cUM      ,Nil})
+    aadd(aDadosCad, {"B1_GRUPO"   ,cGrupo   ,Nil})
+    aadd(aDadosCad, {"B1_XPCP"    ,cXPcp    ,Nil})
+    aadd(aDadosCad, {"B1_GARANT"  ,cGarant  ,Nil})
+    aadd(aDadosCad, {"B1_LOCPAD"  ,cLocPad  ,Nil})
+    aadd(aDadosCad, {"B1_ORIGEM"  ,"0"      ,Nil})
+    aadd(aDadosCad, {"B1_POSIPI"  ,cNCM     ,Nil})
+    aadd(aDadosCad, {"B1_PICM"    ,0        ,Nil})
+    aadd(aDadosCad, {"B1_IPI"     ,0        ,Nil})
+    aadd(aDadosCad, {"B1_PICM"    ,0        ,Nil})
+    aadd(aDadosCad, {"B1_MRP"     ,"S"      ,Nil})
+    aadd(aDadosCad, {"B1_FANTASM" ,cFantasm ,Nil})
+    aadd(aDadosCad, {"B1_XORIGEM" ,cXOrigem ,Nil})
+
+	IncProc("Importando registro "+StrZero(n_I,4)+" de "+StrZero(len(a_Dados),4))
+
+    Begin Transaction
+
+        lMsErroAuto := .F.
+
+        MSExecAuto({|x,y| Mata010(x,y)},aDadosCad,nOpcE)
+
+        If lMsErroAuto
+            MostraErro()
+            DisarmTransaction()
+            lMsErroAuto := .F.
+        Else
+            //   INCPROC(" Gravando produto ..."+cCod+cDesc)
+            //    MsgRun("Aguarde, gravando produto :"+cCod+" - "+TMP->A2)
+            //    apMsgInfo(cDesc,cCod)
+            //nTotProc ++
+        EndIf
+
+    End Transaction
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณGRAVASG1GบAutor  ณMarcos Souza (MGS) บ Data ณ  11/02/2021   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importa็ใo de estrutura GERAL atraves de planilha CSV      นฑฑ
+ฑฑบ          ณ .                                                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณEspecifico COZIL   				                           ฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑP
+ฑฑบPr้-requi-ณExportar dados do SOLID para arquivo em formto CSV          บฑฑ
+ฑฑบsitos     ณ                                                            บฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function GRAVAG1G(a_Dados)     // Estrutura GEral
+    Local aCab   := {}
+    Local aItens  := {}
+    Local aLinha  := {}
+    Local nTRT    := 0
+    Local cTRT    := ""
+    Local n_A     := 1
+    Local n_G     := 1
+    Local n_I     := 1
+    Local n_L     := 1
+    Local cMsg    := ""
+
+    ProcRegua(len(a_Dados))
+
+    Private lMsErroAuto := .F.
+    // Verifica cadastro de produtos
+    dbSelectArea("SG1")
+    DbSetOrder(1)
+    dbGotop()
+    If !SG1->(dbSeek(xFilial("SG1") + PADR(a_Dados[1,02],TAMSX3("G1_COD")[1])))
+        nOpcE := 3
+    Else
+        nOpcE := 4
+        cRevAtu  := Posicione("SB1",1,xFilial("SB1")+PADR(a_Dados[1,02],TAMSX3("G1_COD")[1]),"B1_REVATU")
+        n_G := 1
+        While n_G >= 1 .and. n_G <= len(a_Dados)
+            xCodPro  := PADR(a_Dados[n_G,02],TAMSX3("G1_COD")[1])
+            xCodComp := PADR(a_Dados[n_G,03],TAMSX3("G1_COMP")[1])
+            xUM      := Posicione("SB1",1,xFilial("SB1")+xCodComp,"B1_UM")
+            xUMUnit  := Posicione("SB1",1,xFilial("SB1")+xCodComp,"B1_SEGUM")
+            cQuant   := ALLTRIM(a_Dados[n_G,04])
+            nQuant   := VAL(cQuant)
+            cXQtdUni := ALLTRIM(a_Dados[n_G,05])
+            nXQtdUni := VAL(cXQtdUni)
+            dbSelectArea("SG1")
+            DbSetOrder(1)
+            dbGotop()
+            dbSeek(xFilial("SG1") + xCodPro + xCodComp)
+            IncProc("Importando registro "+StrZero(n_G,4)+" de "+StrZero(len(a_Dados),4))
+            If found()
+                reclock("SG1",.F.)
+                SG1->G1_QUANT := nQuant
+                SG1->G1_XQTDUNI := nXQtdUni
+                MSUnlock()
+            Else
+                reclock("SG1",.T.)
+                SG1->G1_FILIAL   := FWxFilial("SG1")
+                SG1->G1_COD      := xCodPro
+                SG1->G1_COMP     := xCodComp
+                SG1->G1_UMUNIT   := xUMUnit
+                SG1->G1_XQTDUNI  := nXQtdUni
+                SG1->G1_QUANT    := nQuant
+                SG1->G1_XDESENH  := xCodComp
+                SG1->G1_INI      := dDataBase
+                SG1->G1_FIM      := STOD("20491231")
+                SG1->G1_NIV      := "02"
+                SG1->G1_NIVINV   := "98"
+                SG1->G1_FIXVAR   := "V"
+                SG1->G1_REVFIM   := "ZZZ"
+                SG1->G1_VLCOMPE  := "N"
+                MSUnlock()
+            Endif
+            n_G++
+        Enddo
+       	//FWAlertInfo("Altera็ใo Produto: "+xCodPro+" Componente "+xCodComp,"ESTRUTURA GERAL")
+        //EECVIEW(str(nQuant,10,3)+str(nXQtdUni,10,3),"Quantidades")
+    Endif
+    While n_I >= 1 .and. n_I <= len(a_Dados)
+        SB1->(DbSetOrder(1))
+        SB1->(dbGotop())
+        If !SB1->(dbSeek(xFilial("SB1") + PADR(a_Dados[n_I,02],TAMSX3("B1_COD")[1])))
+            cMsg += a_Dados[n_I,02] + CRLF
+        Endif
+        n_I++
+    Enddo
+    If !Empty(cMsg)
+        EECVIEW(cMsg,"Produto(s) nใo cadastrado(s)")
+        apMsgAlert("Nenhuma estrutura foi cadastrada","Aten็ใo !")
+        Return
+    Endif
+    n_I     := 1
+    cCod     := PADR(a_Dados[n_I,02],TAMSX3("G1_COD")[1])
+    cComp    := PADR(a_Dados[n_I,03],TAMSX3("G1_COMP")[1])
+    cDesc    := Posicione("SB1",1,xFilial("SB1")+cCod,"B1_DESC")
+    cDesc    := FWNOACCENT(ALLTRIM(cDesc))
+    cRevAtu  := Posicione("SB1",1,xFilial("SB1")+cCod,"B1_REVATU")
+    cQuant   := ALLTRIM(a_Dados[n_I,04])
+    If Substr(cQuant,2,1) == ","
+        cQuant := left(cQuant,1)+"."+subs(cQuant,3,4)
+    Endif
+    nQuant   := VAL(cQuant)
+    cPerda   := "00"
+    nPerda   := VAL(cPerda)
+    //--- Cabe็alho --- //
+    aadd(aCab, {"G1_COD"        ,cCod  ,NIL} )
+    aadd(aCab, {"G1_QUANT"      ,1     ,NIL} )
+    aadd(aCab, {"NIVALT"        ,"S"   ,NIL} )  //A variavel NIVALT eh utilizada pra recalcular ou nao a estrutura
+    If nOpcE == 4
+        aadd(aCab, {"ATUREVSB1"     ,"N",   NIL} )
+    Endif
+    n_L := 1
+
+
+    While n_L >= 1 .and. n_L <= len(a_Dados)
+    	IncProc("Importando registro "+StrZero(n_L,4)+" de "+StrZero(len(a_Dados),4))
+        aLinha  := {}
+        cComp    := PADR(a_Dados[n_L,03],TAMSX3("G1_COMP")[1])
+        cDesc    := Posicione("SB1",1,xFilial("SB1")+cComp,"B1_DESC")
+        cDesc    := FWNOACCENT(ALLTRIM(cDesc))
+        nTRT     := nTRT + 1
+        cTRT     := STRZERO(nTRT,3,0)
+        cQuant   := ALLTRIM(a_Dados[n_L,04])
+        cXQtdUni := ALLTRIM(a_Dados[n_L,05])
+        cDIMX    := "0"
+        cDIMY    := "0"
+        cObserv  := ""
+        cXDesenh := ""
+        cPerda   := "0"
+        cXProc01 := ""
+        cXProc02 := ""
+        cXProc03 := ""
+        nQuant   := VAL(cQuant)
+        nPerda   := VAL(cPerda)
+        nXQtdUni := VAL(cXQtdUni)
+        nDIMX    := VAL(cDIMX)
+        nDIMY    := VAL(cDIMY)
+        //--- Linha --- //
+        aadd(aLinha,                    {"G1_COD"       ,cCod                ,NIL} )
+        aadd(aLinha,                    {"G1_COMP"      ,cComp               ,NIL} )
+        aadd(aLinha,                    {"G1_TRT"       ,space(3)                ,NIL} )
+        aadd(aLinha,                    {"G1_QUANT"     ,nQuant              ,NIL} )
+        aadd(aLinha,                    {"G1_PERDA"     ,nPerda              ,NIL} )
+        aadd(aLinha,                    {"G1_DIMX"      ,nDIMX               ,NIL} )
+        aadd(aLinha,                    {"G1_DIMY"      ,nDIMY               ,NIL} )
+        aadd(aLinha,                    {"G1_OBSERV"    ,cObserv             ,NIL} )
+        aadd(aLinha,                    {"G1_XDESENH"   ,cXDesenh            ,NIL} )
+        aadd(aLinha,                    {"G1_XQTDUNI"   ,nXQtdUni            ,NIL} )
+        aadd(aLinha,                    {"G1_XPROC01"   ,cXProc01            ,NIL} )
+        aadd(aLinha,                    {"G1_XPROC02"   ,cXProc02            ,NIL} )
+        aadd(aLinha,                    {"G1_XPROC03"   ,cXProc03            ,NIL} )
+        aadd(aLinha,                    {"G1_NIV"       ,"  "                ,NIL} )
+        aadd(aLinha,                    {"G1_INI"       ,CTOD("01/01/2021")  ,NIL} )
+        aadd(aLinha,                    {"G1_FIM"       ,CTOD("31/12/2049")  ,NIL} )
+        aadd(aItens,aLinha)
+        n_L++
+    Enddo
+   	//FWAlertInfo("Inclusใo Produto: "+cCod+" Componente "+xoomp,"ESTRUTURA GERAL")
+   	//EECVIEW(str(nQuant,10,3)+str(nXQtdUni,10,3),"Quantidades")
+    cTxtArr := ""
+    For n_A := 1 to len(aItens)
+        cTxtArr += aItens[n_A,01,02]
+        cTxtArr += aItens[n_A,02,02]
+        cTxtArr += aItens[n_A,03,02]
+        cTxtArr += str(aItens[n_A,04,02],10,3)
+        cTxtArr += str(aItens[n_A,10,02],10,3)
+        cTxtArr += aItens[n_A,03,02]
+        cTxtArr += CRLF
+    Next n_A
+    EECVIEW(cTxtArr)
+
+    If nOpcE == 3
+        INCPROC(" Gravando estrutura Geral..."+cCod)
+        Begin Transaction
+
+            lMsErroAuto := .F.
+
+            MSExecAuto({|x,y,z| mata200(x,y,z)},aCab,aItens,nOpcE)
+
+            If lMsErroAuto
+                MostraErro()
+                DisarmTransaction()
+                lMsErroAuto := .F.
+            EndIf
+
+        End Transaction
+    Endif
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณGRAVASG1บAutor  ณMarcos Souza (MGS)  บ Data ณ  11/02/2021   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Importa็ใo de estrutura PEวAS atraves de planilha CSV      นฑฑ
+ฑฑบ          ณ .                                                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณEspecifico COZIL   				                           ฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑP
+ฑฑบPr้-requi-ณExportar dados do SOLID para arquivo em formto CSV          บฑฑ
+ฑฑบsitos     ณ                                                            บฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+Static Function GRAVAG1P(a_Dados)     // Estrutura PEวAS
+    Local n_P     := 1
+    Private lMsErroAuto := .F.
+    Private lCalcNivelEstr := .F.
+    ProcRegua(len(a_Dados))
+    // Verifica cadastro de produtos
+    While n_P >= 1 .and. n_P <= len(a_Dados)
+        dbSelectArea("SG1")
+        DbSetOrder(1)
+        dbGotop()
+        cRevAtu  := Posicione("SB1",1,xFilial("SB1")+PADR(a_Dados[n_P,02],TAMSX3("G1_COD")[1]),"B1_REVATU")
+        xCodPro  := PADR(a_Dados[n_P,02],TAMSX3("G1_COD")[1])
+        xCodComp := PADR(a_Dados[n_P,03],TAMSX3("G1_COMP")[1])
+        xUM      := Posicione("SB1",1,xFilial("SB1")+xCodComp,"B1_UM")
+        xUMUnit  := Posicione("SB1",1,xFilial("SB1")+xCodComp,"B1_SEGUM")
+        cDIMX    := ALLTRIM(a_Dados[n_P,04])
+        cDIMY    := ALLTRIM(a_Dados[n_P,05])
+        cQuant   := ALLTRIM(a_Dados[n_P,06])
+        cXObserv := ALLTRIM(a_Dados[n_P,07])
+        cxDesenh := ALLTRIM(a_Dados[n_P,08])
+        cPerda   := ALLTRIM(a_Dados[n_P,09])
+        cXProc01 := ALLTRIM(a_Dados[n_P,10])
+        cXProc02 := ALLTRIM(a_Dados[n_P,11])
+        cXProc03 := ALLTRIM(a_Dados[n_P,12])
+        cXQtdUni := "1"
+        nXQtdUni := VAL(cXQtdUni)
+        nDIMX    := VAL(cDIMX)
+        nDIMY    := VAL(cDIMY)
+        nQuant   := VAL(cQuant)
+        nPerda   := VAL(cPerda)
+        If !dbSeek(xFilial("SG1") + xCodPro + xCodComp)
+            nOpcE := 3
+            //FWAlertInfo("Inclusใo Produto: "+xCodPro+" Componente "+xCodComp,"ESTRUTURA PEวAS")
+            reclock("SG1",.T.)
+            SG1->G1_FILIAL  := xFilial("SG1")
+            SG1->G1_COD     := xCodPro
+            SG1->G1_COMP    := xCodComp
+            SG1->G1_DIMX    := nDIMX
+            SG1->G1_DIMY    := nDIMY
+            SG1->G1_QUANT   := nQuant
+            SG1->G1_XDESENH := cXDesenh
+            SG1->G1_XQTDUNI := nXQtdUni
+            SG1->G1_UMUNIT  := xUMUnit
+            SG1->G1_OBSERV  := cXObserv
+            SG1->G1_PERDA   := nPerda
+            SG1->G1_XPROC01 := cXProc01
+            SG1->G1_XPROC02 := cXProc02
+            SG1->G1_XPROC03 := cXProc03
+            If DTOS(SG1->G1_INI) == "        "
+                SG1->G1_INI      := dDataBase
+            Endif
+            SG1->G1_FIM      := STOD("20491231")
+            SG1->G1_NIV      := "02"
+            SG1->G1_NIVINV   := "98"
+            SG1->G1_FIXVAR   := "V"
+            SG1->G1_REVFIM   := "ZZZ"
+            SG1->G1_VLCOMPE  := "N"
+            MSUnlock()
+        Else
+            nOpcE := 4
+            //FWAlertInfo("Altera็ใo Produto: "+xCodPro+" Componente "+xCodComp,"ESTRUTURA PEวAS")
+            reclock("SG1",.F.)
+            SG1->G1_DIMX    := nDIMX
+            SG1->G1_DIMY    := nDIMY
+            SG1->G1_QUANT   := nQuant
+            SG1->G1_XDESENH := cXDesenh
+            SG1->G1_XQTDUNI := nXQtdUni
+            SG1->G1_UMUNIT  := xUMUnit
+            SG1->G1_OBSERV  := cXObserv
+            SG1->G1_PERDA   := nPerda
+            SG1->G1_XPROC01 := cXProc01
+            SG1->G1_XPROC02 := cXProc02
+            SG1->G1_XPROC03 := cXProc03
+            If DTOS(SG1->G1_INI) == "        "
+                SG1->G1_INI      := dDataBase
+            Endif
+            SG1->G1_FIM      := STOD("20491231")
+            SG1->G1_NIV      := "02"
+            SG1->G1_NIVINV   := "98"
+            SG1->G1_FIXVAR   := "V"
+            SG1->G1_REVFIM   := "ZZZ"
+            SG1->G1_VLCOMPE  := "N"
+            MSUnlock()
+        Endif
+        n_P++
+    Enddo
+    If GetMV("MV_NIVALT") == "S"  .and. lCalcNivelEstr
+        MA320Nivel(Nil,.t.,.f.)
+    EndIf
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณ TELANCM  บAutor  Marcos Souza         บ Data ณ  24/02/2021 บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณTela para  digita็ใo do NCM                                 บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ FINA040                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+*/
+
+Static Function TELANCM(cCod,cNCM)
+    Local aArea := GetArea()
+    //Local lRet  := .T.
+    Local aPergs   := {}
+    Local cNCM1    := Space(TamSX3('YD_TEC')[01])
+
+    aAdd(aPergs, {1, "NCM",  cNCM1,  "", ".T.", "SYD", ".T.", 80,  .T.})
+
+    While Empty(cNCM)
+
+        If ParamBox(aPergs, "Informe o NCM",,,,,,,,,.F.,)
+            cNCM  := mv_par01
+        EndIf
+
+    Enddo
+    RestArea(aArea)
+Return cNCM
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑฺฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฟฑฑ
+ฑฑณFunao    ณShowLog   ณAutor  ณV.Raspa                ณ Data ณ 27.Jan.10ณฑฑ
+ฑฑรฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤดฑฑ
+ฑฑณDescriao ณ Exibe o Log de Processamento                               ณฑฑ
+ฑฑภฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤูฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+Static Function ShowLog(cArqTXT)
+    Local oDlg
+    Local oFont
+    Local oMemo
+    Local cMemo
+
+    cMemo := MemoRead(cArqTXT)
+
+    DEFINE FONT oFont NAME "Courier New" SIZE 5,0
+    DEFINE MSDIALOG oDlg TITLE cArqTXT From 3,0 to 340,417 PIXEL
+    @ 5,5 GET oMemo VAR cMemo MEMO SIZE 200,145 OF oDlg PIXEL
+    oMemo:bRClicked := {|| AllwaysTrue()}
+    oMemo:oFont     := oFont
+
+    DEFINE SBUTTON  FROM 153,175 TYPE 1 ACTION oDlg:End() ENABLE OF oDlg PIXEL
+    DEFINE SBUTTON  FROM 153,145 TYPE 6 ACTION (Processa( {|| PrintLog(cArqTXT,cMemo)})		,oDlg:End()) ENABLE OF oDlg PIXEL //Imprime e Apaga
+
+    ACTIVATE MSDIALOG oDlg CENTER
+
+Return

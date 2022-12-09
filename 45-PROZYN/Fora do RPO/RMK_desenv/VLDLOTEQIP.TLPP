@@ -1,0 +1,28 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "TOPCONN.CH"
+
+/*/{Protheus.doc} VLDLOTEQIP
+	(long_description)
+	@type  Function
+	@author RICARDO MASSAO KODAMA
+	@since 22/07/2022
+	/*/
+
+User Function VLDLOTEQIP()
+	Local cOP       := M->QPK_OP
+	Local cLote     := ""
+    LOCAL aAreaAnt  := GETAREA()
+
+	//Valida se tem OP.
+	DBSelectArea("SC2")
+	SC2->(DBSetOrder(1))
+	SC2->(DBGoTop())
+	If DBSeek(xFilial("SC2")+cOP)
+		cLote := SC2->C2_LOTECTL
+        SC2->(DBCloseArea())
+	EndIf
+
+        RESTAREA(aAreaAnt)
+Return cLote

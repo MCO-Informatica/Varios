@@ -1,0 +1,70 @@
+#Include 'Protheus.ch'
+
+User Function Lp650()
+
+	local cConta
+	
+		/*
+	IF ALLTRIM(SD1->D1_ITEMCTA) = "ESTOQUE"
+		cConta := "113010002"
+	
+	ELSEIF  ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "17"
+		cConta := "615010003"
+	
+	ELSEIF  ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "20"
+		cConta := "615010002"
+	
+	ELSEIF ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "24"
+		cConta := "615010001"
+		
+	ELSEIF  ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "25"
+		cConta := "615010004"
+	
+	ELSEIF  ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "26"
+		cConta := "615010005"
+		
+	ELSEIF  ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" .AND. ALLTRIM(SB1->B1_GRUPO) $ "27"
+		cConta := "615010006"
+		
+	ELSEIF ALLTRIM(SD1->D1_ITEMCTA) == "ADMINISTRACAO" .AND. ALLTRIM(SB1->B1_TIPO) == "AI"
+		cConta := SB1->B1_CONTA
+		*/
+			
+	IF SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "MP"
+		cConta := "113020002"
+	
+	ELSEIF ! SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "MP" // *************
+		cConta := "113010002"
+		
+	ELSEIF SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "PI"
+		cConta := "113050002"
+		
+	ELSEIF  SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" // ************
+		cConta := "113070002"
+		                                                                                                         
+	ELSEIF ! SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "MC" // ************
+		cConta := SD1->D1_CONTA//"113070002"
+				
+	ELSEIF ! SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "PI" // **************
+		cConta := "113010002"
+	
+	ELSEIF SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "PA"
+		cConta := "113040016"
+		
+	ELSEIF ! SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO) == "PA" // ************
+		cConta := "113010002"
+
+
+
+			
+	ELSEIF SUBSTR(SD1->D1_ITEMCTA,1,2)$"AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO)$"MO" .AND. !ALLTRIM(SB1->B1_COD)$"224001/224004/224002/224003/2212004/220701"     //SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN" .AND. ALLTRIM(SB1->B1_TIPO) == "MO" .AND. SB1->B1_COD<>"224001                   " .OR. SB1->B1_COD<>"224004                   " .OR. SB1->B1_COD<>"224002                   " .OR. SB1->B1_COD<>"2212004                   " .OR. SB1->B1_COD<>"224003                   " .OR. SB1->B1_COD<>"220701                   "
+		cConta := "113060003"
+	ELSEIF SUBSTR(SD1->D1_ITEMCTA,1,2)$"AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO)$"MO" .AND. ALLTRIM(SB1->B1_COD)$"224001/224004/224002/224003/2212004"//SUBSTR(SD1->D1_ITEMCTA,1,2) $ "AT/EQ/ST/GR/PR/EN" .AND. ALLTRIM(SB1->B1_TIPO) == "MO" .AND. SB1->B1_COD=="224001                   " .OR. SB1->B1_COD=="224004                   "  .OR. SB1->B1_COD=="224002                   " .OR.  SB1->B1_COD=="2212004                   " .OR.  SB1->B1_COD=="224003                   "
+		cConta := "113060002"	
+	ELSEIF SUBSTR(SD1->D1_ITEMCTA,1,2)$"AT/EQ/ST/GR/PR/EN/CM" .AND. ALLTRIM(SB1->B1_TIPO)$"MO" .AND. ALLTRIM(SB1->B1_COD)$"220701"  
+        cConta := "113060008"
+	ELSE
+		cConta:=""			
+	ENDIF
+                                                                                     
+Return cConta

@@ -1,0 +1,64 @@
+#INCLUDE "RWMAKE.CH" 
+#INCLUDE "TBICONN.CH"
+
+User Function bxcaixa()
+Local _aCab1 := {}
+Local _aItem := {}
+Local _atotitem:={}
+Local cCodigoTM:="503" //503 - BAIXA CAIXA
+Local cCodProd:=""
+Local cNFisc:=""
+	/*
+    --------------------------------------------
+    |                                          |
+    |     MV_PAR01 = Informe a Nota Fiscal     |
+    |                                          |
+    --------------------------------------------
+    */
+
+    Pergunte("BAIXACX", .T.)
+
+    cNFisc  := MV_PAR01
+
+
+
+
+Private lMsHelpAuto := .t. // se .t. direciona as mensagens de help
+Private lMsErroAuto := .f. //necessario a criacao
+
+//Private _acod:={"1","MP1"}
+//PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01" MODULO "EST"
+
+dbSelectArea("CB6")
+dbSeek(xFilial("CB6")+(cNFisc)->CB6_NOTA)
+cVol := CB6->CB6_VOLUME
+dbCloseArea()
+
+dbSelectArea("CB3")
+dbSeek(xFilial("CB3")+(cVol)->CB3_CODEMB)
+cCodProd := CB3->CB3_DESCRI
+dbCloseArea()
+
+
+_aCab1 := {{"D3_DOC" ,NextNumero("SD3",2,"D3_DOC",.T.), NIL},;
+		   {"D3_TM" ,cCodigoTM , NIL},;
+           {"D3_EMISSAO" ,ddatabase, NIL}}
+
+
+_aItem:={{"D3_COD" ,cCodProd ,NIL},;
+		 {"D3_UM"    ,Posicione("SB1",1,xFilial("SB1")+(cCodProd)->D3_COD,"B1_UM")    ,Nil},;
+		 {"D3_QUANT" ,1 ,NIL},;
+		 {"D3_LOCAL" ,Posicione("SB1",1,xFilial("SB1")+(cCodProd)->D3_COD,"B1_LOCPAD")     ,NIL}}/*,;
+		 {"D3_LOCALIZ" , "ENDEREÇO            ",NIL}}*/
+
+aadd(_atotitem,_aitem) 
+MSExecAuto({|x,y,z| MATA241(x,y,z)},_aCab1,_atotitem,3)
+
+If lMsErroAuto 
+Mostraerro() 
+DisarmTransaction() 
+break
+
+EndIf
+
+Return

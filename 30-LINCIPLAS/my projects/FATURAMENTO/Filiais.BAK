@@ -1,0 +1,38 @@
+#Include "Protheus.ch"
+#INCLUDE "rwmake.ch"
+
+// ATUALIZA A FILIAL DO ORÇAMENTO DE ACORDO COM O CODIGO DO PRODUTO
+// SE FOR PRODUTOS SPIDER A FILIAL DO ORCAMENTO DEVERA SER "02" (INDUSTRIAL) CASO CONTRARIO DEVERA SER "01" (LINCIPLAS)
+// THIAGO QUEIROZ - 23/01/2012
+
+USER FUNCTION FILVEN()
+
+cRet := "01"
+
+cRet :=	IIF((SUBSTR(TMP1->CK_PRODUTO,1,4) >= "S010" .AND. SUBSTR(TMP1->CK_PRODUTO,1,4) <= "S060") .OR. SUBSTR(TMP1->CK_PRODUTO,1,5) == "SPI35","02","01")
+
+IF RECLOCK("SCK",.F.)
+	TMP1->CK_FILVEN := cRet
+	TMP1->CK_FILENT := cRet
+	MsUnlock("SCK")
+ELSE
+	IF cRet == "02"
+		MSGBOX("Por favor confirme os campos Filial Entrega e Filial Venda")
+	ENDIF
+ENDIF
+
+dbSelectArea("SCJ")
+dbSetOrder(1)
+DBSEEK(XFILIAL("SCJ")+M->CJ_NUM,.F.)
+
+IF RECLOCK("SCJ",.F.)
+	M->CJ_FILVEN := cRet
+	M->CJ_FILENT := cRet
+	MsUnlock("SCJ")
+ELSE
+	IF cRet == "02"
+		MSGBOX("Por favor confirme os campos Filial Entrega e Filial Venda"
+	ENDIF
+ENDIF
+
+RETURN cRet

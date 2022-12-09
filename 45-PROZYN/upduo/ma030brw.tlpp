@@ -1,0 +1,50 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | MA030BRW        | Autor | Lucas Baia          | Data |    22/09/2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | PROZYN
+//---------------------------------------------------------------------------------
+
+
+User Function MA030BRW()
+
+Local cFiltro	:= Nil
+Local cVend 	:= ""
+Local cClient 	:= ""
+Local aArea     := GetArea()
+
+dbselectarea("SA3")
+dbsetorder(7)
+
+DbSelectArea("SA1")
+DbSetOrder(10)
+
+SA3->(DBGotop())
+
+IF Alltrim(__cUserID) $ "000017" //---> Arthur
+	cFiltro := Nil
+	Return(cFiltro)
+ENDIF
+
+IF SA3->(DbSeek(xFilial("SA3")+__cUserID))
+	Do While !SA3->(Eof())
+
+		If Alltrim(__cUserID) == Alltrim(SA3->A3_CODUSR)
+			cVend 	:= SA3->A3_COD
+			cFiltro := "A1_VEND == '"+cVend+"' "
+			Exit
+		Endif
+		SA3->(DBSkip())
+		EndDo
+ELSE
+	cFiltro := Nil
+	Return(cFiltro)
+ENDIF
+
+RestArea(aArea)
+
+return cFiltro

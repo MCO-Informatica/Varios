@@ -1,0 +1,457 @@
+#include "rwmake.ch"
+#include "topconn.ch"
+#IFNDEF WINDOWS
+	#DEFINE PSAY SAY
+#ENDIF
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณLINCIFAT13บ Autor ณ RODRIGO DEMETRIOS  บ Data ณ  30/03/07   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ RELATORIO HORAS FATURADAS POR MAQUINA                      บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ FATURAMENTO                                                บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function LIFAT13()
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Declaracao de Variaveis                                             ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+cDesc1       := "Este Programa Tem Como Objetivo Imprimir Relat๓rio "
+cDesc2       := "De Acordo Com os Parametros Informados Pelo Usuario."
+cDesc3       := "HORAS FATURADAS POR MAQUINA"
+cPict        := ""
+titulo       := "HORAS FATURADAS POR MAQUINA"
+nLin         := 80
+imprime      := .T.
+lEnd         := .F.
+lAbortPrint  := .F.
+CbTxt        := ""
+limite       := 220
+tamanho      := "G"
+nomeprog     := "LIFAT13" // Coloque aqui o nome do programa para impressao no cabecalho
+nTipo        := 15
+aReturn      := { "Zebrado", 1, "Administracao", 1, 2, 1, "", 1}
+nLastKey     := 0
+_cPerg       := "LIFA13"
+cbtxt        := Space(10)
+cbcont       := 00
+CONTFL       := 01
+m_pag        := 01
+wnrel        := "LIFAT13" // Coloque aqui o nome do arquivo usado para impressao em disco
+cString      := "SD2"
+_nTotNcc     := 0
+_nTotal      := 0
+nOrdem       := 1
+CABEC1       := "MAQUINA        PEDIDO    PRODUTO            DESCRICAO                      QUANTIDADE             VALOR            VALOR    DATA           HORAS       " 
+CABEC2       := "                                            PRODUTO                          FATURADA          UNITARIO            TOTAL    FATURAMENTO    FATURADAS  "
+
+dbSelectArea("SD2")
+dbSetOrder(1)
+
+ValidPerg() // Valida as Perguntas
+
+pergunte(_cPerg,.F.)
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Monta a interface padrao com o usuario...                           ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+wnrel := SetPrint(cString,NomeProg,_cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,,.T.,Tamanho,,.T.)
+
+If nLastKey == 27
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Return
+Endif
+
+
+RptStatus({|| RFAT13() },Titulo)
+
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบFuno    ณEMFAT13   บ Autor ณ Rodrigo Correa     บ Data ณ  05/02/03   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescrio ณ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS บฑฑ
+ฑฑบ          ณ monta a janela com a regua de processamento.               บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Programa principal                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+Static Function RFAT13()
+
+
+_dFATde  := mv_par01
+_dFATate := mv_par02      
+
+//	Cria arq. de trabalho		
+
+aCampos := {}
+Aadd(aCampos,{"TRB_MAQUIN"		, "C",15, 0})     
+Aadd(aCampos,{"TRB_DOC"	    	, "C",06, 0})     
+Aadd(aCampos,{"TRB_PRODUT"		, "C",15, 0})
+Aadd(aCampos,{"TRB_QUANT"		, "N",14, 0})
+Aadd(aCampos,{"TRB_VALUNI"		, "N",14, 2})
+Aadd(aCampos,{"TRB_VALOR"		, "N",14, 2})
+Aadd(aCampos,{"TRB_DTFAT"	 	, "D",08, 0})
+Aadd(aCampos,{"TRB_HORFAT"	 	, "N",14, 2})
+			
+_cArqTmp := CriaTrab(aCampos,.T.) 	//arquivo temporario sc
+DbCreate(_cArqTMP,aCampos)
+DbUseArea( .T.,,_cArqTmp,"TRB",Nil,.F.)
+
+cNomArq1 := CriaTrab(nil,.f.)
+
+Indregua("TRB",cNomArq1,"TRB_MAQUINA",,,"Selecionando Registros...")  
+
+//         1         2         3         4         5         6         7         8         9         0         11        12        13       14        15        16        17        18        19        20        21        22
+//1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+//MAQUINA        PEDIDO    PRODUTO            DESCRICAO                      QUANTIDADE             VALOR            VALOR    DATA           HORAS       
+//                                            PRODUTO                          FATURADA          UNITARIO            TOTAL    FATURAMENTO    FATURADAS  
+//XXXXXXXXXX     999999    XXXXXXXXXXXXXXX                                                                                          
+//                                            XXXXXXXXXXXXXXXXXXXXXXXX   999,999,999.99    999,999,999.99   999,999,999.99    99/99/99        99,99
+
+dbSelectArea("SD2")
+cFilTrab   := CriaTrab("",.F.)
+cCondicao  := "D2_FILIAL=='"+xFilial("SD2")+"'.And."
+cCondicao  += "Dtos(D2_EMISSAO)>='"+Dtos(MV_PAR01)+"'.And.Dtos(D2_EMISSAO)<='"+Dtos(MV_PAR02)+"'"
+IndRegua("SD2",cFilTrab,"D2_FILIAL+DTOS(D2_EMISSAO)",,cCondicao,"Filtrando")    // "Selecionando Registros..."
+DbGoTop()
+SetRegua(RecCount())
+NSALDO := 0
+NHORAS := 0
+NVALOR := 0
+CMAQUINA := "               "
+
+While !Eof()
+IncRegua()
+	
+	If lAbortPrint
+		@nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+		Exit
+	Endif
+	 	
+	   
+		IF (SD2->D2_TES $ '501/502/504/506/507/528/534/535/536/541/542/543/545/547/552/554/555/557/559/561/562/564')
+
+        	    DBSELECTAREA("SB1")
+     		    DBSETORDER(1)
+     		    DBSEEK(XFILIAL("SB1") + SD2->D2_COD) 
+	           	
+	           	dbSelectArea("SD2")	
+				CMAQUINA := SB1->B1_LMAQ 
+				CNUM     := SD2->D2_DOC
+				CPRODUTO := SD2->D2_COD
+				NQUANT   := SD2->D2_QUANT
+				NVALUNI  := SD2->D2_PRCVEN
+		        NVALVEN  := (SD2->D2_TOTAL + SD2->D2_VALIPI)
+				DDATAFA  := SD2->D2_EMISSAO
+				NHORFAT  := (SD2->D2_QUANT / ((3600/SB1->B1_LCICLO) * SB1->B1_LCAV))
+				
+	        	dbSelectArea("TRB")
+     			Reclock("TRB",.T.)
+     			Replace TRB_MAQUIN     With   CMAQUINA
+     			Replace TRB_DOC        With   CNUM 
+     			Replace TRB_PRODUT     With   CPRODUTO 
+     			Replace TRB_QUANT      With   NQUANT 
+     			Replace TRB_VALUNI     With   NVALUNI 
+     			Replace TRB_VALOR      With   NVALVEN
+     			Replace TRB_DTFAT      With   DDATAFA 
+     			Replace TRB_HORFAT     With   NHORFAT
+     			
+     			Msunlock()
+		ENDIF	
+		
+		dbSelectArea("SD2")	 			                                                 //BUSCA VALOR DO IPI NO PRODUTO....
+		dbSkip()             // Avanca o ponteiro do registro no arquivo
+	End
+
+dbSelectArea("SD2")
+retindex()
+
+
+dbSelectArea("TRB")
+DBSETORDER(1)
+DbGoTop()
+SetRegua(RecCount())
+
+NTOTGHORFAT := 0  //TOTAL GERAL DE HORAS FATURADAS
+NTOTGVALFAT := 0 //TOTAL GERAL DO VALOR  FATURADO
+
+
+While !EOF() 
+IncRegua()	
+	NTOTHFAT := 0 //TOTAL HORAS  FATURADAS
+	NTOTVFAT := 0 //TOTAL VALOR  FATURADO
+
+	_CMAQUINA := TRB->TRB_MAQUINA
+	
+	While !EOF() .AND. TRB->TRB_MAQUINA == _CMAQUINA
+		
+		If lAbortPrint
+			@nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+			Exit
+		Endif
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณ Impressao do cabecalho do relatorio. . .                            ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		
+		If nLin > 55 // Salto de Pแgina. Neste caso o formulario tem 55 linhas...
+			Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+			nLin := 10
+		Endif
+		
+		//          1         2         3         4         5         6         7         8         9         0         11        12        13       14        15        16        17        18        19        20        21        22
+		//01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+		//MAQUINA        PEDIDO    PRODUTO            DESCRICAO                      QUANTIDADE             VALOR            VALOR    DATA           HORAS       
+		//                                            PRODUTO                          FATURADA          UNITARIO            TOTAL    FATURAMENTO    FATURADAS  
+		//XXXXXXXXXX     999999    XXXXXXXXXXXXXXX                                                                                          
+		//                                            XXXXXXXXXXXXXXXXXXXXXXXX   999,999,999.99    999,999,999.99   999,999,999.99    99/99/99       99,99
+		
+		DBSELECTAREA("SB1")
+     	DBSETORDER(1)
+     	DBSEEK(XFILIAL("SB1") + TRB->TRB_PRODUT) 
+	           	
+	    DbSelectArea("TRB")	
+		
+		@nLin,000 PSAY  SUBSTR(_CMAQUINA,1,10)
+		@nLin,015 PSAY  TRB->TRB_DOC
+		@nLin,025 PSAY  TRB->TRB_PRODUT  
+		@nLin,044 PSAY  SUBSTR(SB1->B1_DESC,1,25) 
+		@nLin,071 PSAY  TRB->TRB_QUANT   PICTURE "@E 99,999,999"
+		@nLin,089 PSAY  TRB->TRB_VALUNI  PICTURE "@E 99,999,999.99"
+		@nLin,106 PSAY  TRB->TRB_VALOR   PICTURE "@E 99,999,999.99"
+    	@nLin,124 PSAY  TRB->TRB_DTFAT 
+		@nLin,139 PSAY  TRB->TRB_HORFAT  PICTURE "@E 99,999.99"
+     			
+		
+		NTOTHFAT := NTOTHFAT + TRB->TRB_HORFAT
+		NTOTVFAT := NTOTVFAT + TRB->TRB_VALOR
+		
+		nLin := nLin + 1 // Avanca a linha de impressao
+	
+		dbSelectArea("TRB")
+		dbSkip() // Avanca o ponteiro do registro no arquivo
+	EndDo
+	
+		@nLin,000 PSAY "TOTAL DA MAQUINA " + _CMAQUINA + " --> "
+        @nLin,106 PSAY NTOTVFAT PICTURE "@E 99,999,999.99"
+		@nLin,139 PSAY NTOTHFAT PICTURE "@E 99,999.99"
+		
+		nLin := nLin + 1
+		nLin := nLin + 1
+		
+        NTOTGHORFAT  += NTOTHFAT 
+		NTOTGVALFAT  += NTOTVFAT
+	
+ENdDo
+
+@nLin,000 PSAY "TOTAL GERAL" + " --> "
+@nLin,106 PSAY NTOTGVALFAT PICTURE "@E 99,999,999.99"
+@nLin,139 PSAY NTOTGHORFAT PICTURE "@E 99,999.99"
+
+
+ 
+nLin := 56
+If nLin > 55 // Salto de Pแgina. Neste caso o formulario tem 55 linhas...
+	Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+	nLin := 8
+Endif
+
+
+@nLin,00 PSAY "___________________________________________________________________________________________________________________________________________________________________________________________________________________________" 
+nLin := nLin + 2
+@nLin,78 PSAY "R E S U M O     P O R     G R U P O     D E     M A Q U I N A S" 
+nLin := nLin + 1
+@nLin,00 PSAY "___________________________________________________________________________________________________________________________________________________________________________________________________________________________" 
+nLin := nLin + 2
+@nLin,00 PSAY "                 M A Q U I N A S                          TOTAL DISPONIVEL                            TOTAL                      TROCA           FATURADO           OCIOSIDADE                                FATURADO     " 
+nLin := nLin + 1
+@nLin,00 PSAY "                                                          MES (HRS) MAQUINA                           FATURADO (HRS)             MOLDE           + TROCA              (HRS)                                   (R$)         "
+nLin := nLin + 1
+@nLin,00 PSAY "___________________________________________________________________________________________________________________________________________________________________________________________________________________________" 
+
+nLin := nLin + 1
+nLin := nLin + 1
+nLin := nLin + 1
+
+
+dbSelectArea("TRB")
+DBSETORDER(1)
+DbGoTop()
+SetRegua(RecCount())
+
+//NTOTGHOR := 0  //TOTAL GERAL DE HORAS
+//NTOTGVAL := 0 //TOTAL GERAL DO VALOR
+NTOTGHORVEN := 0  //TOTAL GERAL DE HORAS
+NTOTGVALVEN := 0 //TOTAL GERAL DO VALOR
+NTOTDISPONIVEL := 0 // TOTAL DE HORAS DISPONIVEL
+NOCIOVENDIDA := 0 //OCIOSIDADE
+NCOUNT := 0    // CONTADOR GERAL DE TROCAS
+
+While !EOF() 
+IncRegua()	
+//	NTOTHOR  := 0 //TOTAL HORAS
+//	NTOTVAL  := 0 //TOTAL VALOR
+	NTOTHVEN := 0 //TOTAL HORAS
+	NTOTVVEN := 0 //TOTAL VALOR
+	_NCONT   := 0 // CONTADOR DE TROCAS
+	_CMAQUINA := SUBSTR(TRB->TRB_MAQUINA,1,1)
+	
+	While !EOF() .AND. SUBSTR(TRB->TRB_MAQUINA,1,1) == SUBSTR(_CMAQUINA,1,1)
+		
+		If lAbortPrint
+			@nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+			Exit
+		Endif
+		
+		//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+		//ณ Impressao do cabecalho do relatorio. . .                            ณ
+		//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+		
+		If nLin > 55 // Salto de Pแgina. Neste caso o formulario tem 55 linhas...
+			Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+			nLin := 10
+		Endif
+		
+        //         1         2         3         4         5         6         7         8         9         0         11        12        13       14        15        16        17        18        19        20         21        22
+        //12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890121345678901234567890
+        //                 M A Q U I N A S                          TOTAL DISPONIVEL                            TOTAL                      TROCA           FATURADO           OCIOSIDADE                                FATURADO     
+        //                                                          MES (HRS) MAQUINA                           FATURADO (HRS)             MOLDE           + TROCA              (HRS)                                   (R$)         
+
+		DBSELECTAREA("SB1")
+     	DBSETORDER(1)
+     	DBSEEK(XFILIAL("SB1") + TRB->TRB_PRODUT) 
+	           	
+	    DbSelectArea("TRB")	
+		
+		
+ //		NTOTHOR := NTOTHOR + TRB->TRB_HORAS
+ //		NTOTVAL := NTOTVAL + TRB->TRB_VALOR
+		NTOTHVEN := NTOTHVEN + TRB->TRB_HORFAT
+		NTOTVVEN := NTOTVVEN + TRB->TRB_VALOR
+		NCOUNT := NCOUNT + 1
+		_NCONT := _NCONT + 1
+		//nLin := nLin + 1 // Avanca a linha de impressao
+	
+		dbSelectArea("TRB")
+		dbSkip() // Avanca o ponteiro do registro no arquivo
+	EndDo
+	
+		DBSELECTAREA("SZ3")
+		DBSETORDER(1)
+		DBSEEK(XFILIAL("SZ3") + _CMAQUINA)
+		
+		
+		@nLin,000 PSAY "TOTAL DO GRUPO: " + _CMAQUINA + "  - MAQUINAS:  "  + SZ3->Z3_DESCMAQ
+		@nLin,060 PSAY SZ3->Z3_VALMES  PICTURE "@E 99,999,999.99"
+ //		@nLin,082 PSAY NTOTHOR  PICTURE "@E 99,999.99"
+		@nLin,104 PSAY NTOTHVEN PICTURE "@E 99,999.99"
+        NSALDOHVEN := SZ3->Z3_VALMES - NTOTHVEN 
+        @nLin,125 PSAY (_NCONT * 3) PICTURE "@E 99,999.99"
+        @nLin,145 PSAY NTOTHVEN + (_NCONT * 3) PICTURE "@E 99,999.99"
+        @nLin,166 PSAY NSALDOHVEN - (_NCONT * 3) PICTURE "@E 99,999.99"
+//		@nLin,184 PSAY NTOTVAL  PICTURE "@E 99,999,999.99"
+        @nLin,201 PSAY NTOTVVEN PICTURE "@E 99,999,999.99"
+		
+		
+		nLin := nLin + 1
+		nLin := nLin + 1
+		
+        NTOTGHORVEN  += NTOTHVEN 
+		NTOTGVALVEN  += NTOTVVEN
+        NTOTDISPONIVEL += SZ3->Z3_VALMES
+	    NOCIOVENDIDA  += NSALDOHVEN
+	    _NCONT := 0
+	dbSelectArea("TRB")
+ENdDo
+
+nLin := nLin + 1
+
+@nLin,000 PSAY "TOTAL GERAL" + " --> "
+@nLin,060 PSAY NTOTDISPONIVEL PICTURE "@E 99,999,999.99"
+//@nLin,082 PSAY NTOTGHOR PICTURE "@E 99,999.99"
+@nLin,104 PSAY NTOTGHORVEN PICTURE "@E 99,999.99"
+@nLin,124 PSAY (NCOUNT * 3) PICTURE "@E 99,999.99"
+@nLin,144 PSAY NTOTGHORVEN + (NCOUNT * 3) PICTURE "@E 99,999.99"
+@nLin,165 PSAY NOCIOVENDIDA - (NCOUNT * 3) PICTURE "@E 99,999.99"
+//@nLin,183 PSAY NTOTGVAL PICTURE "@E 99,999,999.99"
+@nLin,200 PSAY NTOTGVALVEN PICTURE "@E 99,999,999.99"
+
+nLin := nLin + 1
+nLin := nLin + 1
+
+dbSelectArea("TRB")  
+DBCLOSEAREA()
+
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Finaliza a execucao do relatorio...                                 ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+SET DEVICE TO SCREEN
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Se impressao em disco, chama o gerenciador de impressao...          ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+SET PRINTER TO
+OurSpool(wnrel)
+
+MS_FLUSH()
+
+Return
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑฺฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤยฤฤฤฤฤฤยฤฤฤฤฤฤฤฤฤฤฟฑฑ
+ฑฑณFunao    ณ ValidPerg ณ Autor ณ Denilson Correa      ณ Data ณ          ณฑฑ
+ฑฑรฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤดฑฑ
+ฑฑณDescriao ณ Valida se existe as Perguntas no SX1                       ณฑฑ
+ฑฑภฤฤฤฤฤฤฤฤฤฤมฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤูฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function ValidPerg()
+
+_cAlias := Alias()
+DbSelectArea("SX1")
+DbSetOrder(1)
+aRegs :={}
+
+Aadd(aRegs,{_cPerg,"01","Data Faturamento de   ?","","","mv_ch1","D",08,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"02","Data Faturamento Ate  ?","","","mv_ch2","D",08,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+For i:=1 to Len(aRegs)
+	If !dbSeek(_cPerg+aRegs[i,2])
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			EndIf
+		Next
+		MsUnlock()
+	EndIf
+Next
+DbSelectArea(_cAlias)
+Return
+

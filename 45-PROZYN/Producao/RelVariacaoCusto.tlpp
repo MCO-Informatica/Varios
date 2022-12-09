@@ -1,0 +1,265 @@
+#include "tbiconn.ch"
+#include "protheus.ch"
+#include "topconn.ch"
+/*/{Protheus.doc} RelVariacaoCusto
+    @type  Function
+    @author Denis varella
+    @since 02/09/2021
+    /*/
+User Function RelVariacaoCusto()
+    Processa( {|| GeraVCusto() }, "Aguarde...", "Gerando relat�rio de varia��o de custo...",.F.)
+Return
+
+Static Function GeraVCusto()
+    Local aArea := GetArea()
+    Local aStruct := {}
+    Local aProds := {}
+    Local aSemB9 := {}
+    Local aCusto := {}
+    Local nS := 0
+    Private nTxMoeda := 0
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    DbSelectArea("SM2")
+    SM2->(DbSetOrder(1))
+    SM2->(DbSeek(DtoS(Date())))
+
+    nTxMoeda := SM2->M2_MOEDA2
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    DbSelectArea("SB5")
+    SB5->(DbSetOrder(1))
+    While SB1->(!EOF())
+        lToSemB9 := .F.
+        If SB1->B1_MSBLQL != '1'
+            If SB1->B1_TIPO == 'PA'
+                aStruct := {}
+
+                getStructure(@aStruct)
+
+                aAdd(aProds, {SB1->B1_TIPO,SB1->B1_COD,SB1->B1_DESC,0,0,0}) //Código - Descrição - Custo Futuro - Custo Atual - Variação de Custo
+
+                For nS := 1 to len(aStruct)
+                    aCusto := hasOpenOrder(@aStruct,nS)
+                    aProds[len(aProds)][4] += aCusto[1] //Custo Atual
+                    aProds[len(aProds)][5] += aCusto[2] //Custo Futuro
+                    If aCusto[1] == 0 .and. aStruct[nS][6] == 'MP'
+                        lToSemB9 := .t.
+                    EndIf
+                Next nS
+
+                aProds[len(aProds)][6] := Round((aProds[len(aProds)][5] / aProds[len(aProds)][4]) - 1,2) //Variação de Custo ( ( Futuro / Atual )- 1)
+                If aProds[len(aProds)][5] == 0 .or. aProds[len(aProds)][4] == 0
+                    aProds[len(aProds)][6] := 0
+                EndIf
+
+                If lToSemB9 .and. aProds[len(aProds)][6] > 0
+                    aAdd(aSemB9, aProds[len(aProds)])
+                EndIf
+
+                If aProds[len(aProds)][6] <= 0 .or. lToSemB9
+                    ASize(aProds,len(aProds)-1)
+                EndIf
+
+
+            ElseIf SB1->B1_TIPO == 'ME'
+                aAreaB1 := SB1->(GetArea())
+                cTipo := SB1->B1_TIPO
+                cCod := SB1->B1_COD
+                cDesc := SB1->B1_DESC
+                If SB5->(DbSeek(xFilial("SB5")+SB1->B1_COD)) .and. !empty(trim(SB5->B5_MPXME)) .and. SB1->(DbSeek(xFilial("SB1")+SB5->B5_MPXME))
+                    
+                    aStruct := {}
+                    aAdd(aProds, {cTipo,cCod,cDesc,0,0,0}) //Código - Descrição - Custo Futuro - Custo Atual - Variação de Custo
+                    aAdd(aStruct, {SB1->B1_COD,1,SB1->B1_LOCPAD,0,0,SB1->B1_TIPO})
+                    For nS := 1 to len(aStruct)
+                        aCusto := hasOpenOrder(@aStruct,nS)
+                        aProds[len(aProds)][4] += aCusto[1] //Custo Atual
+                        aProds[len(aProds)][5] += aCusto[2] //Custo Futuro
+                        If aCusto[1] == 0 .and. aStruct[nS][6] == 'MP'
+                            lToSemB9 := .t.
+                        EndIf
+                    Next nS
+
+                    aProds[len(aProds)][6] := Round((aProds[len(aProds)][5] / aProds[len(aProds)][4]) - 1,2) //Variação de Custo ( ( Futuro / Atual )- 1)
+
+                    If aProds[len(aProds)][5] == 0 .or. aProds[len(aProds)][4] == 0
+                        aProds[len(aProds)][6] := 0
+                    EndIf
+
+                    If lToSemB9 .and. aProds[len(aProds)][6] > 0
+                        aAdd(aSemB9, aProds[len(aProds)])
+                    EndIf
+
+                    If aProds[len(aProds)][6] <= 0 .or. lToSemB9
+                        ASize(aProds,len(aProds)-1)
+                    EndIf
+
+                EndIf
+                
+                RestArea(aAreaB1)
+            EndIf
+        EndIf
+
+        SB1->(DbSkip())
+    EndDo
+
+    GeraExcel(aProds,aSemB9)
+
+    RestArea(aArea)
+
+    RESET ENVIRONMENT 
+Return
+
+Static Function GetB9Custo(cCod,cLocal)
+    Local nCusto := 0
+    Local dData := SuperGetMV("MV_ULMES",,CtoD("30/09/2021"))
+    Local nBack := 0
+    Default cCod := ""
+    Default cLocal := "01"
+
+	DbSelectArea("SB9")
+	SB9->(DbSetOrder(1))
+	// If SB9->(DbSeek(xFilial("SB9")+cCod+cLocal+DtoS(dData)))
+	// 	nCusto := SB9->B9_CM2
+	// EndIf
+
+    While nCusto == 0 .and. nBack < 5
+        If SB9->(DbSeek(xFilial("SB9")+cCod+cLocal+DtoS(LastDate(MonthSub(FirstDate(dData),nBack)))))
+            nCusto := SB9->B9_CM2
+        EndIf
+        nBack++
+    EndDo
+
+    If nCusto == 0
+        nCusto := 0
+    EndIf
+
+
+Return nCusto
+
+Static Function GeraExcel(aProds,aSemB9)
+    Local oFWMsExcel
+    Local oExcel
+    Local cArquivo      := ""
+    Local cArqFull      := ""
+    Local cDiretorio    := GetTempPath()
+    Local nL := 0
+
+    //Criando o objeto que irá gerar o conteúdo do Excel
+    cArquivo    := "RelVariacaoCusto"+".xls"
+    cArqFull    := cDiretorio + cArquivo
+    oFWMsExcel := FWMSExcel():New()
+
+    cTitulo := "Relatorio de Variacao"
+    cSubtit := "Variacao_de_Custo"
+    oFWMsExcel:AddworkSheet(cTitulo)
+    oFWMsExcel:AddTable(cTitulo,cSubtit)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Tipo", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Cod. do Produto", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Descricao do Produto", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Custo atual", 3, 2)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Custo futuro", 3, 2)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Variacao", 3, 2)
+
+    For nL := 1 to len(aProds)
+        oFWMsExcel:AddRow(cTitulo,cSubtit,aProds[nL])
+    Next nL
+    
+    cTitulo := "MP sem custo"
+    oFWMsExcel:AddworkSheet(cTitulo)
+    oFWMsExcel:AddTable(cTitulo,cSubtit)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Tipo", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Cod. do Produto", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Descricao do Produto", 1, 1)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Custo atual", 3, 2)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Custo futuro", 3, 2)
+    oFWMsExcel:AddColumn(cTitulo,cSubtit,"Variacao", 3, 2)
+
+    For nL := 1 to len(aSemB9)
+        oFWMsExcel:AddRow(cTitulo,cSubtit,aSemB9[nL])
+    Next nL
+        
+    //Ativando o arquivo e gerando o xml
+    oFWMsExcel:Activate()
+    oFWMsExcel:GetXMLFile(cArqFull)
+        
+    //Se tiver o excel instalado
+    If ApOleClient("msexcel")
+        oExcel := MsExcel():New()
+        oExcel:WorkBooks:Open(cArqFull)
+        oExcel:SetVisible(.T.)
+        oExcel:Destroy()
+        
+    Else
+        //Se existir a pasta do LibreOffice 5
+        If ExistDir("C:\Program Files (x86)\LibreOffice 5")
+            WaitRun('C:\Program Files (x86)\LibreOffice 5\program\scalc.exe "'+cDiretorio+cArquivo+'"', 1)
+            
+        //Senão, abre o XML pelo programa padrão
+        Else
+            ShellExecute("open", cArquivo, "", cDiretorio, 1)
+        EndIf
+    EndIf
+
+Return
+
+Static Function getStructure(aStruct)
+    DbSelectArea("SG1")
+    SG1->(DbSetOrder(1))
+    SG1->(DbSeek(xFilial("SG1")+SB1->B1_COD,.f.))
+    While SG1->(!EOF()) .AND. SG1->G1_COD == SB1->B1_COD
+        If GetAdvFVal("SB1","B1_TIPO",xFilial("SB1")+SG1->G1_COMP,1,"Erro") $ 'MP;PI;EM'
+
+            aAdd(aStruct, {SG1->G1_COMP, SG1->G1_QUANT / 100,GetAdvFVal("SB1","B1_LOCPAD",xFilial("SB1")+SG1->G1_COMP,1,"Erro"),0,0,GetAdvFVal("SB1","B1_TIPO",xFilial("SB1")+SG1->G1_COMP,1,"Erro")})
+            
+        EndIf
+        SG1->(DbSkip())
+    EndDo
+Return
+
+Static Function hasOpenOrder(aStruct,nS)
+    Local nLPW := 1
+    Local nCusto1 := 0
+    Local nCusto2 := 0
+    Local nPrcCom := 0
+    DbSelectArea("SC7")
+    DbSetOrder(2)
+    DbSeek(xFilial("SC7")+aStruct[nS][1],.f.)
+    While SC7->(!EOF()) .AND. SC7->C7_PRODUTO == aStruct[nS][1]
+        If SC7->C7_CONAPRO == 'L' .AND. SC7->C7_QUJE < SC7->C7_QUANT .AND. C7_RESIDUO != 'S'
+            nLPW := SC7->C7_XLPW
+            If nLPW == 0
+                nLPW := 1
+            EndIf
+            nPrcCom := SC7->C7_PRECO
+            nMoeda := SC7->C7_MOEDA
+
+            If nMoeda == 1
+                nPrcCom := nPrcCom / nTxMoeda
+            EndIf
+
+            EXIT
+        EndIf
+        SC7->(DbSkip())
+    EndDo
+    nCustoB9 := GetB9Custo(aStruct[nS][1],aStruct[nS][3])
+    nPrcCom := Iif(nPrcCom == 0, nCustoB9,nPrcCom)
+    nCusto1 := aStruct[nS][2] * nCustoB9
+    nCusto2 := aStruct[nS][2] * nLPW * nPrcCom
+    aStruct[nS][4] := nPrcCom
+    aStruct[nS][5] := nPrcCom
+
+    // DbSelectArea("SB2")
+    // SB2->(DbSetOrder(1))
+    // If SB2->(DbSeek(xFilial("SB2")+aStruct[nS][1]+aStruct[nS][3]))
+    //     nPrcCom := Iif(nPrcCom == 0, SB2->B2_CM2,nPrcCom)
+    //     nCusto1 := aStruct[nS][2] * SB2->B2_CM2
+    //     nCusto2 := aStruct[nS][2] * nLPW * nPrcCom
+    //     aStruct[nS][4] := nPrcCom
+    //     aStruct[nS][5] := nPrcCom
+    // EndIf
+    
+Return { nCusto1, nCusto2 }

@@ -1,0 +1,219 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TBICONN.CH"
+#INCLUDE "COLORS.CH"
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+
+User Function etqMatPri()
+    Local aPergs := {}
+    Local cOP  := ''
+    Local cCodEtiq := ""
+    Local nTipo := 1
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+    // Local nQ := 0
+
+    cOP := Space(TamSX3('B1_COD')[01])
+    // MV_PAR02 := 1.1
+    
+    aAdd(aPergs, {1, "Ordem de Produção",  cOP,  "", ".T.", "SC2AMO", ".T.", 120,  .T.})
+    aAdd(aPergs, {1, "Peso", 0,  "@E 999.999", "Positivo()", "", ".T.", 80,  .T.})
+    aAdd(aPergs, {2, "Idioma", nTipo, {"1=Português","2=Inglês","3=Espanhol","4=Outros"}, 122, ".T.", .F.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        DbSelectArea("SC2")
+        SC2->(DbSetOrder(1))
+        If !SC2->(DbSeek(xFilial("SC2")+MV_PAR01))
+            MsgAlert("Ordem de Produção não encontrada.","Atenção!")
+            Return
+        EndIf
+
+        //cCodEtiq := CriarEtiqueta()
+
+        ImprimeFW(cCodEtiq)
+
+        RESET ENVIRONMENT
+
+    EndIf
+
+Return
+
+Static Function CriarEtiqueta()
+    Local cCodEti := ""
+    GetSxeNum("CB0","CB0_CODETIQ")
+    ConfirmSx8()
+
+    //Realiza a gravação da tabela CB0
+    cCodEti := GravaCB0(SC2->C2_PRODUTO,;   //Produto
+    MV_PAR02,; 						        //Quantidade
+    "",; 									//Usuario
+    "",; 									//Nf de Entrada
+    "",; 									//Serie de Entrada
+    "",; 									//Codigo do fornecedor
+    "",; 									//Loja
+    "",;									//Pedido compra
+    "",; 									//Localização
+    SC2->C2_LOCAL, ;					    //Armazem
+    SC2->(C2_NUM+C2_ITEM+C2_SEQUEN),;       //Codigo da OP
+    "",; 									//Sequencia
+    "",; 									//Nf de Saida
+    "",; 									//Serie de Saida
+    "",; 									//Etiqueta do cliente
+    SC2->C2_LOTECTL,; 				        //Lote
+    "",;									//Sub lote
+    SC2->C2_DTVALID,; 			            //Data de validade
+    "",;                                    //Centro de custo
+    "MATPRI")	                            // Origem
+Return cCodEti
+
+Static Function ImprimeFW(cCodEtiq)
+	Local oPrint	:= Nil
+    Local cAlerg    := "S"
+	// Local cSession	:= GetPrinterSession()
+	Local cNomeArq	:= "EtqMatPri"+DtoS(MsDate())+STRTRAN(Time(), ":", "")
+	Local cLogo     := FisxLogo("1")
+    Local cAviso    := ""
+    Local cRodape   := ""
+
+	// Local oFnt32n	:= TFont():New("Arial Black",,32 ,,.T.,,,,,.F.,.F.)
+	Local oFnt12	:= TFont():New("Arial",,12 ,,.F.,,,,,.F.,.F.)
+	Local oFnt14n	:= TFont():New("Arial",,14 ,,.T.,,,,,.F.,.F.)
+
+	cLogo := GetSrvProfString("Startpath","") + "lgrl0101.bmp"
+    cAviso := GetSrvProfString("Startpath","") + "avisosGHS.bmp"
+    cRodape := GetSrvProfString("Startpath","") + "rodapeEtqMP.bmp"
+
+    DbSelectArea("CB0")
+    CB0->(DbSetOrder(1))
+    If !CB0->(DbSeek(xFilial("CB0")+cCodEtiq))
+        MsgAlert("Etiqueta não encontrada.","Atenção!")
+    EndIf
+
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
+    SB1->(DbSeek(xFilial("SB1")+SC2->C2_PRODUTO))
+
+    SZB->(DbSetOrder(1))
+    IF SB1->B1_ALERGEN == '012' .or. !SZB->(DbSeek(xFilial("SZB")+SB1->B1_ALERGEN))
+        cAlerg := "N"
+    ENDIF
+    
+    // CB5SetImp(MV_PAR03)
+
+    // fwWriteProfString( cSession, "LOCAL"    	,"SERVER"    , .T. )
+    // fwWriteProfString( cSession, "PRINTTYPE"	,"SPOOL" 	 , .T. )
+    // fwWriteProfString( cSession, "ORIENTATION"	,"LANDSCAPE" , .T. )
+    // fwWriteProfString( cSession, "DEFAULT"		, MV_PAR03, .T.)
+
+	oPrint 	:= FWMSPrinter():New(cNomeArq,IMP_PDF,.F.,,.T.,,,,,.F.)
+    // oPrint 	:= FWMSPrinter():New(cNomeArq,,.F.,,.T.,,,,.T.)
+	oPrint:setDevice(IMP_PDF)
+	oPrint:cPathPDF:="C:\TEMP\"
+    // oPrint:setDevice(IMP_SPOOL)
+    oPrint:SetLandscape()
+    oPrint:SetMargin(0,0,0,0)
+    // oPrint:Setup()
+    oPrint:setPaperSize(0,70,100)
+
+	//Inicia a pagina
+	oPrint:StartPage()
+    /*
+    TIPO DE PRODUTO: MATÉRIA PRIMA
+    DATA FABRICAÇÃO (Fabricação da MP)
+    DATA DE VALIDADE(Validade da MP)
+    COD DO PRODUTO (Sem nome, somente o código)
+    SE É ALERGÊNICO OU NÃO É ALERGENICO, SE SIM QUAL TIPO.
+    COD DE BARRAS (Leitura do Palm)
+    */
+
+    oPrint:SayBitmap(010,040, cAviso, 210, 035)//Imagem diversos
+	//oPrint:SayBitmap(005,005, cLogo, 60, 60)//Imagem diversos
+    oPrint:Say(055, 005, "CÓD. PRODUTO:", oFnt12)
+    oPrint:Say(055, 085, AllTrim(SB1->B1_COD), oFnt14n)
+    
+    oPrint:Say(070, 005, "ALERGÊNICO:", oFnt12)
+    if cAlerg == "N"
+        oPrint:Say(070, 085, "NÃO", oFnt14n)
+    elseIF MV_PAR03 == 2
+        oPrint:SayAlign(058, 085, alltrim(SZB->ZB_ALERIN) , oFnt14n, 200 ,50,,0,1)
+	ELSEIF MV_PAR03 == 3
+        oPrint:SayAlign(058, 085, alltrim(SZB->ZB_ALERES) , oFnt14n, 200 ,50,,0,1)
+	ELSEIF MV_PAR03 == 4
+        oPrint:SayAlign(058, 085, alltrim(SZB->ZB_ALEROU) , oFnt14n, 200 ,50,,0,1)
+	ELSE
+        oPrint:SayAlign(058, 085, alltrim(SZB->ZB_ALERPO) , oFnt14n, 200 ,50,,0,1)
+	ENDIF
+
+    oPrint:Say(105, 005, "PESO:", oFnt12)
+    oPrint:Say(105, 045, AllTrim(Transform(MV_PAR02,"@E 9,999.999"))+Trim(SC2->C2_UM), oFnt14n)
+
+    oPrint:Say(095, 180, "FAB:", oFnt12)
+    oPrint:Say(095, 205, DtoC(SC2->C2_DATRF), oFnt14n)
+
+    oPrint:Say(115, 180, "VAL:", oFnt12)
+    oPrint:Say(115, 205, DtoC(SC2->C2_DTVALID), oFnt14n)
+  
+    oPrint:Code128(125/*nRow*/ ,85/*nCol*/, AllTrim(SB1->B1_CODBAR)/*cCode*/,1/*nWidth*/,20/*nHeigth*/,.f./*lSay*/,,100)
+    oPrint:Say(155, 095, AllTrim(SB1->B1_CODBAR), oFnt14n)
+
+    oPrint:SayBitmap(160,000, cRodape, 295, 055)//Imagem diversos
+    
+	//Finaliza a pagina
+	oPrint:EndPage()
+    
+	oPrint:Preview()
+    FreeObj(oPrint)
+Return
+
+Static Function GravaCB0(cProd, nQtd, cUsr, cNfEntr, cSerieEntr, cCodFor, cLoja, cPedCom,cLocaliz, cArmaz, ;
+	cOp, cNumSeq, cNfSaida, cSerieSaid, cEtiqCli, cLote, cSbLote, dDtValid, cCentroCust, cOrigem)
+
+	Local aArea 		:= GetArea()
+	Local aConteudo		:= {}
+
+	Default cProd 		:= ""
+	Default nQtd		:= 0
+	Default cUsr		:= ""
+	Default cNfEntr		:= ""
+	Default cSerieEntr	:= ""
+	Default cCodFor		:= ""
+	Default cLoja		:= ""
+	Default cLocaliz	:= ""
+	Default cArmaz		:= ""
+	Default cOp			:= ""
+	Default cNumSeq		:= ""
+	Default cNfSaida	:= ""
+	Default cSerieSaid	:= ""
+	Default cEtiqCli	:= ""
+	Default cLote		:= ""
+	Default cSbLote		:= ""
+	Default dDtValid	:= ""
+	Default cCentroCust	:= ""
+    Default cOrigem     := ""
+
+	aConteudo := {cProd,; 
+	nQtd,; 
+	cUsr,; 
+	cNfEntr,; 
+	cSerieEntr,; 
+	cCodFor,; 
+	cLoja,;
+	cPedCom,; 
+	cLocaliz,; 
+	cArmaz, ;
+	cOp,; 
+	cNumSeq,; 
+	cNfSaida,; 
+	cSerieSaid,; 
+	cEtiqCli,; 
+	cLote,; 
+	cSbLote,; 
+	dDtValid,; 
+	cCentroCust,;
+	Nil,Nil,Nil,Nil,cOrigem,Nil}
+
+    
+	cRet := CBGrvEti("01",aConteudo, Nil)
+
+	RestArea(aArea)
+Return cRet

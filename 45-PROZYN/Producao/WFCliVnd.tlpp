@@ -1,0 +1,104 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+
+/*
+Workflow de Margem abaixo de 15%
+Desenvolvido por Denis varella
+*/
+
+User Function WFCliVnd() 
+    Local nV := 0
+    Local cVendedor := ""
+    Private cTo := ""
+    Private cHTML := ""
+    Private aVendedores := {}
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    cQry := " SELECT A1_COD,A1_LOJA,A1_NREDUZ,NOVO.A3_NREDUZ NOVO,NOVO.A3_EMAIL EMAILNOVO,ANT.A3_NREDUZ ANTERIOR,A1_MSBLQL,
+    cQry += " ISNULL((SELECT TOP 1 F2_EMISSAO FROM SF2010 F2 WHERE F2_CLIENTE = A1_COD AND F2_LOJA = A1_LOJA AND F2_TIPO = 'N' AND F2.D_E_L_E_T_ = '' ORDER BY F2_EMISSAO DESC),'') VENDA,A1_XDTOLDV
+    cQry += " FROM SA1010 A1
+    cQry += " INNER JOIN SA3010 NOVO ON NOVO.A3_COD = A1_VEND AND NOVO.A3_NOME LIKE '%TEMPORARIO%' AND NOVO.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN SA3010 ANT ON ANT.A3_COD = A1_XOLDVND AND ANT.D_E_L_E_T_ = ''
+    cQry += " WHERE A1.D_E_L_E_T_ = ''
+    cQry += " ORDER BY NOVO.A3_NREDUZ
+    DbUseArea(.T.,"TOPCONN", TcGenQry(,,cQry),"XOLDVND",.F.,.F.)
+    While XOLDVND->(!eof())
+      If !Empty(XOLDVND->VENDA)
+
+        If Trim(XOLDVND->NOVO) != Trim(cVendedor)
+          aAdd(aVendedores, {XOLDVND->NOVO,XOLDVND->EMAILNOVO,XOLDVND->ANTERIOR, {}})
+        EndIf
+
+        cVendedor := Trim(XOLDVND->NOVO)
+        If XOLDVND->VENDA >= XOLDVND->A1_XDTOLDV .and. StoD(XOLDVND->VENDA) >= FirstDate(MonthSub(Date(),1)) .and. StoD(XOLDVND->VENDA) <= LastDate(MonthSub(Date(),1))
+          aAdd(aVendedores[len(aVendedores)][4], {XOLDVND->A1_COD,XOLDVND->A1_LOJA,XOLDVND->A1_NREDUZ,XOLDVND->ANTERIOR,XOLDVND->A1_MSBLQL,XOLDVND->VENDA,XOLDVND->A1_XDTOLDV})
+        EndIf
+      EndIf
+      XOLDVND->(DbSkip())
+    EndDo
+
+    For nV := 1 to len(aVendedores)
+      If len(aVendedores[nV][4]) > 0 //Verifico se houve vendas para os clientes desse vendedor temporário para disparar o e-mail.
+        cHTML := SetHTML(aVendedores[nV])
+        cTo := Trim(aVendedores[nV][2])+";"+SuperGetMV("MV_XCLIVND",,"nailson.paixao@prozyn.com.br")
+        // cTo := "denis.varella@newbridge.srv.br;bruno@pharosit.com.br"
+        U_zEnvMail(cTo, "Clientes sem vendedores vinculados", cHTML, {}, .f., .t., .t.)
+      EndIf
+    Next nV
+
+Return
+
+Static Function SetHTML(aVendedor)
+  Local nA := 0
+  cHTML := "<html>
+  cHTML += "<head>
+  cHTML += "<style>
+  cHTML += "* {outline: none;border:none;margin: 0;padding:0;box-sizing: border-box;font-family: Arial;}
+  cHTML += "table { width: 100%;max-width: 900px;font-size:10px;}
+  cHTML += "table thead {background: #C0D9D9;text-align: center;}
+  cHTML += "table td {padding: 5px;border:1px solid #222;}
+  cHTML += "p {margin-bottom: 15px;padding:5px;}
+  cHTML += "h4 {padding:5px;margin:10px 0;}
+  cHTML += "</style>
+  cHTML += "</head>
+  cHTML += "<body>
+
+  cHTML += "<p>Prezados,</p>
+  cHTML += "<p>Segue a relação de clientes que estão sob o vendedor Temporário: "+Trim(aVendedor[1])+".</p>
+  cHTML += "<p>No momento, qualquer venda gerada por esses clientes não será atribuída a qualquer vendedor e, portanto, não será distribuído comissão.</p>
+  cHTML += "<p>É recomendado que determine quais destes clientes irão para a responsabilidade de quais vendedores, e faça as devidas alterações.</p>
+ 
+  cHTML += "<h4>Tabela:</h4>
+  cHTML += "<table>
+  cHTML += "	<thead>
+  cHTML += "		<tr>
+  cHTML += "			<td align='left'>Cód. Cliente</td>
+  cHTML += "      <td align='left'>Cliente</td>
+  cHTML += "      <td align='left'>Responsável Anterior</td>
+  cHTML += "      <td align='center'>Ativo / Inativo?</td>
+  cHTML += "      <td align='center'>Data Últ. Venda</td>
+  cHTML += "      <td align='center'>Data Transf.</td>
+  cHTML += "		</tr>
+  cHTML += "	</thead>
+  cHTML += "	<tbody>
+  For nA := 1 to len(aVendedor[4])
+    cHTML += "		<tr>
+    cHTML += "			<td align='left'>"+aVendedor[4][nA][1]+"/"+aVendedor[4][nA][2]+"</td>
+    cHTML += "			<td align='left'>"+Trim(aVendedor[4][nA][3])+"</td>
+    cHTML += "			<td align='left'>"+Trim(aVendedor[4][nA][4])+"</td>
+    cHTML += "			<td align='center'>"+Iif(aVendedor[4][nA][5] != '1','Ativo','Inativo')+"</td>
+    cHTML += "			<td align='center'>"+DtoC(StoD(aVendedor[4][nA][6]))+"</td>
+    cHTML += "			<td align='center'>"+DtoC(StoD(aVendedor[4][nA][7]))+"</td>
+    cHTML += "		</tr>
+  Next nA
+  cHTML += "	</tbody>
+  cHTML += "</table>
+
+  cHTML += "</body>
+  cHTML += "</html>
+
+Return cHTML

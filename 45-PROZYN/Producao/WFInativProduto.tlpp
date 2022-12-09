@@ -1,0 +1,128 @@
+#INCLUDE "PROTHEUS.CH"
+#include "rwmake.ch"
+#include "TbiConn.ch"          
+#include 'protheus.ch'
+#include 'topconn.ch'
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณPZCVR014  บAutor  ณMicrosiga           บ Data ณ  02/28/18   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Envio de email dos produtos com                            บฑฑ
+ฑฑบ          ณ validade menor ou igual a 60 dias                          บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+
+
+User Function WFInativProduto()
+	Local _cRemet   := ''
+	Local _cDest    := ''
+	Local _cAssunto := ''
+	Local _aAnexos  := {}
+	Local _cPasta   := ''
+	Local cArmzNCons:= ""
+
+	RpcSetType(3) // Nao utiliza licenca.
+
+	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+	//| Abertura do ambiente                                         |
+	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+
+	PREPARE ENVIRONMENT EMPRESA "01" FILIAL "01" MODULO "EST"   
+	
+	cArmzNCons := U_MyNewSX6("CV_NAOCARM", ""	,"C","Armazens nใo considerados no relat๓rio", "", "", .F. )
+
+    // Variaveis para envio do email.
+    _cRemet	  := Trim(GetMV("MV_RELACNT"))	
+    _cDest    := (SuperGetMv('MV_EMINATP',, ''))
+    _cAssunto := 'ALERTA | Inativa็ใo de Produtos sem movimenta็ใo hแ um ano - Prozyn ' + DToC(dDataBase)
+
+    dData := DaySub(FirstDate(date()),1)
+    dYear := YearSub(DaySub(FirstDate(date()),1),1)
+
+    cQry := " SELECT B1_COD,
+    cQry += " B1_DESC,
+    cQry += " (SELECT TOP 1 D3_EMISSAO FROM "+RetSqlName("SD3")+" D3 WITH (NOLOCK) WHERE D3_COD = B1_COD AND D3.D_E_L_E_T_ = '' ORDER BY D3_EMISSAO DESC) DTULTMOV, 
+    cQry += " (SELECT TOP 1 D3_QUANT FROM "+RetSqlName("SD3")+" D3 WITH (NOLOCK) WHERE D3_COD = B1_COD AND D3.D_E_L_E_T_ = '' ORDER BY D3_EMISSAO DESC) QTULTMOV,
+    cQry += " SUM(B2_QATU) SALDO,
+    cQry += " B1_PRVALID VALID
+    cQry += " FROM "+RetSqlName("SB1")+" B1 WITH (NOLOCK)
+    cQry += " INNER JOIN "+RetSqlName("SB2")+" B2 WITH (NOLOCK) ON B2_COD = B1_COD AND B2.D_E_L_E_T_ = ''
+    cQry += " WHERE B1_TIPO = 'PA' AND B1.D_E_L_E_T_ = '' AND B1_MSBLQL != '1' and (SELECT TOP 1 D3_EMISSAO FROM SD3010 D3 WHERE D3_COD = B1_COD AND D3.D_E_L_E_T_ = '' ORDER BY D3_EMISSAO DESC) <= '"+DtoS(dYear)+"'
+    cQry += " GROUP BY B1_COD,B1_DESC,B1_PRVALID
+    cQry += " ORDER BY (SELECT TOP 1 D3_EMISSAO FROM SD3010 D3 WHERE D3_COD = B1_COD AND D3.D_E_L_E_T_ = '' ORDER BY D3_EMISSAO DESC) DESC
+
+	dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQry),"INATIV",.F.,.T.)
+
+
+    //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+    //ณ - CABECALHO Estrutura do produto             -ณ
+    //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+    cHtml := '<!--mstheme-->'
+    cHtml += '<p><span style="font-family: trebuchet ms, arial, helvetica;"><span style="font-family: trebuchet ms, arial, helvetica;"> <br /> <big> </big> <big> </big> <span style="font-family: Arial;"> <br /> </span> </span></span></p>'
+    cStyle := "margin-left: 40px;"
+    cHtml += '<div style="'+cStyle+' text-align: justify;"> Prezados(as).&nbsp;</div>'
+    cHtml += '<div style="'+cStyle+'">&nbsp;</div>'
+    cHtml += '<div style="'+cStyle+' text-align: justify;"> Segue a lista de Produtos Acabados que, no m๊s de '+Month2Str(dData)+'/'+Year2Str(dData)+', concluํram um ano sem movimenta็๕es.</div>'
+    cHtml += '<div style="'+cStyle+'">&nbsp;</div>'
+    cHtml += '<div style="'+cStyle+' text-align: justify;"> ษ recomendado que, caso o estoque esteja zerado, estes produtos sejam bloqueados no sistema e as a็๕es correspondentes sejam tomadas nas แreas de P&D, Comercial, e Controle de Qualidade.</div>'
+    cHtml += '<div style="'+cStyle+'">&nbsp;</div>'
+
+    cHtml += '<p><span style="font-family: trebuchet ms, arial, helvetica;"><!--mstheme--></span></p>'
+    cHtml += '<table style="text-align: left; height: 50px; margin-left: 40px; width: 920px;" border="1" cellspacing="0" cellpadding="1">'
+    cHtml += '<tbody>'
+    cHtml += '<tr>'
+
+    //ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+    //ณ CABECALHO DOS ITENS MODIFICADOS NA ESTRUTURA  ณ
+    //ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+    cStyle := "background-color: #C0D9D9; color: #000000; font-family: Arial; text-align: center; white-space: nowrap; height: 10px;"
+    cHtml += '<th style="'+cStyle+' width: 100px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;C๓d. Produto&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '<th style="'+cStyle+' width: 200px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;Descri็ใo&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '<th style="'+cStyle+' width: 100px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;Data ฺlt. Mov.&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '<th style="'+cStyle+' width: 80px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;Qtd. Movimentada&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '<th style="'+cStyle+' width: 80px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;Saldo em Estoque&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '<th style="'+cStyle+' width: 100px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>&nbsp;Validade do Produto&nbsp;</small><!--mstheme--></span></th>'
+    cHtml += '</tr>'
+
+    
+    If Select("INATIV") > 0
+        While INATIV->(!Eof())
+
+
+            cHtml += '<tr>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 100px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+INATIV->B1_COD+'</small><!--mstheme--></span></td>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 100px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+INATIV->B1_DESC+'</small><!--mstheme--></span></td>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 20px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+DTOC(STOD(INATIV->DTULTMOV))+'</small><!--mstheme--></span></td>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 20px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+Transform(INATIV->QTULTMOV,"@E 999,999.999")+'</small><!--mstheme--></span></td>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 250px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+Transform(INATIV->SALDO,"@E 999,999.999")+'</small><!--mstheme--></span></td>'
+            cHtml += ' <td style="text-align: center; font-family: Arial; width: 20px;"><!--mstheme--><span style="font-family: trebuchet ms, arial, helvetica;"><small>'+Transform(INATIV->VALID,"@E 99999")+'</small><!--mstheme--></span></td>'
+            cHtml += '</tr>'
+        
+        INATIV->( dbSkip() )
+        Enddo
+
+
+        cHtml += '</tbody>'
+        cHtml += '</table>'
+        cHtml += '<p>&nbsp;</p>'
+
+        U_ENVMAIL(_cRemet, _cDest, _cAssunto, cHtml, _aAnexos, _cPasta)    
+        
+    Endif
+    INATIV->( DbCloseArea() )
+        
+	
+//MsgAlert('E-Mail de Log de Estrutura Enviado com Sucesso.')		
+
+RESET ENVIRONMENT
+
+Return
+
+

@@ -1,0 +1,420 @@
+#include 'totvs.ch'
+#include 'tlpp-core.th'
+
+namespace darez
+
+/*/{Protheus.doc} intelipost
+Rotina que busca na base os pedidos faturados e envia seus dados para o Web Service do intelipost 
+@type function
+@version  12.1.33
+@author elton.alves@totvs.com.br
+@since 10/05/2022
+@param aParam, array, Parâmetros recebidos pelo Schedule
+/*/
+user function intelipost( aParam )
+
+	local nX         := 0
+	local aHeadStr   := {}
+	local nTam       := 0
+	//local cEmp   := aParam[ nTam - 3 ]
+	//local cFil   := aParam[ nTam - 2 ]
+	local cEmp       := "01"
+	local cFil       := "0101"
+	Local lJob 		:= ( Select( "SX6" ) == 0 )
+
+	private aJsonList := {}
+	private cAlias    := getNextAlias()
+	private aC5Recno  := {}
+
+	Default aParam	:= {}
+
+	nTam := len( aParam )
+	if nTam > 0
+		cEmp   := aParam[ nTam - 3 ]
+		cFil   := aParam[ nTam - 2 ]
+	endif
+
+	if !lJob .or. rpcSetEnv( cEmp, cFil )
+
+		if LockByName("sWsDarez", .T., .T.)
+
+			If Select( cAlias ) <> 0
+
+				( cAlias )->( DbCloseArea() )
+
+			EndIf
+
+			/* Busca na base os pedidos a serem enviados */
+			queryExec()
+
+			( cAlias )->( DbGoTop() )
+
+			While ( cAlias )->(!EOF())
+
+				/* Monta a lista de json´s com dados dos pedidos a serem transmitidos */
+				makeJsonList()
+
+				( cAlias )->(DbSkip())
+
+			EndDo
+
+			( cAlias )->( DbCloseArea() )
+
+			aAdd( aHeadStr, 'api-key: ' + GetMv( 'DR_INTKEY' ) )
+			aAdd( aHeadStr, 'Content-Type: application/json')
+
+			/* Processa a transmissão da lista de de json´s com dados dos pedidos a serem transmitidos */
+			for nX := 1 to len( aJsonList )
+
+				fetch( /* cUrl */ GetMv( 'DR_WSINTEL' ), 'POST', /* cGETParms */, /* cPOSTParms */ FWhttpEncode( aJsonList[nX]:toJson() ), /* nTimeOut */, aHeadStr,;
+					{ | a, b, c, d, e | processRes( a, b, c, d, e, aC5Recno[nX] )  }  )
+
+			next nX
+
+			UnlockByName("sWsDarez", .T., .T., .F.)
+
+		end if
+
+		if lJob
+			RpcClearEnv()
+		endif
+
+	end if
+
+return
+
+/*/{Protheus.doc} processRes
+Processa o retorno da requisição ao Web Service da Intelipost
+@type function
+@version 12.1.33 
+@author elton.alves@totvs.com.br
+@since 10/05/2022
+@param cHeaderRet, character, Header de resposta a requisição
+@param uResponse, variant, Conteúdo da resposta a requsição
+@param uJsonXml, variant, Conteúdo da resposta em objeto json ou xml caso o header indique um destes dois formatos
+@param cHttpCode, character, Código HTTP retornado na requsição
+@param cContentType, character, Tipo do conteúdo da resposta
+@param nC5Recno, numeric, Número do R_E_C_N_O_ do pedido transmitido a ser marcado como enviado. 
+/*/
+static function processRes( cHeaderRet, uResponse, uJsonXml,cHttpCode, cContentType, nC5Recno )
+
+	DbSelectArea( 'SC5' )
+	SC5->( DbGoto( nC5Recno ) )
+
+	if SC5->( Recno() ) == nC5Recno
+
+		RecLock( 'SC5', .F. )
+
+		SC5->C5_XINTELI := '1'
+		SC5->C5_XHTTPCD := cHttpCode
+		SC5->C5_XHTTPRE := DecodeUtf8( uResponse )
+
+		SC5->( MsUnlock() )
+
+	end if
+
+return
+
+/*/{Protheus.doc} fetch
+Função que faz transmissão de dados a um Web Service Rest
+@type function
+@version  12.1.33
+@author elton.alves@totvs.com.br	
+@since 10/05/2022
+@param cUrl, character, Url da rota do end point do Web service
+@param cMethod, character, Método a ser utilizado na requisição
+@param cGETParms, character, Lista de parâmetros que serão enviados ao servidor HTTP através da URI
+@param cPOSTParms, character, Corpo da mensagem que será enviada ao servidor HTTP 
+@param nTimeOut, numeric, Tempo máximo em segundos de inatividade permitida durante a recepção do documento.
+Caso não seja especificado, o valor assumido será de 120 segundos.
+@param aHeadStr, array, Lista de parâmetros do Header da Mensagem
+@param bProcess, codeblock, Bloco de código que irá processar a resposta da requisição 
+@return variant, O retorno será o que o bloco de código bProcess retornar
+/*/
+static function fetch( cUrl, cMethod, cGETParms, cPOSTParms, nTimeOut, aHeadStr, bProcess )
+
+	Local cHeaderRet   := ''
+	Local aHeaderRet   := {}
+	Local cProperty    := ''
+	Local cValue       := ''
+	Local nPos         := 0
+	Local cHttpCode    := ''
+	Local cContentType := ''
+	Local uResponse    := nil
+	Local uJsonXml     := nil
+	Local aAux         := {}
+	Local nX           := 0
+
+	uResponse  := HttpQuote ( cUrl, cMethod, cGETParms, cPOSTParms, nTimeOut, aHeadStr, @cHeaderRet )
+
+	aAux := StrTokArr2( StrTran( cHeaderRet, Chr(13), '' ), Chr(10), .T. )
+
+	cHttpCode := StrTokArr2( aAux[ 1 ], " ", .T. )[2]
+
+	for nX := 2 to len( aAux )
+
+		nPos := At( ":", aAux[ nX ] )
+
+		cProperty := SubString( aAux[ nX ], 1, nPos - 1 )
+		cValue    := SubString( aAux[ nX ], nPos + 2, Len( aAux[ nX ] )  )
+
+		aAdd( aHeaderRet, { cProperty, cValue } )
+
+		if cProperty == 'Content-Type'
+
+			cContentType := cValue
+
+		end if
+
+	next nX
+
+	if 'application/xml' $ Lower(cContentType) .Or.;
+			'application/xhtml+xml' $ Lower(cContentType)
+
+		uJsonXml := TXmlManager():New()
+
+		uJsonXml:Parse( uResponse )
+
+	elseif 'application/json' $ Lower(cContentType)
+
+		uJsonXml := JsonObject():New()
+
+		uJsonXml:FromJson( uResponse )
+
+	endif
+
+return Eval( bProcess, cHeaderRet, uResponse, uJsonXml,cHttpCode, cContentType )
+
+/*/{Protheus.doc} makeJsonList
+Monta a lista (array) de json´s dos pedidos de venda a serem transmitidos com base no resultado da consulta ao banco de dados.
+@type function
+@version 12.1.33 
+@author elton.alves@totvs.com.br
+@since 10/05/2022
+/*/
+static function makeJsonList()
+
+	local nPos   := 0
+	local nX     := 0
+	local cPlaca := ( cAlias )->( SubStr( DA3_PLACA, 1, 3 ) + '-' + SubStr( DA3_PLACA, 4, 4 ) )
+
+	nPos := aScan( aJsonList,;
+		{ | item | allTrim( item['order_number'] ) == AllTrim( (cAlias)->C5_XPEDSHP ) } )
+
+	if nPos == 0
+
+		aAdd( aC5Recno, ( cAlias )->C5_RECNO )
+		aAdd( aJsonList, jsonObject():New() )
+
+		aTail( aJsonList )['order_number'] := AllTrim( ( cAlias )->C5_XPEDSHP )
+		aTail( aJsonList )['customer_shipping_costs'] := ( cAlias )->F2_FRETE
+		aTail( aJsonList )['created'] := FWTimeStamp( 5, stod( ( cAlias )->F2_EMISSAO ), '00:00:00' )
+		aTail( aJsonList )['delivery_method_id'] := val( ( cAlias )->A4_XIDINTE )
+
+		aTail( aJsonList )['carrier'] := { "driver" : { "federal_tax_id" : val( ( cAlias )->DA4_CGC ) } }
+		aTail( aJsonList )['carrier']["vehicle"] := { "licence_plate" : cPlaca }
+
+		aTail( aJsonList )['end_customer'] := { "first_name" : AllTrim( ( cAlias )->A1_NOME ) }
+		aTail( aJsonList )['end_customer']['email'] := AllTrim( ( cAlias )->A1_EMAIL )
+		aTail( aJsonList )['end_customer']['phone'] := AllTrim( ( cAlias )->A1_TEL )
+		aTail( aJsonList )['end_customer']['is_company'] := ( cAlias )->A1_PESSOA == 'J'
+		aTail( aJsonList )['end_customer']['federal_tax_payer_id'] := AllTrim( ( cAlias )->A1_CGC )
+		aTail( aJsonList )['end_customer']['shipping_country'] := AllTrim( ( cAlias )->YA_DESCR )
+		aTail( aJsonList )['end_customer']['shipping_state'] := AllTrim( ( cAlias )->A1_EST )
+		aTail( aJsonList )['end_customer']['shipping_city'] := AllTrim( ( cAlias )->A1_MUN )
+		aTail( aJsonList )['end_customer']['shipping_address'] := AllTrim( ( cAlias )->A1_END )
+		aTail( aJsonList )['end_customer']['shipping_number'] := "0"
+		aTail( aJsonList )['end_customer']['shipping_quarter'] := AllTrim( ( cAlias )->A1_BAIRRO )
+		aTail( aJsonList )['end_customer']['shipping_zip_code'] := AllTrim( ( cAlias )->A1_CEP )
+		aTail( aJsonList )['end_customer']['state_tax_payer_id'] := AllTrim( ( cAlias )->A1_INSCR )
+
+		aTail( aJsonList )['origin_zip_code'] := AllTrim( ( cAlias )->M0_CEPENT )
+
+		aTail( aJsonList )['shipment_order_volume_array'] := {}
+
+
+		for nX := 1 to 4
+
+			if ! Empty( ( cAlias )->&('C5_ESPECI' + cValTochar( nX ) ) )
+
+				aAdd( aTail( aJsonList )['shipment_order_volume_array'], { "name" : AllTrim( ( cAlias )->C5_ESPECI1 ) } )
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_number'] := nX
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_id'] := nX
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['weight'] := ( cAlias )->C5_PBRUTO
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['volume_type_code'] :=  AllTrim( ( cAlias )->C5_ESPECI1 )
+
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice'] := { "invoice_series" : AllTrim( ( cAlias )->F2_SERIE ) }
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice']['invoice_number'] := AllTrim( ( cAlias )->F2_DOC )
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice']['invoice_key'] := AllTrim( ( cAlias )->F2_CHVNFE )
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice']['invoice_date'] := FWTimeStamp( 5, stod( ( cAlias )->F2_EMISSAO ), '00:00:00' )
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice']['invoice_total_value'] := (cAlias)->F2_VALBRUT
+				aTail( aTail( aJsonList )['shipment_order_volume_array'] )['shipment_order_volume_invoice']['invoice_cfop'] := (cAlias)->D2_CF
+
+			endif
+
+		next nx
+
+		aTail( aJsonList )['products'] := { { "weight" : ( cAlias )->B1_PESO } }
+
+	else
+
+		aAdd( aJsonList[nPos]['products'], { "weight" : ( cAlias )->B1_PESO }  )
+
+	end if
+
+	If AllTrim(( cAlias )->A4_COD) == "00002"
+		aTail( aTail( aJsonList )['products'] )['weight'] := 1
+		aTail( aTail( aJsonList )['products'] )['width'] := 20
+		aTail( aTail( aJsonList )['products'] )['height'] := 20
+		aTail( aTail( aJsonList )['products'] )['length'] := 20
+	
+	Else
+		aTail( aTail( aJsonList )['products'] )['width'] := ( cAlias )->B5_LARG
+		aTail( aTail( aJsonList )['products'] )['height'] := ( cAlias )->B5_ESPESS
+		aTail( aTail( aJsonList )['products'] )['length'] := ( cAlias )->B5_COMPR
+
+	EndIf
+
+	aTail( aTail( aJsonList )['products'] )['price'] := ( cAlias )->D2_PRCVEN
+	aTail( aTail( aJsonList )['products'] )['description'] := allTrim( ( cAlias )->C6_DESCRI )
+	aTail( aTail( aJsonList )['products'] )['quantity'] := ( cAlias )->D2_QUANT
+
+return
+
+/*/{Protheus.doc} queryExec
+Executa consulta ao banco de dados dos dados dos pedidos que precisam ser transmitidos ao WS do intelipost
+@type function
+@version  12.1.33
+@author elton.alves@totvs.com.br
+@since 10/05/2022
+/*/
+static function queryExec()
+
+	BeginSql alias cAlias
+    
+       %NOPARSER%
+
+        SELECT
+
+        SC5.C5_XPEDSHP,
+        SC5.C5_ESPECI1,
+        SC5.C5_ESPECI2,
+        SC5.C5_ESPECI3,
+        SC5.C5_ESPECI4,
+        SC5.C5_PBRUTO,
+        SC5.R_E_C_N_O_ C5_RECNO,
+
+        SC6.C6_DESCRI,
+        
+        SF2.F2_FRETE,
+        SF2.F2_EMISSAO,
+        SF2.F2_SERIE,
+        SF2.F2_DOC,
+        SF2.F2_CHVNFE,
+        SF2.F2_EMISSAO,
+		SF2.F2_VALBRUT,
+        
+        D2_PRCVEN,
+        D2_QUANT,
+		D2_CF,
+        
+        B1_PESO,
+        B5_LARG,
+        B5_ESPESS,
+        B5_COMPR,
+        
+        SA1.A1_NOME,
+        SA1.A1_EMAIL,
+        SA1.A1_TEL,
+        SA1.A1_PESSOA,
+        SA1.A1_CGC,
+        SA1.A1_EST,  
+        SA1.A1_MUN,
+        SA1.A1_END,
+        SA1.A1_BAIRRO,
+        SA1.A1_CEP,
+        SA1.A1_INSCR,
+        
+        SYA.YA_DESCR,
+        
+        SM0.M0_CEPENT,
+
+		SA4.A4_XIDINTE,
+		SA4.A4_COD,
+        
+        DA4.DA4_CGC,
+        
+        DA3.DA3_PLACA
+        
+        FROM %TABLE:SC5% SC5
+        
+        INNER JOIN SYS_COMPANY SM0
+        ON  SC5.D_E_L_E_T_ = SM0.D_E_L_E_T_
+        AND SC5.C5_FILIAL  = SM0.M0_CODFIL
+        
+        INNER JOIN %TABLE:SC6% SC6
+        ON  SC5.D_E_L_E_T_ = SC6.D_E_L_E_T_
+        AND SC5.C5_FILIAL  = SC6.C6_FILIAL
+        AND SC5.C5_NUM     = SC6.C6_NUM
+        AND SC5.C5_CLIENTE = SC6.C6_CLI
+        AND SC5.C5_LOJACLI = SC6.C6_LOJA
+        
+        INNER JOIN %TABLE:SD2% SD2
+        ON  SC6.D_E_L_E_T_ = SD2.D_E_L_E_T_
+        AND SC6.C6_FILIAL  = SD2.D2_FILIAL
+        AND SC6.C6_NUM     = SD2.D2_PEDIDO
+        AND SC6.C6_ITEM    = SD2.D2_ITEMPV
+        AND SC6.C6_CLI     = SD2.D2_CLIENTE
+        AND SC6.C6_LOJA    = SD2.D2_LOJA
+        
+        INNER JOIN %TABLE:SB1% SB1
+        ON  SD2.D_E_L_E_T_ = SB1.D_E_L_E_T_
+        AND SD2.D2_COD     = SB1.B1_COD
+        
+        LEFT JOIN %TABLE:SB5% SB5
+        ON  SB1.D_E_L_E_T_ = SB5.D_E_L_E_T_
+        AND SB1.B1_COD     = SB5.B5_COD
+        
+        INNER JOIN %TABLE:SF2% SF2
+        ON  SD2.D_E_L_E_T_  = SF2.D_E_L_E_T_
+        AND SD2.D2_FILIAL   = SF2.F2_FILIAL
+        AND SD2.D2_SERIE    = SF2.F2_SERIE
+        AND SD2.D2_DOC      = SF2.F2_DOC
+        AND SD2.D2_CLIENTE  = SF2.F2_CLIENTE
+        AND SD2.D2_LOJA     = SF2.F2_LOJA
+        
+        INNER JOIN %TABLE:SA1% SA1
+        ON  SF2.D_E_L_E_T_ = SA1.D_E_L_E_T_
+        AND SF2.F2_CLIENTE = SA1.A1_COD
+        AND SF2.F2_LOJA    = SA1.A1_LOJA
+        
+        INNER JOIN %TABLE:SYA% SYA
+        ON  SA1.D_E_L_E_T_ = SYA.D_E_L_E_T_
+        AND SA1.A1_PAIS    = SYA.YA_CODGI
+
+		LEFT JOIN %TABLE:SA4% SA4
+		ON  SF2.D_E_L_E_T_ = SA4.D_E_L_E_T_
+		AND SF2.F2_TRANSP  = SA4.A4_COD
+		AND %XFILIAL:SA4%  = SA4.A4_FILIAL
+
+        LEFT JOIN %TABLE:DA3% DA3
+        ON  SF2.D_E_L_E_T_ = DA3.D_E_L_E_T_
+        AND SF2.F2_VEICUL1 = DA3.DA3_COD
+
+        LEFT JOIN %TABLE:DA4% DA4
+        ON  DA3.D_E_L_E_T_ = DA4.D_E_L_E_T_
+        AND DA3.DA3_MOTORI = DA4.DA4_COD
+        
+        WHERE SC5.%NOTDEL%
+        AND SC5.C5_FILIAL  = %XFILIAL:SC5% 
+        AND SM0.M0_CODIGO  = %EXP:cEmpAnt%
+        AND SC5.C5_XINTELI =  '2'
+        AND SC5.C5_XPEDSHP <> %EXP:SPACE( TAMSX3('C5_XPEDSHP')[1] )%
+    	AND SC5.C5_TIPO    = 'N'
+        AND SF2.F2_CHVNFE  <> %EXP:SPACE( TAMSX3('F2_CHVNFE' )[1] )%
+        
+        ORDER BY SC5.C5_XPEDSHP, D2_ITEM
+
+	EndSql
+
+return

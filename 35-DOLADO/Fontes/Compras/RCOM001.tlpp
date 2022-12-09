@@ -1,0 +1,171 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "Topconn.ch"
+
+//---------------------------------------------------------------------------------
+// Rotina | RCOM001          | Autor | Lucas Baia          | Data |    07/06/2022			
+//---------------------------------------------------------------------------------
+// Descr. | Relatório Customizado para atender a necessidade do setor de Compras
+//---------------------------------------------------------------------------------
+// Uso    | DOLADO
+//---------------------------------------------------------------------------------
+User Function RCOM001()
+
+Private cData1      := CTOD(Space(8))
+Private cData2      := CTOD(Space(8))
+
+GetParam()
+
+FWMsgRun(, {|oSay| Processa() }, "Buscando Informações de Produtos", "Gerando Excel")
+
+Return
+
+
+Static Function Processa()
+
+Local cQuery    := ''
+Local cAlias    := GetNextAlias()
+//Local aDados    := {}
+
+Sleep(5000)
+
+cQuery := " SELECT DISTINCT "                                                                                              + CRLF
+cQuery += " B1_POSIPI CLAS_FISCAL, "                                                                                       + CRLF
+cQuery += " B1_COD COD_PROD, "                                                                                             + CRLF
+cQuery += " B1_DESC DESCRICAO, "                                                                                           + CRLF
+cQuery += " CASE B1_MSBLQL "                                                                                               + CRLF
+cQuery += "    WHEN '1' THEN 'BLOQUEADO' "                                                                                 + CRLF
+cQuery += "    WHEN '2' THEN 'ATIVO' "                                                                                     + CRLF
+cQuery += " END AS SITUACAO, "                                                                                             + CRLF
+cQuery += " B2_QATU ESTOQUE_ATUAL, "                                                                                       + CRLF
+cQuery += " ROUND(B2_CM1,2) CUSTO_MEDIO, "                                                                                 + CRLF
+cQuery += " ROUND(SUM(D2_TOTAL)/SUM(D2_QUANT),2) PRECO_MEDIO, "                                                            + CRLF
+cQuery += " SUM(D2_QUANT) QTD_PECAS, "                                                                                     + CRLF
+cQuery += " ROUND(SUM(D2_QUANT*B2_CM1),2) VENDA_A_CUSTO, "                                                                 + CRLF
+cQuery += " ROUND(SUM(D2_QUANT*D2_PRUNIT),2) VENDA_TABELA, "                                                               + CRLF
+cQuery += " ROUND(SUM(D2_TOTAL),2) VENDA_DESCONTO, "                                                                       + CRLF
+cQuery += " B1_UCOM DATA_ULT_COMPRA "                                                                                      + CRLF
+cQuery += " FROM "+RetSqlName("SB2")+" SB2 "                                                                               + CRLF
+cQuery += " INNER JOIN "+RetSqlName("SB1")+" SB1 ON B1_COD = B2_COD "                                                      + CRLF
+cQuery += " INNER JOIN " +RetSqlName("SD2")+" SD2 ON D2_COD = B2_COD AND D2_LOCAL = B2_LOCAL "                             + CRLF
+cQuery += " WHERE"                                                                                                         + CRLF
+cQuery += " SD2.D2_EMISSAO BETWEEN  '"+DToS(MV_PAR01)+"' AND '"+DToS(MV_PAR02)+"' "                                        + CRLF
+cQuery += " AND SB2.B2_LOCAL = '02' "
+cQuery += " AND SB1.D_E_L_E_T_ = '' AND SB2.D_E_L_E_T_ = '' AND SD2.D_E_L_E_T_ = '' GROUP BY B1_POSIPI, B1_COD, B1_DESC, B1_MSBLQL, B2_QATU, "     + CRLF
+cQuery += " B2_CM1, B1_UCOM ORDER BY B1_COD "
+
+//cQuery := ChangeQuery(cQuery)
+//dbUseArea(.T.,"TOPCONN",TcGenQry(,,cQuery),cAlias,.T.,.T.)
+
+TCQUERY cQuery NEW Alias (cAlias)
+
+
+IF !(cAlias)->(EOF())
+	GeraExcel(cAlias)
+Else
+	//MsgAlert('A query não retornou registros, por favor verifique os parâmetros informados.', "Erro")
+    MsgAlert('O Periodo selecionado não houve informações, por favor verifique os parâmetros informados.', "Erro")
+EndIF
+
+(cAlias)->(DbCloseArea())
+
+Return
+
+
+
+Static Function GeraExcel(cAlias)
+
+Local oExcel    := FWMSEXCEL():New()
+Local oExcelApp := NIL
+Local cAba      := "Estoque Completo"
+Local cTabela   := "Estoque Completo"
+Local cArquivo  := "Estoque Completo" + DTOS(msDate()) + "_" + strtran(Time(), ":", "") + ".XLS"
+Local cPatch    := "C:\TEMP\"
+Local cDefPatch := GetSrvProfString("StartPatch", "\system\")
+Local aDados    := {}
+
+//IF Len(aDados) > 0
+
+    IF !ApOleClient("MSExcel")
+        MsgAlert("Microsoft Excel não instalado!")
+        Return
+    ENDIF
+
+    oExcel:AddWorkSheet(cAba)
+    oExcel:AddTable(cAba, cTabela)
+
+    oExcel:AddColumn(cAba, cTabela, "CLAS. FISCAL"      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "COD. PROD"         ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DESCRICAO"         ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "SITUACAO"          ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "ESTOQUE ATUAL"     ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "CUSTO MEDIO"       ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "PRECO MEDIO"       ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "QTD PECAS"         ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VENDA A CUSTO"     ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VENDA TABELA"      ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "VENDA DESCONTO"    ,1,1,.F.)
+    oExcel:AddColumn(cAba, cTabela, "DATA ULT. COMPRA"  ,1,1,.F.)
+
+
+    (cAlias)->(DbGoTop())
+
+    Do While !(cAlias)->(EOF())
+
+    aDados := {Transform((cAlias)->CLAS_FISCAL,"@R 9999.99.99"), (cAlias)->COD_PROD, (cAlias)->DESCRICAO, (cAlias)->SITUACAO, (cAlias)->ESTOQUE_ATUAL, Transform((cAlias)->CUSTO_MEDIO,"@E 999,999,999.9999"),;
+                Transform((cAlias)->PRECO_MEDIO,"@E 99,999,999.99"), (cAlias)->QTD_PECAS, Transform((cAlias)->VENDA_A_CUSTO,"@E 99,999,999.99"), Transform((cAlias)->VENDA_TABELA,"@E 99,999,999.99"),;
+                Transform((cAlias)->VENDA_DESCONTO,"@E 99,999,999.99"), STOD((cAlias)->DATA_ULT_COMPRA)}
+    
+    oExcel:AddRow(cAba, cTabela, aDados)
+
+    (cAlias)->(DbSkip())
+
+    ENDDO
+
+    (cAlias)->(dbSkip())
+
+    IF !EMPTY(oExcel:aWorkSheet)
+
+        oExcel:ACTIVATE()
+        oExcel:GetXMLFile(cArquivo)
+
+        CpyS2T(cDefPatch+cArquivo, cPatch)
+
+        oExcelApp   := MsExcel():New()
+        oExcelApp:WorkBooks:Open(cPatch+cArquivo) //Abre a Planilha
+        oExcelApp:SetVisible(.T.)
+
+    ENDIF
+/*ELSE
+    Alert("Não existem dados para emitir o relatório.")
+ENDIF*/
+
+Return
+
+
+
+Static Function GetParam()
+
+Local alParambox    := {}
+Local clTitulo      := "Parâmetros"
+Local alButtons     := {}
+Local llCentered    := .T.
+Local nlPosx        := NIL
+Local nlPosy        := NIL
+Local clLoad        := ""
+Local llCanSave     := .T.
+Local llUserSave    := .T.
+Local llRet         := .T.
+Local blOk
+Local alParams      := {}
+
+AADD(alParambox,{1,"Data Inicial?"    , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+AADD(alParambox,{1,"Data Final?"      , CTOD(Space(8))    , "", "", ""   , "", 50, .F.})
+
+llRet := ParamBox(alParambox, clTitulo, alParams, blOk, alButtons, llCentered, nlPosx, nlPosy,, clLoad, llCanSave, llUserSave)
+
+IF (llRet)
+    cData1      := alParams[1]
+    cData2      := alParams[2]
+ENDIF
+
+Return

@@ -1,0 +1,32 @@
+User Function VerifyBlq(cPedido,cTipo)
+    Local aArea := GetArea()
+    Local lBlq := .F.
+
+    DbSelectArea("SC9")
+    SC9->(DbSetOrder(1))
+    If SC9->(DbSeek(FWxFilial('SC9')+cPedido))
+
+        While  (!SC9->(Eof())) .AND. SC9->(C9_FILIAL+C9_PEDIDO) == FWxFilial('SC9')+cPedido
+            If cTipo == 'CRED'
+
+                If SC9->C9_BLCRED == '01'
+                    lBlq := .T.
+                    EXIT
+                EndIf
+
+            ElseIf cTipo == 'EST'
+
+                If SC9->C9_BLEST == '02'
+                    lBlq := .T.
+                    EXIT
+                EndIf
+
+            EndIf
+            
+            SC9->(DbSkip())
+        EndDo
+
+    EndIf
+    RestArea(aArea)
+    
+Return lBlq

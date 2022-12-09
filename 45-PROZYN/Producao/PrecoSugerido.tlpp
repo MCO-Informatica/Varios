@@ -1,0 +1,198 @@
+#include "protheus.ch"
+#Include "TbiConn.ch"
+#Include "TopConn.ch"
+
+User Function ParmTabComercial()
+    Local aPergs   := {}
+    Local cProdDe  := Space(TamSX3('B1_COD')[01])
+    Local cProdAt  := PadL('', TamSX3('B1_COD')[01], 'Z')
+    Local cGrpCDe  := Space(TamSX3('ZU_COD')[01])
+    Local cGrpCAt  := PadL('', TamSX3('ZU_COD')[01], 'Z')
+    
+    aAdd(aPergs, {1, "Produto De",  cProdDe,  "", ".T.", "SB1", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Produto Até", cProdAt,  "", ".T.", "SB1", ".T.", 80,  .T.})
+
+    aAdd(aPergs, {1, "Grp. Comercial De",  cGrpCDe,  "", ".T.", "SZU", ".T.", 80,  .F.})
+    aAdd(aPergs, {1, "Grp. Comercial Até", cGrpCAt,  "", ".T.", "SZU", ".T.", 80,  .T.})
+    
+    If ParamBox(aPergs, "Informe os parâmetros")
+        Processa( {|| U_TabComercial(MV_PAR01,MV_PAR02,MV_PAR03,MV_PAR04) },"Aguarde" ,"Processando...")
+        MsgAlert("Recálculo de Preço Sugerido atualizado.","Atenção!")
+    EndIf
+Return
+
+User Function TabComercial(cProdDe,cProdAt,cGrpCDe,cGrpCAt)
+    Local aArea := GetArea()
+    Local nCusto := 0
+    Local nPrcSug := 0
+    Local nA := 0
+
+    Private nGGFFixo := 0
+    Private dUlMes := CtoD("  /  /    ")
+    Private nTxCusto := 1
+    Private aProds := {};
+
+    Private cFolder := "\Tabela Comercial\"
+    Private cArquivo  := "tabela_comercial_"+DtoS(Date())+".XML"
+    Private aFile := {cFolder+cArquivo}
+
+    Default cProdDe  := ""
+    Default cProdAt  := "ZZZZZZ"
+    Default cGrpCDe  := ""
+    Default cGrpCAt  := "ZZZZ"
+    
+    If !ExistDir( cFolder )
+        MakeDir( cFolder )
+    EndIf
+    
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    nTxCusto := U_GetMoeda()
+    dUlMes := GetMV("MV_ULMES")
+    nGGFFixo := SuperGetMv("MV_GGFFIXO",,0.25)
+
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))
+
+    DbSelectArea("SZU")
+    SZU->(DbSetOrder(1))
+
+    cQry := " SELECT DISTINCT B1_XGRPCOM,ZU_DESCRI,B1_COD,B1_DESC,B9_CM1 FROM "+RetSqlName("SB9")+" B9
+    cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_COD = B9_COD AND B1.D_E_L_E_T_ = ''
+    cQry += " INNER JOIN "+RetSqlName("SZU")+" ZU ON ZU_COD = B1_XGRPCOM AND ZU.D_E_L_E_T_ = ''
+    cQry += " WHERE B9_DATA = '"+DtoS(dUlMes)+"' AND B9_CM1 > 0 AND B9_LOCAL = B1_LOCPAD AND B9.D_E_L_E_T_ = ''
+
+    cQry += " AND B9_COD BETWEEN '"+cProdDe+"' and '"+cProdAt+"' 
+    cQry += " AND ZU_COD BETWEEN '"+cGrpCDe+"' and '"+cGrpCAt+"' 
+
+    cQry += " ORDER BY ZU_DESCRI,B1_DESC
+    TcQuery cQry New Alias 'B9ULMES'
+
+
+    While B9ULMES->(!EOF())
+        SB1->(DbSeek(xFilial("SB1")+B9ULMES->B1_COD))
+        aAdd(aProds, {B9ULMES->B1_XGRPCOM,B9ULMES->ZU_DESCRI,B9ULMES->B1_COD,B9ULMES->B1_DESC,{}})
+
+        nPrcSug := 0
+
+        nCusto := B9ULMES->B9_CM1 / nTxCusto
+        If nCusto == 0
+            //Custo da última entrada
+            nCusto := GetUlCusto(2)
+        EndIf
+
+        If !(SB1->B1_TIPO $ 'ME')
+            nGGF := U_GetGGF(SB1->B1_COD)
+            nCusto := nCusto - (nGGF / nTxCusto) + nGGFFixo
+        EndIf
+        
+        SZU->(DbSeek(xFilial("SZU")+SB1->B1_XGRPCOM))
+
+        For nA := 1 to 7
+            If nA == 1
+                nMargemComercial := SZU->ZU_BAKERY
+            ElseIf nA == 2
+                nMargemComercial := SZU->ZU_DIARY
+            ElseIf nA == 3
+                nMargemComercial := SZU->ZU_CERVEJA
+            ElseIf nA == 4
+                nMargemComercial := SZU->ZU_HP
+            ElseIf nA == 5
+                nMargemComercial := SZU->ZU_USINA
+            ElseIf nA == 6
+                nMargemComercial := SZU->ZU_FARMACO
+            ElseIf nA == 7
+                nMargemComercial := SZU->ZU_OUTROS
+            EndIf
+
+            nPrcSug := nCusto
+
+            If nMargemComercial > 0
+                nPrcSug := nPrcSug / ((100 - nMargemComercial) / 100)
+            EndIf
+
+            /* 0,38% - Commodity | 1,5% - Solução */
+            If SB1->B1_COMOD == 'S'
+                nPrcSug := nPrcSug / ((100 - 0.38) / 100)
+            Else
+                nPrcSug := nPrcSug / ((100 - 1.5) / 100)
+            EndIf
+
+            If nPrcSug < 0
+                nPrcSug := 0
+            EndIf
+
+            aAdd(aProds[len(aProds)][5], nPrcSug)
+
+        Next nA
+
+        B9ULMES->(DbSkip())
+    EndDo
+
+    B9ULMES->(DbCloseArea())
+
+    GeraRelatorio(cProdDe,cProdAt,cGrpCDe,cGrpCAt)
+
+    RestArea(aArea)
+
+    RESET ENVIRONMENT
+Return
+
+//Obtenção do custo da última compra
+Static Function GetUlCusto(nMoeda)
+    Local nUlCusto := 0
+    
+    cQry := " SELECT ISNULL((SELECT TOP 1 isnull((D1_CUSTO / D1_QUANT),0) CUSTO from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(SB1->B1_COD)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),0) CUSTO,
+    cQry += " ISNULL((SELECT TOP 1 D1_DTDIGIT from "+RetSqlName("SD1")+" D1 WHERE D1_COD = '"+Trim(SB1->B1_COD)+"' AND D1_TIPO = 'N' AND D1.D_E_L_E_T_ = '' AND D1_CUSTO > 0 order by D1_DTDIGIT DESC),'') DTDIGIT "
+    TcQuery cQry New Alias 'XCUSTO'
+
+
+    If !XCUSTO->(EOF())
+        nUlCusto := XCUSTO->CUSTO / Iif(nMoeda != 1, Posicione("SM2",1,XCUSTO->DTDIGIT,"M2_MOEDA2"),1)
+    EndIf
+    XCUSTO->(DbCloseArea())
+Return nUlCusto
+
+Static Function GeraRelatorio(cProdDe,cProdAt,cGrpCDe,cGrpCAt)
+    Local oFWMsExcel
+    Local nP := 0
+
+    oFWMsExcel := FWMSExcel():New()
+    
+    cTitulo := "Tabela Comercial"
+    cAba := "Tabela Comercial"
+    oFWMsExcel:AddworkSheet(cTitulo)
+
+    oFWMsExcel:AddTable(cTitulo,cAba)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Grupo Comercial", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Descrição", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Produto", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Descrição", 1,1)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Taxa da Moeda", 2,2)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Bakery", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Diary", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Cervejaria", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"HP", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Usina", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Farma", 3,3)
+    oFWMsExcel:AddColumn(cTitulo,cAba,"Outros", 3,3)
+    
+    For nP := 1 to len(aProds)
+        oFWMsExcel:AddRow(cTitulo,cAba,{aProds[nP][1],aProds[nP][2],aProds[nP][3],aProds[nP][4],nTxCusto,aProds[nP][5][1],aProds[nP][5][2],aProds[nP][5][3],aProds[nP][5][4],aProds[nP][5][5],aProds[nP][5][6],aProds[nP][5][7]})
+    Next nP
+
+    oFWMsExcel:Activate()
+    oFWMsExcel:GetXMLFile(cFolder+cArquivo)
+
+    cTo := "nailson.paixao@prozyn.com.br"
+    cHTML := "<p>Prezado(a),<br/>Segue relação da Tabela Comercial.</p>"
+    cHTML += "<p><strong>Parâmetros utilizados</strong>
+    cHtml += "<br/>Produto De: "+cProdDe
+    cHtml += "<br/>Produto Até: "+cProdAt
+    cHtml += "<br/>Grp. Comercial De: "+cGrpCDe
+    cHtml += "<br/>Grp. Comercial Até: "+cGrpCAt
+    cHTML += "</p>"
+    U_zEnvMail(cTo, "Tabela Comercial - "+DtoC(Date()), cHTML, aFile, .f., .t., .t.)
+    FERASE(cFolder+cArquivo)
+
+Return

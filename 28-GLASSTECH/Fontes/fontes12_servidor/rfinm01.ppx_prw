@@ -1,0 +1,423 @@
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Dialog.ch"
+#line 28 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Font.ch"
+#line 29 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\PTMenu.ch"
+#line 31 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Print.ch"
+#line 33 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Colors.ch"
+#line 35 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\Folder.ch"
+#line 37 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\msobject.ch"
+#line 38 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\VKey.ch"
+#line 42 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\WinApi.ch"
+#line 44 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCommand.ch"
+#line 47 "Protheus.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\FWCSS.CH"
+#line 50 "Protheus.ch"
+#line 2 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\rfinm01.prw"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\RwMake.ch"
+#line 1 "D:\TOTVS1~1\MICROS~1\INCLUDE\stdwin.ch"
+#line 14 "RwMake.ch"
+#line 4 "d:\totvs12\MICROS~1\protheus\MYPROJ~2\fontes\rfinm01.prw"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function U_RFINM01()
+
+Local	oSay
+Local 	aParamBox := {}
+
+Private	aRet 	  := {}
+Private aDados	  := {}
+
+
+
+
+aAdd(aParamBox,{ 1, "Data De ",	StoD(""), "@D", "", "", ".T.", 50, .F. })
+aAdd(aParamBox,{ 1, "Data até",	StoD(""), "@D", "", "", ".T.", 50, .F. })
+
+
+
+
+
+If !ParamBox(aParamBox,"Relatorio de Conciliação Protheus x GESTOQ (RFINM01)...",@aRet)
+   Return
+EndIf
+
+
+
+
+
+FWMsgRun(, {|oSay| GeraRel(oSay)})
+
+Return
+
+
+
+
+
+
+
+
+
+
+Static Function GeraRel(oSay)
+
+Local lImpCabec := .T. 
+Local nFolder	:= 1
+Local aFolder	:= {"Contas a Receber","Contas a Pagar"}
+Local cDirLocal := GetTempPath()
+Local cArquivo	:= cDirLocal+"\RFINM01_"+STRTRAN(DTOC(DATE()),"/","")+"_"+STRTRAN(LEFT(TIME(),5),":","_")+".XLS"
+Local oFWMsExcel
+
+
+
+
+If !ExistDir(cDirLocal)
+	MakeDir(cDirLocal)
+EndIf
+
+
+
+
+
+oFWMsExcel := FWMSExcel():New()
+
+
+For nFolder := 1 To 2
+
+    cWorkSheet := IIF(nFolder=1,"Receber","Pagar")
+    cTable     := aFolder[nFolder]
+
+    oFWMsExcel:AddworkSheet(cWorkSheet)
+
+
+    oFWMsExcel:AddTable(cWorkSheet, cTable)
+
+
+
+
+    aCabec1 := {"","Filial","Prefixo","Numero","Parcela","Cliente","Loja","Emissão","Vencto.","Val.Protheus","Sld.Protheus","Orig.BD","Val.GESTOQ","Sld.GESTOQ","ID GESTOQ"}
+
+
+    For nAux := 1 To Len(aCabec1)
+        oFWMsExcel:AddColumn(cWorkSheet, cTable, aCabec1[nAux], 1, 1)
+    Next
+
+
+
+
+    oSay:cCaption := "Buscando dados do Contas a "+IIF(nFolder=1,"Receber","Pagar")+"....."
+    ProcessMessages()
+
+    BuscaDados(oSay,nFolder)
+
+    For i := 1 to Len(aDados)
+
+
+
+
+	    oSay:cCaption := "Gerando o Relatório em Excel....."
+	    ProcessMessages()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        aLinha1 := {,	aDados[i,1], aDados[i,2], aDados[i,3], aDados[i,4], aDados[i,5], aDados[i,6], aDados[i,7], aDados[i,8], aDados[i,9], aDados[i,10], aDados[i,11], aDados[i,12], aDados[i,13], aDados[i,14] }
+
+
+        oFWMsExcel:AddRow(cWorkSheet, cTable, aLinha1)
+
+    next
+
+next
+
+
+
+oFWMsExcel:Activate()
+oFWMsExcel:GetXMLFile(cArquivo)
+
+
+
+
+If ! ApOleClient( "MsExcel" )
+	Iif(FindFunction("APMsgStop"), APMsgStop("MsExcel nao instalado",), MsgStop("MsExcel nao instalado",))
+    Return Nil
+EndIf
+
+oExcelApp := MsExcel():New()
+oExcelApp:WorkBooks:Open( cArquivo )
+oExcelApp:SetVisible( .T. )
+
+Return
+
+
+
+
+
+
+
+
+
+
+Static Function BuscaDados(oSay,nFolder)
+
+Local cQuery	:= ""
+
+
+
+
+oSay:cCaption := "Buscando dados do Relatório de "+IIF(nFolder,"Contas a Receber","Contas a Pagar")
+ProcessMessages()
+
+If nFolder = 1
+
+   cQuery	:= "SELECT E1_FILIAL,E1_PREFIXO,E1_NUM,E1_PARCELA,E1_CLIENTE,E1_LOJA,E1_EMISSAO,E1_VENCTO,SUM(E1_VALOR) E1_VALOR,SUM(E1_SALDO) E1_SALDO,E1_ORIGBD,SUM(VALOR_GSTQ) VALOR_GSTQ,SUM(SALDO_GSTQ) SALDO_GSTQ, MAX(ID_VENCTITULO) ID_VENCTITULO FROM "+Chr(13)+Chr(10)
+   cQuery	+= "( "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "SELECT E1_FILIAL,E1_PREFIXO,E1_NUM,(CASE WHEN E1_PARCELA = ' ' THEN 'A' ELSE E1_PARCELA END) E1_PARCELA,E1_CLIENTE,E1_LOJA,E1_EMISSAO,E1_VENCTO,E1_VALOR,E1_SALDO,E1_ORIGBD,0 VALOR_GSTQ,0 SALDO_GSTQ, E1_IDBOLET ID_VENCTITULO "+Chr(13)+Chr(10)
+   cQuery	+= "FROM SE1010 SE1 "+Chr(13)+Chr(10)
+   cQuery	+= "WHERE D_E_L_E_T_ = ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "  AND SE1.E1_EMISSAO BETWEEN '"+DTOS(aRet[1])+"' AND '"+DTOS(aRet[2])+"' "+Chr(13)+Chr(10)
+   cQuery	+= "  AND NOT SE1.E1_TIPO IN ('RA ','NCC','PRE') "
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "UNION ALL "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "SELECT EMPRESA.XFILIAL COLLATE DATABASE_DEFAULT E1_FILIAL, "+Chr(13)+Chr(10)
+   cQuery	+= "  CAST(CASE NOTA.SERIE WHEN '' THEN CASE NOTA.ID_EMPRESA WHEN 12 THEN '3' ELSE '' END ELSE NOTA.SERIE END AS CHAR(3)) COLLATE DATABASE_DEFAULT E1_SERIE, "+Chr(13)+Chr(10)
+   cQuery	+= "  RIGHT('000000000'+RTRIM(LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -2)),9) COLLATE DATABASE_DEFAULT E1_NUM, "+Chr(13)+Chr(10)
+   cQuery	+= "  CAST(RIGHT(VENCTIT.DOC, 3 ) AS CHAR(1)) COLLATE DATABASE_DEFAULT E1_PARCELA, "+Chr(13)+Chr(10)
+   cQuery	+= "  A1_COD E1_CLIENTE, "+Chr(13)+Chr(10)
+   cQuery	+= "  A1_LOJA E1_LOJA, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.EMISSAO,112) E2_EMISSAO, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.VENCIMENTO,112) E2_VENCTO, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E1_VALOR, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E1_SALDO, "+Chr(13)+Chr(10)
+   cQuery	+= "  'G' E1_ORIGDB, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.VALOR VALOR_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.SALDO SALDO_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.ID_VENCTITULO ID_VENCTITULO"+Chr(13)+Chr(10)
+   cQuery	+= "  FROM [TPCP].[dbo].[VENCTITULO] VENCTIT "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[TITULO] ON TITULO.ID_TITULO = VENCTIT.ID_TITULO "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[NOTA] NOTA ON (NOTA.ID_TITULO = TITULO.ID_TITULO) AND (NOTA.ID_EMPRESA = TITULO.ID_EMPRESA) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TOTVSIPFSC].[dbo].[SA1010] SA1 ON ( CAST( SA1.A1_COD AS INT)  = TITULO.ID_CLIENTE AND A1_LOJA = '01') "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[EMPRESA] ON EMPRESA.ID_EMPRESA = TITULO.ID_EMPRESA "+Chr(13)+Chr(10)
+   cQuery	+= "  WHERE "+Chr(13)+Chr(10)
+   cQuery	+= "  TITULO.TIPOTITULO = 1  "+Chr(13)+Chr(10)
+   cQuery	+= "  AND VENCTIT.PAGO <> 'C' "+Chr(13)+Chr(10)
+   cQuery	+= "  AND CONVERT(CHAR(8),VENCTIT.EMISSAO,112) BETWEEN '"+DTOS(aRet[1])+"' AND '"+DTOS(aRet[2])+"' "+Chr(13)+Chr(10)
+
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "UNION ALL "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "SELECT ( CASE WHEN EMPRESA.XFILIAL = '0701' THEN '0701' ELSE '9001' END ) COLLATE DATABASE_DEFAULT  E1_FILIAL, "+Chr(13)+Chr(10)
+   cQuery	+= "  CASE ISNULL(NOTA.SERIE, ' ') WHEN ' ' OR NOTA.TIPO = 'PRE' THEN CASE SUBSTRING( VENCTIT.DOC,1,2) WHEN '10' THEN '1  ' ELSE CAST(ISNULL(PRENOT.SERIE,'3') AS CHAR(3)) END ELSE CAST(NOTA.SERIE AS CHAR(3)) END COLLATE DATABASE_DEFAULT E1_SERIE, "+Chr(13)+Chr(10)
+   cQuery	+= "  RIGHT('000000000'+RTRIM(CAST(CASE WHEN SUBSTRING( VENCTIT.DOC,1,2) = '10' OR SUBSTRING( VENCTIT.DOC,1,2) = '20' "+Chr(13)+Chr(10)
+   cQuery	+= "  THEN SUBSTRING( LTRIM(REPLACE(VENCTIT.DOC,'/','')), 3, LEN(LTRIM(REPLACE(VENCTIT.DOC,'/',''))) + -4) "+Chr(13)+Chr(10)
+   cQuery	+= "  ELSE LEFT( LTRIM(REPLACE(VENCTIT.DOC,'/','')), LEN(LTRIM(REPLACE(VENCTIT.DOC,'/',''))) + -2) "+Chr(13)+Chr(10)
+   cQuery	+= "  END AS VARCHAR(15) )),9) COLLATE DATABASE_DEFAULT E1_NUM, "+Chr(13)+Chr(10)
+   cQuery	+= "  CAST(RIGHT(VENCTIT.DOC, 3 ) AS CHAR(1)) COLLATE DATABASE_DEFAULT E1_PARCELA, "+Chr(13)+Chr(10)
+   cQuery	+= "  A1_COD E1_CLIENTE, "+Chr(13)+Chr(10)
+   cQuery	+= "  A1_LOJA E1_LOJA, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.EMISSAO,112) E1_EMISSAO, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.VENCIMENTO,112) E1_VENCTO, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E1_VALOR, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E1_SALDO, "+Chr(13)+Chr(10)
+   cQuery	+= "  'B' E1_ORIGDB, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.VALOR VALOR_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.SALDO SALDO_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.ID_VENCTITULO ID_VENCTITULO"+Chr(13)+Chr(10)
+   cQuery	+= "  FROM [192.168.0.7].[BV].[dbo].[VENCTITULO] VENCTIT "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [192.168.0.7].[BV].[dbo].[TITULO] ON TITULO.ID_TITULO = VENCTIT.ID_TITULO "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [192.168.0.7].[BV].[dbo].[NOTA] NOTA ON (NOTA.ID_TITULO = TITULO.ID_TITULO) AND (NOTA.ID_EMPRESA = TITULO.ID_EMPRESA) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[PRE_NOTA] PRENOT ON (PRENOT.NRO_NF = LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -2)) AND (CONVERT(CHAR(8),PRENOT.EMISSAO,112) = CONVERT(CHAR(8),VENCTIT.EMISSAO,112)) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TOTVSIPFSC].[dbo].[SA1010] SA1 ON ( CAST( SA1.A1_COD AS INT)  = TITULO.ID_CLIENTE AND A1_LOJA = '01' ) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[EMPRESA] ON EMPRESA.ID_EMPRESA = TITULO.ID_EMPRESA "+Chr(13)+Chr(10)
+   cQuery	+= "  WHERE "+Chr(13)+Chr(10)
+   cQuery	+= "  TITULO.TIPOTITULO = 1  "+Chr(13)+Chr(10)
+   cQuery	+= "  AND VENCTIT.PAGO <> 'C' "+Chr(13)+Chr(10)
+
+   cQuery	+= "  AND CONVERT(CHAR(8),VENCTIT.EMISSAO,112) > '20161231' "+Chr(13)+Chr(10)
+   cQuery	+= "  AND CONVERT(CHAR(8),VENCTIT.EMISSAO,112) BETWEEN '"+DTOS(aRet[1])+"' AND '"+DTOS(aRet[2])+"' "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= ") TMP "+Chr(13)+Chr(10)
+   cQuery	+= "GROUP BY E1_FILIAL,E1_PREFIXO,E1_NUM,E1_PARCELA,E1_CLIENTE,E1_LOJA,E1_EMISSAO,E1_VENCTO,E1_ORIGBD "+Chr(13)+Chr(10)
+   cQuery	+= "HAVING ( SUM(E1_VALOR) <> SUM(VALOR_GSTQ) OR SUM(E1_SALDO) <> SUM(SALDO_GSTQ) OR SUM(E1_VALOR) IS NULL OR SUM(VALOR_GSTQ) IS NULL ) "+Chr(13)+Chr(10)
+   cQuery	+= "AND E1_PREFIXO <> 'PRE' "+Chr(13)+Chr(10)
+   cQuery	+= "ORDER BY E1_FILIAL,E1_PREFIXO,E1_NUM,E1_PARCELA,E1_CLIENTE "+Chr(13)+Chr(10)
+
+Else
+
+   cQuery	:= "SELECT E2_FILIAL,E2_PREFIXO,E2_NUM,E2_PARCELA,E2_FORNECE,E2_LOJA,E2_EMISSAO,E2_VENCTO,SUM(E2_VALOR) E2_VALOR,SUM(E2_SALDO) E2_SALDO,E2_ORIGBD,SUM(VALOR_GSTQ) VALOR_GSTQ,SUM(SALDO_GSTQ) SALDO_GSTQ, MAX(ID_VENCTITULO) ID_VENCTITULO FROM "+Chr(13)+Chr(10)
+   cQuery	+= "( "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "SELECT E2_FILIAL,E2_PREFIXO,E2_NUM,(CASE WHEN E2_PARCELA = ' ' THEN 'A' ELSE E2_PARCELA END) E2_PARCELA,E2_FORNECE,E2_LOJA,E2_EMISSAO,E2_VENCTO,E2_VALOR,E2_SALDO,(CASE WHEN E2_ORIGBD = ' ' THEN 'G' ELSE E2_ORIGBD END) E2_ORIGBD,0 VALOR_GSTQ,0 SALDO_GSTQ, E2_IDMOV ID_VENCTITULO "+Chr(13)+Chr(10)
+   cQuery	+= "FROM SE2010 SE2 "+Chr(13)+Chr(10)
+   cQuery	+= "WHERE D_E_L_E_T_ = ' ' AND E2_PREFIXO <> 'GPE' "+Chr(13)+Chr(10)
+   cQuery	+= "  AND SE2.E2_EMISSAO BETWEEN '"+DTOS(aRet[1])+"' AND '"+DTOS(aRet[2])+"' "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "UNION ALL "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "SELECT EMPRESA.XFILIAL COLLATE DATABASE_DEFAULT E2_FILIAL, "+Chr(13)+Chr(10)
+   cQuery	+= "  ISNULL(CAST(NOTA.SERIE AS CHAR(3)), ' ') COLLATE DATABASE_DEFAULT E2_PREFIXO, "+Chr(13)+Chr(10)
+   cQuery	+= "  RIGHT('000000000'+RTRIM(CAST( CASE "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'IRRF' ) <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -4) "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'INSS' ) <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -4) "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'ISS' )  <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -3) "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'PCC' )  <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -3) "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'GNRE' ) <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -4) "+Chr(13)+Chr(10)
+   cQuery	+= "  WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 1 ), 'ABCDEFGHIJKLMNOPQRSTUWYXZ' ) <> 0 THEN LEFT(REPLACE(VENCTIT.DOC,'/',''),LEN(REPLACE(VENCTIT.DOC,'/','')) + -2) ELSE VENCTIT.DOC "+Chr(13)+Chr(10)
+   cQuery	+= "  END AS VARCHAR(10))),9) COLLATE DATABASE_DEFAULT E2_NUM, "+Chr(13)+Chr(10)
+   cQuery	+= " "+Chr(13)+Chr(10)
+   cQuery	+= "  CASE "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'IRRF' ) <> 0 THEN ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'INSS' ) <> 0 THEN ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'ISS' )  <> 0 THEN ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'PCC' )  <> 0 THEN ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'GNRE' ) <> 0 THEN ' ' "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 1 ), 'ABCDEFGHIJKLMNOPQRSTUWYXZ' ) <> 0 THEN "+Chr(13)+Chr(10)
+   cQuery	+= "   CASE "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN RIGHT(VENCTIT.DOC, 1) = 'A' THEN RIGHT(VENCTIT.DOC, 1) "+Chr(13)+Chr(10)
+   cQuery	+= "   ELSE "+Chr(13)+Chr(10)
+   cQuery	+= "   CASE ISNUMERIC( SUBSTRING(RIGHT(VENCTIT.DOC, 2),1,1) ) WHEN 0 "+Chr(13)+Chr(10)
+   cQuery	+= "   THEN "+Chr(13)+Chr(10)
+   cQuery	+= "   CASE "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN ISNULL(NOTA.ID_NOTA_COMPRA,0) <> 0 THEN RIGHT(VENCTIT.DOC, 1) "+Chr(13)+Chr(10)
+   cQuery	+= "   WHEN CONVERT(CHAR(8),VENCTIT.CADASTRO,112) > '20160604' AND VENCTIT.ID_TITULO NOT IN (109070,109062,108822) THEN RIGHT(VENCTIT.DOC, 1) "+Chr(13)+Chr(10)
+   cQuery	+= "   ELSE SUBSTRING(RIGHT(VENCTIT.DOC, 2),1,1) "+Chr(13)+Chr(10)
+   cQuery	+= "   END "+Chr(13)+Chr(10)
+   cQuery	+= "   ELSE RIGHT(VENCTIT.DOC, 1) "+Chr(13)+Chr(10)
+   cQuery	+= "   END "+Chr(13)+Chr(10)
+   cQuery	+= "   END "+Chr(13)+Chr(10)
+   cQuery	+= " ELSE ' ' "+Chr(13)+Chr(10)
+   cQuery	+= " END COLLATE DATABASE_DEFAULT E2_PARCELA, "+Chr(13)+Chr(10)
+   cQuery	+= "  A2_COD E2_FORNECE, "+Chr(13)+Chr(10)
+   cQuery	+= "  A2_LOJA E2_LOJA, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.EMISSAO,112) E2_EMISSAO, "+Chr(13)+Chr(10)
+   cQuery	+= "  CONVERT(CHAR(8),VENCTIT.VENCIMENTO,112) E2_VENCTO, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E2_VALOR, "+Chr(13)+Chr(10)
+   cQuery	+= "  0 E2_SALDO, "+Chr(13)+Chr(10)
+   cQuery	+= "  'G' E2_ORIGDB, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.VALOR VALOR_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.SALDO SALDO_GSTQ, "+Chr(13)+Chr(10)
+   cQuery	+= "  VENCTIT.ID_VENCTITULO  ID_VENCTITULO "+Chr(13)+Chr(10)
+   cQuery	+= "  FROM [TPCP].[dbo].[VENCTITULO] VENCTIT "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[TITULO] ON TITULO.ID_TITULO = VENCTIT.ID_TITULO "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[NOTA_COMPRA] NOTA ON (NOTA.ID_TITULO = TITULO.ID_TITULO) AND (NOTA.ID_EMPRESA = TITULO.ID_EMPRESA) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TOTVSIPFSC].[dbo].[SA2010] SA2 ON NOT A2_COD IN ('"+'"'+"00687','MUNIC ','UNIAO ','INPS  ') AND ( CAST( SA2.A2_COD AS INT)  = TITULO.ID_CLIENTE) AND NOT (A2_COD = '014108' AND A2_LOJA = '01') "+Chr(13)+Chr(10)
+   cQuery	+= "   AND A2_LOJA = ( CASE WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'IRRF' ) <> 0 THEN '00' "+Chr(13)+Chr(10)
+   cQuery	+= "                        WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 4 ), 'INSS' ) <> 0 THEN '00' "+Chr(13)+Chr(10)
+   cQuery	+= "                        WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'ISS' )  <> 0 THEN '00' "+Chr(13)+Chr(10)
+   cQuery	+= "                        WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'PCC' )  <> 0 THEN '00' "+Chr(13)+Chr(10)
+   cQuery	+= "                        WHEN CHARINDEX(RIGHT(VENCTIT.DOC, 3 ), 'GNRE' ) <> 0 THEN '00' "+Chr(13)+Chr(10)
+   cQuery	+= "                        ELSE '01' END ) "+Chr(13)+Chr(10)
+   cQuery	+= "   LEFT OUTER JOIN [TPCP].[dbo].[EMPRESA] ON EMPRESA.ID_EMPRESA = TITULO.ID_EMPRESA "+Chr(13)+Chr(10)
+   cQuery	+= "  WHERE  "+Chr(13)+Chr(10)
+   cQuery	+= "  TITULO.TIPOTITULO = 0 "+Chr(13)+Chr(10)
+   cQuery	+= "  AND VENCTIT.PAGO <> 'C' "+Chr(13)+Chr(10)
+
+   cQuery	+= "  AND CONVERT(CHAR(8),VENCTIT.EMISSAO,112) BETWEEN '"+DTOS(aRet[1])+"' AND '"+DTOS(aRet[2])+"' "+Chr(13)+Chr(10)
+   cQuery	+= "  "+Chr(13)+Chr(10)
+   cQuery	+= ") TMP "+Chr(13)+Chr(10)
+   cQuery	+= "GROUP BY E2_FILIAL,E2_PREFIXO,E2_NUM,E2_PARCELA,E2_FORNECE,E2_LOJA,E2_EMISSAO,E2_VENCTO,E2_ORIGBD "+Chr(13)+Chr(10)
+   cQuery	+= "HAVING ( SUM(E2_VALOR) <> SUM(VALOR_GSTQ) OR SUM(E2_SALDO) <> SUM(SALDO_GSTQ) OR SUM(E2_VALOR) IS NULL OR SUM(VALOR_GSTQ) IS NULL ) "+Chr(13)+Chr(10)
+   cQuery	+= "ORDER BY E2_FILIAL,E2_PREFIXO,E2_NUM,E2_PARCELA,E2_FORNECE "+Chr(13)+Chr(10)
+
+EndIf
+
+
+
+
+
+If Select("QUERY") > 0
+	dbSelectArea("QUERY")
+	QUERY->(dbCloseArea())
+EndIf
+
+
+
+
+dbUseArea( .T. , "TOPCONN", TCGenQry(,,cQuery), "QUERY", .T. , .T. )
+
+dbSelectArea("QUERY")
+QUERY->(dbGoTop())
+
+aDados := {}
+
+While !QUERY->(Eof())
+
+   If nFolder = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  aLinha1 := { QUERY->E1_FILIAL, QUERY->E1_PREFIXO, QUERY->E1_NUM, QUERY->E1_PARCELA, QUERY->E1_CLIENTE, QUERY->E1_LOJA, STOD(QUERY->E1_EMISSAO), STOD(QUERY->E1_VENCTO), QUERY->E1_VALOR, QUERY->E1_SALDO, QUERY->E1_ORIGBD, QUERY->VALOR_GSTQ, QUERY->SALDO_GSTQ, QUERY->ID_VENCTITULO }
+   Else
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  aLinha1 := { QUERY->E2_FILIAL, QUERY->E2_PREFIXO, QUERY->E2_NUM, QUERY->E2_PARCELA, QUERY->E2_FORNECE, QUERY->E2_LOJA, STOD(QUERY->E2_EMISSAO), STOD(QUERY->E2_VENCTO), QUERY->E2_VALOR, QUERY->E2_SALDO, QUERY->E2_ORIGBD, QUERY->VALOR_GSTQ, QUERY->SALDO_GSTQ, QUERY->ID_VENCTITULO }
+
+   EndIf
+
+   aAdd( aDados, ACLONE(aLinha1) )
+
+   QUERY->(dbSkip())
+EndDo
+
+dbSelectArea("QUERY")
+QUERY->(dbCloseArea())
+
+Return Nil

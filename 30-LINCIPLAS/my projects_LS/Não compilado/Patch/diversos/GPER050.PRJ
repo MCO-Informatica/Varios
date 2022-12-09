@@ -1,0 +1,25 @@
+Group GPER050.PRX
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project GPER050.PRX
+      FoldersCount=1
+      Folder GPER050.PRX
+         VSSPath=Definições
+         FilesCount=1
+         File \Protheus10\my projects\Patch\GPER050.PRX
+             Type=T
+         End
+      End
+   End
+End

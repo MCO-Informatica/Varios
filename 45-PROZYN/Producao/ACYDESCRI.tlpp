@@ -1,0 +1,13 @@
+User Function ACYDESCRI()
+    Local aArea := GetArea()
+
+    DbSelectArea("ACY")
+    ACY->(DbSetOrder(3))
+    If ACY->(DbSeek(xFilial("ACY")+M->ACY_DESCRI,.F.))
+        MsgAlert("Descrição "+AllTrim(M->ACY_DESCRI)+" já utilizada no código: "+Trim(ACY->ACY_GRPVEN)+".","Atenção!")
+        Return .F.
+    EndIf
+
+    RestArea(aArea)
+
+Return .T.

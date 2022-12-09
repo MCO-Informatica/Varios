@@ -1,0 +1,27 @@
+#Include "Rwmake.ch"
+
+/*
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Ponto de entrada criado para trazer somente os titulos de ³
+//³clientes cujo cadastro esta com o campo                   ³
+//³"E1_PORTAD2" != '237' (BRADESCO).                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+*/
+
+User Function FA060QRY()
+
+cRet:= ""
+/*
+// REMOVIDO POR THIAGO - SUPERTECH EM 19/06/2013
+IF CPORT060 == "237" //237 - BRADESCO - AGENCIA - CONTA // BASE TESTE
+	//	MSGBOX("TESTE IF - ENTROU " + CPORT060)
+	cRet := " E1_PORTADO = E1_PORTADO " // trazer tudo
+ELSE
+	//	MSGBOX("TESTE IF - ELSE " + CPORT060)
+	//	cRet := " E1_CLIENTE in ( Select A1_COD from SA1010 WHERE A1_BORDERO = '1' AND A1_LOJA = E1_LOJA)"
+	cRet := " E1_PORTAD2 != '237' "
+ENDIF
+*/
+cRet := " E1_PORTADO = E1_PORTADO " // trazer tudo
+
+Return cRet

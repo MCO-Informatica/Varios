@@ -1,0 +1,94 @@
+#include "Totvs.ch"
+#include "Tbiconn.ch"
+   
+/*/{Protheus.doc} 
+    Função utilizada para buscar a cotação de determinada moeda em determinada data (período) no API Olinda disponibilizado pelo Banco Central (conforme documentação - vide url)
+    Neste fonte, utilizei a função HTTPGet para receber - via varíval de texto - a URL do CotacaoMoedaPeriodoFechamento da API Olinda do BC (acrescida dos parâmetros [codigoMoeda] e [dataInicialCotacao]/[dataFinalCotacao], a qual efetua o processamento da cotação da moeda indicada no período indicado. O retorno da função HTTPGet (texto) é transformado em um objeto JSon
+    Inicialmente, este fonte visa obter a cotação da Moeda Dólar em uma única data. Contudo, ele pode ser adaptado para obter a cotação de outras moedas e um período maior.
+    @url        Dólar comercial (venda e compra) - cotações diárias e Taxas de Câmbio - todos os boletins diários - v1
+                    https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/documentacao
+                    https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/aplicacao#!/recursos
+                    https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/$metadata
+    @history    Maicon Macedo - 20210612 - Utilização do recurso CotacaoMoedaPeriodoFechamento para retornar os dados de cotação das moedas
+/*/
+User function APIMoeda()
+
+    PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+    // dDatabase := CtoD("09/05/2022")
+    dData := dDatabase
+    If DOW(dData) == 2
+        dData := DaySub(dDatabase,2)
+    EndIf
+    DbSelectArea("SM2")
+    SM2->(DbSetOrder(1))
+    If !SM2->(DbSeek(DtoS(dDatabase)))
+        SM2->(RecLock("SM2",.T.))
+        SM2->M2_DATA := dDatabase
+    Else
+        SM2->(RecLock("SM2",.F.))
+    EndIf
+    SM2->M2_INFORM := "I"
+    SM2->M2_MOEDA2 := GetMoeda('USD',dData)
+    SM2->M2_MOEDA4 := GetMoeda('EUR',dData)
+    SM2->M2_MOEDA5 := GetMoeda('JPY',dData)
+    SM2->(MsUnlock())
+
+      
+Return
+
+Static Function GetMoeda(cIdMoeda, dData)
+    Local cBCApi    := 'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata'
+    Local cBCRec    := ''
+    Local cGetParms := ''
+    Local nTimeOut  := 200
+    Local aHeadStr  := {'Content-Type: application/json'}
+    Local cHeadGet  := ''
+    Local cRetorno  := ''
+    Local cDtCot    := '' //MM-DD-AAAA
+    Local oJsObj    := JsonObject():New()
+    Local cJsonRt   := ''
+    Local nValor    := 0
+    // Local cMsg      := ''
+    Default dData := dDatabase
+    Default cIdMoeda  := 'USD'
+
+    //Ajusta Padrão da Data para MM-DD-AAAA
+    cDtCot := DToS(dData-1)
+    cDtCot := SubStr(cDtCot,5,2) + '-' + SubStr(cDtCot,7,2) + '-' + SubStr(cDtCot,1,4)
+      
+    //[GET] Consulta Dados na Api Olinda
+    cBCRec += cBCApi
+    cBCRec += "/CotacaoMoedaPeriodoFechamento(codigoMoeda=@idMD,dataInicialCotacao=@dtIniCt,dataFinalCotacao=@dtFinCt)"
+    cBCRec += "?@idMD='"+cIdMoeda+"'&@dtIniCt='"+cDtCot+"'&@dtFinCt='"+cDtCot
+    cBCRec += "'&$format=json&$select=cotacaoCompra,cotacaoVenda,dataHoraCotacao,tipoBoletim"
+  
+    cRetorno := HTTPGet( cBCRec , cGetParms, nTimeOut, aHeadStr, @cHeadGet )
+  
+    cJsonRt := oJsObj:FromJson(cRetorno)
+  
+    If ValType(cJsonRt) == 'U' //NIL
+      
+        // MsgInfo("JsonObject populado com sucesso!", ':: Cotação Moeda PTAX - BC API Olinda ::')
+        Conout("JsonObject populado com sucesso!")
+        Conout(":: Cotação Moeda PTAX - BC API Olinda ::")
+  
+        //Valida se a Cotação já está liberada para o dia - oJsObj:hasProperty("value")
+        If Len(oJsObj["value"]) > 0
+            nValor := oJsObj["value"][1]["cotacaoVenda"]
+            // Conout("Data: "+DToC(SToD(StrTran(SubStr(oJsObj["value"][1]["dataHoraCotacao"],1,10),'-',''))))
+            // Conout("Moeda: "+cIdMoeda)
+            // Conout("Cotação de Compra: "+cValToChar(oJsObj["value"][1]["cotacaoCompra"]))
+            // Conout("Cotação de Venda: "+cValToChar(oJsObj["value"][1]["cotacaoVenda"]))
+            // cMsg  += "<b>Data:</b> " + DToC(SToD(StrTran(SubStr(oJsObj["value"][1]["dataHoraCotacao"],1,10),'-','')))
+            // cMsg  += " - " + SubStr(oJsObj["value"][1]["dataHoraCotacao"],12,5) + "h<br>"
+            // cMsg  += "<b>Moeda: </b> " + cIdMoeda + "<br>"
+            // cMsg  += "<b>Cotação de Compra:</b> " + cValToChar(oJsObj["value"][1]["cotacaoCompra"]) + "<br>"
+            // cMsg  += "<b>Cotação de Venda:</b> " + cValToChar(oJsObj["value"][1]["cotacaoVenda"]) + "<br>"
+       
+            // MsgInfo( cMsg ,":: Cotação Moeda PTAX - BC API Olinda ::")
+        Endif
+  
+        //Limpa Objeto
+        FreeObj(oJsObj)
+    EndIf
+Return nValor

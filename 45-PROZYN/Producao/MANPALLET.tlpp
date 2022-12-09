@@ -1,0 +1,71 @@
+User Function MANPALLET()
+
+Local aPergs   := {}
+Local cPallet := Space(10)
+Local cArmazem  := Space(2)
+Local cAcao    := "1"
+ 
+aAdd(aPergs, {2, "Ação",      cAcao, {"1=Apagar etiqueta de Pallet", "2=Altera armazém e limpa endereço", "3=Desvinculação do Pedido de Venda"},120, ".T.", .T.})
+aAdd(aPergs, {1, "Pallet",     cPallet, "",             ".T.",        "",    ".T.", 120, .T.})
+aAdd(aPergs, {1, "Armazém (Somente para alterar armazém)",  cArmazem,  "",             ".T.",        "", ".T.", 120,  .F.})
+
+DbSelectArea("CB0")
+If ParamBox(aPergs, "Informe os parâmetros", , , , , , , , , .F., .F.)
+    
+    cQry := "SELECT R_E_C_N_O_ as REC FROM CB0010 WHERE CB0_PALLET = '"+MV_PAR02+"' AND D_E_L_E_T_ = '' "
+    dbUseArea(.T.,"TOPCONN", TCGenQry(,,cQry),'MANPALLET',.T.,.T.)
+    If MANPALLET->(EOF())
+        MsgAlert("Não foram encontradas etiquetas deste pallet. Por favor, revise os parâmetros.","Atenção!")
+        MANPALLET->(DbCloseArea())
+        Return
+    EndIf
+    
+    
+    If MV_PAR01 == "1" //Apagar etiqueta de Pallet
+
+        While MANPALLET->(!EOF())
+
+            CB0->(DbGoTo(MANPALLET->REC))
+
+                CB0->(RecLock("CB0",.F.))
+                CB0->CB0_PALLET := ""
+                CB0->(MsUnlock())
+
+            MANPALLET->(DbSkip())
+        EndDo
+
+    ElseIf MV_PAR01 == "2" //Alterar Armazém
+
+        While MANPALLET->(!EOF())
+
+            CB0->(DbGoTo(MANPALLET->REC))
+
+                CB0->(RecLock("CB0",.F.))
+                CB0->CB0_LOCAL := MV_PAR03
+                CB0->CB0_LOCALI := ""
+                CB0->(MsUnlock())
+
+            MANPALLET->(DbSkip())
+        EndDo
+
+    ElseIf MV_PAR01 == "3" //Desvincular Pedido de Venda
+
+        While MANPALLET->(!EOF())
+
+            CB0->(DbGoTo(MANPALLET->REC))
+
+                CB0->(RecLock("CB0",.F.))
+                CB0->CB0_PEDVEN := ""
+                CB0->(MsUnlock())
+
+            MANPALLET->(DbSkip())
+        EndDo
+    Endif
+    MANPALLET->(DbCloseArea())
+
+    MsgAlert("Etiquetas de Pallet atualizadas com sucesso!","Atenção!")
+    U_MANPALLET()
+EndIf
+
+
+Return

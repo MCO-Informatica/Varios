@@ -1,0 +1,281 @@
+#INCLUDE "protheus.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³LINCIFIN02º Autor ³ Rodrigo Demetrios  º Data ³  30/02/07   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescricao ³Relatorio de Titulos Enviados ao Banco                      º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP6 IDE                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+User Function LIFIN02()
+
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//Local cInd
+Local cDesc1         := "Este programa tem como objetivo imprimir relatorio "
+Local cDesc2         := "de acordo com os parametros informados pelo usuario."
+Local cDesc3         := "Titulos Enviados ao Banco"
+Local cPict          := ""
+Local titulo         := "Titulos Enviados ao Banco"
+Local nLin           := 80
+
+Local Cabec1       := "EMISSAO    BORDERO   BANCO  AGENCIA  CONTA        PREFIXO  NUMERO  TIPO  VENCTO     CLIENTE  NOME CLIENTE           VALOR"
+Local Cabec2       := ""
+
+Local imprime      := .T.
+Local aOrd := {}
+
+
+Private lEnd         := .F.
+Private lAbortPrint  := .F.
+Private CbTxt        := ""
+Private limite       := 220
+Private tamanho      := "G"
+Private nomeprog     := "LIFIN02" // Coloque aqui o nome do programa para impressao no cabecalho
+Private nTipo        := 18
+Private aReturn    := { "Zebrado", 1, "Administracao", 2, 2, 1, "", 1}
+Private nLastKey   := 0
+Private _cPerg      := "LIFI02"
+Private cbtxt      := Space(10)
+Private cbcont     := 00
+Private CONTFL     := 01
+Private m_pag      := 01
+Private wnrel      := "LIFIN02"
+
+Private cString := "SEA"
+
+ValidPerg()
+pergunte(_cPerg,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta a interface padrao com o usuario...                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+wnrel := SetPrint(cString,NomeProg,_cPerg,@titulo,cDesc1,cDesc2,cDesc3,.T.,aOrd,.T.,Tamanho,,.T.)
+
+If nLastKey == 27
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Return
+Endif
+
+nTipo := If(aReturn[4]==1,15,18)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Processamento. RPTSTATUS monta janela com a regua de processamento. ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+RptStatus({|| RunReport(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+Return
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºFun‡„o    ³RUNREPORT º Autor ³ AP6 IDE            º Data ³  07/07/06   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDescri‡„o ³ Funcao auxiliar chamada pela RPTSTATUS. A funcao RPTSTATUS º±±
+±±º          ³ monta a janela com a regua de processamento.               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Programa principal                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function RunReport(Cabec1,Cabec2,Titulo,nLin)
+
+Local nOrdem
+
+dDATAde     := mv_par01
+dDATAate    := mv_par02
+cBANCOde    := mv_par03
+cAGENCIAde  := mv_par04
+cCONTADE    := mv_par05
+cBANCOate   := mv_par06
+cAGENCIAate := mv_par07
+cCONTAate   := mv_par08
+cBORDEROde  := mv_par09
+cBORDEROate := mv_par10
+
+dbSelectArea("SEA")
+cFilTrab   := CriaTrab("",.F.)
+cCondicao  := "Dtos(EA_DATABOR)>='"+Dtos(dDATAde)+"'.And.Dtos(EA_DATABOR)<='"+Dtos(dDATAate)+"' .AND. "
+cCondicao  += "EA_NUMBOR >='"+cBORDEROde+"'.And.EA_NUMBOR <='"+cBORDEROate+"'  .AND. "
+cCondicao  += "EA_PORTADO>='"+cBANCOde  +"'.And.EA_PORTADO<='"+cBANCOate  +"'  .AND. "
+cCondicao  += "EA_AGEDEP >='"+cAGENCIAde+"'.And.EA_AGEDEP <='"+cAGENCIAate+"'  .AND. "
+cCondicao  += "EA_NUMCON >='"+cCONTAde  +"'.And.EA_NUMCON <='"+cCONTAate  +"'"
+
+IndRegua("SEA",cFilTrab,"EA_FILIAL+EA_PORTADO+EA_AGEDEP+EA_NUMCON",,cCondicao,"Filtrando")    // "Selecionando Registros..."
+
+NTOTGER := 0  //TOTAL GERAL
+
+DbGoTop()
+SetRegua(RecCount())
+
+While !Eof()
+	IncRegua()
+	
+	NTOT:= 0 //TOTAL
+	
+	_cPORTADO := SEA->EA_PORTADO
+	_cAGENCIA := SEA->EA_AGEDEP
+	_cCONTA   := SEA->EA_NUMCON
+	
+	While !EOF() .AND. _cPORTADO == SEA->EA_PORTADO .AND. _cAGENCIA == SEA->EA_AGEDEP .AND. _cCONTA == SEA->EA_NUMCON
+		
+		
+		If lAbortPrint
+			@nLin,00 PSAY "*** CANCELADO PELO OPERADOR ***"
+			Exit
+		Endif
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Impressao do cabecalho do relatorio. . .                            ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		
+		If nLin > 55 // Salto de Página. Neste caso o formulario tem 55 linhas...
+			Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+			nLin := 10
+		Endif
+		
+		
+		dbSelectArea("SE1")
+		dbSetOrder(1)
+		dbseek(xfilial("SE1") + SEA->EA_PREFIXO + SEA->EA_NUM + SEA->EA_PARCELA + SEA->EA_TIPO)
+		_dVENCTO := SE1->E1_VENCREA
+		_nVALOR  := SE1->E1_VALOR
+		_cCLIENTE := SE1->E1_CLIENTE
+		_cNOMCLI  := SE1->E1_NOMCLI
+		
+		IF EMPTY(SE1->E1_BAIXA)
+			
+			//
+			//0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+			//          1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6        17        18        19        20         21       22
+			//EMISSAO    BORDERO   BANCO  AGENCIA  CONTA        PREFIXO  NUMERO  TIPO  VENCTO     CLIENTE  NOME CLIENTE           VALOR
+			//99/99/99   999999    999    99999    9999999999   999      999999  99    99/99/99   999999   XXXXXXXXXXXXXXXXXXXX   99,999,999.99
+			dbSelectArea("SEA")
+			
+			@nLin,000 PSAY SEA->EA_DATABOR
+			@nLin,011 PSAY SEA->EA_NUMBOR
+			@nLin,021 PSAY SEA->EA_PORTADO
+			@nLin,028 PSAY SEA->EA_AGEDEP
+			@nLin,037 PSAY SEA->EA_NUMCON
+			@nLin,050 PSAY SEA->EA_PREFIXO
+			@nLin,059 PSAY SEA->EA_NUM
+			@nLin,067 PSAY SEA->EA_TIPO
+			@nLin,073 PSAY _dVENCTO
+			@nLin,084 PSAY _cCLIENTE
+			@nLin,093 PSAY _cNOMCLI
+			@nLin,116 PSAY _nVALOR PICTURE "@E 99,999,999.99"
+			
+			NTOT:= NTOT + _nVALOR   //VALOR
+			nLin := nLin + 1 // Avanca a linha de impressao
+			_cBAN := SEA->EA_PORTADO
+			_cAGE := SEA->EA_AGEDEP
+			_cCON := SEA->EA_NUMCON
+
+		ENDIF
+		
+		dbSelectArea("SEA")
+		dbSkip() // Avanca o ponteiro do registro no arquivo
+	EndDo
+	IF NTOT > 0
+	@nLin,000 PSAY "TOTAL BANCO:  " + _cban + "  "+ _cAGE + "  "+ _cCON + " ----> "
+	@nLin,116 PSAY NTOT PICTURE "@E 99,999,999.99"
+	ENDIF
+	nTotGER  +=  NTOT
+	nLin := nLin + 2
+	
+	dbSelectArea("SEA")
+ENdDo
+
+nLin := nLin + 2
+
+@nLin,000 PSAY "TOTAL GERAL" + " --------------------------------------------------> "
+@nLin,116 PSAY nTotGER PICTURE "@E 99,999,999.99"
+
+
+dbSelectArea("SEA")
+retindex()
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Finaliza a execucao do relatorio...                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+SET DEVICE TO SCREEN
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Se impressao em disco, chama o gerenciador de impressao...          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+If aReturn[5]==1
+	dbCommitAll()
+	SET PRINTER TO
+	OurSpool(wnrel)
+Endif
+
+MS_FLUSH()
+
+Return
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡ao    ³ ValidPerg ³ Autor ³ Denilson Correa      ³ Data ³          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³ Valida se existe as Perguntas no SX1                       ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function ValidPerg()
+
+_cAlias := Alias()
+DbSelectArea("SX1")
+DbSetOrder(1)   
+_cPerg := PADR(_cPerg,10)
+aRegs :={}
+
+Aadd(aRegs,{_cPerg,"01","Data Envio  de   ?","","","mv_ch1","D",08,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"02","Data Envio Ate   ?","","","mv_ch2","D",08,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"03","Banco  de        ?","","","mv_ch3","C",03,0,0,"G","","mv_par03","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"04","Agencia de       ?","","","mv_ch4","C",05,0,0,"G","","mv_par04","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"05","Conta de         ?","","","mv_ch5","C",10,0,0,"G","","mv_par05","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"06","Banco ate        ?","","","mv_ch6","C",03,0,0,"G","","mv_par06","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"07","Agencia ate      ?","","","mv_ch7","C",05,0,0,"G","","mv_par07","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"08","Conta ate        ?","","","mv_ch8","C",10,0,0,"G","","mv_par08","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"09","Bordero de       ?","","","mv_ch9","C",06,0,0,"G","","mv_par09","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+Aadd(aRegs,{_cPerg,"10","Bordero ate      ?","","","mv_ch1","C",06,0,0,"G","","mv_par10","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+For i:=1 to Len(aRegs)
+	If !dbSeek(_cPerg+aRegs[i,2])
+		RecLock("SX1",.T.)
+		For j:=1 to FCount()
+			If j <= Len(aRegs[i])
+				FieldPut(j,aRegs[i,j])
+			EndIf
+		Next
+		MsUnlock()
+	EndIf
+Next
+DbSelectArea(_cAlias)
+Return
+
+

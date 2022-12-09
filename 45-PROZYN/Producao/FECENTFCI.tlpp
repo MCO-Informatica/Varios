@@ -1,0 +1,37 @@
+
+
+User Function FECENTFCI()
+    Local nA := 0
+    Local aArea := GetArea()
+
+    DbSelectArea("CFD")
+    CFD->(DbSetOrder(2))
+
+    DbSelectArea("DA1")
+    DA1->(DbSetOrder(1))
+
+    If M->C5_NUM == SC5->C5_NUM .AND. Month2Str(M->C5_FECENT) != Month2Str(SC5->C5_FECENT) .and. Month2Str(M->C5_FECENT) == Month2Str(Date())
+        For nA := 1 to len(aCols)
+            cCodFci := ""
+            cOrigem := SB1->B1_ORIGEM
+            If CFD->(DbSeek(xFilial("CFD")+aCols[nA, GDFieldPos("C6_PRODUTO")]+Month2Str(M->C5_FECENT)+Year2Str(M->C5_FECENT)))
+                cCodFci := CFD->CFD_FCICOD
+                cOrigem := CFD->CFD_ORIGEM
+            EndIf
+
+            If DA1->(DbSeek(xFilial("DA1")+M->C5_TABELA+aCols[nA, GDFieldPos("C6_PRODUTO")]))
+                aCols[nA, GDFieldPos("C6_PRCVEN")]  := DA1->DA1_PRCVEN
+                aCols[nA, GDFieldPos("C6_PRUNIT")]  := DA1->DA1_PRCVEN
+                aCols[nA, GDFieldPos("C6_XPRCNET")] := DA1->DA1_PRNET
+                aCols[nA, GDFieldPos("C6_VALOR")]   := DA1->DA1_PRCVEN * aCols[nA, GDFieldPos("C6_QTDVEN")]
+            EndIf
+            aCols[nA, GDFieldPos("C6_FCICOD")] := cCodFci
+            aCols[nA, GDFieldPos("C6_CLASFIS")] := cOrigem+substr(aCols[nA, GDFieldPos("C6_CLASFIS")],2,2)
+
+        Next nA
+    EndIf
+    GETDREFRESH()
+
+    RestArea(aArea)
+
+Return M->C5_FECENT

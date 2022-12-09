@@ -1,0 +1,97 @@
+MANIFESTO DE ATUALIZAÇÃO
+
+Data : 01/08/2022
+Hora : 11:19:01
+Arquivo de atualização diferencial baseado em projeto gerado pelo Configurador
+Projeto : 000001
+Descrição : BOLETOS                                           
+Versão : 0001
+Release de referência : 12.1.033  
+-----------------------------
+Componentes do arquivo de atualização :
+
+------------
+SX1 - Dicionário de Perguntas
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 01
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 02
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 03
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 04
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 05
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 06
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 07
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 08
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 09
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 10
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 11
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 12
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 13
+
+Operação:Inclusão ou Alteração
+Grupo : DHFINR01  
+ID do Filtro :       
+Ordem : 14
+
+
+------------
+SX3 - Dicionário de Dados
+
+Operação:Inclusão ou Alteração
+Campo : A1_XENVBOL
+
+
+------------
+Helps (hlppack*.txt)
+
+Chave : A1_XENVBOL

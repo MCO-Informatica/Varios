@@ -1,0 +1,608 @@
+#Include "Protheus.Ch"
+#Include "TbiConn.Ch"
+#INCLUDE "TOPCONN.CH"
+#INCLUDE "RPTDEF.CH"
+#INCLUDE "FWPrintSetup.ch"
+#include "rwmake.ch"
+#include "colors.ch"
+#include "MSGRAPHI.CH"
+
+/*/{Protheus.doc} DHFINFATBN
+Essa função tem o comportamento de enviar o boleto e a nota no dia da emissão para o cliente por e-mail
+@type function
+@author Fernando Carvalho
+@since 11/03/2016
+@version 1.0
+/*/
+
+User Function DHWFBOLNOTA(aparams)
+
+	cEmpProc:= '01' //aparams[1]
+	cFilProc:= '01' //aparams[2]
+
+	lSched := .T.
+
+	//StartJob("U_DHWFBOLGER", GetEnvServer(), .T., cEmpProc, cFilProc, lSched)
+	U_DHWFBOLGER(cEmpProc, cFilProc, lSched)
+
+Return
+
+
+User Function DHWFBOLGER(cEmpProc, cFilProc, lSched)
+
+	Local alMsgs    	:= {"Email enviado com sucesso.",;
+		"Não encontrado nenhum título a vencer no dia de hoje. ",;
+		"Não existe a empresa/filial escolhida."}
+	Local clMsg			:= ""
+	Local nCont 		:= 0
+	Local alItensDpl	:= {}
+	Local cDoc			:= ""
+	Local cSerie		:= ""
+	Local cCliente		:= ""
+	Local cLoja			:= ""
+	Local cVendedor		:= ""
+	Local cSql 			:= ""
+
+	default cEmpProc := cEmpAnt
+	default cFilProc := cFilAnt
+	default lSched   := .F.
+
+	if lSched
+		Prepare Environment EMPRESA cEmpProc FILIAL cFilProc MODULO "FIN"
+		WfPrepENV(cEmpProc,cFilProc)
+	endif
+
+	DbSelectArea("SE1")
+	DbSetOrder(7)
+	If Select("TMPSE1") > 0
+		TMPSE1->(DbCloseArea())
+	EndIf
+
+	//BeginSql Alias "TMPSE1"
+	cSql :=	"SELECT "
+	cSql +=	"SF2.F2_DOC, "
+	cSql +=	"SF2.F2_SERIE, "
+	cSql +=	"SF2.F2_COND, "
+	cSql +=	"SE1.E1_NUM, "
+	cSql +=	"SE1.E1_SERIE, "
+	cSql +=	"SE1.E1_PARCELA, "
+	cSql +=	"SE1.E1_TIPO, "
+	cSql +=	"SE1.E1_CLIENTE, "
+	cSql +=	"SE1.E1_LOJA, "
+	cSql +=	"SE1.E1_NOMCLI, "
+	cSql +=	"SE1.E1_EMISSAO, "
+	cSql +=	"SE1.E1_VENCREA, "
+	cSql +=	"SE1.E1_VEND1, "
+	cSql +=	"SE1.E1_VALOR, "
+	cSql +=	"E1_PREFIXO, "
+	cSql +=	"E1_PORTADO, "
+	cSql +=	"A1_EMAIL "
+	cSql +=	"FROM "
+	cSql +=	""+RetSqlName("SF2")+" SF2 "
+	cSql +=	"INNER JOIN "+RetSqlName("SE1")+" SE1 "
+	cSql +=	"ON SE1.E1_FILIAL = SF2.F2_FILIAL "
+	cSql +=	"AND SE1.E1_EMISSAO = SF2.F2_EMISSAO "
+	cSql +=	"AND SE1.E1_NUM = SF2.F2_DOC "
+	cSql +=	"AND SE1.E1_SERIE = SF2.F2_SERIE "
+	cSql +=	"AND E1_SALDO > 0 "
+	//cSql +=	"//AND E1_STATUS = 'A' "
+	cSql +=	"AND SE1.D_E_L_E_T_ = '' "
+	cSql +=	"JOIN "+RetSqlName("SA1")+" SA1 "
+	cSql +=	"ON A1_FILIAL = '"+xFilial("SA1")+"' "
+	cSql +=	"AND A1_COD = E1_CLIENTE "
+	cSql +=	"AND A1_LOJA = E1_LOJA "
+	cSql +=	"AND A1_X_BOLET = 'S' "
+	cSql +=	"AND SA1.D_E_L_E_T_ = ' ' "
+	cSql +=	"WHERE "
+	cSql +=	"SF2.F2_FILIAL = '"+xFilial("SF2")+"' "
+	cSql +=	"AND SF2.F2_EMISSAO >= '"+Dtos(DaySub(dDataBase,1))+"' "
+	cSql +=	"AND SF2.D_E_L_E_T_ = '' "
+	cSql +=	"ORDER BY "
+	cSql +=	"E1_CLIENTE, "
+	cSql +=	"E1_LOJA, "
+	cSql +=	"E1_NUM, "
+	cSql +=	"E1_SERIE, "
+	cSql +=	"E1_PARCELA "
+
+	TcQuery cSql New Alias "TMPSE1"
+
+	//EndSql
+	TMPSE1->(dbGoTop())
+
+	cDoc		:= TMPSE1->E1_NUM
+	cSerie		:= TMPSE1->E1_SERIE
+	cCliente	:= TMPSE1->E1_CLIENTE
+	cLoja		:= TMPSE1->E1_LOJA
+	cVendedor	:= TMPSE1->E1_VEND1
+
+	While TMPSE1->(!EoF())
+
+		dbSelectArea("SE4")
+		dbSetOrder(1)
+		dBSeek(xFilial("SE4")+TMPSE1->F2_COND)
+
+		//If SE4->E4_SENDWF == "S" .OR. .T.
+
+		nCont++
+
+		If TMPSE1->E1_NUM+TMPSE1->E1_SERIE+TMPSE1->E1_CLIENTE+TMPSE1->E1_LOJA <> cDoc+cSerie+cCliente+cLoja
+
+			SendDpl(alItensDpl,cFilProc,cVendedor)
+
+			nCont 		:= 1
+			alItensDpl 	:= {}
+
+		EndIf
+
+		cDoc		:= TMPSE1->E1_NUM
+		cSerie		:= TMPSE1->E1_SERIE
+		cCliente	:= TMPSE1->E1_CLIENTE
+		cLoja		:= TMPSE1->E1_LOJA
+		cVendedor	:= TMPSE1->E1_VEND1
+
+		aAdd(alItensDpl,{	TMPSE1->E1_NUM,;			   				// 1
+		TMPSE1->E1_PARCELA,;						// 2
+		TMPSE1->E1_TIPO,;							// 3
+		TMPSE1->E1_CLIENTE+"/"+TMPSE1->E1_LOJA,;   	// 4
+		TMPSE1->E1_NOMCLI,;							// 5
+		STOD(TMPSE1->E1_EMISSAO),;					// 6
+		STOD(TMPSE1->E1_VENCREA),;					// 7
+		AllTrim(TransForm(TMPSE1->E1_VALOR, PesqPict("SF1", "F1_VALBRUT"))),;// 8
+		dDataBase,;									// 9
+		Alltrim(TMPSE1->A1_EMAIL),;	            	// 10
+		TMPSE1->E1_PREFIXO,;						// 11
+		TMPSE1->E1_PORTADO;							// 12
+		})
+
+		U_DHFINRBOL01(alItensDpl, nCont)
+
+		Sleep( 7000 )
+
+		/*Else
+
+			If Len(alItensDpl) > 0
+
+				SendDpl(alItensDpl,cFilProc,cVendedor)
+
+				nCont 		:= 0
+				alItensDpl 	:= {}
+
+			EndIf
+
+			TMPSE1->(DbSkip())
+			cDoc		:= TMPSE1->E1_NUM
+			cSerie		:= TMPSE1->E1_SERIE
+			cCliente	:= TMPSE1->E1_CLIENTE
+			cLoja		:= TMPSE1->E1_LOJA
+			cVendedor	:= TMPSE1->E1_VEND1
+			LOOP
+
+		EndIf*/
+		TMPSE1->(DbSkip())
+	EndDo
+
+	If Len(alItensDpl) > 0
+
+		SendDpl(alItensDpl,cFilProc,cVendedor)
+
+		TMPSE1->( dbCloseArea() )
+		clMsg := alMsgs[1]
+		conout(clMsg)
+		MsgInfo(clMsg)
+
+	EndIf
+
+	if lSched
+		Reset Environment
+	endif
+
+Return ()
+
+Static Function SendDpl(alItensDpl,xFILIAL, cVendedor)
+
+	Local olP           := Nil
+	Local olHtml		:= Nil
+	Local clCodProcesso	:= ""
+	Local clHtmlModelo	:= ""
+	Local clAssunto		:= ""
+	Local nlI			:= 1
+	Local aArqDir		:= {}
+	Local aAnexos		:= {}
+
+	Private cMail 		:= ""
+
+	//Codigo do processo
+	clCodProcesso	:= "ENVIO"
+
+	//Caminho do template para gerar o relatorio
+	clHtmlModelo	:= "\workflow\wfdpls0.html"
+
+	//Assunto da mensagem
+	clAssunto	:= "FILIAL:"+xFILIAL+", LEMBRETE: Novas duplicatas a vencer."
+
+	//Inicializa o processo
+	olP := TWFProcess():new(clCodProcesso, clAssunto)
+
+	//Cria uma nova tarefa
+	olP:newTask("Novas duplicatas a vencer nos próximos dias", clHtmlModelo)
+
+	//Utilizar template html
+	olHtml := olP:oHtml
+
+	cMail := alItensDpl[1,10]  //busca e-mail do cliente e envio
+
+	//cMail += "; fabio.favaretto@upduo.com.br"
+
+	//cMail := "caire.vieira@upduo.com.br"
+/*
+	aAdd((olHTML:valByName("d.DATA")),alItensDpl[1,9])
+
+	For nlI := 1 To Len(alItensDpl)
+		aAdd((olHTML:valByName("E1.NUM")),alItensDpl[nlI,1])
+		aAdd((olHTML:valByName("E1.PARCELA")),alItensDpl[nlI,2])
+		aAdd((olHTML:valByName("E1.CLIENTE")),alItensDpl[nlI,4])
+		aAdd((olHTML:valByName("E1.NOMCLI")),alItensDpl[nlI,5])
+		aAdd((olHTML:valByName("E1.EMISSAO")),alItensDpl[nlI,6])
+		aAdd((olHTML:valByName("E1.VENCREA")),alItensDpl[nlI,7])
+		aAdd((olHTML:valByName("E1.SALDO")),alItensDpl[nlI,8])
+	Next nlI
+*/
+	//Informa assunto
+	olP:cSubject := clAssunto
+
+	//Endereco eletronico de envio
+	olP:cTo := cMail
+
+	//Gera o processo
+	aArqDir := DIRECTORY("\dhbolpdf\*.pdf", "d")
+	For nLi := 1 To Len(aArqDir)
+		olP:AttachFile("\dhbolpdf\"+aArqDir[nLi,1])
+		aAdd(aAnexos,"\dhbolpdf\"+aArqDir[nLi,1])
+		Sleep( 7000 )
+	Next
+/*
+	olP:start()
+	olP:Free()
+	olP:finish()
+*/
+		cMensagem := GeraHTML(alItensDpl) //olHTML:cBuffer
+
+		Sleep( 7000 )
+		//WfSendMail()
+		envmail(cMail,"",clAssunto,cMensagem,aAnexos,"","",.T.)
+		Sleep( 7000 )
+
+		For nLi := 1 To Len(aArqDir)
+			If File("\dhbolpdf\"+aArqDir[nLi,1])
+				fErase("\dhbolpdf\"+aArqDir[nLi,1])
+				fErase("\dhbolpdf\"+SubStr(aArqDir[nLi,1], 1, Len(aArqDir[nLi,1])-4)+".rel")
+				Sleep( 7000 )
+			EndIf
+		Next
+
+		Return (Nil)
+
+
+
+
+Static Function envmail(cEmailTo ,cEmailCc ,cAssunto ,cMensagem ,aAnexos, cAssinatu, cError, lMostra)
+	Local cMailServer := GetMv("MV_RELSERV")
+	Local cMailConta  := GetMv("MV_RELACNT")
+	Local cMailSenha  := GetMv("MV_RELPSW")
+	Local lMailAuth   := GetMv("MV_RELAUTH") //.t. --Parametro que indica se existe autenticacao no e-mail
+	Local cProtocol   := ""
+
+	Local nI       := 0
+	Local nRet     := 0
+
+	Local lUsaTLS := .T.
+	Local lUsaSSL := GetMv("MV_RELSSL") //.f.
+	Local nPorta := 0		//587 //informa a porta que o servidor SMTP irá se comunicar, podendo ser 25 ou 587
+	Local oServer
+	Local oMessage
+
+	Default aAnexos := {}
+
+
+	nI := len( alltrim(cMailServer) ) - at(":",cMailServer)
+	//nPorta := val( substr(cMailServer,at(":",cMailServer)+1,nI) )
+	nPorta := 0
+	cMailServer := substr(cMailServer,1,at(":",cMailServer)-1)
+
+	Begin Sequence
+
+		oMessage:= TMailMessage():New()
+		oMessage:Clear()
+
+		oMessage:cDate	 := cValToChar( Date() )
+		oMessage:cFrom 	 := cMailConta
+		oMessage:cTo 	 := cEmailTo
+		oMessage:cCc 	 := cEmailCc
+		oMessage:cSubject:= cAssunto
+		oMessage:cBody 	 := cMensagem
+		oMessage:MsgBodyType( "text/html" )
+
+		lMostra := .T.
+
+		For nI := 1 To Len(aAnexos)
+			if file(aAnexos[nI])
+				nRet := oMessage:AttachFile( aAnexos[nI] )
+				if nRet < 0
+					cError := "ANEXO: O arquivo " + aAnexos[nI] + " não foi anexado!"
+					if lMostra
+						alert( cError )
+					endif
+					Break
+				endif
+			else
+				cError := "ANEXO: O arquivo " + aAnexos[nI] + " não foi encontrado!"
+				if lMostra
+					alert( cError )
+				endif
+				nRet:=-1
+				Break
+			endif
+		Next nI
+
+		if !empty(cAssinatu)
+			if file("\system\"+cAssinatu)
+				nRet := oMessage:AttachFile( "\system\"+cAssinatu )
+				if nRet < 0
+					cError := "ANEXO: O arquivo " + "\system\"+cAssinatu + " não foi anexado!"
+					if lMostra
+						alert( cError )
+					endif
+					Break
+				else
+					oMessage:AddAttHTag('Content-ID:'+cAssinatu )
+					//oMessage:AddAtthTag('Content-Disposition: attachment; filename='+cAssinatu)
+				endif
+			else
+				cError := "ANEXO: O arquivo " + "\system\"+cAssinatu + " não foi encontrado!"
+				if lMostra
+					alert( cError )
+				endif
+				nRet:=-1
+				Break
+			endif
+		endif
+
+		oServer := tMailManager():New()
+		oServer:SetUseTLS( lUsaTLS ) //Indica se será utilizará a comunicação segura através de TLS (.T.) ou não (.F.)
+		oServer:SetUseSSL( lUsaSSL ) //Indica se será utilizará a comunicação segura através de SSL (.T.) ou não (.F.)
+		nRet := oServer:Init( "imap.gmail.com", "smtp.gmail.com", "extrusionsystemin01@gmail.com", "kmzpmwfrtecechan", 0, 0 ) //inicilizar o servidor
+		if nRet != 0
+			cError := "O servidor SMTP não foi inicializado: " + oServer:GetErrorString( nRet )
+			if lMostra
+				alert(cError)
+			endif
+			Break
+		endif
+
+		nRet := oServer:SetSMTPTimeout( 60 ) //Indica o tempo de espera em segundos.
+		if nRet != 0
+			cError := "Não foi possível definir " + cProtocol + " tempo limite para " + cValToChar( nTimeout )
+			if lMostra
+				alert(cError)
+			endif
+			Break
+		endif
+
+		nRet := oServer:SMTPConnect()
+		if nRet != 0
+			cError := "Não foi possível conectar ao servidor SMTP: " + oServer:GetErrorString( nRet )
+			if lMostra
+				alert(cError)
+			endif
+			Break
+		endif
+
+		if lMailAuth
+			//O método SMTPAuth ao tentar realizar a autenticação do
+			//usuário no servidor de e-mail, verifica a configuração
+			//da chave AuthSmtp, na seção [Mail], no arquivo de
+			//configuração (INI) do TOTVS Application Server, para determinar o valor.
+			nRet := oServer:SmtpAuth( cMailConta, cMailSenha )
+			if nRet != 0
+				cError := "Could not authenticate on SMTP server: " + oServer:GetErrorString( nRet )
+				if lMostra
+					alert( cError )
+				endif
+				oServer:SMTPDisconnect()
+				Break
+			endif
+		Endif
+		nRet := oMessage:Send( oServer )
+		if nRet != 0
+			cError := "Não foi possível enviar mensagem: " + oServer:GetErrorString( nRet )
+			if lMostra
+				alert(cError)
+			endif
+			Break
+		endif
+
+		nRet := oServer:SMTPDisconnect()
+		if nRet != 0
+			cError := "Não foi possível desconectar o servidor SMTP: " + oServer:GetErrorString( nRet )
+			if lMostra
+				alert(cError)
+			endif
+			Break
+		endif
+
+	End sequence
+
+Return (nRet==0)
+
+
+
+Static Function GeraHTML(alItensDpl)
+	Local cMensagem := ""
+	Local nlI := 0
+
+	Default alItensDpl := {}
+
+	If Len(alItensDpl) > 0
+
+	cMensagem := "<!DOCTYPE html "
+	cMensagem += "PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'> "
+	cMensagem += "<html xmlns='http://www.w3.org/1999/xhtml'> "
+	cMensagem += "<meta charset='UTF-8'> "
+	cMensagem += "<head> "
+	cMensagem += "    <meta http-equiv='Content-Language' content='pt-br'> "
+	cMensagem += "<meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1'> "
+	cMensagem += "<title>PROXIMAS DUPLICATAS A VENCER</title> "
+	cMensagem += "</head> "
+	cMensagem += "<body style='background-color: #f6f6f6;'> "
+	cMensagem += "<form id='form1' name='form1' method='post' action='mailto:"+cMail+"'> "
+	cMensagem += "<table width='1100' border='0' align='center' cellpadding='10' cellspacing='1' style='font: normal 8.5pt arial; "
+	cMensagem += "background-color: white;'> "
+	cMensagem += "<tr> "
+	cMensagem += "<td> "
+	cMensagem += "<table width='1080' border='0' align='center' cellpadding='1' cellspacing='1' style='font: normal 8.5pt arial; "
+	cMensagem += "background-color: white;'> "
+	cMensagem += "<tr> "
+	cMensagem += "<td style='font-size: 10pt; text-align: left; padding-top: 0px; padding-bottom: 5px;'> "
+	cMensagem += "<table width='100%' border='0' cellspacing='0' cellpadding='3'> "
+	cMensagem += "<tr> "
+	cMensagem += "<td align='left'> "
+	cMensagem += "<font size='2'><b>Caro cliente, segue relatorio das duplicatas que vencer "
+	cMensagem += "nos proximos dias: </b> </font> "
+	cMensagem += "</td> "
+	cMensagem += "</td> "
+	cMensagem += "</table> "
+	cMensagem += "<table width='100%' border='0' cellspacing='0' cellpadding='3'> "
+	cMensagem += "    <tr> "
+	cMensagem += "        <td align='center'> "
+	cMensagem += "            <font size='2'><b>Listagem das Duplicatas a vencer</b> </font> "
+	cMensagem += "        </td> "
+	cMensagem += "        <td align='center'> "
+	cMensagem += "            <font size='2'><b>Data: </b> </font> "
+	cMensagem += "        </td> "
+	cMensagem += "        <td style='padding-top: 10px; height: 20px; width: 100px;' valign='top'> "
+	cMensagem += "            <font size='2'>"+DtoC(alItensDpl[1,7])+"</font> "
+	cMensagem += "        </td> "
+	cMensagem += "    </tr> "
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "<tr> "
+	cMensagem += "    <td style='font-size: 10pt; text-align: left; padding-top: 15px; padding-bottom: 15px;'> "
+	cMensagem += "        <table border='0' cellspacing='0' cellpadding='3'> "
+	cMensagem += "            <tr> "
+	cMensagem += "                <td "
+	cMensagem += "                    style='border: 1px solid #333; border-top: 1px solid #333; border-bottom: 1px solid #333;'> "
+	cMensagem += "                    <table cellpadding='0' cellspacing='0' border='0'> "
+	cMensagem += "                        <tr> "
+	cMensagem += "                            <td style='height: 20px; width: 900px;'> "
+	cMensagem += "<font size='2'><b>Num Dpl</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 900px;'> "
+	cMensagem += "    <font size='2'><b>Parcela</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 1400px;'> "
+	cMensagem += "    <font size='2'><b>Cliente / Loja</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 1250px;'> "
+	cMensagem += "    <font size='2'><b>Descricao</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 1000px;'> "
+	cMensagem += "    <font size='2'><b>Emissao</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 650px;'> "
+	cMensagem += "<font size='2'><b>Vencto</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "<td style='height: 20px; width: 300px;'> "
+	cMensagem += "<font size='2'><b>Valor</b></font> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "<tr> "
+	cMensagem += "<td> "
+	cMensagem += "<table cellpadding='0' cellspacing='0' border='0'> "
+
+	For nlI := 1 to Len(alItensDpl)
+
+		cMensagem += "<tr> "
+		cMensagem += "<table cellpadding='0' cellspacing='0' border='0' "
+		cMensagem += "style='border-bottom: 1px solid #333333;'> "
+		cMensagem += "<td "
+		cMensagem += "style='padding-top: 10px; height: 20px; width: 500px; padding-bottom: 10px;'> "
+		cMensagem += "<p style='border: 0; padding: 0; margin: 0;'> "
+		cMensagem += "<font size='2'>"+alItensDpl[nlI,1]+"</font> " //NUMERO
+		cMensagem += "</p> "
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 500px;' valign='top'> "
+		cMensagem += "<font size='2'>"+alItensDpl[nlI,2]+"</font> " //PARCELA
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 700px;' valign='top'> "
+		cMensagem += "<font size='2'>"+alItensDpl[nlI,4]+"</font> " //CLIENTE
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 800px;' valign='top'> "
+		cMensagem += "<font size='2'>"+alItensDpl[nlI,5]+"</font> " //NOME
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 350px;' valign='top'> "
+		cMensagem += "<font size='2'>"+DtoC(alItensDpl[nlI,6])+"</font> " //EMISSAO
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 250px;' valign='top'> "
+		cMensagem += "    <font size='2'>"+DtoC(alItensDpl[nlI,7])+"</font> " //VENCIMENTO REAL
+		cMensagem += "</td> "
+		cMensagem += "<td style='padding-top: 10px; height: 20px; width: 200px;' valign='top'> "
+		cMensagem += "    <font size='2'>"+alItensDpl[nlI,8]+"</font> " //SALDO
+		cMensagem += "</td> "
+		cMensagem += "</table> "
+		cMensagem += "</tr> "
+
+	Next
+
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "<tr> "
+	cMensagem += "    <td style='font-size: 10pt; text-align: left; padding-top: 0px; padding-bottom: 5px;'> "
+	cMensagem += "        <table width='100%' cellpadding='0' cellspacing='0' border='0'> "
+	cMensagem += "            <td align='center'> "
+	cMensagem += "                <font size='2'><b>OBS.: Caso nao tenha recebido o titulo, favor entrar em contato atraves do "
+	cMensagem += "                        telefone (55)(19)3573-1929</b> </font> "
+	cMensagem += "            </td> "
+	cMensagem += "</table> "
+	cMensagem += "<table width='100%' cellpadding='0' cellspacing='0' border='0'> "
+	cMensagem += "    <td align='center'> "
+	cMensagem += "        <font size='2'><b>ou encaminhar e-mail para: financeiro@nappsolutions.com</b> </font> "
+	cMensagem += "    </td> "
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "<br> "
+	cMensagem += "</br> "
+	cMensagem += "<br> "
+	cMensagem += "</br> "
+	cMensagem += "<td style='font-size: 10pt; text-align: left; padding-top: 0px; padding-bottom: 5px;'> "
+	cMensagem += "    <table width='100%' cellpadding='0' cellspacing='0' border='0'> "
+	cMensagem += "        <td align='center'> "
+	cMensagem += "            <font size='2'><b>OBS. 2: Caso ja esteja de posse dos boletos e tenha agendado, "
+	cMensagem += "                    ou inclusive, ja efetuado</b> </font> "
+	cMensagem += "        </td> "
+	cMensagem += "    </table> "
+	cMensagem += "    <table width='100%' cellpadding='0' cellspacing='0' border='0'> "
+	cMensagem += "        <td align='center'> "
+	cMensagem += "            <font size='2'><b>o pagamento, favor desconsiderar este e-mail.</b> </font> "
+	cMensagem += "        </td> "
+	cMensagem += "    </table> "
+	cMensagem += "</td> "
+	cMensagem += "</table> "
+	cMensagem += "</td> "
+	cMensagem += "</tr> "
+	cMensagem += "</table> "
+	cMensagem += "</form> "
+	cMensagem += "</body> "
+	cMensagem += "</html> "
+
+	EndIf
+
+Return cMensagem

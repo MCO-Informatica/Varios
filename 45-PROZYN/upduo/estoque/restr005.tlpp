@@ -1,0 +1,91 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RESTR005        | Autor | Lucas Baia          | Data |    30/09/2022	
+//---------------------------------------------------------------------------------
+// Descr. | Relatório Customizado desenvolvido para trazer as informações de
+//        | DANFE das Perdas.
+//---------------------------------------------------------------------------------
+// Uso    | PROZYN
+//---------------------------------------------------------------------------------
+
+
+User Function RESTR005()
+
+
+//VARIAVEIS 
+Private oReport  := Nil
+Private oSecCab	 := Nil
+Private cPerg 	 := "RESTR005"
+
+//Função responsável por chamar a pergunta criada na função ValidaPerg, a variável PRIVATE cPerg, é passada.
+Pergunte(cPerg,.T.)
+
+//CHAMAMOS AS FUNÇÕES QUE CONSTRUIRÃO O RELATÓRIO
+ReportDef()
+oReport:PrintDialog()
+
+Return 
+
+
+
+
+Static Function ReportDef()
+
+oReport := TReport():New("RESTR005","Relatório - Danfe das Perdas",cPerg,{|oReport| PrintReport(oReport)},"Relatório de Danfe das Perdas")
+oReport:SetLandscape(.T.) // SIGNIFICA QUE O RELATÓRIO SERÁ EM PAISAGEM
+
+//TrSection serve para constrole da seção do relatório, neste caso, teremos somente uma
+oSecCab := TRSection():New( oReport , "Danfe das Perdas"  )
+
+/*
+TrCell serve para inserir os campos/colunas que você quer no relatório, lembrando que devem ser os mesmos campos que contém na QUERIE
+Um detalhe importante, todos os campos contidos nas linhas abaixo, devem estar na querie, mas.. 
+você pode colocar campos na querie e adcionar aqui embaixo, conforme a sua necessidade.
+, , , , , , , , , , */
+TRCell():New( oSecCab, "D3_OP"     , "SD3","COD_OP")
+TRCell():New( oSecCab, "D3_TM"     , "SD3","COD_TES")
+TRCell():New( oSecCab, "D3_COD"    , "SD3","COD_PRODUTO")
+TRCell():New( oSecCab, "B1_DESC"   , "SB1","DES_PRODUTO")
+TRCell():New( oSecCab, "D3_QUANT"  , "SD3","QUANTIDADE")
+TRCell():New( oSecCab, "D3_CF"     , "SD3","MOVIMENTO")
+TRCell():New( oSecCab, "D3_LOCAL"  , "SD3","ARMAZEM")
+TRCell():New( oSecCab, "D3_TIPO"   , "SD3","TIPO_PRODUTO")
+TRCell():New( oSecCab, "D3_XTIPO"  , "SD3","TP_CUSTOM")
+TRCell():New( oSecCab, "D3_CUSTO1" , "SD3","CUSTO_LANCADO")
+TRCell():New( oSecCab, "D3_USUARIO", "SD3","USUARIO_LANC")
+
+
+//oBreak := TRBreak():New(oSecCab,oSecCab:Cell("C5_NUM"),"Sub Total Pedidos")
+//ESTA LINHA IRÁ CONTAR A QUANTIDADE DE REGISTROS LISTADOS NO RELATÓRIO PARA A ÚNICA SEÇÃO QUE TEMOS
+TRFunction():New(oSecCab:Cell("D3_OP"),,"COUNT")
+
+Return 
+
+
+
+Static Function PrintReport(oReport)
+Local cAlias := GetNextAlias()
+
+
+oSecCab:BeginQuery() //Relatório começa a ser estruturado
+//INICIO DA QUERY
+BeginSql Alias cAlias
+
+    SELECT D3_OP, D3_TM, D3_COD, B1_DESC, D3_QUANT, D3_CF, D3_LOCAL, D3_TIPO, D3_XTIPO, D3_CUSTO1, D3_USUARIO
+    FROM %table:SD3% SD3
+    INNER JOIN %table:SB1% SB1 ON D3_COD = B1_COD
+    WHERE D3_EMISSAO BETWEEN %exp:(MV_PAR01)% AND %exp:(MV_PAR02)% AND D3_USUARIO IN ('nailson.paixao', 'luana.souto', 'vagner.silva', 'maria.nascimento')
+    AND  SD3.%notDel% AND SB1.%notDel%
+    
+//FIM DA QUERY
+EndSql
+
+
+oSecCab:EndQuery() //Fim da Query
+oSecCab:Print() //É dada a ordem de impressão, visto os filtros selecionados
+
+//O Alias utilizado para execução da querie é fechado.
+(cAlias)->(DbCloseArea())
+
+Return 

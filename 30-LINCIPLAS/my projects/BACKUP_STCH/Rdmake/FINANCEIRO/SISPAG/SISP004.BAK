@@ -1,0 +1,102 @@
+#include "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ SISP004  ³ Autor ³ Gilberto Alvarenga    ³ Data ³ nov/2004 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Retorna a posicao 018 a 195 conforme ANEXO C.              ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ SISPAG                                                     ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function SISP004()
+
+Private _cReturn4 := SPACE(178)
+
+If subs(SE2->E2_XTRIB,1,2) == '01' 												 															// GPS
+	_cReturn4 := subs(SE2->E2_XTRIB,1,2) 									  														  // CODIGO DA RECEITA
+	_cReturn4 += subs(SE2->E2_XTRIB,3,4) 									  													  	// CODIGO DA RECEITA
+	_cReturn4 += subs(DTOS(SE2->E2_EMISSAO),5,2)+subs(DTOS(SE2->E2_EMISSAO),1,4) 	// MES E ANO DA COMPETENCIA "MMAAAA"
+	_cReturn4 += SM0->M0_CGC 													 																				// IDENTIFICACAO DO CONTRIBUINTE
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)								 	 													// VALOR DE TRIBUTO
+	_cReturn4 += strzero(0,14)													 																			// VALOR OUTR. ENTIDADE
+	_cReturn4 += strzero(0,14)													 																			// ATUALIZ. MONETARIA
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)								     												// VALOR ARRECADADO
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)								 												// DATA ARRECADACAO "DDMMAAAA"
+	_cReturn4 += space(8)														 																					// COMPLEMENTO REGISTRO
+	_cReturn4 += space(50)														 																				// INFORMACOES COMPLEMENTARES
+	_cReturn4 += subs(SM0->M0_NOMECOM,1,30)								         											// NOME DO CONTRIBUINTE
+	//****************************************************************************************************************
+ElseIf subs(SE2->E2_XTRIB,1,2) == '02'										   														  // DARF
+	_cReturn4 := subs(SE2->E2_XTRIB,1,2)										 															  // CODIGO DA RECEITA
+	_cReturn4 += subs(SE2->E2_XTRIB,3,4)										 															  // CODIGO DA RECEITA
+	_cReturn4 += '2'                                                                 // TIPO DE INSCRICAO 1=CPF; 2=CNPJ
+	_cReturn4 += SM0->M0_CGC                                                         // NUMERO CNPJ
+	_cReturn4 += GRAVADATA(SE2->E2_EMISSAO,.F.,5)    // GRAVADATA(SE2->E2_APURA,.F.,5)                               // PERIODO DE APURACAO "DDMMAAAA"
+	_cReturn4 += space(17)                                                           // NUMERO DE REFERENCIA
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)                                      // VALOR PRINCIPAL
+	_cReturn4 += strzero(0,14)                                                      // VALOR DA MULTA
+	_cReturn4 += strzero(0,14)                                                      // JUROS/ENCARGOS
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)                                      // VALOR A SER PAGO
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)                                   // DATA VENCIMENTO "DDMMAAAA"
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)                                   // DATA PAGAMENTO  "DDMMAAAA"
+	_cReturn4 += space(30)                                                           // BRANCOS
+	_cReturn4 += subs(SM0->M0_NOMECOM,1,30)                                         // NOME DO CONTRIBUINTE
+	//****************************************************************************************************************
+ElseIf subs(SE2->E2_XTRIB,1,2) == '03'   			   																				// TRIBUTO (DARF SIMPLES)
+	_cReturn4 := subs(SE2->E2_XTRIB,1,2) 																									// CODIGO DA RECEITA (XX)
+	_cReturn4 += subs(SE2->E2_XTRIB,3,4)						 																				// CODIGO DA RECEITA (XX)
+	_cReturn4 += '2'					  																																// 2=CNPJ
+	_cReturn4 += SM0->M0_CGC             																										// NUMERO DO CNPJ
+	_cReturn4 += subs(DTOS(SE2->E2_APURA),5,2)+subs(DTOS(SE2->E2_APURA),1,2)+subs(DTOS(SE2->E2_APURA),1,4)  // PERIODO DE APURACAO DDMMAAAA
+	_cReturn4 += space(09)																				    												// VALOR DA RECEITA BRUTA ACUMULADA (TAM=9)
+	_cReturn4 += space(02)																																		// PERCENTUAL SOBRE A RECEITA BRUTA ACUMULADA (TAM=2)
+	_cReturn4 += space(04) 							   																										// COMPLEMENTO REGISTRO
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)  																					// VALOR PRINCIPAL
+	_cReturn4 += space(14) 							   																										// VALOR DA MULTA
+	_cReturn4 += space(14) 							  																										// VALOR JUROS E ENCARGOS
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)		   																			// VALOR TOTAL A SER PAGO
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5) 	  																		// DATA VENCIMENTO (DDMMAAAA)
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5) 																				// DATA PAGAMENTO (DDMMAAAA)
+	_cReturn4 += space(30) 																																		// BRANCOS
+	_cReturn4 += subs(SM0->M0_NOMECOM,1,30)    	 																					// NOME CONTRIBUINTE
+//****************************************************************************************************************
+ElseIf subs(SE2->E2_XTRIB,1,2) == '05'   									   													  // GARE-ICMS
+	_cReturn4 := subs(SE2->E2_XTRIB,1,2)                                           // CODIGO DA RECEITA (XX)
+	_cReturn4 += subs(SE2->E2_XTRIB,3,4)        							  												 // CODIGO DA RECEITA (XX)
+	_cReturn4 += '2'														  																						 // TIPO DE INSCRICAO 2=CNPJ
+	_cReturn4 += SM0->M0_CGC                                                       // NUMERO CNPJ
+	_cReturn4 += ALLTRIM(SM0->M0_INSC)                                             // INSCRICAO ESTADUAL
+	_cReturn4 += space(13)                                                         // DIVIDA ATIVA / ETIQUETA
+	_cReturn4 += subs(DTOS(SE2->E2_EMISSAO),5,2)+subs(DTOS(SE2->E2_EMISSAO),1,4) // MES/ANO REFERENCIA "MMAAAA"
+	_cReturn4 += space(13)                                                         // NUMERO PARCELA/NOTIFICACAO
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)                                     // VALOR DA RECEITA
+	_cReturn4 += strzero(0,14)                                                      // VALOR DO JUROS
+	_cReturn4 += strzero(0,14)                                                      // VALOR DA MULTA
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)                                      // VALOR DO PAGAMENTO
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)                                   // DATA VENCIMENTO "DDMMAAAA"
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)                                   // DATA DO PAGAMENTO "DDMMAAAA"
+  _cReturn4 += space(11)                                                           // BRANCOS
+	_cReturn4 += subs(SM0->M0_NOMECOM,1,30)                                         // NOME DO CONTRIBUINTE
+	//****************************************************************************************************************
+ElseIf subs(SE2->E2_XTRIB,1,2) == '11'   										 														// FGTS-GFIP
+	_cReturn4 := subs(SE2->E2_XTRIB,1,2)                                            // CODIGO DA RECEITA (XX)
+	_cReturn4 += subs(SE2->E2_XTRIB,3,4)        																					// CODIGO DA RECEITA (XX)
+	_cReturn4 += '1'																																						// TIPO DE INSCRICAO 1=CNPJ
+	_cReturn4 += SM0->M0_CGC                                                        // NUMERO CNPJ
+	_cReturn4 += SE2->E2_CODBAR                                                     // CODIGO DE BARRAS
+	_cReturn4 += space(16)                                                          // IDENTIFICADOR FGTS
+	_cReturn4 += space(09)														    																		// LACRE DE CONECTIVIDADE SOCIAL
+	_cReturn4 += space(02)                                                          // DIGITO DO LACRE
+	_cReturn4 += subs(SM0->M0_NOMECOM,1,30)                                         // NOME DO CONTRIBUINTE
+	_cReturn4 += GRAVADATA(SE2->E2_VENCREA,.F.,5)                                   // DATA DO PAGAMENTO "DDMMAAAA"
+	_cReturn4 += strzero(SE2->E2_VALOR*100,14)                                      // VALOR DO PAGAMENTO
+	_cReturn4 += SPACE(30)                                                          // BRANCOS
+	
+EndIf
+
+Return(_cReturn4)

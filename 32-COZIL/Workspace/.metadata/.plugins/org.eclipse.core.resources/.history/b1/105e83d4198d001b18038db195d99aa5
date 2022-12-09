@@ -1,0 +1,7 @@
+#Include 'Protheus.ch'
+
+User Function FIN460E1()
+
+MsgAlert("Você entrou no ponto de entrada FIN460E1", "Atenção")
+
+Return 

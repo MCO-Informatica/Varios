@@ -1,0 +1,305 @@
+#INCLUDE 'PROTHEUS.CH'
+#INCLUDE 'FONT.CH'
+#INCLUDE 'rwmake.CH'
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³M410STTS  ºAutor  ³Fabio Jadao Caires  º Data ³  27/06/07   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ponto de entrada para a geracao do cabecalho e itens do     º±±
+±±º          ³romaneio chamado no MATA410                                 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³Laselva                                                     º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function M410STTS()
+Local aArea := GetArea()
+
+PA6->( DbSetOrder(1) )
+
+RecLock('SC5')
+SC5->C5_DESCMUN := upper(cUserName)
+MsUnLock()
+
+DbSelectArea('PA6')
+
+_lGeraRoma := .t.
+If SC5->C5_CLIENTE < '000009' .and. altera .and. !(PA6->(DbSeek(xFilial('PA6') + SC5->C5_NUM + SC5->C5_FILIAL,.f.)))
+	_lGeraRoma := MsgBox('Não existe romaneio para este pedido.' + _cEnter + _cEnter + 'Gerar romaneio agora?','ATENÇÃO!!!!','YESNO')
+	if 	_lGeraRoma
+		SC6->( DbSetOrder(1) ) //C6_FILIAL+C6_NUM+C6_ITEM+C6_PRODUTO
+		If SC6->( DbSeek( xFilial("SC6")+SC5->C5_NUM ) )
+			While !SC6->( EOF() ) .AND. SC6->C6_NUM == SC5->C5_NUM
+				IF SC5->C5_CLIENT<'000009'
+					_cQuery := "UPDATE " + RetSqlName('SB2')
+					_cQuery += _cEnter + " SET B2_XRESERV =  B2_XRESERV +  "+CVALTOCHAR(SC6->C6_QTDVEN)
+					
+					_cQuery += _cEnter + " FROM " + RetSqlName('SC6') + " SC6 (NOLOCK)"
+					
+					_cQuery += _cEnter + " INNER JOIN " + RetSqlName('SF4') + " SF4 (NOLOCK)"
+					_cQuery += _cEnter + " ON SF4.D_E_L_E_T_ 			= ''"
+					_cQuery += _cEnter + " AND F4_CODIGO 				= '"+SC6->C6_TES+"'"
+					_cQuery += _cEnter + " AND F4_ESTOQUE 				= 'S'"
+					
+					_cQuery += _cEnter + " WHERE SC6.D_E_L_E_T_ 		= ''"
+					_cQuery += _cEnter + " AND C6_FILIAL 				= '"+SC5->C5_FILIAL+"'"
+					_cQuery += _cEnter + " AND C6_NUM 					= '"+SC5->C5_NUM+"'"
+					_cQuery += _cEnter + " AND C6_CLI 					< '000009'"
+					_cQuery += _cEnter + " AND SB2010.D_E_L_E_T_ 		= ''"
+					_cQuery += _cEnter + " AND B2_FILIAL 				= '"+SC6->C6_LOJA+"'"
+					_cQuery += _cEnter + " AND B2_COD 					='"+SC6->C6_PRODUTO+"'"
+					_cQuery += _cEnter + " AND B2_LOCAL 				='"+SC6->C6_LOCAL+"'"
+					nValSQL := TcSqlExec(_cQuery)
+					
+					if nValSQL < 0
+						alert("Erro na execução do SQL - Update Reserva filial")
+						alert(_cquery)
+						else
+							alert("adicionou produto"+alltrim(aCols[_nI,_nPosCod])+"quantidade:"+CVALTOCHAR(SC6->C6_QTDVEN))
+					endif
+				ENDIF
+				SC6->( DbSkip() )
+			EndDo
+		endif
+	endif
+	
+EndIf
+If _lGeraRoma
+	MsAguarde({|lEnd| RunProc(@lEnd)},"Aguarde...",iif(INCLUI,"Gerando",iif(ALTERA,"Alterando","Excluindo")) + " romaneio nro. " + Alltrim(SC5->C5_NUM),.T.)
+EndIf
+
+_cQuery := "UPDATE " + RetSqlName('SC6')
+_cQuery += _cEnter + " SET C6_CLASFIS = B1_ORIGEM + F4_SITTRIB, C6_CONTRT = '" + left(upper(cUserName),15) + "',"
+_cQuery += _cEnter + " C6_HORAALT = CASE WHEN C6_HORAINC = '' THEN '' ELSE '" + left(TIME(),2) + substr(TIME(),4,2) + "' END,"
+_cQuery += _cEnter + " C6_HORAINC = CASE WHEN C6_HORAINC = '' THEN '" + left(TIME(),2) + substr(TIME(),4,2) + "' ELSE C6_HORAINC END"
+_cQuery += _cEnter + " FROM " + RetSqlName('SB1') + " SB1 (NOLOCK), " + RetSqlName('SF4') + " SF4 (NOLOCK)"
+_cQuery += _cEnter + " WHERE B1_COD 			= C6_PRODUTO"
+_cQuery += _cEnter + " AND SB1.D_E_L_E_T_ 		= ''"
+_cQuery += _cEnter + " AND C6_NUM 				= '" + SC5->C5_NUM + "'"
+_cQuery += _cEnter + " AND C6_FILIAL 			= '" + SC5->C5_FILIAL + "'"
+_cQuery += _cEnter + " AND SF4.D_E_L_E_T_ 		= ''"
+_cQuery += _cEnter + " AND F4_CODIGO 			= C6_TES"
+
+nValSQL := TcSqlExec(_cQuery)
+
+if nValSQL < 0
+	MsgStop('Falha de SQL ('+str(nValSQL,4)+') : '+TcSqlError())
+endif
+RestArea(aArea)
+
+RETURN
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Static Function RunProc(lEnd)
+/////////////////////////////
+Local cCodFOri 		:= cFilAnt
+Local cCodFOriName 	:= GetAdvFVal("SM0","M0_FILIAL",cEmpAnt + cFilAnt,1)
+Local aAreaSM0 		:= SM0->(GetArea())
+Local aAreaSA1		:= SA1->(GetArea())
+Local nPos 			:= 0
+Local nQtd			:= 0
+Local aGrvPro 		:= {}
+Local nI			:= 0
+Local nSC6Rec		:= SC6->(RECNO())
+
+Local nPosItem		:= aScan( aHeader, { |x| Alltrim(x[2]) == "C6_ITEM"} )
+Local nPosProd		:= aScan( aHeader, { |x| Alltrim(x[2]) == "C6_PRODUTO"} )
+
+Private _nEstoq
+
+
+
+If !INCLUI .AND. !ALTERA
+	
+	_cQuery := "UPDATE " + RetSqlName('PA6')
+	_cQuery += _cEnter + " SET D_E_L_E_T_ 				= '*'"
+	_cQuery += _cEnter + " WHERE PA6_FILIAL 			= '" + xFilial('PA6') + "'"
+	_cQuery += _cEnter + " AND PA6_NUMROM 				= '" + SC5->C5_NUM + SC5->C5_FILIAL + "'"
+	_cQuery += _cEnter + " AND D_E_L_E_T_ 				= ''"
+	nValSQL := TcSqlExec(_cQuery)
+	
+	_cQuery := "UPDATE " + RetSqlName('PA7')
+	_cQuery += _cEnter + " SET D_E_L_E_T_ 				= '*'"
+	_cQuery += _cEnter + " WHERE PA7_FILIAL 			= '" + xFilial('PA7') + "'"
+	_cQuery += _cEnter + " AND PA7_NUMROM 				= '" + SC5->C5_NUM + SC5->C5_FILIAL + "'"
+	_cQuery += _cEnter + " AND D_E_L_E_T_ 				= ''"
+	nValSQL := TcSqlExec(_cQuery)
+	
+	_cQuery := "UPDATE " + RetSqlName('SB2')
+	_cQuery += _cEnter + " SET B2_XRESERV = B2_XRESERV  - "+CVALTOCHAR(SC6->C6_QTDVEN)
+	
+	_cQuery += _cEnter + " FROM " + RetSqlName('SC6') + " SC6 (NOLOCK)"
+	
+	_cQuery += _cEnter + " INNER JOIN " + RetSqlName('SF4') + " SF4 (NOLOCK)"
+	_cQuery += _cEnter + " ON SF4.D_E_L_E_T_ 			= ''"
+	_cQuery += _cEnter + " AND F4_CODIGO 				= '"+alltrim(SC6->C6_TES)+"'"
+	_cQuery += _cEnter + " AND F4_ESTOQUE 				= 'S'"
+	
+	_cQuery += _cEnter + " WHERE SC6.D_E_L_E_T_ 		= ''"
+	_cQuery += _cEnter + " AND C6_FILIAL 				= '"+SC5->C5_FILIAL+"'"
+	_cQuery += _cEnter + " AND C6_NUM 					= '"+SC5->C5_NUM+"'"
+	_cQuery += _cEnter + " AND C6_CLI 					< '000009'"
+	_cQuery += _cEnter + " AND SB2010.D_E_L_E_T_ 		= ''"
+	_cQuery += _cEnter + " AND B2_FILIAL 				= '"+SC6->C6_LOJA+"'"
+	_cQuery += _cEnter + " AND B2_COD 					='"+alltrim(SC6->C6_PRODUTO)+"'"
+	_cQuery += _cEnter + " AND B2_LOCAL 				='"+SC6->C6_LOCAL+"'"
+	nValSQL := TcSqlExec(_cQuery)
+	
+	if nValSQL < 0
+		alert("Erro na execução do SQL -Delete Reserva filial")
+		alert(_cquery)
+	endif
+	
+	Return
+EndIf
+
+
+_cQry1 := "DELETE FROM "+RetSqlName('PA6')+" WHERE PA6_NUMROM = '"+SC5->C5_NUM + SC5->C5_FILIAL+"'"
+nValSQL := TcSqlExec(_cQry1)
+// ENVIA EMAIL DE ALERTA CASO A EXCLUSÃO NÃO TENHA SIDO REALIZADA COM SUCESSO
+IF nValSQL != 0
+	U_EnvMail("informatica@laselva.com.br","Romaneio - Erro Tabela PA6","Erro ao tentar excluir a tabela PA6 do PV " +SC5->C5_NUM+ " e Filial " + SC5->C5_FILIAL )
+ENDIF
+
+// DELETA PA7 **** CORRIGE ALTERAÇÃO/DELEÇÃO DE ITENS DO PEDIDO *** VANILSON 13/09/2011
+_cQry2 := "DELETE FROM "+RetSqlName('PA7')+" WHERE PA7_NUMROM = '"+SC5->C5_NUM + SC5->C5_FILIAL+"'"
+nValSQL := TcSqlExec(_cQry2)
+// ENVIA EMAIL DE ALERTA CASO A EXCLUSÃO NÃO TENHA SIDO REALIZADA COM SUCESSO
+IF nValSQL != 0
+	U_EnvMail("informatica@laselva.com.br","Romaneio - Erro Tabela PA7","Erro ao tentar excluir a tabela PA7 do PV " +SC5->C5_NUM+ " e Filial " + SC5->C5_FILIAL )
+ENDIF
+
+// DELETA PA8 **** CORRIGE ALTERAÇÃO/DELEÇÃO DE ITENS DO PEDIDO *** alexandre 17/11/2011
+_cQry2 := "DELETE FROM "+RetSqlName('PA8')+" WHERE PA8_NUMROM = '"+SC5->C5_NUM + SC5->C5_FILIAL+"'"
+nValSQL := TcSqlExec(_cQry2)
+// ENVIA EMAIL DE ALERTA CASO A EXCLUSÃO NÃO TENHA SIDO REALIZADA COM SUCESSO
+IF nValSQL != 0
+	U_EnvMail("informatica@laselva.com.br","Romaneio - Erro Tabela PA8","Erro ao tentar excluir a tabela PA8 do PV " +SC5->C5_NUM+ " e Filial " + SC5->C5_FILIAL )
+ENDIF
+
+If Type("_aLasCli") == 'U'
+	public _aLasCli := {}
+	SM0->(dbGoTop())
+	While SM0->(!EOF())
+		aAdd(_aLasCli,{SM0->M0_CODFIL,SM0->M0_CGC})
+		SM0->(dbSkip())
+	ENDDO
+EndIf
+SA1->( DbSetOrder(1) )
+SA1->( DbSeek( xFilial("SA1")+SC5->C5_CLIENT + SC5->C5_LOJACLI ) )
+nPos := aScan(_aLasCli,{|x| x[1] == SA1->A1_LOJA .And. x[2] == SA1->A1_CGC})
+
+If !Empty(nPos)
+	dbSelectArea("SM0")
+	SM0->(dbSetOrder(1))
+	SM0->( dbSeek(cEmpAnt + cFilAnt) )
+	
+	SC6->( DbSetOrder(1) ) //C6_FILIAL+C6_NUM+C6_ITEM+C6_PRODUTO
+	If SC6->( DbSeek( xFilial("SC6")+SC5->C5_NUM ) )
+		While !SC6->( EOF() ) .AND. SC6->C6_NUM == SC5->C5_NUM
+			nPos 	:= aScan(aGrvPro,{|x| x[2] == SC6->C6_PRODUTO})
+			_nQuant := iif(SC5->C5_LOJACLI == 'C0' .or. Posicione('SF4',1, xFilial('SF4') + SC6->C6_TES,'F4_ESTOQUE') == 'N',SC6->C6_QTDVEN,0)
+			If Empty(nPos)
+				AADD(aGrvPro,{SC6->C6_NUM+SC6->C6_FILIAL,SC6->C6_PRODUTO,Posicione('SB1',1,xFilial('SB1') + SC6->C6_PRODUTO,'B1_DESC'),SC6->C6_QTDVEN,SC6->C6_ITEM, _nQuant})
+				
+			Else
+				aGrvPro[nPos,4] += SC6->C6_QTDVEN
+				aGrvPro[nPos,6] += _nQuant
+			EndIf
+			
+			IF SC5->C5_CLIENT<'000009'
+				_cQuery := "UPDATE " + RetSqlName('SB2')
+				_cQuery += _cEnter + " SET B2_XRESERV = B2_XRESERV +  "+CVALTOCHAR(SC6->C6_QTDVEN)
+				
+				_cQuery += _cEnter + " FROM " + RetSqlName('SC6') + " SC6 (NOLOCK)"
+				
+				_cQuery += _cEnter + " INNER JOIN " + RetSqlName('SF4') + " SF4 (NOLOCK)"
+				_cQuery += _cEnter + " ON SF4.D_E_L_E_T_ 			= ''"
+				_cQuery += _cEnter + " AND F4_CODIGO 				= '"+alltrim(SC6->C6_TES)+"'"
+				_cQuery += _cEnter + " AND F4_ESTOQUE 				= 'S'"
+				
+				_cQuery += _cEnter + " WHERE SC6.D_E_L_E_T_ 		= ''"
+				_cQuery += _cEnter + " AND C6_FILIAL 				= '"+SC5->C5_FILIAL+"'"
+				_cQuery += _cEnter + " AND C6_NUM 					= '"+SC5->C5_NUM+"'"
+				_cQuery += _cEnter + " AND C6_CLI 					< '000009'"
+				_cQuery += _cEnter + " AND SB2010.D_E_L_E_T_ 		= ''"
+				_cQuery += _cEnter + " AND B2_FILIAL 				= '"+SC6->C6_LOJA+"'"
+				_cQuery += _cEnter + " AND B2_COD 					='"+alltrim(SC6->C6_PRODUTO)+"'"
+				_cQuery += _cEnter + " AND B2_LOCAL 				='"+SC6->C6_LOCAL+"'"
+				nValSQL := TcSqlExec(_cQuery)
+				
+				if nValSQL < 0
+					alert("Erro na execução do SQL - Update Reserva filial")
+					alert(_cquery)
+				endif
+			ENDIF
+			SC6->( DbSkip() )
+		EndDo
+	EndIf
+	
+	PA7->( DbSetOrder(1) ) //PA7_FILIAL+PA7_NUMROM+PA7_CODPRO+PA7_ITEM
+	
+	_nQuant  := 0
+	_nQtdOri := 0
+	
+	For nI := 1 to Len(aGrvPro)
+		Reclock("PA7",.T.)
+		PA7->PA7_STATUS	:= "01"
+		PA7->PA7_FILIAL	:= xFilial("PA7")
+		PA7->PA7_NUMROM	:= aGrvPro[nI,1]
+		PA7->PA7_CODPRO	:= aGrvPro[nI,2]
+		PA7->PA7_DESCPR	:= aGrvPro[nI,3]
+		PA7->PA7_QTDORI	:= aGrvPro[nI,4]
+		PA7->PA7_ITEM	:= aGrvPro[nI,5]
+		PA7->PA7_QTDREC	:= aGrvPro[nI,6]
+		PA7->PA7_QUANT	:= iif(xFilial('SC5') == 'C0',aGrvPro[nI,4],aGrvPro[nI,6])
+		MsUnlock()
+		
+		_nQuant  += PA7->PA7_QUANT
+		_nQtdOri += PA7->PA7_QTDORI
+		
+		IF !__CINTERNET=="AUTOMATICO" // Rotina está sendo processada via ExecAuto
+			MsProcTxt("Romaneio: "+aGrvPro[nI,1]+" Produto: "+aGrvPro[nI,2])
+			ProcessMessage()
+		EndIf
+		nQtd:= 0
+		
+		
+		
+	Next nI
+	
+	nPos := aScan(_aLasCli,{|x| x[1] == SA1->A1_LOJA .And. x[2] == SA1->A1_CGC})
+	
+	Reclock("PA6",.T.)
+	PA6->PA6_FILIAL	:= xFilial("PA6")
+	PA6->PA6_STATUS	:= iif(_nQuant == _nQtdOri .or. xFilial('SC5') == 'C0','02',iif(_nQuant <> _nQtdOri .and. _nQuant > 0, '03','01')) //Separacao ok / separaçao divergente / Ainda nao separado
+	PA6->PA6_DESCST	:= Posicione('SX5',1,xFilial('SX5') + 'P6' + PA6->PA6_STATUS,'X5_DESCRI')
+	PA6->PA6_NUMROM	:= SC5->C5_NUM+SC5->C5_FILIAL
+	PA6->PA6_LOJA	:= Trim(cCodFOri)+" - "+Trim(cCodFOriName)
+	PA6->PA6_DTROM	:= SC5->C5_EMISSAO
+	PA6->PA6_FILORI	:= cFilAnt
+	PA6->PA6_FILDES	:= _aLasCli[nPos,1]
+	MsUnLock()
+	
+	If PA6->PA6_STATUS == '02'
+		RecLock('PA8',.f.)
+		PA8->PA8_FILIAL 	:= xFilial("PA8")
+		PA8->PA8_NUMROM 	:= PA6->PA6_NUMROM
+		PA8->PA8_CODCOL		:= PA6->PA6_NUMROM + '001001'
+		PA8->PA8_CODST		:= "01" //Volume nao verificado
+		MsUnLock()
+	EndIf
+EndIf
+
+RestArea(aAreaSM0)
+RestArea(aAreaSA1)
+
+RETURN
+
+

@@ -1,0 +1,86 @@
+#include "protheus.ch"
+#include "topconn.ch"
+#include "rwmake.ch"
+#Include "RPTDEF.CH"
+#INCLUDE "TBICONN.CH"
+
+/*
+Ordem de Separação Concluída
+Denis Varella 
+*/
+
+User Function WFORDSEP()
+    Local aArea := GetArea()
+    Local cHTML := ""
+    Local cTo := ""
+
+    // PREPARE ENVIRONMENT EMPRESA '01' FILIAL '01'
+
+    cTo := SuperGetMv("MV_WFORDSP",,"denisvarella@gmail.com")
+
+    DbSelectArea("CB7")
+    CB7->(DbSetOrder(2))
+    CB7->(DbSeek(xFilial("CB7")+SC5->C5_NUM))
+
+    DbSelectArea("CB1")
+    CB1->(DbSetOrder(1))
+    CB1->(DbSeek(xFilial("CB1")+CB7->CB7_CODOPE))
+
+    cOperador := CB1->CB1_NOME
+
+    // DbSelectArea("SC5")
+    // SC5->(DbSetOrder(1))
+    // SC5->(DbGoBottom())
+
+    cHTML += "<html>"
+    cHTML += "  <head>"
+    cHTML += "      <style>"
+    cHTML += "       * {outline: none;border:none;margin: 0;padding:0;box-sizing: border-box;} 
+    cHTML += "       hr {border: 1px solid #eee;margin: 10px 0;width: 600px;} 
+    cHTML += "       body { font-family: Arial, Helvetica, sans-serif;color: #181818;} 
+    cHTML += "       table { overflow:hidden;padding:6px;border-radius:9px;width:600px;margin:15px;font-size:12px;} 
+    cHTML += "       tr { line-height:1;} 
+    cHTML += "       td { line-height:1;padding:5px;} 
+    cHTML += "     </style> "
+    cHTML += "  </head>"
+    cHTML += "  <body>"
+    cHTML += "      <table><tr><td style='margin-bottom: 15px;text-align: center;'><img src='https://prozyn.com.br/images/prozyn.png' title='Prozyn' alt='Prozy' style='width: 88px;'></td></tr></table>
+    cHTML += "      <table style='border:1px solid #ccc;'>
+    cHTML += "          <tr>
+    cHTML += "              <td align='center' style='height:22px;'><strong style='font-size:16px;'>Ordem de Separação Concluída</strong></td>
+    cHTML += "          </tr>
+    cHTML += "      </table>
+    cHTML += "      <table style='background: #efefef;'>
+    cHTML += "          <tr>
+    cHTML += "              <td><strong>Pedido:</strong> "+SC5->C5_NUM+"</td><td><strong>Cliente:</strong> "+trim(SC5->C5_NOMECLI)+"</td><td><strong>Operador:</strong> "+trim(cOperador)+"</td>
+    cHTML += "          </tr>
+    cHTML += "      </table>
+    cHTML += "      <table style='background: #efefef;'>
+    cHTML += "          <tr>
+    cHTML += "              <td><strong>Produto</strong></td><td align='center'><strong>Quantidade</strong></td><td align='right'><strong>Valor</strong></td>
+    cHTML += "          </tr>
+    DbSelectArea("SC6")
+    SC6->(DbSetOrder(1))
+    SC6->(DbSeek(xFilial("SC6")+SC5->C5_NUM))
+
+    While SC6->(!EOF()) .AND. SC6->C6_NUM == SC5->C5_NUM
+        cHTML += "          <tr>
+        cHTML += "              <td>"+TRIM(SC6->C6_PRODUTO)+" - "+TRIM(SC6->C6_DESCRI)+"</td><td align='center'>"+cValtoChar(SC6->C6_QTDVEN)+" "+SC6->C6_UM+"</td><td align='right'>R$ "+AllTrim(Transform(SC6->C6_VALOR,"@E 999,999,999.99"))+"</td>
+        cHTML += "          </tr>
+        SC6->(DbSkip())
+    EndDo
+    cHTML += "      </table>
+    cHTML += "      <table style='margin-top:15px;>
+    cHTML += "          <tr>
+    cHTML += "              <td><p style='text-align: center;line-height:1.3;font-size:11px;width:600px;'><strong>PROZYN INDUSTRIA E COMERCIO EIRELI</strong><br/>R Dr Paulo L. de Oliveira, 199<br/>CEP 05551-020 Sao Paulo/SP – Brasil<br/>Tel: + 55 11 3732-0000<br/>www.prozyn.com </p></td>
+    cHTML += "          </tr>
+    cHTML += "      </table>
+    cHTML += "  </body>
+    cHTML += "</html>"
+
+    U_zEnvMail(cTo, "Ordem de Separação ", cHTML, {}, .f., .t., .t.)
+
+    RestArea(aArea)
+
+    // RESET ENVIRONMENT
+Return

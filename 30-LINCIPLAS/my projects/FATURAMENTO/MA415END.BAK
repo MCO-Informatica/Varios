@@ -1,0 +1,51 @@
+#INCLUDE 'RWMAKE.CH'
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MT415EFT  ºAutor  ³Rodrigo Okamoto     º Data ³  29/03/12   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Efetuar validação na efetivação do orçamento               º±±
+±±º          ³ MTA416BX - Automático                                      º±±
+±±º          ³ MT415EFT - Manual                                          º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MA415END
+
+Local aArea416 	:= getarea()
+Local nTipo := PARAMIXB[1] // Indica se cofirmou a operação - 0-Nao confirmou, 1 - Confirmou a operação
+Local nOper := PARAMIXB[2] // 1- inclusão, 2 - alteração, 3- Exclusão
+Local cCliente	:= M->CJ_CLIENTE
+Local cLoja		:= M->CJ_LOJA
+Local cUF	:= getadvfval("SA1","A1_EST",xFILIAL("SA1")+cCliente+cLoja,1,"")
+lFil02	:= .F.
+//considerando que num orcamento SPIDER contem apenas produtos SPIDER e nao Linciplas
+If alltrim(cUF) == "RJ" .AND. nTipo <> 0 .AND. nOper <> 3
+	DbSelectArea("TMP1")
+	DbGoTop()
+	While TMP1->(!eof())
+		If (SUBSTR(TMP1->CK_PRODUTO,1,4) >= "S010" .AND. SUBSTR(TMP1->CK_PRODUTO,1,4) <= "S060") .OR. SUBSTR(TMP1->CK_PRODUTO,1,5) == "SPI35"
+			lFil02	:= .T.
+		EndIf	
+		If lFil02
+			reclock("TMP1",.F.)
+			TMP1->CK_FILVEN	:= "02"
+			TMP1->CK_FILENT	:= "02"		
+			MSUNLOCK()
+		EndIf
+		TMP1->(DbSkip())		
+	END
+EndIf
+If lFil02
+	alert("Faturamento será pela filial 02!")
+EndIf
+
+RestArea(aArea416)
+
+Return

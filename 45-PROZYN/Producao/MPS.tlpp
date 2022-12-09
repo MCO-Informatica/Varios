@@ -1,0 +1,82 @@
+#Include "Protheus.ch"
+#Include "TopConn.ch"
+
+User Function MPS()
+    Local cQry := ""
+    Local aItens := {}
+    Local cPerg := "XRELMPS"
+
+    AjustaSX1(cPerg)
+    If Pergunte(cPerg,.T.)
+
+        cQry += " SELECT B1_COD,B1_DESC,B1_TIPO,FORECAST,ESTOQUE,FATURADO,Pedidos_a_Faturar,(FORECAST * -1) + ESTOQUE + FATURADO + Pedidos_a_Faturar AS TOTAL FROM (
+        cQry += " SELECT B1_COD,B1_DESC,B1_TIPO,ISNULL(SUM(Z2_QTM"+MV_PAR02+"),0) FORECAST,
+        cQry += " (SELECT ROUND(SUM(B2.B2_QATU-(B2.B2_RESERVA+B2.B2_QEMP)),4) FROM "+RetSqlName("SB2")+" B2 WHERE B2_FILIAL = '"+xFilial("SB2")+"' AND B2_COD = Z2_PRODUTO AND B2_LOCAL IN ('03','98') AND B2.D_E_L_E_T_ = '') ESTOQUE,
+        cQry += " (SELECT ROUND(ISNULL(SUM(D2_QUANT),0),2)  FROM "+RetSqlName("SD2")+" D2 WHERE D2_FILIAL = '"+xFilial("SD2")+"' AND D2_COD = Z2_PRODUTO AND YEAR(D2_EMISSAO) = Z2_ANO AND MONTH(D2_EMISSAO) = '"+MV_PAR02+"' AND D2_LOCAL NOT IN ('10') AND D2.D_E_L_E_T_ = '') FATURADO,
+        cQry += " (SELECT ROUND(ISNULL(SUM(C6_QTDVEN - C6_QTDENT),0),2) FROM "+RetSqlName("SC6")+" C6 INNER JOIN "+RetSqlName("SC5")+" C5 ON C5_FILIAL = '"+xFilial("SC5")+"' AND C5_NUM = C6_NUM AND C5_CLIENTE = C6_CLI AND C5_LOJACLI = C6_LOJA AND C5.D_E_L_E_T_ = '' WHERE C6_PRODUTO = Z2_PRODUTO AND YEAR(C5_FECENT) = Z2_ANO AND MONTH(C5_FECENT) = '"+MV_PAR02+"' AND C6_NOTA = '' AND C6.D_E_L_E_T_ = '') Pedidos_a_Faturar 
+        cQry += " FROM "+RetSqlName("SZ2")+" Z2
+        cQry += " INNER JOIN "+RetSqlName("SB1")+" B1 ON B1_FILIAL = '"+xFilial("SB1")+"' AND B1_COD = Z2_PRODUTO AND B1.D_E_L_E_T_ = ''
+        cQry += " WHERE Z2_FILIAL = '"+xFilial("SZ2")+"' AND Z2_ANO = '"+MV_PAR01+"' AND Z2_TOPICO = 'F' AND Z2.D_E_L_E_T_ = '' AND B1_TIPO IN ('PA','ME') AND B1_MSBLQL != '1'
+        cQry += " GROUP BY Z2_PRODUTO,B1_COD,B1_DESC,B1_TIPO,Z2_ANO ) MPS 
+        cQry += " WHERE FORECAST+ESTOQUE+FATURADO+Pedidos_a_Faturar > 0
+        cQry += " ORDER BY B1_DESC
+        dbUseArea(.T.,"TOPCONN", TCGenQry(,,cQry),'MPS',.T.,.T.)
+
+        While MPS->(!EOF())
+            aAdd(aItens, {MPS->B1_COD,;
+            MPS->B1_DESC,;
+            MPS->B1_TIPO,;
+            MPS->FORECAST,;
+            MPS->ESTOQUE,;
+            MPS->FATURADO,;
+            MPS->Pedidos_a_Faturar,;
+            MPS->TOTAL})
+
+            MPS->(DbSkip())
+        EndDo
+        MPS->(DbcloseArea())
+
+        U_zQry2Excel(cQry,"Forecast x Pedido de Venda","forecast_x_pedido")
+    EndIf
+
+Return
+
+Static Function AjustaSX1(cPerg)
+    Local j
+    Local i
+    _sAlias := Alias()
+    dbSelectArea("SX1")
+    dbSetOrder(1)
+    cPerg   := PADR(cPerg,10)
+    aSx1   :={}
+
+    AADD(	aSx1,{ cPerg,"01","Ano","","","mv_ch1","C",04,0,0,"G","","mv_par01","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+    AADD(	aSx1,{ cPerg,"02","Mês","","","mv_ch2","C",02,0,0,"G","","mv_par02","","","","","","","","","","","","","","","","","","","","","","","","","",""})
+
+    For i := 1 to Len(aSx1)
+        If !dbSeek(cPerg+aSx1[i,2])
+            RecLock("SX1",.T.)
+            For j := 1 To FCount()
+                If j <= Len(aSx1[i])
+                    FieldPut(j,aSx1[i,j])
+                Else
+                    Exit
+                EndIf
+            Next
+            MsUnlock()
+        // Else
+        //     RecLock("SX1",.F.)
+        //     For j := 1 To FCount()
+        //         If j <= Len(aSx1[i])
+        //             FieldPut(j,aSx1[i,j])
+        //         Else
+        //             Exit
+        //         EndIf
+        //     Next
+        //     MsUnlock()
+        EndIf
+    Next
+
+    dbSelectArea(_sAlias)
+
+Return(cPerg)	

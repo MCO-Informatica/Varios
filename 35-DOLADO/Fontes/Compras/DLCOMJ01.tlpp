@@ -1,0 +1,146 @@
+#INCLUDE "Protheus.ch"
+#INCLUDE "Topconn.ch"
+
+
+/*/{Protheus.doc} MTA650I
+description: Job que será executado diariamente para atualizar campo de ponto de pedido
+de acordo com fórmula enviada. 
+#6166
+@type function
+@version  
+@author rickson.oliveira
+@since 23/08/2022
+@return variant, return_description
+/*/
+
+User Function DLCOMJ01()
+
+	Local cQuery    := ''
+	Local cAlias    := GetNextAlias()
+	Local nMesAt            := MONTH(ddatabase)-1
+	Local nMesRet           := MONTH(ddatabase)-2
+	Local nYearAt           := (YEAR(ddatabase))
+	Local nYearRet          := (YEAR(ddatabase))
+    Local nQtdAt            := 0
+    Local nQtdRet           := 0 
+
+	IF nMesAt == 0          //Mes 1, retornar mes 12 . Base se calcula mes-1
+		nMesat  := 12
+		nYearAt := -1
+	EndIf
+
+	IF nMesRet == 0          //Mes 1, retornar mes 12 . Base se calcula mes-1
+		nMesRet     := 12
+		nYearRet    := -1
+	EndIf
+
+
+	/*cMes    :=  cAlias+"->B3_Q"+STRZERO(nMesAt,2)
+	cMesRet :=  cAlias+"->B3_Q"+STRZERO(nMesRet,2)*/
+
+    cAtIni    :=  STRZERO(nYearAt,4)+STRZERO(nMesAt,2)+'01' //DT INI MES -1
+    cAtFim    :=  STRZERO(nYearAt,4)+STRZERO(nMesAt,2)+'31' //DT FIM MES -1
+
+    cRetIni    :=  STRZERO(nYearAt,4)+STRZERO(nMesRet,2)+'01' //DT INI MES -2
+    cRetFim    :=  STRZERO(nYearAt,4)+STRZERO(nMesRet,2)+'31' //DT FIM MES -2
+
+	cQuery := " SELECT *  "
+	cQuery += " FROM "+RetSqlName("SB1")+" SB1 "
+	cQuery += " WHERE"
+	cQuery += " SB1.D_E_L_E_T_ = ' ' AND B1_FILIAL = '"+xfilial("SB1")+"' AND SB1.B1_MSBLQL <> '1'  "
+    cQuery += " AND SB1.B1_COD IN ('ADP-AL-30-V8', 'TCD-QWERT','ADP-IP/P2','CBO-KD-336A','CBO-KD-336S','CBO-KD-TC30','FON-HS037','CBO-SJX03-1','CBO-SJX03-3','CBO-V8/INV1M','CBO-V8/KD1M','CBO-V8-25W','FNT-RM-668','P3D-13/13PRO','SUP-RG/10','TCD-QWERT','VEIC-KD303C') "
+
+	TCQUERY cQuery NEW Alias (cAlias)
+
+
+	Do While !(cAlias)->(EOF())
+
+		
+		DBSelectArea("SB2")
+		DBSetOrder(1)
+		IF DBSeek(xFilial("SB2") + (cAlias)->B1_COD + "02" )
+
+	cQuery := " SELECT SUM(D1_QUANT)*-1 QTDAT "
+	cQuery += " FROM "+RetSqlName("SD1")+" SD1 "
+    cQuery += " WHERE D1_FILIAL = '"+xfilial("SB1")+"' AND D1_COD = '"+(cAlias)->B1_COD +"'
+    cQuery += " AND D1_DTDIGIT >= '"+cAtIni+"' AND D1_DTDIGIT <= '"+cAtFim+"'     
+    cQuery += " AND D1_TIPO IN ('D','B') "
+    cQuery += " AND SD1.D_E_L_E_T_ = ' '    "                
+    cQuery += " UNION ALL "
+    cQuery += " SELECT SUM(D2_QUANT) QTDAT  "
+	cQuery += " FROM "+RetSqlName("SD2")+" SD2 "
+    cQuery += " INNER JOIN  "+RetSqlName("SF4")+" SF4 "
+    cQuery += " ON SF4.F4_FILIAL = '"+xfilial("SF4")+"' AND SF4.F4_CODIGO = D2_TES AND SF4.D_E_L_E_T_ = ' '  "
+    cQuery += " WHERE D2_FILIAL = '"+xfilial("SD2")+"' AND D2_COD = '"+(cAlias)->B1_COD +"'
+    cQuery += " AND D2_EMISSAO >= '"+cAtIni+"' AND D2_EMISSAO <= '"+cAtFim+"'         
+    cQuery += " AND F4_DUPLIC = 'S' AND F4_ESTOQUE = 'S' "    
+    cQuery += " AND SD2.D_E_L_E_T_ = ' ' "
+
+    TCQUERY cQuery NEW Alias "trb1"
+
+    While !trb1->(EOF())
+
+        nQtdAt += trb1->QTDAT
+        trb1->(DbSkip())
+
+    End
+
+    trb1->(DbCloseArea())
+
+    cQuery := " SELECT SUM(D1_QUANT)*-1 QTDRET "
+	cQuery += " FROM "+RetSqlName("SD1")+" SD1 "
+    cQuery += " WHERE D1_FILIAL = '"+xfilial("SB1")+"' AND D1_COD = '"+(cAlias)->B1_COD +"'
+    cQuery += " AND D1_DTDIGIT >= '"+cRetIni+"' AND D1_DTDIGIT <= '"+cRetIni+"'     
+    cQuery += " AND D1_TIPO IN ('D','B') "
+    cQuery += " AND SD1.D_E_L_E_T_ = ' '    "                
+    cQuery += " UNION ALL "
+    cQuery += " SELECT SUM(D2_QUANT) QTDRET  "
+	cQuery += " FROM "+RetSqlName("SD2")+" SD2 "
+    cQuery += " INNER JOIN  "+RetSqlName("SF4")+" SF4 "
+    cQuery += " ON SF4.F4_FILIAL = '"+xfilial("SF4")+"' AND SF4.F4_CODIGO = D2_TES AND SF4.D_E_L_E_T_ = ' '  "
+    cQuery += " WHERE D2_FILIAL = '"+xfilial("SD2")+"' AND D2_COD = '"+(cAlias)->B1_COD +"'
+    cQuery += " AND D2_EMISSAO >= '"+cRetIni+"' AND D2_EMISSAO <= '"+cRetIni+"'         
+    cQuery += " AND F4_DUPLIC = 'S' AND F4_ESTOQUE = 'S' "    
+    cQuery += " AND SD2.D_E_L_E_T_ = ' ' "
+
+
+    TCQUERY cQuery NEW Alias "trb1"
+
+    While !trb1->(EOF())
+
+        nQtdRet += trb1->QTDRET
+        trb1->(DbSkip())
+
+    End
+
+    trb1->(DbCloseArea())
+
+    nMedia := (nQtdAt + nQtdRet)/2
+
+			nDias := Round((SB2->B2_QATU*30)/nMedia,0)
+			//IF nDias <= 25
+				DBSelectArea("SB1")
+				DBSetOrder(1)
+                    IF DBSeek(xFilial("SB1") + (cAlias)->B1_COD)
+                        //If MsgYesNo(CValToChar(((nMedia/30)*45)*Iif(nDias<=25,1,1000)-1), "Confirma a Atualização do Ponto de Pedido do Produto:" +(cAlias)->B1_COD+ "?")
+                            RecLock("SB1",.F.)
+
+                            SB1->B1_EMIN    := Round(((nMedia/30)*45)*Iif(nDias<=25,1,1000),0) //-1  //Ponto de Pedido :=  É neste campo que informamos a quantidade Mínima para o estoque, que uma vez atingida, pode iniciar o processo de compras a partir da Geração de Solicitação de Compras por ponto de pedido
+
+                            //SB1->B1_EMIN    :=  nDias(Iif(nDias<=25,1,1000))   //PONTO DE PEDIDO - GERAR PEDIDO SOMENTE SE FOR MENOR OU IGUAL A 25.
+                                                                               //Ponto de Pedido: estoque*30/média dos ultimos 2 meses 
+
+                            //SB1->B1_LE      := (nMedia/30)*45-(SB2->B2_QATU)  //QTD PEDIDO DE COMPRAS: (media dos ultimos 2 meses/30*45-saldoatual do produto)                         
+
+                            MsUnlock()
+                        //EndIf    
+                    Endif
+			//EndIf
+		EndIf
+
+		(cAlias)->(DbSkip())
+	EndDo
+
+	(cAlias)->(DbCloseArea())
+
+Return .t.

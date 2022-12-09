@@ -1,0 +1,21 @@
+User Function SetLatLong(uValue)
+    Local aArea := GetArea()
+
+    If M->A1_PAIS == '105'
+        DbSelectArea("CC2")
+        CC2->(DbSetOrder(1))
+        If CC2->(DbSeek(xFilial("CC2")+M->A1_EST+M->A1_COD_MUN))
+            M->A1_XLAT := CC2->CC2_XLATIT
+            M->A1_XLONG := CC2->CC2_XLONGI
+        EndIf
+    Else
+        DbSelectArea("SYA")
+        SYA->(DbSetOrder(1))
+        If SYA->(DbSeek(xFilial("SYA")+M->A1_PAIS))
+            M->A1_XLAT := SYA->YA_XLATIT
+            M->A1_XLONG := SYA->YA_XLONGI
+        EndIf
+    EndIf
+    RestArea(aArea)
+
+Return uValue

@@ -1,0 +1,353 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>Solicitação de Compras </title>
+</head>
+
+<body background="file:///e:/ap6/workflow/evento/fundo609.jpg"
+bgcolor="#FFFFFF" bgproperties="fixed">
+<script>
+//----------------------------------------------
+function calcIPI() {
+
+   var i = 1;
+   var ipi = 0;
+   var objectValor = document.all["IT.VALOR." + i]
+   var objectIPI = document.all["IT.IPI." + i]
+
+   while(objectValor != null) {
+      ipi += commaToNumber(objectValor.value) * commaToNumber(objectIPI.value) / 100;
+	  objectValor = document.all["IT.VALOR." + (++i)];
+	  objectIPI = document.all["IT.IPI." + i];
+   }   
+
+   document.all["ALIIPI"].value = formatZeros(ipi);
+   calcTotalPedido();
+}
+
+function calcSubTotal() {
+
+   var i = 1;
+   var subtotal = 0;
+   var objectField = document.all["IT.VALOR." + i]
+
+   while(objectField != null) {
+      subtotal += commaToNumber(objectField.value);
+	  objectField = document.all["IT.VALOR." + (++i)];
+   }   
+
+   document.all["SUBTOT"].value = formatZeros(subtotal);
+}
+
+function calcTotalPedido() {
+
+	var total = 0;
+	var subtotal =  commaToNumber(document.all["SUBTOT"].value);
+	var descontos = commaToNumber(document.all["VLDESC"].value);
+	var ipi =       commaToNumber(document.all["ALIIPI"].value);
+	var frete =     commaToNumber(document.all["VALFRE"].value);
+	
+	total = subtotal - descontos + ipi + frete;
+
+	document.all["TOTPED"].value = formatZeros(total);
+	document.all["SUBTOT"].value = formatZeros(subtotal);
+	document.all["VLDESC"].value = formatZeros(descontos);
+	document.all["ALIIPI"].value = formatZeros(ipi);
+	document.all["VALFRE"].value  = formatZeros(frete);
+}
+
+function commaToNumber(cNumber) {
+	return parseFloat(cNumber.replace(",", "."));
+}
+
+function formatZeros(nNumber) {
+
+   var cNumber = nNumber.toString().replace(".", ",");
+   var nPos = cNumber.search(',');
+   var nDif = cNumber.length - nPos;
+
+   if(nPos == -1)
+      cNumber = cNumber+",00";
+   else if( nDif == 2 )
+      cNumber = cNumber+"0";
+   else if( nDif >= 4 )
+      cNumber = cNumber.substr(0, cNumber.length - nDif + 3);
+   
+   return cNumber;
+}
+
+function solveUnitario(oField) {
+   var nPos =  oField.name.lastIndexOf('.');
+   var cFieldQuant = "IT.QUANT." + oField.name.substr(nPos+1, 3);
+   var cFieldPreco = "IT.PRECO." + oField.name.substr(nPos+1, 3);
+   var cFieldValor = "IT.VALOR." + oField.name.substr(nPos+1, 3);
+
+   var nQuant = commaToNumber(document.all[cFieldQuant].value);
+   var nPreco = commaToNumber(document.all[cFieldPreco].value);
+   var nValor = nQuant * nPreco;
+
+   var cQuant = formatZeros(nQuant);
+   var cPreco = formatZeros(nPreco);
+   var cValor = formatZeros(nValor);
+   
+   document.all[cFieldQuant].value = cQuant;
+   document.all[cFieldPreco].value = cPreco;
+   document.all[cFieldValor].value = cValor;
+   
+   calcSubTotal();
+   calcIPI();
+   calcTotalPedido();
+}
+
+function solveTotal(oField) {
+   var nPos =  oField.name.lastIndexOf('.');
+   var cFieldQuant = "IT.QUANT." + oField.name.substr(nPos+1, 3);
+   var cFieldPreco = "IT.PRECO." + oField.name.substr(nPos+1, 3);
+   var cFieldValor = "IT.VALOR." + oField.name.substr(nPos+1, 3);
+
+   var nPreco = 0;
+   var nQuant = commaToNumber(document.all[cFieldQuant].value);
+   var nValor = commaToNumber(document.all[cFieldValor].value);
+   if(nQuant != 0)
+      nPreco = nValor / nQuant;
+
+   var cQuant = formatZeros(nQuant);
+   var cPreco = formatZeros(nPreco);
+   var cValor = formatZeros(nValor);
+   
+   document.all[cFieldQuant].value = cQuant;
+   document.all[cFieldPreco].value = cPreco;
+   document.all[cFieldValor].value = cValor;
+   
+   calcSubTotal();
+   calcIPI();
+   calcTotalPedido();
+}
+
+</script>
+
+<form action="mailto:%WFMailTo%" method="POST"
+name="FrontPage_Form1"
+onsubmit="return FrontPage_Form1_Validator(this)">
+    <input type="hidden" name="C1_USER" value="%C1_USER%"><p
+    align="right"><font color="#FFFFFF" size="3" face="Arial"><strong><span style="text-transform: uppercase"></strong></font><font
+    color="#FF0000" size="3" face="Arial"><strong>Cotação</strong></font><font
+    color="#FFFFFF" size="3" face="Arial"></font></p>
+    <p align="right">&nbsp;</p>
+    <table border="3" width="100%" bordercolor="#DFEFFF"
+    bordercolordark="#DFEFFF" bordercolorlight="#DFEFFF">
+        <tr>
+            <td rowspan="2" width="552" bgcolor="#DFEFFF"
+            height="1"><font size="2" face="Arial">PREZADOS
+            SENHORES.<br>
+            %A2_NOME%&nbsp;&nbsp;&nbsp; (%C8_FORNECE% -
+            %C8_LOJA%)<br>
+            %A2_END%,&nbsp; %A2_NR_END%<br>
+            %A2_BAIRRO%&nbsp; -&nbsp; %A2_MUN%<br>
+            Fone: %A2_TEL%<br>
+            Fax : %A2_FAX%</font><font size="3" face="Arial"><br>
+            <br>
+            </font><font size="2" face="Arial">Solicitamos de V.
+            Sas, cotação de preços para os produtos
+            discriminados conforme os padrões abaixo
+            estabelecidos:</font></td>
+            <td width="126" bgcolor="#DFEFFF" height="1"><p
+            align="right"><font size="3" face="Arial"><b>Cotação
+            nº </b>: %c8_num%</font> </p>
+            </td>
+        </tr>
+        <tr>
+            <td width="126" bgcolor="#DFEFFF" height="12"><p
+            align="right"><font size="3" face="Arial"><b>Vencimento
+            </b>: %c8_valida%</font> </p>
+            </td>
+        </tr>
+    </table>
+    <table border="3" width="100%" bgcolor="#FFFFFF"
+    bordercolor="#DFEFFF" bordercolordark="#DFEFFF"
+    bordercolorlight="#DFEFFF">
+        <tr>
+            <td align="center" width="48" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">Item </font></td>
+            <td align="center" width="66" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">N/Vosso
+            Codigo </font></td>
+            <td align="center" width="60" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">Descrição
+            da Mercadoria</font></td>
+            <td align="center" width="55" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">Qtde </font></td>
+            <td align="center" width="42" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">UN </font></td>
+            <td align="center" width="90" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">ValorUnitário
+            </font></td>
+            <td align="center" width="90" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">ValorTotal </font></td>
+            <td align="center" width="40" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">IPI </font></td>
+            <td align="center" width="40" bgcolor="#DFEFFF"
+            height="23"><font size="1" face="Arial">Prazo</font></td>
+        </tr>
+        <tr>
+            <td align="center" width="48" height="21"><font
+            size="1" face="Arial">%it.item% </font></td>
+            <td width="66" height="21"><font size="1"
+            face="Arial">%it.produto%</font></td>
+            <td align="center" width="60" height="21"><font
+            size="1" face="Arial">%it.descri% </font></td>
+            <td align="center" width="55" height="21"><input
+            type="text" size="6" name="T11" value="%it.quant%"><font
+            size="1" face="Arial"> </font></td>
+            <td align="center" width="42" height="21"><font
+            size="1" face="Arial">%it.um% </font></td>
+            <td align="center" width="90" bgcolor="#FFFFFF"
+            bordercolor="#FFFFFF" bordercolordark="#FFFFFF"
+            bordercolorlight="#FFFFFF" height="21"><font size="1"
+            face="Arial"><!--webbot bot="Validation"
+            s-display-name="Valor Unitário" s-data-type="Number"
+            s-number-separators=".," b-value-required="TRUE"
+            i-maximum-length="12"
+            s-validation-constraint="Greater than or equal to"
+            s-validation-value="0" --><input type="text"
+            size="12" maxlength="12" name="T1" value="%it.preco%"
+            onchange="solveUnitario(this);"></font></td>
+            <td align="center" width="90" height="21"><font
+            size="1" face="Arial"><!--webbot bot="Validation"
+            s-display-name="Valor Total" s-data-type="Number"
+            s-number-separators=".," b-value-required="TRUE"
+            i-maximum-length="12"
+            s-validation-constraint="Greater than or equal to"
+            s-validation-value="0" --><input type="text"
+            size="12" maxlength="12" name="T2" value="%it.valor%"
+            onchange="solveTotal(this);"></font></td>
+            <td align="center" width="40" height="21"><font
+            size="1" face="Arial"><!--webbot bot="Validation"
+            s-display-name="IPI" s-data-type="Number"
+            s-number-separators=".," b-value-required="TRUE"
+            i-maximum-length="5" --><input type="text" size="4"
+            maxlength="5" name="T3" value="%it.ipi%"
+            onchange="calcIPI();"></font></td>
+            <td align="center" width="40" height="21"><font
+            size="1" face="Arial"><input type="text" size="4"
+            name="T4" value="%it.prazo%"></font></td>
+        </tr>
+    </table>
+    <table border="3" width="100%" bordercolor="#DFEFFF"
+    bordercolordark="#DFEFFF" bordercolorlight="#DFEFFF">
+        <tr>
+            <td><table border="0" cellpadding="0" cellspacing="0"
+            width="100%">
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">Local
+                    de Entrega&nbsp;</font> </td>
+                    <td width="17%"><font size="2" face="Arial">Sub
+                    Total</font></td>
+                    <td width="13%"><font size="1" face="Arial"><input
+                    type="text" size="12" maxlength="12"
+                    name="T10" value="%subtot%"
+                    onchange="calcTotalPedido();"></font></td>
+                    <td width="25%"><font size="2" face="Arial">&nbsp;
+                    Condição de Pagamento</font></td>
+                </tr>
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">%c8_filient%</font></td>
+                    <td width="17%"><font size="2" face="Arial">Descontos</font></td>
+                    <td width="13%"><font size="1" face="Arial"><input
+                    type="text" size="12" name="T6"
+                    value="%vldesc%"
+                    onchange="calcTotalPedido();"></font></td>
+                    <td width="25%"><font size="1" face="Arial">&nbsp;
+                    <select name="D4" size="1">
+                        <option selected>%Pagamento%</option>
+                    </select>&nbsp; </font></td>
+                </tr>
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">Local
+                    de Pagamento</font></td>
+                    <td width="17%"><font size="2" face="Arial">Total
+                    do IPI</font></td>
+                    <td width="13%"><font size="1" face="Arial"><input
+                    type="text" size="12" name="T7"
+                    value="%aliipi%"
+                    onchange="calcTotalPedido();"></font></td>
+                    <td width="25%">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">%rever%</font>
+                    </td>
+                    <td width="17%"><font size="2" face="Arial">Frete&nbsp;&nbsp;
+                    </font><font size="1" face="Arial"><select
+                    name="D3" size="1">
+                        <option selected>%Frete%</option>
+                    </select>&nbsp; </font></td>
+                    <td width="13%"><font size="1" face="Arial"><input
+                    type="text" size="12" maxlength="12"
+                    name="T8" value="%valfre%"
+                    onchange="calcTotalPedido();"></font></td>
+                    <td width="25%"><font size="2" face="Arial">Condição
+                    de Reajuste</font></td>
+                </tr>
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">Contato
+                    no Fornecedor</font> </td>
+                    <td width="17%"><font size="2" face="Arial">TOTAL
+                    DO PEDIDO</font> </td>
+                    <td width="13%"><font size="1" face="Arial"><input
+                    type="text" size="12" maxlength="12"
+                    name="T9" value="%totped%"></font></td>
+                    <td width="25%">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td width="35%"><font size="2" face="Arial">%C8_CONTATO%</font>
+                    </td>
+                    <td width="17%">&nbsp;</td>
+                    <td width="13%">&nbsp;</td>
+                    <td width="25%">&nbsp;</td>
+                </tr>
+            </table>
+            </td>
+        </tr>
+    </table>
+    <table border="3" width="100%" bordercolor="#DFEFFF"
+    bordercolordark="#DFEFFF" bordercolorlight="#DFEFFF">
+        <tr>
+            <td width="100%"><table border="0" width="100%">
+                <tr>
+                    <td width="22%"><font color="#0099CC"
+                    face="Arial"><strong><b><i><blink>APROVAÇÃO:</blink></i></b></strong></font></td>
+                    <td width="78%"><font face="Arial"><input
+                    type="radio" checked name="Aprovacao"
+                    value="%Aprovacao%S">Sim.</font></td>
+                </tr>
+                <tr>
+                    <td width="22%">&nbsp;</td>
+                    <td width="78%"><font face="Arial"><input
+                    type="radio" name="Aprovacao"
+                    value="%Aprovacao%N">Não. (Favor especificar
+                    motivo)</font></td>
+                </tr>
+                <tr>
+                    <td width="22%">&nbsp;</td>
+                    <td width="78%"><font size="2"><textarea
+                    name="S1" rows="4" cols="67">%C8_OBS%
+               </textarea> </font></td>
+                </tr>
+                <tr>
+                    <td width="22%">&nbsp;</td>
+                    <td width="78%"><font face="Arial"><input
+                    type="submit" name="B1" value="Enviar"> <input
+                    type="reset" name="B2" value="Limpar"> </font></td>
+                </tr>
+            </table>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>

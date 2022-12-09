@@ -1,0 +1,635 @@
+#INCLUDE "rwmake.CH"
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH"
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MTA410    ºAutor  ³                    º Data ³             º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Ponto-de-Entrada: MTA410 -                                 º±±
+±±º          ³  Validação de toda a tela no Pedido de Venda               º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ LASELVA                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MTA410()
+
+
+Local cTitulo := _cStrAux := _cStrCod := ""
+Local _aValid := _aItens  := {}
+Local _bItens  := {}
+Local _nI 	  := _nQtdP	:= _nValP   := _nQtd := 0
+Local _lProc  := .F.
+Local _lProb  := .F.
+Local _lTela  := .T.
+
+lOCAL _nPosite	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_ITEM"})
+Local _nPosCod	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_PRODUTO"})
+Local _nPosQtd	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_QTDVEN"})
+Local _nPosTes	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_TES"})
+Local _nPosCFOP	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_CF"})
+Local _nPosNFO	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_NFORI"})
+Local _nPosSEO	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_SERIORI"})
+Local _nPosITO	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_ITEMORI"})
+Local _nPosLoj	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_LOJA"})
+Local _nPosLoc	:= aScan(aHeader,{|x| AllTrim(x[2])=="C6_LOCAL"})
+
+
+Private _nQtdPT	:= _nValPT	:= 0
+
+Private _aProds	:= {}
+Private oLbx
+Private oDlg
+Private Cabec2       := "Produto         Descrição                        Vlr Unit  Consig  Vendas Dev.Ant   Devol %Encalhe  Perdas %Perdas  Vlr.Perda"
+_lRet 			:= .t.
+
+
+			
+If right(M->C5_CONDPAG,1) == 'X' .and. M->C5_TIPO == 'B' .and. !(M->C5_TES $ GetMv('LS_PPDENCA'))
+	MsgBox('Verifique o Tipo do Pedido e/ou Condição de Pagamento e/ou TES','Pedido tipo NÃO FISCAL','ALERT')
+	Return(.f.)
+	
+ElseIf right(M->C5_CONDPAG,1) == 'X' .and. M->C5_TIPO == 'D' .and. !(M->C5_TES $ GetMv('LS_PPDSIMB'))
+	MsgBox('Verifique o Tipo do Pedido e/ou Condição de Pagamento e/ou TES','Pedido tipo NÃO FISCAL','ALERT')
+	Return(.f.)
+	
+ElseIf right(M->C5_CONDPAG,1) <> 'X'
+	
+	For _nI := 1 to len(aCols)
+		If !GdDeleted(_nI)
+			If GdFieldGet('C6_TES' , _nI) $ GetMv('LS_PPDSIMB') + '/' + GetMv('LS_PPDENCA')
+				MsgBox('Verifique o Tipo do Pedido e/ou Condição de Pagamento e/ou TES','Pedido tipo FISCAL','ALERT')
+				Return(.f.)
+			EndIf
+		EndIf
+	Next
+	
+EndIf
+
+For _nI := 1 to len(aCols)
+	SF4->(DbSeek(xFilial('SF4') + GdFieldGet('C6_TES', _nI),.f.))
+	If SM0->M0_ESTENT == iif(M->C5_TIPO $ 'N/C/I/P',SA1->A1_EST,SA2->A2_EST)
+		GdFieldPut('C6_CF' , '5' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),SUBSTR(SF4->F4_CF,2,3)), _nI)
+	Else
+		IF "EX" ==iif(M->C5_TIPO $ 'N/C/I/P',SA1->A1_EST,SA2->A2_EST)
+			GdFieldPut('C6_CF' , '7' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),iif(!Empty(SF4->F4_CF_FORA),SUBSTR(SF4->F4_CF_FORA,2,3),SUBSTR(SF4->F4_CF,2,3))), _nI)
+		ELSE
+			GdFieldPut('C6_CF' , '6' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),iif(!Empty(SF4->F4_CF_FORA),SUBSTR(SF4->F4_CF_FORA,2,3),SUBSTR(SF4->F4_CF,2,3))), _nI)
+		ENDIF
+	EndIf  
+
+Next
+If !l410Auto .and. altera .and. cFilAnt <> 'C0'
+	For _nI := 1 to len(aCols)
+		If !GdDeleted(_nI)
+			SF4->(DbSeek(xFilial('SF4') + GdFieldGet('C6_TES', _nI),.f.))
+			
+			If SM0->M0_ESTENT == iif(M->C5_TIPO $ 'N/C/I/P',SA1->A1_EST,SA2->A2_EST)
+				GdFieldPut('C6_CF' , '5' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),SUBSTR(SF4->F4_CF,2,3)), _nI)
+			Else
+				IF "EX" ==iif(M->C5_TIPO $ 'N/C/I/P',SA1->A1_EST,SA2->A2_EST)
+					GdFieldPut('C6_CF' , '7' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),iif(!Empty(SF4->F4_CF_FORA),SUBSTR(SF4->F4_CF_FORA,2,3),SUBSTR(SF4->F4_CF,2,3))), _nI)
+				ELSE
+					GdFieldPut('C6_CF' , '6' + IIF(!EMPTY(acols[_nI][_nPosCFOP]),SUBSTR(acols[_nI][_nPosCFOP],2,3),iif(!Empty(SF4->F4_CF_FORA),SUBSTR(SF4->F4_CF_FORA,2,3),SUBSTR(SF4->F4_CF,2,3))), _nI)
+				ENDIF
+			EndIf
+			If mv_par08 == 1
+				GdFieldPut('C6_QTDLIB' , GdFieldGet('C6_QTDVEN',_nI), _nI)
+			EndIf
+			If !empty(GdFieldGet('C6_HORAINC',_nI))
+				GdFieldPut('C6_HORAALT',left(time(),2)+substr(time(),4,2),_nI)
+			Else
+				GdFieldPut('C6_HORAINC',left(time(),2)+substr(time(),4,2),_nI)
+			EndIf
+		EndIf
+	Next
+EndIf
+
+
+
+If   SC5->C5_CLIENTE < '000009' .and. altera
+	For _nI := 1 To Len(aCols)
+	SC6->( DbSetOrder(1) ) //C6_FILIAL+C6_NUM+C6_ITEM+C6_PRODUTO
+	If SC6->( DbSeek( xFilial("SC6")+SC5->C5_NUM + alltrim(aCols[_nI,_nPosite])+alltrim(aCols[_nI,_nPosCod])))
+	
+			_cQuery := "UPDATE " + RetSqlName('SB2')
+			_cQuery += _cEnter + " SET B2_XRESERV = B2_XRESERV  - "+CVALTOCHAR(SC6->C6_QTDVEN)
+			
+			_cQuery += _cEnter + " FROM " + RetSqlName('SC6') + " SC6 (NOLOCK)"
+			
+			_cQuery += _cEnter + " INNER JOIN " + RetSqlName('SF4') + " SF4 (NOLOCK)"
+			_cQuery += _cEnter + " ON SF4.D_E_L_E_T_ 			= ''"
+			_cQuery += _cEnter + " AND F4_CODIGO 				= '"+alltrim(aCols[_nI,_nPosTes])+"'"
+			_cQuery += _cEnter + " AND F4_ESTOQUE 				= 'S'"
+			
+			_cQuery += _cEnter + " WHERE SC6.D_E_L_E_T_ 		= ''"
+			_cQuery += _cEnter + " AND C6_FILIAL 				= '"+M->C5_FILIAL+"'"
+			_cQuery += _cEnter + " AND C6_NUM 					= '"+M->C5_NUM+"'"
+			_cQuery += _cEnter + " AND C6_CLI 					< '000009'"
+			_cQuery += _cEnter + " AND SB2010.D_E_L_E_T_ 		= ''"
+			_cQuery += _cEnter + " AND B2_FILIAL 				= '"+M->C5_LOJACLI+"'"
+			_cQuery += _cEnter + " AND B2_COD 					='"+alltrim(aCols[_nI,_nPosCod])+"'"
+			_cQuery += _cEnter + " AND B2_LOCAL 				='"+alltrim(aCols[_nI,_nPosLoc])+"'"
+			nValSQL := TcSqlExec(_cQuery)
+
+			if nValSQL < 0
+				alert("Erro na execução do SQL -Delete Reserva filial")
+				alert(_cquery)
+		
+			endif
+	EndIf
+	Next _nI
+ENDIF
+
+
+For _nI := 1 To Len(aCols)
+	If !aCols[_nI,Len(aHeader)+1]
+		
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//////  validação de estoque para TODOS os pedidos de venda que movimentem estoque
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		If _lRet
+			_lRet := U_LS_C6QTD(100,GdFieldGet('C6_PRODUTO',_nI),GdFieldGet('C6_TES',_nI), GdFieldGet('C6_ITEM',_nI),GdFieldGet('C6_QTDVEN',_nI), 0, GdFieldGet('C6_LOCAL',_nI))
+		EndIf
+		
+		
+		_cGrupo := Posicione("SB1",1,xFilial("SB1")+aCols[_nI,_nPosCod],"B1_GRUPO")
+		
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Tatiane de Oliveira modificou o filtro abaixo, a pedido³
+		//³do Elvis 21/03/2016                                    ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		
+		//		If _cGrupo == "0005"
+		
+		IF _cGrupo $ " 0005/0004/0006"
+			_nQtd++
+		EndIf
+		
+		
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³SE O TIPO FOR "UTILIZA FORNECEDOR" VERIFICO SE É TES DE DEVOLUÇÃO³
+		//³SE FOR, ALTERO O TIPO DO PV PARA DEVOLUÇÃO DE COMPRAS            ³
+		//³ THIAGO QUEIROZ - 12/12/2013                                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		
+		IF M->C5_TIPO == 'B' // BENEFICIAMENTO/UTILIZA FORNECEDOR
+			
+			IF SUBSTR(aCols[_nI,_nPosCFOP],2,3) $ GETMV("LS_TESDEV")
+				M->C5_TIPO := 'D'
+			ENDIF
+		ENDIF
+		
+		// SE OS CAMPOS DE NOTA FISCAL, SERIE E ITEM DE ORIGEM ESTIVEREM EM BRANCO, NÃO AUTORIZA A ALTERAÇÃO DO PEDIDO
+		IF M->C5_TIPO == 'D'
+			IF EMPTY(ALLTRIM(aCols[_nI][_nPosNFO])) .OR. EMPTY(ALLTRIM(aCols[_nI][_nPosSEO])) .OR. EMPTY(ALLTRIM(aCols[_nI][_nPosITO]))
+				_lRet := .F.
+				msgalert("O campo NF.ORIGINAL não está preenchido corretamente!"+_cEnter+"Selecione o campo e pressione a tecla F4 para que ele seja preenchido corretamente.")
+			ENDIF
+		ENDIF
+	EndIf
+	
+Next _nI
+
+GetDRefresh()
+
+
+
+
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Tatiane de Oliveira modificou o if abaixo a pedido³
+//³do Elvis 18/03/2016                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+//If ( SM0->M0_ESTENT <> "SP" .Or. ( SM0->M0_CODIGO == "01" .And. SM0->M0_CODFIL $ "CA/CL" ) ) .Or. _nQtd > 0
+IF _nQtd > 0
+	cTitulo := iif(_nQtd > 0,"Jornais","Revistas") + " - Apontamento de Perdas"
+	
+	For _nI := 1 To Len(aCols)
+		If !aCols[_nI,Len(aHeader)+1]
+			
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Tatiane de Oliveira  - 04/02/1016                             ³
+			//³voltou a tes para olhar parametros, e não TES fixa no programa³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			
+			If alltrim(aCols[_nI,_nPosTes])  $ GetMv("MV_TESDCO")
+				Aadd(_aItens, {.T.,aCols[_nI,_nPosCod],aCols[_nI,_nPosQtd],aCols[_nI,_nPosTes]} )
+			EndIf
+			
+			
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³Tatiane vai fazer a parte de devolução envolvendo as ³
+			//³variáveis _bIitens,_lProb                            ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			
+			If alltrim(aCols[_nI,_nPosTes])  $ GetMv("MV_TESDVO")
+				Aadd(_bItens, {.T.,aCols[_nI,_nPosCod],aCols[_nI,_nPosQtd],aCols[_nI,_nPosTes]} )
+			EndIf
+			
+			
+		EndIf
+	Next _nI
+	
+	If Len(_aItens) > 0
+		AEval(_aItens, {|x| If(x[1]==.T.,_cStrAux+="'"+SubStr(x[2],1,TamSX3("C6_PRODUTO")[1])+"'"+",",Nil)})
+		_cStrCod := Substr(_cStrAux,1,Len(_cStrAux)-1)
+		_lProc := .T.
+	EndIf
+	
+	If Len(_bItens) > 0
+		AEval(_bItens, {|x| If(x[1]==.T.,_cStrAux+="'"+SubStr(x[2],1,TamSX3("C6_PRODUTO")[1])+"'"+",",Nil)})
+		_cStrCod := Substr(_cStrAux,1,Len(_cStrAux)-1)
+		_lProb := .T.
+	EndIf
+	
+	
+	If _lProb
+		
+		If Select("TMP") > 0
+			TMP->( DbCloseArea() )
+		EndIf
+		
+		
+		cQuery := "SELECT D1_COD AS B6_PRODUTO, SUBSTRING(B1_DESC,1,30) AS DESCR,SUM(CASE WHEN D1_TIPO = 'N' THEN D1_QUANT ELSE 0 END) CONSIGNACAO,"
+		cQuery += _cEnter + " SUM(CASE WHEN D1_TIPO = 'D' THEN D1_QUANT ELSE 0 END) DEVOLUCOES, AVG(D1_VUNIT)AS B6_PRUNIT,"
+		
+/*		IF _cGrupo $ " 0005/0004/0006"
+			cQuery += _cEnter + " COALESCE((SELECT SUM(D2_QUANT) "
+			cQuery += _cEnter + " 			FROM "+RetSqlName("SD2")+" SD2 (NOLOCK) "
+			cQuery += _cEnter + " 			WHERE D2_FILIAL 	= D1_FILIAL  AND D2_COD = D1_COD
+			cQuery += _cEnter + " 			AND ( D2_ORIGLAN 	= 'LO' OR D2_CLIENTE = '999999' )
+			cQuery += _cEnter + " 			AND D2_EMISSAO 		>= ( SELECT TOP 1 F1_EMISSAO "
+			cQuery += _cEnter + " 									FROM " + RetSqlname("SF1") + " SF1 "
+			cQuery += _cEnter + " 									WHERE F1_FILIAL 	= '" + xFilial("SF1") + "'
+			cQuery += _cEnter + " 									AND F1_FORNECE 		= '" + M->C5_CLIENTE + "'
+			cQuery += _cEnter + " 									AND F1_LOJA 		= '" + M->C5_LOJACLI + "'"
+			cQuery += _cEnter + " 									AND SF1.D_E_L_E_T_ 	= '' "
+			cQuery += _cEnter + " 									ORDER BY F1_EMISSAO DESC ) "
+			cQuery += _cEnter + " 			AND SD2.D_E_L_E_T_ 	= '' ),0) AS 'VENDAS' "
+		Else*/
+			cQuery += _cEnter + " COALESCE((SELECT SUM(D2_QUANT) "
+			cQuery += _cEnter + " 			FROM "+RetSqlName("SD2")+" SD2 (NOLOCK) "
+			cQuery += _cEnter + " 			WHERE D2_FILIAL 	= D1_FILIAL
+			cQuery += _cEnter + " 			AND D2_COD 			= D1_COD "
+			cQuery += _cEnter + " 			AND ( D2_ORIGLAN 	= 'LO' OR D2_CLIENTE = '999999' )
+			cQuery += _cEnter + " 			AND SD2.D_E_L_E_T_ 	= '' ),0) AS 'VENDAS' "
+//		EndIf
+		
+		cQuery += _cEnter + " FROM "+RetSqlName("SD1")+" SD1 (NOLOCK) "
+		cQuery += _cEnter + " INNER JOIN "+RetSqlName("SB1")+" SB1 (NOLOCK) "
+		cQuery += _cEnter + " 									ON D1_COD = B1_COD AND SB1.D_E_L_E_T_ = '' "
+		cQuery += _cEnter + " WHERE D1_FILIAL 		= '"+xFilial("SD1")+"'"
+		cQuery += _cEnter + " AND D1_COD 		IN ( "+_cStrCod+" )"
+		cQuery += _cEnter + " AND D1_FORNECE 		= '" + M->C5_CLIENTE + "'"
+		cQuery += _cEnter + " AND D1_LOJA 			= '" + M->C5_LOJACLI+"'"    
+		cQuery += _cEnter + " AND D1_TES in  ('263') "
+		cQuery += _cEnter + " AND SD1.D_E_L_E_T_ 	= ''"
+		
+		cQuery += _cEnter + " GROUP BY D1_FILIAL, D1_COD, B1_DESC "
+		
+		MsAguarde({|| DbUseArea(.T.,"TOPCONN",TcGenQRY(,,cQuery ),"TMP",.T.,.T.)},'Selecionando informações...')
+		
+		DbSelectArea("TMP")
+		Aadd(_aProds, {TMP->B6_PRODUTO, TMP->DESCR, TMP->B6_PRUNIT , TMP->CONSIGNACAO,	TMP->VENDAS, TMP->DEVOLUCOES, 0, 0 } )
+		If !eof()
+			_aProds := {}
+		EndIf
+		Do While TMP->( !Eof() )
+			
+			Aadd(_aProds, {TMP->B6_PRODUTO, TMP->DESCR, TMP->B6_PRUNIT , TMP->CONSIGNACAO,	TMP->VENDAS, TMP->DEVOLUCOES, 0, 0 } )
+			TMP->( DbSkip() )
+			
+		EndDo
+		
+	EndIf
+	
+	For _nI := 1 To Len(_bItens)
+		
+		nPos := aScan(_aProds , {|x| x[1] == _bItens[_nI,2] })
+		
+		If nPos > 0
+			_aProds[nPos,7] += _bItens[_nI,3]
+			_aProds[nPos,8] :=  _aProds[nPos,4] - _aProds[nPos,5] - _aProds[nPos,6] - _aProds[nPos,7]
+		EndIf
+		
+	Next _nI
+	
+	For _nI := 1 To Len(_aProds)
+		
+		_nQtdP	:= _aProds[_nI,8]
+		_nValP 	:= _aProds[_nI,3] * _aProds[_nI,8]
+		
+		_nQtdPT	+= _nQtdP
+		_nValPT += _nValP
+		
+		_nQtdP := 0
+		_nValP := 0
+		
+	Next _nI
+	cTitulo := " Apontamento de Perdas nas Devoluções"
+	Cabec2       := "Produto         Descrição                        Vlr Unit  Entradas  Vendas Dev.Ant   Devol %Encalhe  Perdas %Perdas  Vlr.Perda"
+	If !empty(_aProds)
+		Define MsDialog oDlg Title cTitulo From 000,000 to 480,830 OF oMainWnd Pixel
+		                                                                       
+		@ 15,8 ListBox oLbx Fields Header "Produto","Descricao","Preco","Entradas ","Vendas","Devol. Ant","Devol.Forn","Perda" Size 410,130 NoScroll of oDlg Pixel
+		//									1			2			3		4		5		6			  7			8
+		oLbx:SetArray(_aProds)
+		oLbx:bLine:={|| {_aProds[oLbx:nAt,1],_aProds[oLbx:nAt,2],Transform(_aProds[oLbx:nAt,3],PesqPict("SB6","B6_PRUNIT")),_aProds[oLbx:nAt,4],_aProds[oLbx:nAt,5],_aProds[oLbx:nAt,6],_aProds[oLbx:nAt,7],_aProds[oLbx:nAt,8] }}
+		oLbx:Refresh()
+		oDlg:Refresh()
+		
+		Define FONT oFontBold NAME 'Times New Roman' Size 10, 12 Bold
+		
+		@ 160, 008 Say "Qtde:" Pixel OF oDlg
+		@ 170, 008 MsGet oQtde Var Transform(_nQtdPT,PesqPict("SD2","D2_QUANT")) Size 70,10 when .F. Pixel of oDlg
+		
+		@ 160, 120 Say "Valor:" PIXEL OF oDlg
+		@ 170, 120 MsGet oQtde Var Transform(_nValPT,PesqPict("SD2","D2_TOTAL")) Size 100,10 when .F. Pixel of oDlg
+		
+		@ 210,107 Button "Imprime"	Size 037,012 PIXEL OF oDlg ACTION( RelFec() )
+		@ 210,151 Button "Confirma"	Size 037,012 PIXEL OF oDlg ACTION(_lRet := .T., _lTela := .F.,oDlg:End())
+		@ 210,195 Button "Cancelar"	Size 037,012 PIXEL OF oDlg ACTION(_lRet := .F., _lTela := .F.,oDlg:End())
+		
+		ACTIVATE MSDIALOG oDlg CENTERED valid !_lTela
+	EndIf
+	
+	
+	
+	
+	If _lProc
+		
+		If Select("TMP") > 0
+			TMP->( DbCloseArea() )
+		EndIf
+		
+		
+		cQuery := "SELECT B6_PRODUTO, SUBSTRING(B1_DESC,1,30) AS DESCR, SUM(CASE WHEN B6_PODER3 = 'R' THEN B6_QUANT ELSE 0 END) CONSIGNACAO,"
+		cQuery += _cEnter + " SUM(CASE WHEN B6_PODER3 = 'D' THEN B6_QUANT ELSE 0 END) DEVOLUCOES, AVG(B6_PRUNIT)AS B6_PRUNIT,"
+		
+		//		If _cGrupo == "0005"
+		IF _cGrupo $ " 0005/0004/0006"
+			cQuery += _cEnter + " COALESCE((SELECT SUM(D2_QUANT) "
+			cQuery += _cEnter + " 			FROM "+RetSqlName("SD2")+" SD2 (NOLOCK) "
+			cQuery += _cEnter + " 			WHERE D2_FILIAL 	= B6_FILIAL  AND D2_COD = B6_PRODUTO"
+			cQuery += _cEnter + " 			AND ( D2_ORIGLAN 	= 'LO' OR D2_CLIENTE = '999999' )
+			cQuery += _cEnter + " 			AND D2_EMISSAO 		>= ( SELECT TOP 1 F1_EMISSAO "
+			cQuery += _cEnter + " 									FROM " + RetSqlname("SF1") + " SF1 "
+			cQuery += _cEnter + " 									WHERE F1_FILIAL 	= '" + xFilial("SF1") + "'
+			cQuery += _cEnter + " 									AND F1_FORNECE 		= '" + M->C5_CLIENTE + "'
+			cQuery += _cEnter + " 									AND F1_LOJA 		= '" + M->C5_LOJACLI + "'"
+			cQuery += _cEnter + " 									AND SF1.D_E_L_E_T_ 	= '' "
+			cQuery += _cEnter + " 									ORDER BY F1_EMISSAO DESC ) "
+			cQuery += _cEnter + " 			AND SD2.D_E_L_E_T_ 	= '' ),0) AS 'VENDAS' "
+		Else
+			cQuery += _cEnter + " COALESCE((SELECT SUM(D2_QUANT) "
+			cQuery += _cEnter + " 			FROM "+RetSqlName("SD2")+" SD2 (NOLOCK) "
+			cQuery += _cEnter + " 			WHERE D2_FILIAL 	= B6_FILIAL
+			cQuery += _cEnter + " 			AND D2_COD 			= B6_PRODUTO "
+			cQuery += _cEnter + " 			AND ( D2_ORIGLAN 	= 'LO' OR D2_CLIENTE = '999999' )
+			cQuery += _cEnter + " 			AND SD2.D_E_L_E_T_ 	= '' ),0) AS 'VENDAS' "
+		EndIf
+		
+		cQuery += _cEnter + " FROM "+RetSqlName("SB6")+" SB6 (NOLOCK) "
+		cQuery += _cEnter + " INNER JOIN "+RetSqlName("SB1")+" SB1 (NOLOCK) "
+		cQuery += _cEnter + " 									ON B6_PRODUTO = B1_COD AND SB1.D_E_L_E_T_ = '' "
+		cQuery += _cEnter + " WHERE B6_FILIAL 		= '"+xFilial("SB6")+"'"
+		cQuery += _cEnter + " AND B6_PRODUTO 		IN ( "+_cStrCod+" )"
+		cQuery += _cEnter + 		" AND (B6_TES < '500' OR B6_TES in  " + FormatIn(alltrim(GetMv("MV_TESDCO")),',') + ")"
+		cQuery += _cEnter + " AND B6_CLIFOR 		= '" + M->C5_CLIENTE + "'"
+		cQuery += _cEnter + " AND B6_LOJA 			= '" + M->C5_LOJACLI+"'"
+		cQuery += _cEnter + " AND B6_TPCF 			= 'F'"
+		cQuery += _cEnter + " AND SB6.D_E_L_E_T_ 	= ''"
+		
+		cQuery += _cEnter + " GROUP BY B6_FILIAL, B6_PRODUTO, B1_DESC "
+		
+		MsAguarde({|| DbUseArea(.T.,"TOPCONN",TcGenQRY(,,cQuery ),"TMP",.T.,.T.)},'Selecionando informações...')
+		
+		DbSelectArea("TMP")
+		Aadd(_aProds, {TMP->B6_PRODUTO, TMP->DESCR, TMP->B6_PRUNIT , TMP->CONSIGNACAO,	TMP->VENDAS, TMP->DEVOLUCOES, 0, 0 } )
+		If !eof()
+			_aProds := {}
+		EndIf
+		Do While TMP->( !Eof() )
+			
+			Aadd(_aProds, {TMP->B6_PRODUTO, TMP->DESCR, TMP->B6_PRUNIT , TMP->CONSIGNACAO,	TMP->VENDAS, TMP->DEVOLUCOES, 0, 0 } )
+			TMP->( DbSkip() )
+			
+		EndDo
+		
+	EndIf
+	
+	For _nI := 1 To Len(_aItens)
+		
+		nPos := aScan(_aProds , {|x| x[1] == _aItens[_nI,2] })
+		
+		If nPos > 0
+			_aProds[nPos,7] += _aItens[_nI,3]
+			_aProds[nPos,8] :=  _aProds[nPos,4] - _aProds[nPos,5] - _aProds[nPos,6] - _aProds[nPos,7]
+		EndIf
+		
+	Next _nI
+	
+	For _nI := 1 To Len(_aProds)
+		
+		_nQtdP	:= _aProds[_nI,8]
+		_nValP 	:= _aProds[_nI,3] * _aProds[_nI,8]
+		
+		_nQtdPT	+= _nQtdP
+		_nValPT += _nValP
+		
+		_nQtdP := 0
+		_nValP := 0
+		
+	Next _nI
+	
+	If !empty(_aProds)
+		Define MsDialog oDlg Title cTitulo From 000,000 to 480,830 OF oMainWnd Pixel
+		
+		@ 15,8 ListBox oLbx Fields Header "Produto","Descricao","Preco","Consig.","Vendas","Devol. Ant","Devol.","Perda" Size 410,130 NoScroll of oDlg Pixel
+		//									1			2			3		4		5		6			  7			8
+		oLbx:SetArray(_aProds)
+		oLbx:bLine:={|| {_aProds[oLbx:nAt,1],_aProds[oLbx:nAt,2],Transform(_aProds[oLbx:nAt,3],PesqPict("SB6","B6_PRUNIT")),_aProds[oLbx:nAt,4],_aProds[oLbx:nAt,5],_aProds[oLbx:nAt,6],_aProds[oLbx:nAt,7],_aProds[oLbx:nAt,8] }}
+		oLbx:Refresh()
+		oDlg:Refresh()
+		
+		Define FONT oFontBold NAME 'Times New Roman' Size 10, 12 Bold
+		
+		@ 160, 008 Say "Qtde:" Pixel OF oDlg
+		@ 170, 008 MsGet oQtde Var Transform(_nQtdPT,PesqPict("SD2","D2_QUANT")) Size 70,10 when .F. Pixel of oDlg
+		
+		@ 160, 120 Say "Valor:" PIXEL OF oDlg
+		@ 170, 120 MsGet oQtde Var Transform(_nValPT,PesqPict("SD2","D2_TOTAL")) Size 100,10 when .F. Pixel of oDlg
+		
+		@ 210,107 Button "Imprime"	Size 037,012 PIXEL OF oDlg ACTION( RelFec() )
+		@ 210,151 Button "Confirma"	Size 037,012 PIXEL OF oDlg ACTION(_lRet := .T., _lTela := .F.,oDlg:End())
+		@ 210,195 Button "Cancelar"	Size 037,012 PIXEL OF oDlg ACTION(_lRet := .F., _lTela := .F.,oDlg:End())
+		
+		ACTIVATE MSDIALOG oDlg CENTERED valid !_lTela
+	EndIf
+	
+EndIf
+
+Return(_lRet)
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³RelFec    ºAutor  ³                    º Data ³  00/00/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Laselva                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function RelFec()
+
+Local cDesc1       := "Este programa tem como objetivo imprimir relatorio "
+Local cDesc2       := "com os produtos do Acerto de Consignacao - Revistas. "
+Local cDesc3       := " "
+Local cPict        := ""
+Local titulo       := "ACERTO DE REVISTAS "
+Local nLin         := 80
+
+Local Cabec1       := "Fornecedor/Loja: "  + M->C5_CLIENTE + "/" + M->C5_LOJACLI + " - "+ Posicione("SA2", 1, xFilial("SA2") + M->C5_CLIENTE + M->C5_LOJACLI ,"A2_NOME")
+
+//					   123456789012345 123456789012345678901234567890 991,123,12 999,999 999,999 999,999 999,999 99999,99 999,999 9999.99 999,999,99
+
+Local imprime        := .T.
+Local aOrd           := {}
+Private lEnd         := .F.
+Private lAbortPrint  := .F.
+Private CbTxt        := ""
+Private limite       := 132
+Private tamanho      := "M"
+Private nomeprog     := "MTA410" // Coloque aqui o nome do programa para impressao no cabecalho
+Private nTipo        := 18
+Private aReturn      := { "Zebrado", 1, "Administracao", 2, 2, 1, "", 1}
+Private nLastKey     := 0
+Private cbtxt        := Space(10)
+Private cbcont       := 00
+Private CONTFL       := 01
+Private m_pag        := 01
+Private wnrel        := "RelPerdas"
+
+Private cString := ""
+
+wnrel := SetPrint(cString,NomeProg,"",@titulo,cDesc1,cDesc2,cDesc3,.T.,aOrd,.T.,Tamanho,,.T.)
+
+If nLastKey == 27
+	Return
+Endif
+
+fErase(__RelDir + wnrel + '.##r')
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+	Return
+Endif
+
+nTipo := If(aReturn[4]==1,15,18)
+
+RptStatus({|| RunRel03(Cabec1,Cabec2,Titulo,nLin) },Titulo)
+Return
+
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³RunRel03  ºAutor  ³                    º Data ³  00/00/10   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³                                                            º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ Laselva                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function RunRel03(Cabec1,Cabec2,Titulo,nLin)
+
+
+Local nOrdem
+
+Local _nTotCo	:= 0
+Local _nTotVe	:= 0
+Local _nTotDe	:= 0
+Local _nTotDA	:= 0
+Local _nTotEn	:= 0
+Local _nTotPe	:= 0
+Local _nTotVl	:= 0
+
+SetRegua( Len(_aProds) )
+
+If nLin > 55
+	Cabec(Titulo,Cabec1,Cabec2,NomeProg,Tamanho,nTipo)
+	nLin := 9
+EndIf
+
+For _nI := 1 To Len(_aProds)
+	IncRegua()
+	
+
+	_cLinha := _aProds[_nI,1] + ' ' + Substr( Posicione("SB1",1,xFilial("SB1")+_aProds[_nI,1],"B1_DESC"),1,30 ) + ' '     //Produto         Descrição
+	_cLinha += tran(_aProds[_nI,3], "@E 999,999.99") + ' '      //Vlr Unit
+	_cLinha += tran(_aProds[_nI,4], "@E 999,999") + ' '  //Consig
+	_cLinha += tran(_aProds[_nI,5], "@E 999,999") + ' '   //Vendas
+	_cLinha += tran(_aProds[_nI,6], "@E 999,999") + ' '   // Dev.Ant
+	_cLinha += tran(_aProds[_nI,7], "@E 999,999") + ' '   //Devol
+	_cLinha += tran((_aProds[_nI,7]+_aProds[_nI,6]) / _aProds[_nI,4] * 100,"@E 99999.99") + ' '    // %Encalhe
+	_cLinha += tran(_aProds[_nI,8],"@E 999,999") + ' '     //Perdas
+	_cLinha += tran(_aProds[_nI,8]/_aProds[_nI,4] * 100,"@E 9999.99") + ' '  //%Perdas
+	_cLinha += tran(_aProds[_nI,8] * _aProds[_nI,3],"@E 999,999.99")     // Vlr.Perda
+	
+	@ nLin++,00 pSay _cLinha
+	
+	_nTotCo	+= _aProds[_nI,4]       ////Consig
+	_nTotVe	+= _aProds[_nI,5]       ////Vendas
+	_nTotDe += _aProds[_nI,6]    //// Dev.Ant
+	_nTotDA += _aProds[_nI,7] //Devol
+	_nTotPe += _aProds[_nI,8] //Perdas
+	_nTotVl += _aProds[_nI,8] * _aProds[_nI,3]    // Vlr.Perda
+	
+Next _nI
+_nPerEn := ( _nTotDA + _nTotDe) / _nTotVe * 100
+_nPerPe := _nTotPe / _nTotVe * 100
+
+@ nLin+=2,000 pSay __PrtThinLine()
+
+_cLinha := padR("Totais ",58,' ')
+_cLinha += tran(_nTotCo, "@E 999,999") + ' '
+_cLinha += tran(_nTotVe, "@E 999,999") + ' '
+_cLinha += tran(_nTotDe, "@E 999,999") + ' '
+_cLinha += tran(_nTotDa, "@E 999,999") + ' '
+_cLinha += tran(((_nTotDe + _nTotDA) / _nTotCo * 100),"@E 99999.99") + ' '
+_cLinha += tran(_nTotPe,"@E 999,999") + ' '
+_cLinha += tran((_nTotPe/_nTotCo * 100),"@E 9999.99") + ' '
+_cLinha += tran(_nTotVl,"@E 999,999.99")
+
+@ nLin+=2,000 pSay _cLinha
+
+If aReturn[5]==1
+	OurSpool(wnrel)
+Endif
+
+MS_FLUSH()
+
+Return

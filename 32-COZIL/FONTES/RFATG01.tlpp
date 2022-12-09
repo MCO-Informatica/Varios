@@ -1,0 +1,100 @@
+#Include 'Protheus.ch'
+
+//---------------------------------------------------------------------------------
+// Rotina | RFATG01        | Autor | Lucas Baia          | Data |    12/05/2022	
+//---------------------------------------------------------------------------------
+// Descr. | 
+//        | 
+//---------------------------------------------------------------------------------
+// Uso    | 
+//---------------------------------------------------------------------------------
+
+
+User Function RFATG01()
+
+Local cSUPER1   := Alltrim(Posicione("SA3",1,xFilial("SA3")+M->C5_VEND1,"A3_SUPER"))
+Local cSUPER2   := Alltrim(M->C5_VEND2)
+Local cTipo     := Alltrim(Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_TIPO"))
+Local nCusto    := Posicione("SB1",1,xFilial("SB1")+aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })],"B1_CUSTD")
+Local nMK       := 0
+Local nDesconto := 0
+Local nComissao 
+
+IF cTipo == "PA"
+
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_DESCONT" })] := (1-(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRCVEN" })] / aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_XPRUNIT"})])) * 100
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_VALDESC" })] := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_XPRUNIT" })] - aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRCVEN" })]
+
+    nDesconto := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_DESCONT" })]
+
+    IF nDesconto == 0
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 10
+
+    ELSEIF nDesconto >= 0.01 .AND. nDesconto <= 2
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 8
+
+    ELSEIF nDesconto >= 2.01 .AND. nDesconto <= 4
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 7
+
+    ELSEIF nDesconto >= 4.01 .AND. nDesconto <= 6
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 6
+
+    ELSEIF nDesconto >= 6.01 .AND. nDesconto <= 8
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 5
+
+    ELSEIF nDesconto >= 8.01 
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 3
+
+    ENDIF
+
+ENDIF
+
+IF cTipo == "RV"
+
+    If nCusto<=0
+        MsgStop("O produto "+Alltrim(aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRODUTO" })])+" está com o CUSTO STANDARD zerado. Isso afetará o cálculo do MARKUP e o % COMISSÃO!!!","Custo Standard")
+    EndIf
+
+    nMK := Round((aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_PRCVEN" })] / nCusto),2)
+    
+    IF nMK < 1.4
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 0
+
+    ELSEIF nMK >= 1.4 .and. nMK <= 1.49
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 3
+
+    ELSEIF nMK >= 1.5 .and. nMK <= 1.59
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 4
+
+    ELSEIF nMK >= 1.6
+
+        aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := 5
+
+    ENDIF
+
+ENDIF
+
+If Empty(cSUPER1)
+    
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })] := Posicione("SA3",1,xFilial("SA3")+M->C5_VEND1,"A3_COMIS")
+
+EndIf
+
+If !Empty(cSUPER2)
+    
+    aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS2" })] := Posicione("SA3",1,xFilial("SA3")+cSUPER2,"A3_XCOMIS")
+
+EndIf
+
+nComissao   := aCols[n,Ascan(aHeader, {|x|, Upper(Alltrim(x[2])) == "C6_COMIS1" })]
+
+Return nComissao

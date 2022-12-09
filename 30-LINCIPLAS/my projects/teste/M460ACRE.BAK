@@ -1,0 +1,9 @@
+#include "protheus.ch"
+
+
+User Function MSD2UM2(xaRetAcr)
+
+
+i:=10
+
+Return
